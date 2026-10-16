@@ -49,7 +49,11 @@
     "complement": "Complemento",
     "back": "Volver",
     "continue": "Continuar",
-    "or": "o"
+    "or": "o",
+    "sending": "Enviando...",
+    "copied": "¡Copiado!",
+    "copy": "Copiar",
+    "clickToPreview": "Clic para previsualizar"
   },
   "sidebar": {
     "voiceChannel": "En el canal de voz",
@@ -303,7 +307,8 @@
         "updateSettings": "Ajuste Modificado",
         "updateRole": "Rol Modificado",
         "assignRole": "Miembro Rol",
-        "default": "Acción"
+        "default": "Acción",
+        "updatePlugin": "Complemento"
       }
     },
     "members": {
@@ -330,7 +335,11 @@
       "makePrivate": "Hacer canal privado",
       "defaultCategoryName": "Categoría",
       "defaultVoiceChannelName": "Sala de voz",
-      "defaultTextChannelName": "general"
+      "defaultTextChannelName": "general",
+      "dragHelp": "Organiza y arrastra tus canales de texto y voz. Administra permisos de privacidad por rol.",
+      "text": "Texto",
+      "voice": "Voz",
+      "removeRoleHint": "Haz clic para quitar rol"
     },
     "invites": {
       "title": "Invitaciones al Servidor",
@@ -496,7 +505,9 @@
       "videosTitle": "Vídeos: {{size}}",
       "audioTitle": "Audio: {{size}}",
       "textTitle": "Texto: {{size}}",
-      "docsTitle": "Documentos: {{size}}"
+      "docsTitle": "Documentos: {{size}}",
+      "clearCacheTooltip": "Limpia la lista de archivos registrados en la app para este servidor. Ningún archivo físico de tu ordenador será borrado.",
+      "text": "Texto"
     }
   },
   "profileTab": {
@@ -518,7 +529,13 @@
     "exeName": "Nombre del ejecutable",
     "displayName": "Título a mostrar",
     "addGame": "Añadir Juego",
-    "noCustomGames": "No tienes juegos personalizados registrados."
+    "noCustomGames": "No tienes juegos personalizados registrados.",
+    "invalidImage": "Selecciona una imagen válida.",
+    "imageTooLarge": "La imagen no debe superar los 512 KB.",
+    "nicknameLabel": "Apodo o Nombre de Usuario",
+    "statusLabel": "Estado Personalizado",
+    "linkLabel": "Enlace o Red Social",
+    "activitySettings": "Actividad y Presencia"
   },
   "chat": {
     "isWriting": "está escribiendo...",
@@ -708,7 +725,16 @@
     },
     "sfx": {
       "title": "Efectos de Sonido",
-      "packDesc": "Estilo acústico para las interacciones y respuestas del sistema."
+      "packDesc": "Estilo acústico para las interacciones y respuestas del sistema.",
+      "pack": "Paquete de Sonidos",
+      "volume": "Volumen de Efectos",
+      "volumeDesc": "Nivel de volumen general para los efectos y avisos acústicos.",
+      "typing": "Sonido de escritura de otros usuarios",
+      "typingDesc": "Reproduce un pulso sutil cuando otros usuarios escriben en el canal activo.",
+      "widgets": "Sonidos hápticos de widgets",
+      "widgetsDesc": "Efectos acústicos al arrastrar, encajar y redimensionar widgets en el dashboard.",
+      "navigation": "Sonidos de navegación",
+      "navigationDesc": "Cues acústicos al cambiar canales y desplegar o colapsar categorías."
     },
     "sfxPacks": {
       "minimal": "Minimal",
@@ -774,7 +800,15 @@
       "autoGainControlDesc": "Ajusta automáticamente el volumen de tu micrófono.",
       "resetAudio": "Restablecer ajustes de audio",
       "stopTest": "Detener prueba",
-      "testMic": "Probar micrófono"
+      "testMic": "Probar micrófono",
+      "inputModeTitle": "Modo de Entrada",
+      "voiceActivity": "Actividad de Voz",
+      "voiceActivityDesc": "El micrófono se activará automáticamente cuando detecte sonido por encima del umbral.",
+      "pushToTalk": "Apretar para Hablar (PTT)",
+      "pushToTalkDesc": "Tu micrófono permanecerá silenciado hasta que presiones y mantengas tu atajo grabado.",
+      "keybindingConfigHint": "Configuración de atajos de teclado y mouse",
+      "keybindingConfigDesc": "Los atajos y botones para Apretar para Hablar (PTT) se configuran en la pestaña Atajos de Teclado.",
+      "advancedProcessing": "Procesamiento Avanzado de Audio"
     },
     "appearance": {
       "theme": "Tema visual",
@@ -958,7 +992,11 @@
       "controlsTitle": "Controles de Interfaz y Estado",
       "buttonStyles": "Estilos de Botones",
       "dynamicIconTitle": "Icono Dinámico de la App",
-      "dynamicIconDesc": "Sincronizado con la barra de tareas y el tray del sistema."
+      "dynamicIconDesc": "Sincronizado con la barra de tareas y el tray del sistema.",
+      "customColor": "Personalizado",
+      "settings": "Ajustes",
+      "previewToggle": "Interruptor de Estado",
+      "scrollLevel": "Nivel de Desplazamiento"
     },
     "network": {
       "ipPlaceholder": "e.g. 201.242.10.15 o miservidor.ddns.net",
@@ -1018,6 +1056,30 @@
         "deleteSuccess": "Backup eliminado.",
         "deleteError": "Error al eliminar."
       }
+    },
+    "overlay": {
+      "title": "Overlay de Voz en Juego",
+      "enableOverlay": "Habilitar Overlay en Juego",
+      "enableDesc": "Muestra los usuarios conectados al canal de voz sobre tus juegos cuando se detecte un juego activo.",
+      "testTitle": "Probar Overlay en Pantalla",
+      "testDesc": "Muestra el overlay real en la posición seleccionada durante 10 segundos para verificar cómo se ve sobre tu escritorio o juego.",
+      "testing": "Mostrando (10s)...",
+      "testBtn": "Probar en Pantalla",
+      "gameInfo": "Durante el uso normal, el overlay se activará automáticamente cuando estés en un canal de voz y se detecte un juego en ejecución (con Onicord en segundo plano).",
+      "positionTitle": "Posición en Pantalla",
+      "positionSelect": "Ubicación del Overlay",
+      "positionDesc": "Selecciona en qué zona de la pantalla aparecerá el overlay. Siempre se mantendrá pegado al borde más cercano.",
+      "screen": "Pantalla",
+      "displayTitle": "Visualización de Usuarios y Nombres",
+      "avatarOnly": "Solo imagen de perfil",
+      "avatarOnlyDesc": "Muestra únicamente las fotos de perfil circulares con su aro indicador de voz, ocultando los nombres.",
+      "showNameOnlySpeaking": "Mostrar nombre solo cuando esa persona está hablando",
+      "showNameOnlySpeakingDesc": "Mantiene el nombre oculto si el usuario está en silencio (solo se ve su avatar) y lo muestra automáticamente cuando habla.",
+      "appearanceTitle": "Apariencia y Comportamiento",
+      "opacity": "Opacidad del Fondo",
+      "opacityDesc": "Ajusta la transparencia del contenedor del overlay. Puedes establecerlo en 0% para un fondo completamente transparente.",
+      "autoHide": "Ocultar cuando nadie habla",
+      "autoHideDesc": "El overlay se desvanece automáticamente tras 5 segundos sin actividad de voz y reaparece cuando alguien habla."
     }
   },
   "welcome": {
@@ -1139,7 +1201,9 @@
       "openServerSettings": "Configuración del Servidor",
       "switchServerUp": "Servidor Anterior",
       "switchServerDown": "Servidor Siguiente"
-    }
+    },
+    "infoTitle": "Atajos de Teclado y Botones del Mouse",
+    "infoDesc": "Los atajos que usan teclas del teclado (ej: Ctrl+Shift+M o F8) funcionan de forma global en todo el sistema operativo, incluso cuando estés jugando en pantalla completa o tengas Onicord en segundo plano. Los atajos que incluyen botones del mouse (ej: Mouse 4, Mouse 5) se activan cuando la aplicación está en uso."
   },
   "drive": {
     "restoreTitle": "Restaurar desde Google Drive",

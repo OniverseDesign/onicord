@@ -49,7 +49,11 @@
     "complement": "Addon",
     "back": "Back",
     "continue": "Continue",
-    "or": "or"
+    "or": "or",
+    "sending": "Sending...",
+    "copied": "Copied!",
+    "copy": "Copy",
+    "clickToPreview": "Click to preview"
   },
   "sidebar": {
     "voiceChannel": "In voice channel",
@@ -303,7 +307,8 @@
         "updateSettings": "Setting Modified",
         "updateRole": "Role Modified",
         "assignRole": "Role Assigned",
-        "default": "Action"
+        "default": "Action",
+        "updatePlugin": "Plugin"
       }
     },
     "members": {
@@ -330,7 +335,11 @@
       "makePrivate": "Make channel private",
       "defaultCategoryName": "Category",
       "defaultVoiceChannelName": "Voice Lounge",
-      "defaultTextChannelName": "general"
+      "defaultTextChannelName": "general",
+      "dragHelp": "Organize and drag your text and voice channels. Manage role privacy permissions.",
+      "text": "Text",
+      "voice": "Voice",
+      "removeRoleHint": "Click to remove role"
     },
     "invites": {
       "title": "Server Invites",
@@ -496,7 +505,9 @@
       "videosTitle": "Videos: {{size}}",
       "audioTitle": "Audio: {{size}}",
       "textTitle": "Text: {{size}}",
-      "docsTitle": "Documents: {{size}}"
+      "docsTitle": "Documents: {{size}}",
+      "clearCacheTooltip": "Clears the list of files registered in the app for this server. No physical files on your computer will be deleted.",
+      "text": "Text/Code"
     }
   },
   "profileTab": {
@@ -518,7 +529,13 @@
     "exeName": "Executable name",
     "displayName": "Display title",
     "addGame": "Add Game",
-    "noCustomGames": "No custom games registered."
+    "noCustomGames": "No custom games registered.",
+    "invalidImage": "Please select a valid image.",
+    "imageTooLarge": "Image must not exceed 512 KB.",
+    "nicknameLabel": "Nickname or Username",
+    "statusLabel": "Custom Status",
+    "linkLabel": "Link or Social Profile",
+    "activitySettings": "Activity and Presence"
   },
   "chat": {
     "isWriting": "is writing...",
@@ -708,7 +725,16 @@
     },
     "sfx": {
       "title": "Sound Effects",
-      "packDesc": "Acoustic style for system interactions and responses."
+      "packDesc": "Acoustic style for system interactions and responses.",
+      "pack": "Sound Pack",
+      "volume": "Effects Volume",
+      "volumeDesc": "Overall volume level for acoustic effects and notices.",
+      "typing": "Other users typing sound",
+      "typingDesc": "Plays a subtle pulse when other users type in the active channel.",
+      "widgets": "Haptic widget sounds",
+      "widgetsDesc": "Acoustic effects when dragging, docking, and resizing dashboard widgets.",
+      "navigation": "Navigation sounds",
+      "navigationDesc": "Acoustic cues when switching channels and expanding or collapsing categories."
     },
     "sfxPacks": {
       "minimal": "Minimal",
@@ -774,7 +800,15 @@
       "autoGainControlDesc": "Automatically adjusts your microphone volume.",
       "resetAudio": "Reset Audio Settings",
       "stopTest": "Stop Test",
-      "testMic": "Test Microphone"
+      "testMic": "Test Microphone",
+      "inputModeTitle": "Input Mode",
+      "voiceActivity": "Voice Activity",
+      "voiceActivityDesc": "The microphone will activate automatically when sound is detected above the threshold.",
+      "pushToTalk": "Push to Talk (PTT)",
+      "pushToTalkDesc": "Your microphone will remain muted until you press and hold your recorded shortcut.",
+      "keybindingConfigHint": "Keyboard and mouse shortcuts configuration",
+      "keybindingConfigDesc": "Shortcuts and buttons for Push to Talk (PTT) are configured in the Keybindings tab.",
+      "advancedProcessing": "Advanced Audio Processing"
     },
     "appearance": {
       "theme": "Visual Theme",
@@ -958,7 +992,11 @@
       "controlsTitle": "Interface & State Controls",
       "buttonStyles": "Button Styles",
       "dynamicIconTitle": "Dynamic App Icon",
-      "dynamicIconDesc": "Synchronized with taskbar and system tray."
+      "dynamicIconDesc": "Synchronized with taskbar and system tray.",
+      "customColor": "Custom",
+      "settings": "Settings",
+      "previewToggle": "State Toggle",
+      "scrollLevel": "Scroll Level"
     },
     "network": {
       "ipPlaceholder": "e.g. 201.242.10.15 or myserver.ddns.net",
@@ -1018,6 +1056,30 @@
         "deleteSuccess": "Backup deleted.",
         "deleteError": "Error deleting backup."
       }
+    },
+    "overlay": {
+      "title": "In-Game Voice Overlay",
+      "enableOverlay": "Enable In-Game Overlay",
+      "enableDesc": "Displays voice channel participants over your games when an active game is detected.",
+      "testTitle": "Test Overlay on Screen",
+      "testDesc": "Shows the real overlay at the selected position for 10 seconds to verify how it appears over your desktop or game.",
+      "testing": "Showing (10s)...",
+      "testBtn": "Test on Screen",
+      "gameInfo": "During normal use, the overlay activates automatically when you are in a voice channel and a running game is detected (with Onicord in the background).",
+      "positionTitle": "Screen Position",
+      "positionSelect": "Overlay Placement",
+      "positionDesc": "Select which screen area the overlay appears in. It always docks to the nearest edge.",
+      "screen": "Screen",
+      "displayTitle": "User and Name Display",
+      "avatarOnly": "Avatar only",
+      "avatarOnlyDesc": "Only shows circular profile pictures with their speaking ring indicator, hiding names.",
+      "showNameOnlySpeaking": "Show name only when that person is speaking",
+      "showNameOnlySpeakingDesc": "Keeps names hidden if the user is silent (showing only avatar) and displays it automatically when speaking.",
+      "appearanceTitle": "Appearance and Behavior",
+      "opacity": "Background Opacity",
+      "opacityDesc": "Adjusts overlay container transparency. You can set it to 0% for a completely transparent background.",
+      "autoHide": "Hide when nobody speaks",
+      "autoHideDesc": "The overlay automatically fades out after 5 seconds of silence and reappears when someone speaks."
     }
   },
   "welcome": {
@@ -1139,7 +1201,9 @@
       "openServerSettings": "Server Settings",
       "switchServerUp": "Previous Server",
       "switchServerDown": "Next Server"
-    }
+    },
+    "infoTitle": "Keyboard Shortcuts and Mouse Buttons",
+    "infoDesc": "Shortcuts using keyboard keys (e.g. Ctrl+Shift+M or F8) work globally across the entire operating system, even when in fullscreen games or when Onicord is in the background. Shortcuts that include mouse buttons (e.g. Mouse 4, Mouse 5) activate when the application is focused."
   },
   "drive": {
     "restoreTitle": "Restore from Google Drive",

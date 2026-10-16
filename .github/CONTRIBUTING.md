@@ -53,8 +53,8 @@ Onicord provides a multi-language experience. To maintain localization parity:
 - **Never hardcode user-visible strings** directly in JSX components or backend user notices.
 - Always use the `t("namespace.key")` translation function from `react-i18next`.
 - Whenever you add or modify a string key, you **must update both base locale files**:
-  - `src/i18n/locales/en.json` (English - canonical source of truth)
-  - `src/i18n/locales/es.json` (Spanish)
+  - `src/i18n/locales/es.json` (Spanish - canonical source of truth)
+  - `src/i18n/locales/en.json` (English)
 - Ensure translation keys are placed under logical namespaces matching the component or domain (e.g., `sidebar`, `settings`, `chat`, `voice`).
 
 ### Adding a New Language Translation
@@ -62,10 +62,10 @@ Onicord provides a multi-language experience. To maintain localization parity:
 We welcome community translations to any language! To contribute a new translation:
 
 1. **Copy the canonical source**:
-   Copy `src/i18n/locales/en.json` and save it as `src/i18n/locales/<language-code>.json` using standard two-letter ISO 639-1 language codes (e.g., `pt.json`, `fr.json`, `de.json`, `it.json`, `ja.json`).
+   Copy `src/i18n/locales/es.json` (or `en.json`) and save it as `src/i18n/locales/<language-code>.json` using standard two-letter ISO 639-1 language codes (e.g., `pt.json`, `fr.json`, `de.json`, `it.json`, `ja.json`).
 
 2. **Translate the string values**:
-   - Translate only the values on the right side of the colon; **keep all JSON keys identical** to `en.json`.
+   - Translate only the values on the right side of the colon; **keep all JSON keys identical** to `es.json`.
    - **Do not translate interpolation variables** enclosed in curly braces (e.g., `{{count}}`, `{{username}}`, `{{days}}`).
    - Preserve HTML tags and markdown markers if present in the text.
 

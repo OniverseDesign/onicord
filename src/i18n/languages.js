@@ -11,7 +11,7 @@ export const SUPPORTED_LANGUAGES = [
   {
     code: "es",
     name: "Spanish",
-    nativeName: "Español",
+    nativeName: "Espa\u00f1ol",
     translation: es,
   },
   {
