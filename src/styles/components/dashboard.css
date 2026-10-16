@@ -1,0 +1,85 @@
+@layer components {
+  /* 🎛️ DASHBOARD, SERVER RAIL, AND GRID STYLES */
+  .onicord-rail-indicator {
+    @apply absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-onicord-text transition-all duration-200;
+  }
+  .onicord-rail-btn-server {
+    @apply flex h-12 w-12 items-center justify-center overflow-hidden text-sm font-semibold transition-all duration-200 rounded-[24px] bg-onicord-base text-onicord-text hover:rounded-[16px] hover:bg-onicord-accent hover:text-white;
+  }
+  .onicord-rail-btn-server svg {
+    transform-origin: center !important;
+    transform-box: fill-box !important;
+  }
+  .onicord-rail-btn-active {
+    @apply rounded-[16px] bg-onicord-accent text-white;
+  }
+
+  .onicord-server-header-btn {
+    @apply flex h-12 w-full shrink-0 items-center justify-center gap-2 px-3 hover:bg-white/[0.02];
+  }
+  .onicord-server-icon-fallback {
+    @apply flex h-6 w-6 items-center justify-center rounded-full bg-onicord-accent text-[10px] font-bold text-white;
+  }
+  .onicord-server-avatar {
+    @apply flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-onicord-accent text-xl font-bold text-onicord-mantle shadow-md select-none shrink-0;
+  }
+
+  .onicord-dashboard-header {
+    @apply bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island p-5 flex items-center justify-between shadow-md shrink-0;
+  }
+  .onicord-bento-grid {
+    @apply grid flex-1 min-h-0 bg-onicord-mantle/10 rounded-onicord-outer-p4 border border-white/[0.02];
+  }
+
+  .onicord-rail-btn {
+    @apply flex h-12 w-12 items-center justify-center border border-onicord-island rounded-[24px] bg-onicord-surface transition-all duration-200 hover:rounded-[16px] hover:text-white cursor-pointer;
+  }
+  .onicord-rail-btn-accent {
+    @apply border-onicord-overlay text-onicord-accent hover:bg-onicord-accent;
+  }
+  .onicord-rail-btn-muted {
+    @apply border-white/5 text-onicord-muted hover:bg-onicord-success;
+  }
+
+  .onicord-list-row-interactive {
+    @apply flex w-full items-center justify-between gap-2 rounded-onicord-button px-3 py-[5px] hover:bg-onicord-overlay/40 cursor-pointer text-[14px];
+    transition: transform 0.15s ease-out, width 0.15s ease-out, background-color 0.15s ease-out;
+  }
+  .onicord-list-row-interactive:hover {
+    transform: translateX(calc(var(--hover-slide-amount) * 0.75));
+    width: calc(100% - (var(--hover-slide-amount) * 0.75));
+  }
+  .onicord-btn-expression-square {
+    @apply overflow-hidden bg-onicord-mantle rounded-onicord-button border border-transparent hover:border-onicord-accent/40 hover:bg-onicord-accent flex items-center justify-center aspect-square transition duration-150 cursor-pointer active:scale-95;
+  }
+
+  /* Media Control Bar / Items */
+  .onicord-media-control-bar-wrapper {
+    container-type: inline-size;
+    container-name: streambar;
+    @apply absolute bottom-4 left-0 right-0 flex justify-center z-30 transition-all duration-300 ease-in-out px-2 pointer-events-none;
+  }
+  .onicord-media-control-bar {
+    @apply flex flex-row items-center justify-center gap-1.5 @[420px]:gap-3 bg-onicord-surface/90 px-2.5 @[420px]:px-4 py-1.5 @[420px]:py-2 rounded-full shadow-2xl border border-onicord-island backdrop-blur-xl transition-all duration-200 select-none max-w-full shrink-0 pointer-events-auto overflow-hidden;
+  }
+  .onicord-media-bar-btn {
+    @apply flex h-9 px-2.5 @[420px]:px-4 items-center justify-center gap-2 rounded-full bg-white/[0.06] hover:bg-onicord-accent hover:text-onicord-dark text-xs font-bold text-onicord-text transition duration-150 cursor-pointer shadow-sm active:scale-95 border border-white/10 shrink-0;
+  }
+  .onicord-icon-btn-round {
+    @apply w-8 h-8 @[420px]:w-9 @[420px]:h-9 rounded-full flex items-center justify-center bg-white/[0.06] hover:bg-onicord-accent hover:text-onicord-dark text-onicord-text transition duration-150 shadow-md cursor-pointer shrink-0 active:scale-95 border border-white/10;
+  }
+  .onicord-icon-btn-round-stop {
+    @apply w-8 h-8 @[420px]:w-9 @[420px]:h-9 rounded-full flex items-center justify-center bg-onicord-danger/20 hover:bg-onicord-danger text-onicord-danger hover:text-onicord-text transition duration-150 shadow-md shadow-onicord-danger/20 cursor-pointer shrink-0 active:scale-95 border border-onicord-danger/40;
+  }
+
+  /* Navigation Tabs */
+  .onicord-tab-item {
+    @apply pb-2 transition-colors relative text-onicord-muted hover:text-onicord-text;
+  }
+  .onicord-tab-item-active {
+    @apply text-white font-semibold;
+  }
+  .onicord-tab-indicator {
+    @apply absolute bottom-0 left-0 right-0 h-[2px] bg-onicord-accent rounded-t-full;
+  }
+}

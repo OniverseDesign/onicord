@@ -1,0 +1,61 @@
+@layer base {
+  body {
+    overflow: hidden;
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    background: rgb(var(--onicord-bg-base));
+    color: var(--onicord-subtext);
+  }
+
+  code {
+    font-family: monospace;
+    color: rgb(var(--onicord-lavender));
+  }
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  display: inline-block;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variation-settings:
+    "FILL" 0,
+    "wght" 400,
+    "GRAD" 0,
+    "opsz" 24;
+}
+
+/* 🎯 CUSTOM ROBOTO VARIABLE FONT UTILITIES */
+.font-mono {
+  font-variant-numeric: tabular-nums;
+  font-stretch: 85%;
+  font-variation-settings: "wdth" 85;
+}
+
+.font-condensed {
+  font-stretch: 80%;
+  font-variation-settings: "wdth" 80;
+}
+
+.font-compressed {
+  font-stretch: 75%;
+  font-variation-settings: "wdth" 75;
+}
+
+.font-wide {
+  font-stretch: 100%;
+  font-variation-settings: "wdth" 100;
+}
+
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}

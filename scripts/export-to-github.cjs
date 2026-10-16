@@ -1,0 +1,457 @@
+const fs = require("fs");
+const path = require("path");
+const { execSync } = require("child_process");
+
+const ROOT_DIR = path.resolve(__dirname, "..");
+const TARGET_DIR = path.join(ROOT_DIR, "project");
+const GITHUB_REPO_URL = "https://github.com/OniverseDesign/onicord.git";
+
+function log(msg) {
+  console.log(`\n\x1b[36m[Export Script]\x1b[0m \x1b[1m${msg}\x1b[0m`);
+}
+
+function bumpSemver(version, type) {
+  const clean = version.split("-")[0];
+  const parts = clean.split(".").map((n) => parseInt(n, 10) || 0);
+  let [major = 0, minor = 0, patch = 0] = parts;
+
+  if (type === "major") {
+    major += 1;
+    minor = 0;
+    patch = 0;
+  } else if (type === "minor") {
+    minor += 1;
+    patch = 0;
+  } else if (type === "patch") {
+    patch += 1;
+  }
+  return `${major}.${minor}.${patch}`;
+}
+
+function resolveVersion(currentVersion, args) {
+  const rawArg =
+    args.find((arg) => !arg.startsWith("-")) ||
+    args.find((arg) => arg.startsWith("--version="))?.split("=")[1];
+
+  if (!rawArg) return currentVersion;
+
+  const val = rawArg.toLowerCase().trim();
+  if (val === "patch" || val === "minor" || val === "major") {
+    const newVer = bumpSemver(currentVersion, val);
+    log(`Bumping versión SemVer (${val}): ${currentVersion} -> ${newVer}`);
+    return newVer;
+  }
+
+  const semverRegex = /^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?$/;
+  if (semverRegex.test(val)) {
+    log(`Estableciendo nueva versión SemVer explícita: ${val}`);
+    return val;
+  }
+
+  console.warn(
+    `[AVISO] Argumento de versión "${rawArg}" no válido según SemVer. Se mantendrá la versión actual: ${currentVersion}`,
+  );
+  return currentVersion;
+}
+
+const USEFUL_FOLDERS = [
+  "src",
+  "electron",
+  "public",
+  "build",
+  "scripts",
+  "docs",
+  ".github",
+];
+
+const USEFUL_FILES = [
+  "package.json",
+  "package-lock.json",
+  "vite.config.js",
+  "tailwind.config.js",
+  "postcss.config.js",
+  "eslint.config.js",
+  "index.html",
+  ".gitignore",
+  ".env.example",
+  ".nvmrc",
+  "LICENSE",
+  "README.md",
+  "RELEASE_NOTES.md",
+];
+
+function copyDirRecursive(src, dest) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (
+      entry.name === "node_modules" ||
+      entry.name === "dist" ||
+      entry.name === "release" ||
+      entry.name === ".git" ||
+      entry.name === "project" ||
+      entry.name === "proyect" ||
+      entry.name === "logs" ||
+      entry.name === "pack-addons-repo.cjs" ||
+      entry.name === ".DS_Store" ||
+      entry.name === "Thumbs.db"
+    ) {
+      continue;
+    }
+
+    if (entry.isDirectory()) {
+      copyDirRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+async function main() {
+  const rootPkgPath = path.join(ROOT_DIR, "package.json");
+  const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, "utf8"));
+  const currentVersion = rootPkg.version || "0.1.0";
+
+  const targetVersion = resolveVersion(currentVersion, process.argv.slice(2));
+
+  if (targetVersion !== currentVersion) {
+    log(`Actualizando versión en package.json de la raíz: v${targetVersion}`);
+    rootPkg.version = targetVersion;
+    fs.writeFileSync(rootPkgPath, JSON.stringify(rootPkg, null, 2) + "\n", "utf8");
+  }
+
+  log(`1. Preparando directorio limpio: ${TARGET_DIR}`);
+  if (fs.existsSync(TARGET_DIR)) {
+    log("Limpiando directorio /project/ anterior...");
+    fs.rmSync(TARGET_DIR, { recursive: true, force: true });
+  }
+  fs.mkdirSync(TARGET_DIR, { recursive: true });
+
+  log("2. Copiando archivos y carpetas útiles...");
+  for (const folder of USEFUL_FOLDERS) {
+    const src = path.join(ROOT_DIR, folder);
+    const dest = path.join(TARGET_DIR, folder);
+    if (fs.existsSync(src)) {
+      log(`   Copiando carpeta: ${folder}/`);
+      copyDirRecursive(src, dest);
+    }
+  }
+
+  for (const file of USEFUL_FILES) {
+    const src = path.join(ROOT_DIR, file);
+    const dest = path.join(TARGET_DIR, file);
+    if (fs.existsSync(src)) {
+      log(`   Copiando archivo: ${file}`);
+      fs.copyFileSync(src, dest);
+    }
+  }
+
+  log("3. Actualizando README.md...");
+  const readmePath = path.join(TARGET_DIR, "README.md");
+  let readmeContent = fs.existsSync(readmePath)
+    ? fs.readFileSync(readmePath, "utf8")
+    : "# Onicord\n\nPlataforma de comunicación de voz, chat y música P2P descentralizada desarrollada por Oniverse.";
+
+  if (/^# Onicord/m.test(readmeContent)) {
+    readmeContent = readmeContent.replace(
+      /^# Onicord(?:\s+\(v[0-9.]+(?:-[a-zA-Z0-9.]+)?\))?/m,
+      `# Onicord (v${targetVersion})`
+    );
+  } else {
+    readmeContent = `# Onicord (v${targetVersion})\n\n` + readmeContent;
+  }
+
+  fs.writeFileSync(readmePath, readmeContent, "utf8");
+
+  log(`4. Instalando dependencias en /project/ (Versión: v${targetVersion})...`);
+  execSync("npm install --no-audit --no-fund", { cwd: TARGET_DIR, stdio: "inherit" });
+
+  log("5. Compilando binarios de la aplicación...");
+  execSync("npm run icons", { cwd: TARGET_DIR, stdio: "inherit" });
+  execSync("npm run build", { cwd: TARGET_DIR, stdio: "inherit" });
+
+  log(`   Compilando Instalador Setup NSIS v${targetVersion} (.exe)...`);
+  execSync("npx electron-builder --win nsis", {
+    cwd: TARGET_DIR,
+    stdio: "inherit",
+  });
+
+  log(`   Compilando Ejecutable Portable v${targetVersion} (.exe)...`);
+  execSync("npx electron-builder --win portable", {
+    cwd: TARGET_DIR,
+    stdio: "inherit",
+  });
+
+  log("6. Verificando binarios en /project/release/...");
+  const releaseDir = path.join(TARGET_DIR, "release");
+  if (fs.existsSync(releaseDir)) {
+    const files = fs.readdirSync(releaseDir);
+    log(`Archivos generados en release: ${files.join(", ")}`);
+  }
+
+  log(`7. Sincronizando v${targetVersion} con GitHub (https://github.com/OniverseDesign/onicord)...`);
+  try {
+    execSync("git init", { cwd: TARGET_DIR, stdio: "inherit" });
+    try {
+      execSync(`git remote add origin ${GITHUB_REPO_URL}`, {
+        cwd: TARGET_DIR,
+        stdio: "inherit",
+      });
+    } catch {
+      execSync(`git remote set-url origin ${GITHUB_REPO_URL}`, {
+        cwd: TARGET_DIR,
+        stdio: "inherit",
+      });
+    }
+    execSync("git add .", { cwd: TARGET_DIR, stdio: "inherit" });
+    execSync(
+      `git commit -m "release: v${targetVersion} - proyecto limpio, compilación de ejecutable e instalador portable"`,
+      { cwd: TARGET_DIR, stdio: "inherit" },
+    );
+    execSync("git branch -M main", { cwd: TARGET_DIR, stdio: "inherit" });
+
+    try {
+      execSync(`git tag -a v${targetVersion} -m "Release v${targetVersion}"`, {
+        cwd: TARGET_DIR,
+        stdio: "inherit",
+      });
+    } catch (tagErr) {
+      console.warn(`Tag v${targetVersion} ya existente o no pudo crearse.`);
+    }
+
+    log("Subiendo cambios y tags a GitHub...");
+    execSync("git push -u origin main --force --tags", {
+      cwd: TARGET_DIR,
+      stdio: "inherit",
+    });
+    log(`[OK] ¡Onicord v${targetVersion} compilado, organizado y subido con éxito a GitHub!`);
+
+    await publishGitHubRelease(targetVersion, releaseDir, process.argv.slice(2));
+  } catch (gitErr) {
+    console.error("[ERROR] Error durante git push:", gitErr.message);
+    log(
+      "El proyecto se organizó y compiló correctamente en /project/release/. Puedes realizar el push manualmente ejecutando:",
+    );
+    console.log(`cd project && git push -u origin main --tags`);
+  }
+}
+
+function findGhCommand() {
+  try {
+    execSync("gh --version", { stdio: "ignore" });
+    return "gh";
+  } catch {}
+  const standardPath = "C:\\Program Files\\GitHub CLI\\gh.exe";
+  if (fs.existsSync(standardPath)) {
+    return `"${standardPath}"`;
+  }
+  return null;
+}
+
+function resolveChangelog(version = "0.1.0", args = []) {
+  // 1. Argumento inline: --changelog="..." o --notes="..." o -m="..."
+  for (const arg of args) {
+    if (arg.startsWith("--changelog=") || arg.startsWith("--notes=") || arg.startsWith("-m=")) {
+      const val = arg.split("=").slice(1).join("=").trim().replace(/^["']|["']$/g, "");
+      if (val) {
+        log("Usando changelog personalizado pasado por argumento CLI.");
+        return val;
+      }
+    }
+    // 2. Argumento de archivo: --notes-file="..." o --changelog-file="..."
+    if (arg.startsWith("--notes-file=") || arg.startsWith("--changelog-file=")) {
+      const filePath = arg.split("=").slice(1).join("=").trim().replace(/^["']|["']$/g, "");
+      const resolvedPath = path.isAbsolute(filePath) ? filePath : path.resolve(ROOT_DIR, filePath);
+      if (fs.existsSync(resolvedPath)) {
+        log(`Cargando changelog desde archivo: ${filePath}`);
+        return fs.readFileSync(resolvedPath, "utf8").trim();
+      }
+    }
+  }
+
+  // 3. Archivo RELEASE_NOTES.md en la raíz si existe
+  const defaultNotesFiles = ["RELEASE_NOTES.md", "release-notes.md"];
+  for (const f of defaultNotesFiles) {
+    const p = path.join(ROOT_DIR, f);
+    if (fs.existsSync(p)) {
+      const content = fs.readFileSync(p, "utf8").trim();
+      if (content) {
+        log(`Usando notas de versión encontradas en ${f}`);
+        return content;
+      }
+    }
+  }
+
+  // 4. Plantilla por defecto profesional
+  return `### Onicord v${version}
+
+Primera versión oficial de **Onicord**, plataforma de comunicación descentralizada y libre (P2P).
+
+#### Características destacadas:
+- Red de comunicación de voz y chat P2P descentralizada mediante Hyperswarm y WebRTC.
+- Sin servidores centrales ni recopilación de datos de terceros.
+- Canales de voz, salas interactivas y soporte de streaming de pantalla.
+- Sistema modular de complementos (plugins) y tablero interactivo (dashboard).
+- Atajos globales, audio posicional/sonidos de sistema y diseño oscuro adaptable.
+- Distribución oficial para Windows (instalador NSIS y ejecutable portable).`;
+}
+
+async function publishGitHubRelease(targetVersion, releaseDir, args = []) {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+  const tagName = `v${targetVersion}`;
+
+  if (!fs.existsSync(releaseDir)) return;
+  const releaseAssets = fs
+    .readdirSync(releaseDir)
+    .filter((f) => f.endsWith(".exe") || f.endsWith(".yml"))
+    .map((f) => path.join(releaseDir, f));
+
+  if (releaseAssets.length === 0) return;
+
+  log(`8. Generando Changelog y subiendo artefactos y metadata (latest.yml) a GitHub Releases (${releaseAssets.map((f) => path.basename(f)).join(", ")})...`);
+
+  const changelog = resolveChangelog(targetVersion, args);
+  log(`   Changelog a publicar:\n\n${changelog}\n`);
+
+  // Intento 1: Vía gh CLI si está disponible
+  const ghCmd = findGhCommand();
+  if (ghCmd) {
+    const tempNotesPath = path.join(releaseDir, "temp_release_notes.md");
+    try {
+      fs.writeFileSync(tempNotesPath, changelog, "utf8");
+      const fileArgs = releaseAssets.map((f) => `"${f}"`).join(" ");
+
+      // Comprobamos si el release ya existe en GitHub
+      let releaseExists = false;
+      try {
+        execSync(`${ghCmd} release view ${tagName} --repo OniverseDesign/onicord`, {
+          cwd: TARGET_DIR,
+          stdio: "ignore",
+        });
+        releaseExists = true;
+      } catch {}
+
+      if (releaseExists) {
+        log(`Release ${tagName} ya existe en GitHub. Actualizando notas y subiendo binarios...`);
+        execSync(
+          `${ghCmd} release upload ${tagName} ${fileArgs} --clobber --repo OniverseDesign/onicord`,
+          { cwd: TARGET_DIR, stdio: "inherit" }
+        );
+        execSync(
+          `${ghCmd} release edit ${tagName} --notes-file "${tempNotesPath}" --title "Release ${tagName}" --repo OniverseDesign/onicord`,
+          { cwd: TARGET_DIR, stdio: "inherit" }
+        );
+      } else {
+        log(`Creando Release ${tagName} en GitHub...`);
+        execSync(
+          `${ghCmd} release create ${tagName} ${fileArgs} --title "Release ${tagName}" --notes-file "${tempNotesPath}" --repo OniverseDesign/onicord`,
+          { cwd: TARGET_DIR, stdio: "inherit" }
+        );
+      }
+      log(`[OK] ¡Changelog y artefactos subidos con éxito a GitHub Releases vía CLI!`);
+      try { fs.unlinkSync(tempNotesPath); } catch {}
+      return;
+    } catch (ghErr) {
+      console.warn(`[AVISO] No se pudo completar con gh CLI: ${ghErr.message}`);
+      try { fs.unlinkSync(tempNotesPath); } catch {}
+    }
+  }
+
+  // Intento 2: Vía GitHub REST API si existe GH_TOKEN / GITHUB_TOKEN
+  if (token) {
+    try {
+      log("Subiendo artefactos usando GH_TOKEN a GitHub REST API...");
+      const repoPath = "OniverseDesign/onicord";
+
+      let releaseResponse = await fetch(
+        `https://api.github.com/repos/${repoPath}/releases/tags/${tagName}`,
+        {
+          headers: {
+            Authorization: `token ${token}`,
+            "User-Agent": "Onicord-Exporter",
+          },
+        }
+      );
+
+      let releaseData;
+      if (releaseResponse.ok) {
+        releaseData = await releaseResponse.json();
+      } else {
+        const createRes = await fetch(
+          `https://api.github.com/repos/${repoPath}/releases`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `token ${token}`,
+              "Content-Type": "application/json",
+              "User-Agent": "Onicord-Exporter",
+            },
+            body: JSON.stringify({
+              tag_name: tagName,
+              name: `Release ${tagName}`,
+              body: changelog,
+              generate_release_notes: true,
+              draft: false,
+              prerelease: false,
+            }),
+          }
+        );
+        if (!createRes.ok) {
+          throw new Error(
+            `Error al crear la Release en GitHub: ${createRes.statusText}`
+          );
+        }
+        releaseData = await createRes.json();
+      }
+
+      const uploadUrlBase = releaseData.upload_url.split("{")[0];
+
+      for (const filePath of releaseAssets) {
+        const fileName = path.basename(filePath);
+        log(`   Subiendo artefacto: ${fileName}...`);
+        const fileData = fs.readFileSync(filePath);
+
+        const uploadRes = await fetch(
+          `${uploadUrlBase}?name=${encodeURIComponent(fileName)}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `token ${token}`,
+              "Content-Type": "application/octet-stream",
+              "User-Agent": "Onicord-Exporter",
+            },
+            body: fileData,
+          }
+        );
+
+        if (uploadRes.ok) {
+          log(`   [OK] ${fileName} subido con éxito.`);
+        } else {
+          console.warn(`   [AVISO] Falló la subida de ${fileName}: ${uploadRes.statusText}`);
+        }
+      }
+      log(`[OK] Changelog y binarios subidos a GitHub Releases con éxito.`);
+      return;
+    } catch (apiErr) {
+      console.warn("[AVISO] Falló la subida por API:", apiErr.message);
+    }
+  }
+
+  log(
+    "[INFO] Para publicar los binarios (.exe) y el Changelog automáticamente en GitHub Releases:\n" +
+      "   Opción 1 (GitHub CLI): Instala 'gh' y ejecuta: gh auth login\n" +
+      "   Opción 2 (Token de GitHub): Define la variable antes de ejecutar el script:\n" +
+      '             $env:GH_TOKEN="tu_personal_access_token"\n' +
+      "   Opción 3 (GitHub Actions): Usar una GitHub Action que publica en Releases al recibir un Tag."
+  );
+}
+
+main().catch((err) => {
+  console.error("[ERROR] Error en la ejecución del script:", err);
+  process.exit(1);
+});

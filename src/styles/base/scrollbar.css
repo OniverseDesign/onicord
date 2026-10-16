@@ -1,0 +1,32 @@
+/* 🛡️ Desactiva la propiedad moderna de daisyUI que rompe tus bordes redondeados */
+html,
+* {
+  scrollbar-color: auto !important;
+}
+
+/* 🎨 Aplica tus estilos customizados utilizando tus variables de Mocha V2 */
+::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--onicord-bg-overlay)) !important;
+  border-radius: 9999px !important;
+  border: 4px solid transparent !important;
+  background-clip: padding-box !important;
+
+  transition: background-color 0.15s ease-out !important;
+}
+
+::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--onicord-lavender)) !important;
+}

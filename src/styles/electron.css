@@ -1,0 +1,19 @@
+@layer utilities {
+  .titlebar-drag {
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+
+  .titlebar-nodrag {
+    -webkit-app-region: no-drag;
+  }
+}
+
+@layer components {
+  .onicord-titlebar-btn {
+    @apply flex h-full w-11 items-center rounded-onicord-button justify-center transition-colors duration-150 hover:bg-onicord-overlay hover:text-onicord-text cursor-pointer;
+  }
+  .onicord-titlebar-btn-close {
+    @apply hover:bg-onicord-danger hover:text-white;
+  }
+}

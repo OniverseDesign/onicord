@@ -1,0 +1,52 @@
+@layer components {
+  /* MODAL SHELL & STRUCTURE STYLES */
+  .onicord-modal-backdrop {
+    @apply fixed inset-0 z-[99999] flex items-center justify-center bg-onicord-mantle/90 p-4 backdrop-blur-[2px] onicord-animate-backdrop-in pointer-events-auto;
+  }
+  .onicord-modal-warning-box {
+    @apply text-[13px] leading-[1.3] text-onicord-muted mt-4 select-none;
+  }
+  .onicord-modal-nav-item {
+    @apply w-full rounded-onicord-button px-3 py-2 text-left text-[14px] font-medium select-none cursor-pointer text-onicord-muted hover:bg-white/[0.02] hover:text-onicord-subtext;
+    transition: transform 0.15s ease-out, width 0.15s ease-out, background-color 0.15s ease-out, color 0.15s ease-out;
+  }
+  .onicord-modal-nav-item:hover {
+    transform: translateX(var(--hover-slide-amount));
+    width: calc(100% - var(--hover-slide-amount));
+  }
+  .onicord-modal-nav-item-active {
+    @apply bg-onicord-overlay text-onicord-text;
+  }
+  .onicord-modal-content-header {
+    @apply flex shrink-0 items-center justify-between px-5 pt-7 pb-3;
+  }
+  .onicord-modal-footer {
+    @apply flex shrink-0 justify-end gap-3 px-5 py-3;
+  }
+  .onicord-modal-subtitle {
+    @apply text-sm font-semibold text-onicord-text uppercase tracking-wider mb-2.5 select-none;
+  }
+  .onicord-field-label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-onicord-muted;
+  }
+
+  /* FLOATING & CONTEXT MENUS */
+  .onicord-floating-menu {
+    @apply absolute z-[100] bg-onicord-mantle border border-onicord-island rounded-onicord-inner p-1.5 onicord-animate-popup-in text-left select-none;
+  }
+  .onicord-context-menu {
+    @apply z-[99999] w-52 p-1.5 text-xs font-medium text-onicord-subtext bg-onicord-mantle border border-onicord-island rounded-onicord-inner select-none pointer-events-auto onicord-animate-popup-in;
+  }
+  .onicord-context-menu-title {
+    @apply px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-onicord-muted truncate;
+  }
+  .onicord-context-menu-item {
+    @apply flex w-full items-center justify-between rounded px-2 py-1 text-left transition-colors cursor-pointer;
+  }
+  .onicord-context-menu-item-default {
+    @apply text-onicord-text hover:bg-onicord-accent hover:text-onicord-surface;
+  }
+  .onicord-context-menu-item-danger {
+    @apply text-onicord-danger hover:bg-onicord-danger hover:text-onicord-surface font-semibold;
+  }
+}

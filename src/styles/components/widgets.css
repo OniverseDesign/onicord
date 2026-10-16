@@ -1,0 +1,40 @@
+@layer components {
+  /* 📊 WIDGETS & SYSTEM STATUS BANNERS STYLES */
+  .onicord-widget-shell {
+    @apply w-full h-full p-8 flex flex-col justify-between select-none;
+  }
+  .onicord-widget-title {
+    @apply font-bold uppercase tracking-wider text-onicord-dark-muted text-xs;
+  }
+  .onicord-widget-list-item {
+    @apply bg-black/5 p-1.5 rounded-onicord-button border border-black/5 truncate shrink-0;
+  }
+  .onicord-widget-header {
+    @apply flex justify-between items-start shrink-0 select-none w-full;
+  }
+  .onicord-widget-footer-sep {
+    @apply w-full shrink-0 pt-1.5 border-t border-black/5 font-bold uppercase tracking-wide flex justify-between items-center text-[clamp(9px,2.8cqi,12px)] select-none;
+  }
+  .onicord-widget-hero-container {
+    @apply flex-1 flex flex-col justify-center my-1.5 z-10 select-none;
+  }
+  .onicord-widget-hero-text {
+    @apply font-black tracking-tighter leading-none text-[clamp(24px,13cqi,58px)];
+  }
+  .onicord-widget-hero-subtext {
+    @apply font-bold uppercase tracking-wide mt-1 text-[clamp(9px,2.8cqi,12px)];
+  }
+
+  .onicord-status-banner-info {
+    @apply bg-onicord-accent/20 px-4 py-1 text-center text-xs text-onicord-text;
+  }
+  .onicord-status-banner-wide-success {
+    @apply bg-onicord-success/10 px-4 py-2 text-center text-sm text-onicord-success;
+  }
+  .onicord-status-banner-wide-danger {
+    @apply bg-onicord-danger/10 px-4 py-2 text-center text-sm text-onicord-danger;
+  }
+  .onicord-status-banner-success {
+    @apply mb-2 flex items-center gap-2 rounded-onicord-button py-1 text-xs font-medium text-onicord-success select-none;
+  }
+}

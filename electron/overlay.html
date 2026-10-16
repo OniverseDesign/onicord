@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onicord Voice Overlay</title>
+<style>
+  :root {
+    --onicord-success: #a6e3a1;
+    --onicord-danger: #f38ba8;
+    --onicord-accent: #cba6f7;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    user-select: none;
+    -webkit-app-region: no-drag;
+  }
+
+  #overlay-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: opacity 0.4s ease, background 0.3s ease, padding 0.2s ease;
+    width: max-content;
+    max-width: 260px;
+  }
+
+  #overlay-container.avatar-only-mode {
+    padding: 6px 8px;
+    gap: 6px;
+    align-items: center;
+  }
+
+  #overlay-container.hidden-quiet {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .voice-member {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 4px;
+    border-radius: 8px;
+    transition: opacity 0.15s ease, gap 0.2s ease;
+  }
+
+  .avatar-wrapper {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--onicord-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 11px;
+    color: #fff;
+    transition: box-shadow 0.12s ease;
+    overflow: hidden;
+  }
+
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .avatar.speaking {
+    box-shadow: 0 0 0 2px var(--onicord-success);
+  }
+
+  .avatar.muted-ring {
+    box-shadow: 0 0 0 2px var(--onicord-danger);
+  }
+
+  .member-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .member-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+    transition: color 0.12s ease;
+  }
+
+  .member-name.speaking {
+    color: var(--onicord-success);
+    font-weight: 600;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .status-icon {
+    width: 13px;
+    height: 13px;
+    color: var(--onicord-danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .status-icon svg {
+    width: 13px;
+    height: 13px;
+    fill: currentColor;
+  }
+</style>
+</head>
+<body>
+<div id="overlay-container">
+  <div id="members-list"></div>
+</div>
+
+<script>
+  const container = document.getElementById("overlay-container");
+  const membersList = document.getElementById("members-list");
+
+  let currentOpacity = 0.6;
+  let autoHideWhenQuiet = false;
+  let avatarOnly = false;
+  let showNameOnlyWhenSpeaking = false;
+  let hideTimer = null;
+  let isQuiet = false;
+  let lastMembers = [];
+
+  // SVGs for muted / deafened icons
+  const MIC_OFF_SVG = `<svg viewBox="0 0 24 24"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5.7c0 3.41 2.72 6.23 6 6.72V21h2.3v-2.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>`;
+  const DEAFEN_SVG = `<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>`;
+
+  function getInitial(name) {
+    return (name || "?").charAt(0).toUpperCase();
+  }
+
+  function renderMembers(members) {
+    lastMembers = members || [];
+    if (!lastMembers || lastMembers.length === 0) {
+      membersList.innerHTML = "";
+      container.style.display = "none";
+      return;
+    }
+
+    container.style.display = "flex";
+    if (avatarOnly) {
+      container.classList.add("avatar-only-mode");
+    } else {
+      container.classList.remove("avatar-only-mode");
+    }
+
+    let anySpeaking = false;
+
+    const html = lastMembers.map((m) => {
+      const isSpeaking = m.isSpeaking && !m.muted && !m.deafened;
+      if (isSpeaking) anySpeaking = true;
+
+      const avatarClass = isSpeaking
+        ? "avatar speaking"
+        : (m.muted || m.deafened)
+          ? "avatar muted-ring"
+          : "avatar";
+
+      const nameClass = isSpeaking ? "member-name speaking" : "member-name";
+
+      const avatarContent = m.avatar
+        ? `<img src="${escapeHtml(m.avatar)}" alt="" />`
+        : `<span>${getInitial(m.nickname)}</span>`;
+
+      let statusIcons = "";
+      if (m.deafened) {
+        statusIcons += `<div class="status-icon">${DEAFEN_SVG}</div>`;
+      } else if (m.muted) {
+        statusIcons += `<div class="status-icon">${MIC_OFF_SVG}</div>`;
+      }
+
+      const hideName = avatarOnly || (showNameOnlyWhenSpeaking && !isSpeaking);
+
+      return `
+        <div class="voice-member">
+          <div class="avatar-wrapper">
+            <div class="${avatarClass}">${avatarContent}</div>
+          </div>
+          ${
+            hideName
+              ? ""
+              : `<div class="member-info">
+                  <span class="${nameClass}">${escapeHtml(m.nickname || "User")}</span>
+                  <div class="status-icons">${statusIcons}</div>
+                </div>`
+          }
+        </div>
+      `;
+    }).join("");
+
+    membersList.innerHTML = html;
+
+    // Auto-hide logic
+    if (autoHideWhenQuiet) {
+      if (anySpeaking) {
+        isQuiet = false;
+        container.classList.remove("hidden-quiet");
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+      } else if (!isQuiet) {
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => {
+          isQuiet = true;
+          container.classList.add("hidden-quiet");
+        }, 5000);
+      }
+    } else {
+      container.classList.remove("hidden-quiet");
+      isQuiet = false;
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  // Listen for voice member updates
+  if (window.overlayAPI) {
+    window.overlayAPI.onVoiceMembersUpdate((members) => {
+      renderMembers(members);
+    });
+
+    window.overlayAPI.onSettingsUpdate((settings) => {
+      if (settings.opacity !== undefined) {
+        currentOpacity = settings.opacity;
+        container.style.background = `rgba(0, 0, 0, ${currentOpacity})`;
+      }
+      if (settings.avatarOnly !== undefined) {
+        avatarOnly = settings.avatarOnly;
+      }
+      if (settings.showNameOnlyWhenSpeaking !== undefined) {
+        showNameOnlyWhenSpeaking = settings.showNameOnlyWhenSpeaking;
+      }
+      if (settings.autoHideWhenQuiet !== undefined) {
+        autoHideWhenQuiet = settings.autoHideWhenQuiet;
+        if (!autoHideWhenQuiet) {
+          container.classList.remove("hidden-quiet");
+          isQuiet = false;
+          if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        }
+      }
+      renderMembers(lastMembers);
+    });
+  }
+</script>
+</body>
+</html>

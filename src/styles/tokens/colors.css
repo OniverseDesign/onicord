@@ -1,0 +1,69 @@
+:root {
+  /* 🎨 PALETTE TOKENS (Raw Colors) */
+  --color-rosewater-rgb: 245 224 220;
+  --color-flamingo-rgb: 242 205 205;
+  --color-pink-rgb: 245 194 231;
+  --color-mauve-rgb: 203 166 247;
+  --color-red-rgb: 243 139 168;
+  --color-maroon-rgb: 235 160 172;
+  --color-peach-rgb: 250 179 135;
+  --color-yellow-rgb: 249 226 175;
+  --color-green-rgb: 166 227 161;
+  --color-teal-rgb: 148 226 213;
+  --color-sky-rgb: 137 220 235;
+  --color-blue-rgb: 137 180 250;
+  --color-lavender-rgb: 203 166 247;
+  --color-sapphire-rgb: 116 199 236;
+
+  --color-text-raw: #cdd6f4;
+  --color-subtext-raw: #bac2de;
+  --color-muted-raw: #7f849c;
+  --color-faded-raw: #585b70;
+
+  --color-base-rgb: 30 30 46;
+  --color-surface-rgb: 24 24 37;
+  --color-mantle-rgb: 17 17 27;
+  --color-overlay-rgb: 49 50 68;
+
+  /* ── SEMANTIC TOKENS (Mappings) ── */
+  --onicord-text: var(--color-text-raw);
+  --onicord-subtext: var(--color-subtext-raw);
+  --onicord-muted: var(--color-muted-raw);
+  --onicord-faded: var(--color-faded-raw);
+
+  /* Textos oscuros de alto contraste */
+  --onicord-text-dark: #11111b;
+  --onicord-text-dark-sub: #181825;
+  --onicord-text-dark-muted: #313244;
+
+  /* Fondos elásticos */
+  --onicord-bg-base: var(--color-base-rgb);
+  --onicord-bg-surface: var(--color-surface-rgb);
+  --onicord-bg-mantle: var(--color-mantle-rgb);
+  --onicord-bg-overlay: var(--color-overlay-rgb);
+
+  /* Acentos (Heredamos el mismo esquema para compatibilidad) */
+  --onicord-lavender: var(--color-lavender-rgb);
+  --onicord-accent: rgb(var(--onicord-lavender));
+  --onicord-danger: var(--color-red-rgb);
+  --onicord-success: var(--color-green-rgb);
+  --onicord-sapphire: var(--color-sapphire-rgb);
+
+  /* Escala pastel Mocha V2 heredada */
+  --onicord-rosewater: var(--color-rosewater-rgb);
+  --onicord-flamingo: var(--color-flamingo-rgb);
+  --onicord-pink: var(--color-pink-rgb);
+  --onicord-mauve: var(--color-mauve-rgb);
+  --onicord-red: var(--color-red-rgb);
+  --onicord-maroon: var(--color-maroon-rgb);
+  --onicord-peach: var(--color-peach-rgb);
+  --onicord-yellow: var(--color-yellow-rgb);
+  --onicord-teal: var(--color-teal-rgb);
+  --onicord-sky: var(--color-sky-rgb);
+  --onicord-blue: var(--color-blue-rgb);
+
+  /* Interacciones */
+  --hover: hsla(2, 15%, 53%, 0.1);
+  --active: hsla(235, 15%, 53%, 0.2);
+  --message-hover: hsla(235, 0%, 0%, 0.1);
+}

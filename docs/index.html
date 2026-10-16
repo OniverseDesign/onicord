@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onicord - Comunicación P2P Descentralizada</title>
+
+  <meta name="description"
+    content="Salas de comunicación descentralizadas, privadas y sin servidores centrales. Audio cristalino, compartir pantalla y complementos.">
+  <meta property="og:title" content="Onicord - Plataforma P2P de Voz, Video y Chat">
+  <meta property="og:description"
+    content="Salas de comunicación descentralizadas, privadas y sin servidores centrales. Audio cristalino, compartir pantalla y complementos.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://oniversedesign.github.io/onicord/">
+  <meta property="og:image" content="https://raw.githubusercontent.com/OniverseDesign/onicord/main/public/icon.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#cba6f7">
+
+  <link rel="icon" type="image/png" href="./icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400;1,700&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      /* ── ONICORD MOCHA V2 DESIGN TOKENS ── */
+      --onicord-mauve: #cba6f7;
+      --onicord-mauve-rgb: 203, 166, 247;
+      --onicord-mauve-hover: #d8b8ff;
+      --onicord-mauve-glow: rgba(203, 166, 247, 0.22);
+      --onicord-mauve-subtle: rgba(203, 166, 247, 0.1);
+
+      /* Fondos reales de la aplicación */
+      --onicord-bg-mantle: #11111b;
+      /* Fondo más oscuro de ventana / base */
+      --onicord-bg-surface: #181825;
+      /* Superficie de tarjetas y modales */
+      --onicord-bg-base: #1e1e2e;
+      /* Fondo de paneles e islas */
+      --onicord-bg-overlay: #313244;
+      /* Capa interactiva y hover */
+
+      /* Textos y contrastes */
+      --onicord-text: #cdd6f4;
+      /* Texto primario de alto contraste */
+      --onicord-subtext: #bac2de;
+      /* Texto secundario */
+      --onicord-muted: #7f849c;
+      /* Metadatos y etiquetas atenuadas */
+      --onicord-faded: #585b70;
+      /* Separadores y bordes apagados */
+      --onicord-dark: #11111b;
+      /* Texto oscuro sobre acento mauve */
+
+      /* Acentos de estado */
+      --onicord-green: #a6e3a1;
+      --onicord-green-glow: rgba(166, 227, 161, 0.25);
+      --onicord-sapphire: #74c7ec;
+      --onicord-peach: #fab387;
+      --onicord-red: #f38ba8;
+
+      /* Bordes estándar de Onicord */
+      --border-subtle: rgba(255, 255, 255, 0.05);
+      --border-card: rgba(255, 255, 255, 0.08);
+      --border-mauve: rgba(203, 166, 247, 0.32);
+
+      /* Radio elástico de la app */
+      --radius-outer: 22px;
+      /* rounded-onicord-outer-p4 */
+      --radius-inner: 18px;
+      /* rounded-onicord-inner */
+      --radius-button: 10px;
+      /* rounded-onicord-button */
+      --radius-pill: 9999px;
+
+      /* Sombras volumétricas */
+      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+      --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.55);
+      --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+
+      --font: "Roboto", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font);
+      background-color: var(--onicord-bg-mantle);
+      background-image:
+        radial-gradient(ellipse at 50% -10%, rgba(var(--onicord-mauve-rgb), 0.16) 0%, transparent 55%),
+        radial-gradient(circle at 80% 20%, rgba(116, 199, 236, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 20% 60%, rgba(var(--onicord-mauve-rgb), 0.04) 0%, transparent 45%);
+      color: var(--onicord-text);
+      min-height: 100vh;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── NAVEGACIÓN SUPERIOR ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: transparent;
+      border-bottom: 1px solid transparent;
+      transition: background-color 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    header.scrolled {
+      background: rgba(17, 17, 27, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .nav-container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      color: #ffffff;
+      transition: opacity 0.15s ease;
+    }
+
+    .brand:hover {
+      opacity: 0.85;
+    }
+
+    .brand-logo {
+      height: 25px;
+      width: auto;
+      max-width: 175px;
+      color: #ffffff;
+      display: block;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+    }
+
+    .nav-links a {
+      color: var(--onicord-subtext);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--onicord-mauve);
+    }
+
+    .nav-cta {
+      background: var(--onicord-mauve);
+      color: var(--onicord-dark) !important;
+      padding: 0.45rem 1.1rem;
+      border-radius: var(--radius-button);
+      font-size: 0.85rem !important;
+      font-weight: 700 !important;
+      box-shadow: 0 2px 10px var(--onicord-mauve-glow);
+      transition: all 0.15s ease !important;
+    }
+
+    .nav-cta:hover {
+      background: var(--onicord-mauve-hover);
+      transform: translateY(-1px);
+    }
+
+    .lang-selector {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      padding: 0.2rem 0.55rem;
+      font-size: 0.75rem;
+      user-select: none;
+    }
+
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--onicord-muted);
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.1rem 0.25rem;
+      border-radius: 4px;
+      transition: color 0.15s ease;
+      font-family: inherit;
+    }
+
+    .lang-btn:hover {
+      color: var(--onicord-text);
+    }
+
+    .lang-btn.active {
+      color: var(--onicord-mauve);
+      font-weight: 800;
+    }
+
+    .lang-divider {
+      color: var(--onicord-faded);
+      font-size: 0.7rem;
+      user-select: none;
+    }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ── SECCIÓN HERO ── */
+    .hero {
+      padding: 5rem 0 3.5rem;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.95rem;
+      border-radius: var(--radius-pill);
+      background: var(--onicord-mauve-subtle);
+      border: 1px solid var(--border-mauve);
+      color: var(--onicord-mauve);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      font-size: 3.25rem;
+      font-weight: 900;
+      letter-spacing: -0.035em;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      color: #ffffff;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, #ffffff 10%, var(--onicord-mauve) 90%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      max-width: 660px;
+      margin: 0 auto 2.25rem;
+      font-size: 1.125rem;
+      color: var(--onicord-subtext);
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── TARJETA TRAMPOLÍN DE LANZAMIENTO (LAUNCHER BRIDGE) ── */
+    #launcher-card {
+      display: none;
+      background: var(--onicord-bg-surface);
+      border: 1px solid var(--border-mauve);
+      border-radius: var(--radius-outer);
+      max-width: 480px;
+      margin: 2rem auto 3.5rem;
+      padding: 2.75rem 2rem 2.25rem;
+      box-shadow: var(--shadow-elevated), 0 0 35px var(--onicord-mauve-glow);
+      text-align: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .radar-container {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .radar-pulse {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--onicord-mauve);
+      opacity: 0.3;
+      animation: pulse 2.2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.85);
+        opacity: 0.55;
+      }
+
+      100% {
+        transform: scale(2.4);
+        opacity: 0;
+      }
+    }
+
+    .radar-icon {
+      position: relative;
+      z-index: 2;
+      width: 64px;
+      height: 64px;
+      border-radius: var(--radius-inner);
+      background: var(--onicord-bg-base);
+      border: 1px solid var(--border-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .radar-icon img {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-button);
+    }
+
+    .launcher-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.4rem;
+      letter-spacing: -0.015em;
+    }
+
+    .launcher-desc {
+      color: var(--onicord-subtext);
+      font-size: 0.925rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .code-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.85rem;
+      background: var(--onicord-bg-mantle);
+      border: 1px dashed var(--border-mauve);
+      border-radius: var(--radius-inner);
+      padding: 0.65rem 1.15rem;
+      margin-bottom: 1.5rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--onicord-mauve);
+      letter-spacing: 3px;
+    }
+
+    .btn-icon-copy {
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: var(--onicord-text);
+      cursor: pointer;
+      padding: 0.35rem 0.65rem;
+      border-radius: var(--radius-button);
+      font-size: 0.75rem;
+      font-family: var(--font);
+      font-weight: 600;
+      letter-spacing: 0;
+      transition: background 0.15s ease;
+    }
+
+    .btn-icon-copy:hover {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .launcher-fallback {
+      display: none;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 1.5rem;
+      margin-top: 0.5rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* ── BOTONES CON ESTILO DE ONICORD ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      padding: 0.75rem 1.4rem;
+      border-radius: var(--radius-button);
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      user-select: none;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--onicord-mauve);
+      color: var(--onicord-dark);
+      box-shadow: 0 4px 16px var(--onicord-mauve-glow);
+    }
+
+    .btn-primary:hover {
+      background: var(--onicord-mauve-hover);
+      box-shadow: 0 6px 20px var(--onicord-mauve-glow);
+    }
+
+    .btn-secondary {
+      background: var(--onicord-bg-base);
+      color: var(--onicord-text);
+      border: 1px solid var(--border-card);
+    }
+
+    .btn-secondary:hover {
+      background: var(--onicord-bg-overlay);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .btn-block {
+      width: 100%;
+      margin-bottom: 0.75rem;
+      padding: 0.85rem;
+    }
+
+    /* ── MOCKUP / CAPTURA DE PANTALLA REAL DE ONICORD ── */
+    .showcase-wrapper {
+      max-width: 1040px;
+      margin: 1.5rem auto 5rem;
+      border-radius: var(--radius-inner);
+      overflow: hidden;
+      box-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.75), 0 0 35px var(--onicord-mauve-glow);
+    }
+
+    .mockup-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: var(--radius-inner);
+    }
+
+    /* ── SECCIÓN CARACTERÍSTICAS ── */
+    .section-title {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
+
+    .section-title h2 {
+      font-size: 2.15rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.025em;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-title p {
+      color: var(--onicord-subtext);
+      font-size: 1.05rem;
+      max-width: 580px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 5.5rem;
+    }
+
+    .feature-card {
+      background: var(--onicord-bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-outer);
+      padding: 2.25rem 2rem;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+
+    .feature-card:hover {
+      background: #1c1c2b;
+      border-color: var(--border-mauve);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-elevated);
+    }
+
+    .feature-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-inner);
+      background: var(--onicord-mauve-subtle);
+      border: 1px solid var(--border-mauve);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--onicord-mauve);
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.015em;
+    }
+
+    .feature-card p {
+      color: var(--onicord-subtext);
+      font-size: 0.925rem;
+      line-height: 1.6;
+    }
+
+    /* ── GUÍA EN 3 PASOS ── */
+    .steps-section {
+      background: var(--onicord-bg-surface);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-outer);
+      padding: 3.5rem 2.5rem;
+      margin-bottom: 5.5rem;
+      box-shadow: var(--shadow-md);
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 2.5rem;
+      margin-top: 2.5rem;
+    }
+
+    .step-item {
+      position: relative;
+    }
+
+    .step-number {
+      font-size: 3rem;
+      font-weight: 900;
+      color: rgba(var(--onicord-mauve-rgb), 0.25);
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .step-item h4 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.4rem;
+    }
+
+    .step-item p {
+      font-size: 0.8875rem;
+      color: var(--onicord-subtext);
+      line-height: 1.55;
+    }
+
+    /* ── SECCIÓN DE DESCARGAS UNIFICADA ── */
+    .downloads-section {
+      padding: 2rem 0 5.5rem;
+      text-align: center;
+    }
+
+    .download-container {
+      max-width: 680px;
+      margin: 2.5rem auto 0;
+    }
+
+    .download-card.unified {
+      background: var(--onicord-bg-surface);
+      border: 1px solid var(--border-mauve);
+      border-radius: var(--radius-outer);
+      padding: 2.75rem 2.25rem;
+      text-align: center;
+      box-shadow: var(--shadow-elevated), 0 0 25px var(--onicord-mauve-glow);
+      background: radial-gradient(circle at 50% 0%, var(--onicord-mauve-subtle) 0%, var(--onicord-bg-surface) 70%);
+      transition: all 0.2s ease;
+    }
+
+    .download-badges-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+
+    .download-badge {
+      font-size: 0.725rem;
+      background: var(--onicord-mauve-subtle);
+      border: 1px solid var(--border-mauve);
+      color: var(--onicord-mauve);
+      padding: 0.2rem 0.6rem;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .download-card.unified h4 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 0.65rem;
+      letter-spacing: -0.02em;
+    }
+
+    .download-card.unified p.desc {
+      color: var(--onicord-subtext);
+      font-size: 0.95rem;
+      max-width: 530px;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+    }
+
+    .download-actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .download-specs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem 1.5rem;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 1.75rem;
+      text-align: left;
+    }
+
+    .spec-item {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.8125rem;
+      color: var(--onicord-subtext);
+    }
+
+    .spec-item svg {
+      color: var(--onicord-green);
+      flex-shrink: 0;
+    }
+
+    /* ── PIE DE PÁGINA ── */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 3.5rem 0;
+      color: var(--onicord-muted);
+      font-size: 0.875rem;
+      background: var(--onicord-bg-mantle);
+    }
+
+    .footer-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+    }
+
+    .footer-links a {
+      color: var(--onicord-subtext);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--onicord-mauve);
+    }
+
+    /* ── TOAST NOTIFICACIÓN ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--onicord-green);
+      color: var(--onicord-dark);
+      padding: 0.65rem 1.4rem;
+      border-radius: var(--radius-pill);
+      font-size: 0.875rem;
+      font-weight: 700;
+      box-shadow: 0 6px 20px var(--onicord-green-glow);
+      opacity: 0;
+      transition: all 0.25s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.25rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .window-body {
+        grid-template-columns: 1fr;
+      }
+
+      .mock-rail,
+      .mock-sidebar {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Barra de Navegación -->
+  <header>
+    <div class="nav-container">
+      <a href="./index.html" class="brand" title="Onicord" onclick="onBrandClick(event)">
+        <svg class="brand-logo" viewBox="0 0 1591.2 242.6" fill="currentColor">
+          <path
+            d="M129,0C50.7,0,0,47.6,0,121.3C0,195,50.7,242.6,129,242.6c78.3,0,129-47.6,129-121.3C258,47.6,207.3,0,129,0z M194.3,126.8c-10.2,2-18.6,4.3-25.6,7.4c-15.4,6.7-23.9,16.8-29.7,34.4c-1.7,5.3-3.2,11.2-4.5,17.9c-1.2,6.1-9.9,6.1-11.1,0c-1.3-6.7-2.8-12.7-4.5-17.9c-5.7-17.6-14.3-27.8-29.7-34.5c-7-3-15.4-5.4-25.6-7.4c-6.1-1.2-6.1-9.9,0-11.1c10.2-2,18.6-4.3,25.6-7.4c15.4-6.7,23.9-16.8,29.7-34.5c1.7-5.3,3.2-11.2,4.5-17.9c1.2-6.1,9.9-6.1,11.1,0c1.3,6.7,2.8,12.7,4.5,17.9c5.7,17.6,14.3,27.8,29.7,34.5c7,3,15.4,5.4,25.6,7.4C200.4,116.9,200.4,125.7,194.3,126.8z" />
+          <path
+            d="M361.2,10.6l34,72.3c3.5,7.4,14.6,4.9,14.6-3.3V13.8c0-4.2,3.4-7.7,7.7-7.7h70.6c4.2,0,7.7,3.4,7.7,7.7v215c0,4.2-3.4,7.7-7.7,7.7h-73.4c-3,0-5.7-1.7-6.9-4.4l-34-72.3c-3.5-7.4-14.6-4.9-14.6,3.3v65.8c0,4.2-3.4,7.7-7.7,7.7h-70.6c-4.2,0-7.7-3.4-7.7-7.7v-215c0-4.2,3.4-7.7,7.7-7.7h73.4C357.2,6.1,359.9,7.9,361.2,10.6z" />
+          <path
+            d="M604.9,13.8v215c0,4.2-3.4,7.7-7.7,7.7h-70.6c-4.2,0-7.7-3.4-7.7-7.7v-215c0-4.2,3.4-7.7,7.7-7.7h70.6C601.4,6.1,604.9,9.6,604.9,13.8z" />
+          <path
+            d="M750.6,0c39.5,0,75.6,11.9,99,32.2l-49.1,64.1c-10.7-14.2-27.3-23.4-46.8-23.4c-26.9,0-47.6,18.8-47.6,48.4c0,30.7,17.3,48.4,47.6,48.4c18.4,0,35.7-8.4,46.8-23.4l49.1,64.1c-23.4,20.3-59.5,32.2-99,32.2c-84.5,0-132.8-44.1-132.8-121.3C617.8,44.1,666.2,0,750.6,0z" />
+          <path
+            d="M841.9,121.3C841.9,47.6,892.5,0,970.8,0c78.3,0,129,47.6,129,121.3c0,73.7-50.7,121.3-129,121.3S841.9,195,841.9,121.3z M970.8,169.7c25.7,0,40.7-17.7,40.7-48.4c0-30.7-15-48.4-40.7-48.4c-25.7,0-40.7,17.7-40.7,48.4S945.1,169.7,970.8,169.7z" />
+          <path
+            d="M1342.2,92.1c0,30.3-13.8,49.1-37.2,59.5c23.4,11.5,37.2,30.7,37.2,55.3v29.6h-86V205c0-16.5-13.4-26.9-33.8-26.9h-21.5v58.3h-86V6.1h109.8C1303.1,6.1,1342.2,38.4,1342.2,92.1L1342.2,92.1z M1224.7,105.2c22.3,0,29.2-3.8,29.2-13.1c0-9.2-6.9-13.1-29.2-13.1h-23.8v26.1L1224.7,105.2L1224.7,105.2z" />
+          <path
+            d="M1591.2,121.3c0,69.9-50.7,115.2-129,115.2h-102.1V6.1h102.1C1540.5,6.1,1591.2,51.4,1591.2,121.3z M1462.2,163.5c24.6,0,40.7-16.5,40.7-42.2c0-25.7-16.1-42.2-40.7-42.2h-16.1v84.5H1462.2z" />
+        </svg>
+      </a>
+      <div class="nav-right">
+        <div class="nav-links">
+          <a href="#caracteristicas" data-i18n="nav_features">Características</a>
+          <a href="#como-funciona" data-i18n="nav_how">Cómo Funciona</a>
+          <a href="#descargas" data-i18n="nav_download">Descargar</a>
+          <a href="https://github.com/OniverseDesign/onicord" target="_blank">GitHub</a>
+          <a href="https://ko-fi.com/oniversedesign" target="_blank" class="nav-cta" data-i18n="nav_kofi">Cómprame un
+            café</a>
+        </div>
+        <div class="lang-selector" aria-label="Language Selector">
+          <button id="lang-btn-es" class="lang-btn" onclick="setLanguage('es')">ES</button>
+          <span class="lang-divider">/</span>
+          <button id="lang-btn-en" class="lang-btn" onclick="setLanguage('en')">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Tarjeta Trampolín (Visible solo si se ingresa con un enlace de invitación) -->
+    <div id="launcher-card">
+      <div class="radar-container">
+        <div class="radar-pulse"></div>
+        <div class="radar-icon">
+          <img src="./icon.png?v=2" alt="Onicord">
+        </div>
+      </div>
+
+      <h2 class="launcher-title" id="launcher-title" data-i18n="launcher_opening">Abriendo Onicord...</h2>
+      <p class="launcher-desc" id="launcher-desc" data-i18n="launcher_connecting">Conectando de forma segura con la sala
+        P2P.</p>
+
+      <div class="code-badge">
+        <span id="display-code">--------</span>
+        <button class="btn-icon-copy" onclick="copyRoomCode()" data-i18n="launcher_copy">Copiar</button>
+      </div>
+
+      <div id="launcher-fallback" class="launcher-fallback">
+        <p style="font-size: 0.875rem; color: var(--onicord-subtext); margin-bottom: 1rem;"
+          data-i18n="launcher_fallback_question">
+          ¿No se abrió la aplicación automáticamente?
+        </p>
+        <a href="#" id="manual-open-btn" class="btn btn-primary btn-block">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+          <span data-i18n="launcher_open_btn">Abrir en Onicord</span>
+        </a>
+        <button onclick="copyDirectLink()" class="btn btn-secondary btn-block">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span data-i18n="launcher_copy_direct">Copiar Enlace Directo</span>
+        </button>
+        <p style="font-size: 0.8rem; color: var(--onicord-muted); margin-top: 1.15rem;"
+          data-i18n="launcher_fallback_hint">
+          Si todavía no tienes Onicord instalado en este equipo, descárgalo gratis abajo.
+        </p>
+      </div>
+    </div>
+
+    <!-- Hero Estándar de la Landing -->
+    <section class="hero" id="standard-hero">
+      <h1 data-i18n-html="hero_title">Comunicación sin servidores.<br><span>Privada, directa y de alta fidelidad.</span>
+      </h1>
+      <p data-i18n="hero_desc">
+        Onicord es una aplicación de voz, video, pantalla compartida y música construida sobre redes P2P cifradas. Sin
+        servidores centrales, sin recolección de datos y sin suscripciones.
+      </p>
+      <div class="hero-actions">
+        <a href="#descargas" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span data-i18n="hero_download_btn">Descargar Gratis para Windows</span>
+        </a>
+        <a href="https://github.com/OniverseDesign/onicord" target="_blank" class="btn btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22">
+            </path>
+          </svg>
+          <span data-i18n="hero_github_btn">Ver Código en GitHub</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Maqueta Visual de la Interfaz (Mockup / Captura de Pantalla) -->
+    <div class="showcase-wrapper">
+      <img src="./mockup.png" alt="Captura de Pantalla de Onicord" class="mockup-img" id="mockup-image">
+    </div>
+
+    <!-- Sección de Características -->
+    <section id="caracteristicas">
+      <div class="section-title">
+        <h2 data-i18n="features_title">Diseñado para la privacidad y el rendimiento</h2>
+        <p data-i18n="features_subtitle">Todo el procesamiento y la transmisión ocurren de extremo a extremo entre los
+          participantes de la sala.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <h3 data-i18n="feat1_title">100% P2P y Descentralizado</h3>
+          <p data-i18n="feat1_desc">Conexión directa mediante enjambres DHT con Hyperswarm. Ningún servidor central
+            registra tus conversaciones, direcciones IP o metadatos.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+          </div>
+          <h3 data-i18n="feat2_title">Voz Cristalina y Video WebRTC</h3>
+          <p data-i18n="feat2_desc">Audio de ultra baja latencia con códec Opus optimizado, reducción de eco y canales
+            de video fluidos adaptados a tu ancho de banda.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
+          <h3 data-i18n="feat3_title">Pantalla Compartida a 60 FPS</h3>
+          <p data-i18n="feat3_desc">Transmite tus aplicaciones, ventanas o partidas de videojuegos a tus amigos con
+            resolución fluida y tasas de fotogramas configurables.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+          </div>
+          <h3 data-i18n="feat4_title">Música y Streaming Sincronizado</h3>
+          <p data-i18n="feat4_desc">Servidor local integrado con soporte para yt-dlp. Escucha música colaborativamente
+            en la sala sin interrupciones ni bots externos.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+          </div>
+          <h3 data-i18n="feat5_title">Ecosistema Modular de Addons</h3>
+          <p data-i18n="feat5_desc">Extiende las capacidades de tus salas con mini-aplicaciones, widgets interactivos y
+            comandos ejecutados en un Sandbox seguro y aislado.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+              </path>
+            </svg>
+          </div>
+          <h3 data-i18n="feat6_title">Código Abierto y sin Cuentas</h3>
+          <p data-i18n="feat6_desc">Licencia pública GPL-3.0. Tu perfil e identidad viven localmente en tu equipo sin
+            requerir contraseñas, correos electrónicos ni rastreadores.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Guía en 3 Pasos -->
+    <section class="steps-section" id="como-funciona">
+      <div class="section-title" style="margin-bottom: 1.5rem;">
+        <h2 data-i18n="steps_title">¿Cómo unirse a una llamada?</h2>
+        <p data-i18n="steps_subtitle">Tres pasos sencillos para empezar a comunicarte en segundos.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-item">
+          <div class="step-number">01</div>
+          <h4 data-i18n="step1_title">Descarga la aplicación</h4>
+          <p data-i18n="step1_desc">Elige el instalador oficial o la versión portable que no requiere privilegios ni
+            instalación.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-number">02</div>
+          <h4 data-i18n="step2_title">Configura tu apodo</h4>
+          <p data-i18n="step2_desc">Abre Onicord e ingresa el nombre con el que quieres que te reconozcan tus amigos.
+          </p>
+        </div>
+        <div class="step-item">
+          <div class="step-number">03</div>
+          <h4 data-i18n="step3_title">Pega el código de sala</h4>
+          <p data-i18n="step3_desc">Haz clic en el enlace de invitación recibido o pega el código de 8 caracteres
+            directamente.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sección de Descargas -->
+    <section class="downloads-section" id="descargas">
+      <div class="download-container">
+        <div class="download-card unified">
+          <h4 data-i18n="dl_card_title">Comienza a comunicarte en Onicord</h4>
+          <p class="desc" data-i18n="dl_card_desc">
+            Instalador Setup y versión Portable disponibles sin coste ni registros.
+          </p>
+
+          <div class="download-actions-row" style="margin-bottom: 0;">
+            <a href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank" class="btn btn-primary"
+              style="padding: 0.9rem 1.85rem; font-size: 0.95rem;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span data-i18n="dl_btn_releases">Descargar en GitHub Releases</span>
+            </a>
+            <a href="https://github.com/OniverseDesign/onicord" target="_blank" class="btn btn-secondary"
+              style="padding: 0.9rem 1.5rem;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22">
+                </path>
+              </svg>
+              <span data-i18n="dl_btn_source">Ver Código Fuente</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Pie de Página -->
+  <footer>
+    <div class="container footer-content">
+      <div>
+        <p data-i18n-html="footer_credit"><strong>Onicord</strong> — Diseñado y desarrollado de forma independiente por
+          <strong>Oniverse</strong>.</p>
+        <p style="margin-top: 0.25rem; font-size: 0.8125rem;" data-i18n="footer_license">Distribuido bajo la Licencia
+          Pública General GNU v3.0
+          (GPL-3.0).</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/OniverseDesign/onicord" target="_blank" data-i18n="footer_repo">Repositorio en
+          GitHub</a>
+        <a href="https://github.com/OniverseDesign/onicord/releases" target="_blank"
+          data-i18n="footer_releases">Releases</a>
+        <a href="https://ko-fi.com/oniversedesign" target="_blank" data-i18n="footer_kofi">Apoyar en Ko-fi</a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast">Copiado al portapapeles</div>
+
+  <script>
+    // Diccionario i18n
+    const TRANSLATIONS = {
+      es: {
+        page_title: "Onicord - Plataforma P2P de Voz, Video y Chat",
+        page_desc: "Salas de comunicación descentralizadas, privadas y sin servidores centrales. Audio cristalino, compartir pantalla y complementos.",
+        nav_features: "Características",
+        nav_how: "Cómo Funciona",
+        nav_download: "Descargar",
+        nav_kofi: "Cómprame un café",
+        launcher_opening: "Abriendo Onicord...",
+        launcher_connecting: "Conectando de forma segura con la sala P2P.",
+        launcher_invited_to: "Has sido invitado a {name}",
+        launcher_invited_by: "{inviter} te ha invitado a unirte a esta sala P2P.",
+        launcher_copy: "Copiar",
+        launcher_fallback_question: "¿No se abrió la aplicación automáticamente?",
+        launcher_open_btn: "Abrir en Onicord",
+        launcher_copy_direct: "Copiar Enlace Directo",
+        launcher_fallback_hint: "Si todavía no tienes Onicord instalado en este equipo, descárgalo gratis abajo.",
+        hero_title: 'Comunicación sin servidores.<br><span>Privada, directa y de alta fidelidad.</span>',
+        hero_desc: "Onicord es una aplicación de voz, video, pantalla compartida y música construida sobre redes P2P cifradas. Sin servidores centrales, sin recolección de datos y sin suscripciones.",
+        hero_download_btn: "Descargar Gratis para Windows",
+        hero_github_btn: "Ver Código en GitHub",
+        mockup_title: "Captura de pantalla de Onicord",
+        mockup_hint: "Coloca tu imagen o captura como <code>docs/mockup.png</code> para mostrarla aquí.",
+        features_title: "Diseñado para la privacidad y el rendimiento",
+        features_subtitle: "Todo el procesamiento y la transmisión ocurren de extremo a extremo entre los participantes de la sala.",
+        feat1_title: "100% P2P y Descentralizado",
+        feat1_desc: "Conexión directa mediante enjambres DHT con Hyperswarm. Ningún servidor central registra tus conversaciones, direcciones IP o metadatos.",
+        feat2_title: "Voz Cristalina y Video WebRTC",
+        feat2_desc: "Audio de ultra baja latencia con códec Opus optimizado, reducción de eco y canales de video fluidos adaptados a tu ancho de banda.",
+        feat3_title: "Pantalla Compartida a 60 FPS",
+        feat3_desc: "Transmite tus aplicaciones, ventanas o partidas de videojuegos a tus amigos con resolución fluida y tasas de fotogramas configurables.",
+        feat4_title: "Música y Streaming Sincronizado",
+        feat4_desc: "Servidor local integrado con soporte para yt-dlp. Escucha música colaborativamente en la sala sin interrupciones ni bots externos.",
+        feat5_title: "Ecosistema Modular de Addons",
+        feat5_desc: "Extiende las capacidades de tus salas con mini-aplicaciones, widgets interactivos y comandos ejecutados en un Sandbox seguro y aislado.",
+        feat6_title: "Código Abierto y sin Cuentas",
+        feat6_desc: "Licencia pública GPL-3.0. Tu perfil e identidad viven localmente en tu equipo sin requerir contraseñas, correos electrónicos ni rastreadores.",
+        steps_title: "¿Cómo unirse a una llamada?",
+        steps_subtitle: "Tres pasos sencillos para empezar a comunicarte en segundos.",
+        step1_title: "Descarga la aplicación",
+        step1_desc: "Elige el instalador oficial o la versión portable que no requiere privilegios ni instalación.",
+        step2_title: "Configura tu apodo",
+        step2_desc: "Abre Onicord e ingresa el nombre con el que quieres que te reconozcan tus amigos.",
+        step3_title: "Pega el código de sala",
+        step3_desc: "Haz clic en el enlace de invitación recibido o pega el código de 8 caracteres directamente.",
+        dl_card_title: "Comienza a comunicarte en Onicord",
+        dl_card_desc: "Instalador Setup y versión Portable disponibles sin coste ni registros.",
+        dl_btn_releases: "Descargar en GitHub Releases",
+        dl_btn_source: "Ver Código Fuente",
+        footer_credit: '<strong>Onicord</strong> — Diseñado y desarrollado de forma independiente por <strong>Oniverse</strong>.',
+        footer_license: "Distribuido bajo la Licencia Pública General GNU v3.0 (GPL-3.0).",
+        footer_repo: "Repositorio en GitHub",
+        footer_releases: "Releases",
+        footer_kofi: "Apoyar en Ko-fi",
+        toast_code_copied: "Código copiado al portapapeles",
+        toast_link_copied: "Enlace de protocolo copiado"
+      },
+      en: {
+        page_title: "Onicord - P2P Voice, Video & Chat Platform",
+        page_desc: "Decentralized, private communication rooms without central servers. Crystal clear audio, screen sharing and addons.",
+        nav_features: "Features",
+        nav_how: "How it Works",
+        nav_download: "Download",
+        nav_kofi: "Buy me a coffee",
+        launcher_opening: "Opening Onicord...",
+        launcher_connecting: "Securely connecting to the P2P room.",
+        launcher_invited_to: "You have been invited to {name}",
+        launcher_invited_by: "{inviter} invited you to join this P2P room.",
+        launcher_copy: "Copy",
+        launcher_fallback_question: "Didn't the application open automatically?",
+        launcher_open_btn: "Open in Onicord",
+        launcher_copy_direct: "Copy Direct Link",
+        launcher_fallback_hint: "If you don't have Onicord installed on this machine yet, download it free below.",
+        hero_title: 'Serverless communication.<br><span>Private, direct and high fidelity.</span>',
+        hero_desc: "Onicord is a voice, video, screen share and music app built on encrypted P2P networks. No central servers, no data collection and no subscriptions.",
+        hero_download_btn: "Free Download for Windows",
+        hero_github_btn: "View Code on GitHub",
+        mockup_title: "Onicord Screenshot",
+        mockup_hint: "Place your image or screenshot at <code>docs/mockup.png</code> to display it here.",
+        features_title: "Engineered for privacy and performance",
+        features_subtitle: "All processing and media streaming happen end-to-end between room participants.",
+        feat1_title: "100% P2P & Decentralized",
+        feat1_desc: "Direct peer connection through Hyperswarm DHT swarms. No central server logs your conversations, IP addresses, or metadata.",
+        feat2_title: "Crystal Voice & WebRTC Video",
+        feat2_desc: "Ultra-low latency audio with optimized Opus codec, acoustic echo cancellation, and smooth video tuned to your bandwidth.",
+        feat3_title: "60 FPS Screen Sharing",
+        feat3_desc: "Stream applications, windows, or games to your friends with silky-smooth resolution and customizable framerates.",
+        feat4_title: "Music & Synced Streaming",
+        feat4_desc: "Built-in local playback server powered by yt-dlp. Listen to music together in the room without interruptions or external bots.",
+        feat5_title: "Modular Addon Ecosystem",
+        feat5_desc: "Supercharge your rooms with interactive widgets, mini-apps, and slash commands run in a secure, isolated sandbox.",
+        feat6_title: "Open Source & Accountless",
+        feat6_desc: "GPL-3.0 public license. Your identity and profile live locally on your device without passwords, emails, or user tracking.",
+        steps_title: "How to join a call?",
+        steps_subtitle: "Three simple steps to start communicating in seconds.",
+        step1_title: "Download the app",
+        step1_desc: "Choose the official installer or portable version that runs without administrative privileges or installation.",
+        step2_title: "Choose your nickname",
+        step2_desc: "Launch Onicord and pick the display name your friends will recognize you by.",
+        step3_title: "Paste room code",
+        step3_desc: "Click the invite link you received or paste the 8-character room code directly.",
+        dl_card_title: "Start communicating on Onicord",
+        dl_card_desc: "Setup installer and portable executable available free with no accounts required.",
+        dl_btn_releases: "Download on GitHub Releases",
+        dl_btn_source: "View Source Code",
+        footer_credit: '<strong>Onicord</strong> — Independently designed and developed by <strong>Oniverse</strong>.',
+        footer_license: "Distributed under GNU General Public License v3.0 (GPL-3.0).",
+        footer_repo: "GitHub Repository",
+        footer_releases: "Releases",
+        footer_kofi: "Support on Ko-fi",
+        toast_code_copied: "Code copied to clipboard",
+        toast_link_copied: "Protocol link copied"
+      }
+    };
+
+    let currentLang = 'es';
+
+    // Procesamiento de parámetros en la URL
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash.replace('#', '').trim();
+
+    const code = (params.get('code') || params.get('c') || hash).toUpperCase().replace(/[^A-F0-9]/g, '');
+    const serverName = params.get('name') || '';
+    const inviterName = params.get('by') || '';
+    const ip = params.get('ip');
+    const port = params.get('port');
+    const addonId = params.get('addon');
+
+    let deepLink = '';
+
+    if (ip && port && code) {
+      deepLink = `onicord://direct:${ip}:${port}/${code}`;
+    } else if (addonId) {
+      deepLink = `onicord://addon/install/${addonId}`;
+    } else if (code && code.length === 8) {
+      deepLink = `onicord://join/${code}`;
+    }
+
+    const launcherCard = document.getElementById('launcher-card');
+    const standardHero = document.getElementById('standard-hero');
+    const launcherTitle = document.getElementById('launcher-title');
+    const launcherDesc = document.getElementById('launcher-desc');
+    const displayCode = document.getElementById('display-code');
+    const manualOpenBtn = document.getElementById('manual-open-btn');
+    const fallbackBox = document.getElementById('launcher-fallback');
+
+    function setLanguage(lang) {
+      if (!TRANSLATIONS[lang]) lang = 'es';
+      currentLang = lang;
+      localStorage.setItem('onicord_lang', lang);
+      document.documentElement.lang = lang;
+
+      const btnEs = document.getElementById('lang-btn-es');
+      const btnEn = document.getElementById('lang-btn-en');
+      if (btnEs) btnEs.classList.toggle('active', lang === 'es');
+      if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+
+      const dict = TRANSLATIONS[lang];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) el.textContent = dict[key];
+      });
+
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        const key = el.getAttribute('data-i18n-html');
+        if (dict[key]) el.innerHTML = dict[key];
+      });
+
+      document.title = dict.page_title;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute('content', dict.page_desc);
+
+      if (deepLink) {
+        if (serverName) {
+          launcherTitle.textContent = dict.launcher_invited_to.replace('{name}', serverName);
+        } else {
+          launcherTitle.textContent = dict.launcher_opening;
+        }
+
+        if (inviterName) {
+          launcherDesc.textContent = dict.launcher_invited_by.replace('{inviter}', inviterName);
+        } else {
+          launcherDesc.textContent = dict.launcher_connecting;
+        }
+      }
+    }
+
+    function initLanguage() {
+      const stored = localStorage.getItem('onicord_lang');
+      let lang = 'es';
+      if (stored === 'es' || stored === 'en') {
+        lang = stored;
+      } else {
+        const navLang = (navigator.language || navigator.userLanguage || 'es').toLowerCase();
+        lang = navLang.startsWith('es') ? 'es' : 'en';
+      }
+      setLanguage(lang);
+    }
+
+    // Control de clic en el logo para evitar abrir directorio en local y permitir scroll suave
+    function onBrandClick(e) {
+      if (window.location.search || window.location.hash) {
+        window.location.href = window.location.pathname;
+        if (e) e.preventDefault();
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (e) e.preventDefault();
+      }
+    }
+
+    // Efecto de transparencia en Navbar al hacer scroll
+    const headerEl = document.querySelector('header');
+    function updateHeaderOnScroll() {
+      if (window.scrollY > 20) {
+        headerEl.classList.add('scrolled');
+      } else {
+        headerEl.classList.remove('scrolled');
+      }
+    }
+    window.addEventListener('scroll', updateHeaderOnScroll, { passive: true });
+    updateHeaderOnScroll();
+
+    if (deepLink) {
+      // Modo Lanzador Activo
+      launcherCard.style.display = 'block';
+      standardHero.style.display = 'none';
+
+      displayCode.innerText = code || addonId || "ENLACE";
+      manualOpenBtn.href = deepLink;
+
+      // Intento de apertura automática inmediata
+      window.location.href = deepLink;
+
+      // Mostrar opciones alternativas si el usuario sigue en la página tras 1.5s
+      setTimeout(() => {
+        fallbackBox.style.display = 'block';
+      }, 1500);
+
+    } else {
+      // Modo Landing Explicativa Estándar
+      launcherCard.style.display = 'none';
+      standardHero.style.display = 'block';
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function copyRoomCode() {
+      const val = displayCode.innerText;
+      if (!val || val === "--------") return;
+      navigator.clipboard.writeText(val);
+      const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.es;
+      showToast(dict.toast_code_copied);
+    }
+
+    function copyDirectLink() {
+      if (!deepLink) return;
+      navigator.clipboard.writeText(deepLink);
+      const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.es;
+      showToast(dict.toast_link_copied);
+    }
+
+    // Inicializar idioma detectado o guardado
+    initLanguage();
+  </script>
+</body>
+
+</html>

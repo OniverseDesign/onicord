@@ -1,0 +1,41 @@
+/* css-lint-disable unknownAtRules */
+
+/* 🎨 TOKENS FOUNDATION */
+@import "./tokens/colors.css";
+@import "./tokens/spacing.css";
+@import "./tokens/radius.css";
+@import "./tokens/shadows.css";
+@import "./tokens/motion.css";
+
+/* 🧱 BASE STYLES */
+@import "./base/reset.css";
+@import "./base/fonts.css";
+@import "./base/typography.css";
+@import "./base/scrollbar.css";
+@import "./base/animations.css";
+
+/* ⚙️ PLATFORM / DESKTOP INTEGRATIONS */
+@import "./electron.css";
+
+/* 💎 PRIMITIVES */
+@import "./primitives/layout.css";
+@import "./primitives/buttons.css";
+@import "./primitives/panels.css";
+@import "./primitives/cards.css";
+@import "./primitives/inputs.css";
+@import "./primitives/badges.css";
+
+/* 🧩 COMPONENTES */
+@import "./components/chat.css";
+@import "./components/sidebar.css";
+@import "./components/modal.css";
+@import "./components/messages.css";
+@import "./components/dashboard.css";
+@import "./components/stickers.css";
+@import "./components/settings.css";
+@import "./components/widgets.css";
+
+/* 🚀 TAILWIND DIRECTIVES (Must succeed imports in standard CSS files) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

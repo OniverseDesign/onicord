@@ -1,0 +1,25 @@
+@layer components {
+  /* 🎨 STICKER PICKER AND GESTURE STYLES */
+  .onicord-sticker-popover {
+    @apply absolute bottom-16 right-3 w-80 h-96 bg-onicord-mantle border border-onicord-island rounded-onicord-inner flex flex-col p-5 z-50 animate-fade-in text-left select-none;
+  }
+  .onicord-sticker-grid-panel {
+    @apply grid grid-cols-4 gap-1.5 bg-onicord-mantle/50 p-1.5 rounded-onicord-inner border border-onicord-island;
+  }
+  .onicord-sticker-thumb {
+    @apply w-14 h-14 shrink-0 bg-onicord-mantle/50 rounded-onicord-button p-1.5 flex items-center justify-center border border-white/[0.02];
+  }
+  .onicord-popover-section-header {
+    @apply text-[11px] font-bold text-onicord-muted truncate flex items-center gap-1.5 cursor-pointer hover:text-onicord-text transition-colors py-0.5;
+  }
+
+  /* Sticker States (linked to cards.css .onicord-sticker-card) */
+  .onicord-sticker-card-idle {
+    @apply hover:scale-[1.02];
+    border-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  .onicord-sticker-card-selected {
+    @apply bg-onicord-accent/5 scale-95 shadow-md ring-2 ring-onicord-accent/20;
+    border-color: rgb(var(--onicord-lavender)) !important;
+  }
+}

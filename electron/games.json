@@ -1,0 +1,563 @@
+[
+  {
+    "exe": "League of Legends.exe",
+    "title": "League of Legends",
+    "cover": "https://cdn2.steamgriddb.com/icon/882137f311c5728f8e257e56820af92c.png",
+    "priority": 100
+  },
+  {
+    "exe": "LeagueClient.exe",
+    "title": "League of Legends",
+    "cover": "https://cdn2.steamgriddb.com/icon/882137f311c5728f8e257e56820af92c.png",
+    "priority": 70,
+    "type": "client"
+  },
+  {
+    "exe": "VALORANT-Win64-Shipping.exe",
+    "title": "Valorant",
+    "cover": "https://cdn2.steamgriddb.com/icon/191c62d342811d1a0d3d0528ec35cd2d.ico",
+    "priority": 100
+  },
+  {
+    "exe": "cs2.exe",
+    "title": "Counter-Strike 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/fe772ff1261b820e437821342b445539.ico",
+    "priority": 100
+  },
+  {
+    "exe": "javaw.exe",
+    "title": "Minecraft",
+    "cover": "https://cdn2.steamgriddb.com/icon/add7a048049671970976f3e18f21ade3.ico",
+    "priority": 100
+  },
+  {
+    "exe": "FortniteClient-Win64-Shipping.exe",
+    "title": "Fortnite",
+    "cover": "https://cdn2.steamgriddb.com/icon/174edde7313a8f0cdead57d726ad6f97.ico",
+    "priority": 100
+  },
+  {
+    "exe": "RocketLeague.exe",
+    "title": "Rocket League",
+    "cover": "https://cdn2.steamgriddb.com/icon/f1e513f02d2dbe70b939178cb7d4fbac.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Overwatch.exe",
+    "title": "Overwatch 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/f812eab186eb17d72275bb38b918913d.png",
+    "priority": 100
+  },
+  {
+    "exe": "RainbowSix.exe",
+    "title": "Rainbow Six Siege",
+    "cover": "https://cdn2.steamgriddb.com/icon/cc78875c52b3c4cda1ddc65357b3cbc2.ico",
+    "priority": 100
+  },
+  {
+    "exe": "GTA5.exe",
+    "title": "Grand Theft Auto V",
+    "cover": "https://cdn2.steamgriddb.com/icon/84ddfb34126fc3a48ee38d7044e87276.ico",
+    "priority": 100
+  },
+  {
+    "exe": "RDR2.exe",
+    "title": "Red Dead Redemption 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/f6ad645a331d5e5e95938c1439ba385d.ico",
+    "priority": 100
+  },
+  {
+    "exe": "dota2.exe",
+    "title": "Dota 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/ec1e28dc996e7d39d7535a730ead176e.ico",
+    "priority": 100
+  },
+  {
+    "exe": "hl.exe",
+    "title": "Half-Life",
+    "cover": "https://cdn2.steamgriddb.com/icon/e16e74a63567ecb44ade5c87002bb1d9.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Apex.exe",
+    "title": "Apex Legends",
+    "cover": "https://cdn2.steamgriddb.com/icon/9c926c8729189f4e871a4fed07a012e5.png",
+    "priority": 100
+  },
+  {
+    "exe": "Destiny2.exe",
+    "title": "Destiny 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/9908279ebbf1f9b250ba689db6a0222b.ico",
+    "priority": 100
+  },
+  {
+    "exe": "RustClient.exe",
+    "title": "Rust",
+    "cover": "https://cdn2.steamgriddb.com/icon/c291b01517f3e6797c774c306591cc32.png",
+    "priority": 100
+  },
+  {
+    "exe": "EscapeFromTarkov.exe",
+    "title": "Escape from Tarkov",
+    "cover": "https://cdn2.steamgriddb.com/icon/ccfac0e684af52c7a3fd89da04781638.ico",
+    "priority": 100
+  },
+  {
+    "exe": "DayZ_x64.exe",
+    "title": "DayZ",
+    "cover": "https://cdn2.steamgriddb.com/icon/ca9f9c4764430f980dca8d70e29d8e5e.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Palworld-Win64-Shipping.exe",
+    "title": "Palworld",
+    "cover": "https://cdn2.steamgriddb.com/icon/82cf0712367108660c5339a4897a728e.ico",
+    "priority": 100
+  },
+  {
+    "exe": "TheFinals.exe",
+    "title": "THE FINALS",
+    "cover": "https://cdn2.steamgriddb.com/icon/c798707d32dbc54e1076d05963029a00.ico",
+    "priority": 100
+  },
+  {
+    "exe": "MarvelRivals.exe",
+    "title": "Marvel Rivals",
+    "cover": "https://cdn2.steamgriddb.com/icon/916030603cc86a9b3d29f4d64f1bc415.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Warframe.x64.exe",
+    "title": "Warframe",
+    "cover": "https://cdn2.steamgriddb.com/icon/83adc9225e4deb67d7ce42d58fe5157c.ico",
+    "priority": 100
+  },
+  {
+    "exe": "PathOfExile.exe",
+    "title": "Path of Exile",
+    "cover": "https://cdn2.steamgriddb.com/icon/6709e8d64a5f47269ed5cea9f625f7ab.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Diablo IV.exe",
+    "title": "Diablo IV",
+    "cover": "https://cdn2.steamgriddb.com/icon/4d1180e592869543e75486faa4eb9d23.png",
+    "priority": 100
+  },
+  {
+    "exe": "Wow.exe",
+    "title": "World of Warcraft",
+    "cover": "https://cdn2.steamgriddb.com/icon/4b6538a44a1dfdc2b83477cd76dee98e.png",
+    "priority": 100
+  },
+  {
+    "exe": "osu!.exe",
+    "title": "osu!",
+    "cover": "https://cdn2.steamgriddb.com/icon/01741e5669e3f7622b92810ab0449276.png",
+    "priority": 100
+  },
+  {
+    "exe": "RobloxPlayerBeta.exe",
+    "title": "Roblox",
+    "cover": "https://cdn2.steamgriddb.com/icon/177db6acfe388526a4c7bff88e1feb15.png",
+    "priority": 100
+  },
+  {
+    "exe": "Spotify.exe",
+    "title": "Spotify",
+    "cover": "https://cdn2.steamgriddb.com/icon/d4bf01cf10dbffe837ee3b6bb0d58e74.ico",
+    "priority": 5,
+    "type": "music"
+  },
+  {
+    "exe": "spotify",
+    "title": "Spotify",
+    "cover": "https://cdn2.steamgriddb.com/icon/d4bf01cf10dbffe837ee3b6bb0d58e74.ico",
+    "priority": 5,
+    "type": "music"
+  },
+  {
+    "exe": "GenshinImpact.exe",
+    "title": "Genshin Impact",
+    "cover": "https://cdn2.steamgriddb.com/icon/ac4e7a4f341e7281b0f6f274f9ec3905.png",
+    "priority": 100
+  },
+  {
+    "exe": "Starfield.exe",
+    "title": "Starfield",
+    "cover": "https://cdn2.steamgriddb.com/icon/4537a9e98e90f416dadaedd65c416843.png",
+    "priority": 100
+  },
+  {
+    "exe": "Cyberpunk2077.exe",
+    "title": "Cyberpunk 2077",
+    "cover": "https://cdn2.steamgriddb.com/icon/fbc018d6917843a5dfac1068c8bdd1b0.ico",
+    "priority": 100
+  },
+  {
+    "exe": "TheWitcher3.exe",
+    "title": "The Witcher 3",
+    "cover": "https://cdn2.steamgriddb.com/icon/b9a8f4af85454f7c56c06f0a39e7ec23.png",
+    "priority": 100
+  },
+  {
+    "exe": "HollowKnight.exe",
+    "title": "Hollow Knight",
+    "cover": "https://cdn2.steamgriddb.com/icon/0e80627b065f42ceda0f4464845f2c65.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Terraria.exe",
+    "title": "Terraria",
+    "cover": "https://cdn2.steamgriddb.com/icon/c8157144d45faf12c01a459170b2333a.ico",
+    "priority": 100
+  },
+  {
+    "exe": "StardewValley.exe",
+    "title": "Stardew Valley",
+    "cover": "https://cdn2.steamgriddb.com/icon/1716ad6e89423aa059bbdd5ea453eda4.ico",
+    "priority": 100
+  },
+  {
+    "exe": "AmongUs.exe",
+    "title": "Among Us",
+    "cover": "https://cdn2.steamgriddb.com/icon/09a69de15cf89bc7fe8c0642f906a4dd.ico",
+    "priority": 100
+  },
+  {
+    "exe": "FallGuys_client.exe",
+    "title": "Fall Guys",
+    "cover": "https://cdn2.steamgriddb.com/icon/73c0551eb9d9731879220abc605cb9b3.ico",
+    "priority": 100
+  },
+  {
+    "exe": "DeadByDaylight.exe",
+    "title": "Dead by Daylight",
+    "cover": "https://cdn2.steamgriddb.com/icon/735ddec196a9ca5745c05bec0eaa4bf9.png",
+    "priority": 100
+  },
+  {
+    "exe": "TS4_x64.exe",
+    "title": "The Sims 4",
+    "cover": "https://cdn2.steamgriddb.com/icon/bca382c81484983f2d437f97d1e141f3.png",
+    "priority": 100
+  },
+  {
+    "exe": "bfv.exe",
+    "title": "Battlefield V",
+    "cover": "https://cdn2.steamgriddb.com/icon/5a378f8490c8d6af8647a753812f6e31.ico",
+    "priority": 100
+  },
+  {
+    "exe": "eldenring.exe",
+    "title": "Elden Ring",
+    "cover": "https://cdn2.steamgriddb.com/icon/3c7b933fa023d881921776fe47b69a0b.ico",
+    "priority": 100
+  },
+  {
+    "exe": "bg3.exe",
+    "title": "Baldur's Gate 3",
+    "cover": "https://cdn2.steamgriddb.com/icon/84c98a4bae3853fec6a04c79d5091f60.png",
+    "priority": 100
+  },
+  {
+    "exe": "helldivers2.exe",
+    "title": "Helldivers 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/a6cf2b02bf0a6a7494bd13b1257ad2c2.ico",
+    "priority": 100
+  },
+  {
+    "exe": "LLBlaze.exe",
+    "title": "Lethal League Blaze (PEAK)",
+    "cover": "https://cdn2.steamgriddb.com/icon/d299a92004734135de74355770b7c785.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Peak.exe",
+    "title": "Peak",
+    "cover": "https://cdn2.steamgriddb.com/icon/55c1db3215355af45d48f701bb19527f.ico",
+    "priority": 100
+  },
+  {
+    "exe": "sh2pc.exe",
+    "title": "Silent Hill 2 (Clásico)",
+    "cover": "https://cdn2.steamgriddb.com/icon/35f4a8d465e6e1edc05f3d8ab658c551.png",
+    "priority": 100
+  },
+  {
+    "exe": "SH2R.exe",
+    "title": "Silent Hill 2 Remake",
+    "cover": "https://cdn2.steamgriddb.com/icon/35f4a8d465e6e1edc05f3d8ab658c551.png",
+    "priority": 100
+  },
+  {
+    "exe": "sh3.exe",
+    "title": "Silent Hill 3",
+    "cover": "https://cdn2.steamgriddb.com/icon/1397386b7a1507535c59764a15ee0c98.ico",
+    "priority": 100
+  },
+  {
+    "exe": "sh4.exe",
+    "title": "Silent Hill 4: The Room",
+    "cover": "https://cdn2.steamgriddb.com/icon/95345799f982ff5ba10930c9e397f79a.ico",
+    "priority": 100
+  },
+  {
+    "exe": "SilentHill_Homecoming.exe",
+    "title": "Silent Hill: Homecoming",
+    "cover": "https://cdn2.steamgriddb.com/icon/a226e450e214f350856e2980b6e55ac9.ico",
+    "priority": 100
+  },
+  {
+    "exe": "shsm.exe",
+    "title": "Silent Hill: The Short Message",
+    "cover": "https://cdn2.steamgriddb.com/icon/f19fa2f7cb356ebf74a44bd9fb13e735.png",
+    "priority": 100
+  },
+  {
+    "exe": "MonsterHunterWorld.exe",
+    "title": "Monster Hunter: World",
+    "cover": "https://cdn2.steamgriddb.com/icon/e5826e5ffaef4aaecc93d1067d94c985.png",
+    "priority": 100
+  },
+  {
+    "exe": "TslGame.exe",
+    "title": "PUBG",
+    "cover": "https://cdn2.steamgriddb.com/icon/e997d64448e4f1b698c98432ea82a5ae.ico",
+    "priority": 100
+  },
+  {
+    "exe": "left4dead2.exe",
+    "title": "Left 4 Dead 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/8efb100a295c0c690931222ff4467bb8.png",
+    "priority": 100
+  },
+  {
+    "exe": "Phasmophobia.exe",
+    "title": "Phasmophobia",
+    "cover": "https://cdn2.steamgriddb.com/icon/1b742ae215adf18b75449c6e272fd92d.ico",
+    "priority": 100
+  },
+  {
+    "exe": "eurotruck2.exe",
+    "title": "Euro Truck Simulator 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/86ebc43444cdf451b149e5de84ff3ef5.ico",
+    "priority": 100
+  },
+  {
+    "exe": "hl2.exe",
+    "title": "Half-Life 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/84b20b1f5a0d103f5710bb67a043cd78.ico",
+    "priority": 100
+  },
+  {
+    "exe": "portal.exe",
+    "title": "Portal",
+    "cover": "https://cdn2.steamgriddb.com/icon/045117b0e0a11a242b9765e79cbf113f.png",
+    "priority": 100
+  },
+  {
+    "exe": "portal2.exe",
+    "title": "Portal 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/8d37be25170778cefa6d23801922dc97.ico",
+    "priority": 100
+  },
+  {
+    "exe": "hl2.exe",
+    "title": "Team Fortress 2",
+    "cover": "https://cdn2.steamgriddb.com/icon/d35a34476be067a04fa756c8c0b7dfbd.ico",
+    "priority": 100
+  },
+  {
+    "exe": "left4dead.exe",
+    "title": "Left 4 Dead",
+    "cover": "https://cdn2.steamgriddb.com/icon/d9fc5b73a8d78fad3d6dffe419384e70.png",
+    "priority": 100
+  },
+  {
+    "exe": "gmod.exe",
+    "title": "Garry's Mod",
+    "cover": "https://cdn2.steamgriddb.com/icon/5f2397a240ce3565d4d3b82b0db2fc65.png",
+    "priority": 100
+  },
+  {
+    "exe": "FC24.exe",
+    "title": "EA SPORTS FC 24",
+    "cover": "https://cdn2.steamgriddb.com/icon/7e7cfae4a5a4cc240aea3d673afa9a05.ico",
+    "priority": 100
+  },
+  {
+    "exe": "FC25.exe",
+    "title": "EA SPORTS FC 25",
+    "cover": "https://cdn2.steamgriddb.com/icon/54a3e39bbf1f4588a815a8b59879179f.ico",
+    "priority": 100
+  },
+  {
+    "exe": "BF2042.exe",
+    "title": "Battlefield 2042",
+    "cover": "https://cdn2.steamgriddb.com/icon/9119bd21dd1bca0a9ae6fd8379c237b9.png",
+    "priority": 100
+  },
+  {
+    "exe": "bf1.exe",
+    "title": "Battlefield 1",
+    "cover": "https://cdn2.steamgriddb.com/icon/de01d76e793fec3fba32f4401a45fb20.ico",
+    "priority": 100
+  },
+  {
+    "exe": "bf4.exe",
+    "title": "Battlefield 4",
+    "cover": "https://cdn2.steamgriddb.com/icon/a36e841c5230a79c2102036d2e259848.ico",
+    "priority": 100
+  },
+  {
+    "exe": "NeedForSpeedUnbound.exe",
+    "title": "Need for Speed Unbound",
+    "cover": "https://cdn2.steamgriddb.com/icon/b814c1e0d75153d80e0f59dc05a35711.ico",
+    "priority": 100
+  },
+  {
+    "exe": "NFSHeat.exe",
+    "title": "Need for Speed Heat",
+    "cover": "https://cdn2.steamgriddb.com/icon/3c306a0d8b9f75e320b7f1d60e29f444.ico",
+    "priority": 100
+  },
+  {
+    "exe": "StarWarsJediFallenOrder.exe",
+    "title": "SW Jedi: Fallen Order",
+    "cover": "https://cdn2.steamgriddb.com/icon/2fd0fd3efa7c4cfb034317b21f3c2d93.ico",
+    "priority": 100
+  },
+  {
+    "exe": "JediSurvivor.exe",
+    "title": "SW Jedi: Survivor",
+    "cover": "https://cdn2.steamgriddb.com/icon/f791442ffdc2ea31c06914f523c118e9.ico",
+    "priority": 100
+  },
+  {
+    "exe": "MassEffectLauncher.exe",
+    "title": "Mass Effect Legendary Edition",
+    "cover": "https://cdn2.steamgriddb.com/icon/ae9ad522bcc7a4c068f5c3456748ae65.png",
+    "priority": 100
+  },
+  {
+    "exe": "ItTakesTwo.exe",
+    "title": "It Takes Two",
+    "cover": "https://cdn2.steamgriddb.com/icon/c7674c8eb822d255f1ca0824090716fd.png",
+    "priority": 100
+  },
+  {
+    "exe": "cod.exe",
+    "title": "CoD: Modern Warfare III",
+    "cover": "https://cdn2.steamgriddb.com/icon/866b759098d23bec8afef3d7098b4ca5.png",
+    "priority": 100
+  },
+  {
+    "exe": "cod.exe",
+    "title": "CoD: Black Ops 6",
+    "cover": "https://cdn2.steamgriddb.com/icon/41dfccda9b5b255be17050bf5fb959f3.png",
+    "priority": 100
+  },
+  {
+    "exe": "cod.exe",
+    "title": "CoD: Warzone",
+    "cover": "https://cdn2.steamgriddb.com/icon/b53477c2821c1bf0da5d40e57b870d35.png",
+    "priority": 100
+  },
+  {
+    "exe": "CrashBandicootNSaneTrilogy.exe",
+    "title": "Crash Bandicoot N. Sane Trilogy",
+    "cover": "https://cdn2.steamgriddb.com/icon/efd1a2f9b0b5f14b1fac70a7f8e8a9e7.ico",
+    "priority": 100
+  },
+  {
+    "exe": "sekiro.exe",
+    "title": "Sekiro: Shadows Die Twice",
+    "cover": "https://cdn2.steamgriddb.com/icon/e732b84af8e033529e17550b87b64c50.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Balatro.exe",
+    "title": "Balatro",
+    "cover": "https://cdn2.steamgriddb.com/icon/62415c82dd6c47e714f473f9b0475e62.png",
+    "priority": 100
+  },
+  {
+    "exe": "Palworld.exe",
+    "title": "Palworld",
+    "cover": "https://cdn2.steamgriddb.com/icon/82cf0712367108660c5339a4897a728e.ico",
+    "priority": 100
+  },
+  {
+    "exe": "ReadyOrNot-Win64-Shipping.exe",
+    "title": "Ready or Not",
+    "cover": "https://cdn2.steamgriddb.com/icon/092b649487e732e7518908665d81cb07.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Squad.exe",
+    "title": "Squad",
+    "cover": "https://cdn2.steamgriddb.com/icon/90a968fc0f70ab11c67b304474027f73.ico",
+    "priority": 100
+  },
+  {
+    "exe": "ProjectZomboid64.exe",
+    "title": "Project Zomboid",
+    "cover": "https://cdn2.steamgriddb.com/icon/237c97e668d135feb5992e9f844b107b.ico",
+    "priority": 100
+  },
+  {
+    "exe": "RimWorldWin64.exe",
+    "title": "RimWorld",
+    "cover": "https://cdn2.steamgriddb.com/icon/d37eb50d868361ea729bb4147eb3c1d8.png",
+    "priority": 100
+  },
+  {
+    "exe": "factorio.exe",
+    "title": "Factorio",
+    "cover": "https://cdn2.steamgriddb.com/icon/6ca4e9af5ea662a095c3243dc591bf54.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Subnautica.exe",
+    "title": "Subnautica",
+    "cover": "https://cdn2.steamgriddb.com/icon/03ff5913b0517be4231fee8f421f2699.ico",
+    "priority": 100
+  },
+  {
+    "exe": "deadcells.exe",
+    "title": "Dead Cells",
+    "cover": "https://cdn2.steamgriddb.com/icon/165d3981d84bfa463ab80c11685b63c5.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Hades.exe",
+    "title": "Hades",
+    "cover": "https://cdn2.steamgriddb.com/icon/851300ee84c2b80ed40f51ed26d866fc.ico",
+    "priority": 100
+  },
+  {
+    "exe": "Hades2.exe",
+    "title": "Hades II",
+    "cover": "https://cdn2.steamgriddb.com/icon/3d3e9b54c139bb780189f8c1b4f3a1e8.png",
+    "priority": 100
+  },
+  {
+    "exe": "isaac-ng.exe",
+    "title": "The Binding of Isaac",
+    "cover": "https://cdn2.steamgriddb.com/icon/bc573864331a9e42e4511de6f678aa83.ico",
+    "priority": 100
+  },
+  {
+    "exe": "SlayTheSpire.exe",
+    "title": "Slay the Spire",
+    "cover": "https://cdn2.steamgriddb.com/icon/aecf89d1270d044970cf4da4de7cf218.ico",
+    "priority": 100
+  },
+  {
+    "exe": "VampireSurvivors.exe",
+    "title": "Vampire Survivors",
+    "cover": "https://cdn2.steamgriddb.com/icon/2cb1e384e0906033e91c4795c75ae6fb.ico",
+    "priority": 100
+  }
+]

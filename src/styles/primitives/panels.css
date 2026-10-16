@@ -1,0 +1,50 @@
+@layer components {
+  /* 🧱 ONICORD ATOMIC PANELS SYSTEM */
+  .onicord-panel {
+    @apply rounded-onicord-button p-4;
+  }
+
+  /* Color Variations */
+  .onicord-panel-base {
+    @apply bg-onicord-base;
+  }
+  .onicord-panel-surface {
+    @apply bg-onicord-surface;
+  }
+  .onicord-panel-overlay {
+    @apply bg-onicord-overlay;
+  }
+
+  .bg-onicord-overlayer {
+    background-color: rgba(17, 17, 27, 0.92);
+  }
+
+  /* Border / Outline modifications */
+  .onicord-panel-bordered {
+    @apply border border-white/5;
+  }
+  .onicord-panel-bordered-soft {
+    @apply border border-white/[0.02];
+  }
+  .onicord-panel-bordered-overlay {
+    @apply border border-white/[0.04];
+  }
+
+  .border-onicord-island {
+    border: 3px solid rgb(var(--onicord-bg-overlay));
+  }
+
+  /* 🔄 COMPATIBILIDAD CON CLASES VIEJAS (Legacy alias wrappers) */
+  .onicord-panel-settings {
+    @apply onicord-panel onicord-panel-overlay onicord-panel-bordered-overlay space-y-3;
+  }
+  .onicord-info-panel {
+    @apply onicord-panel onicord-panel-overlay onicord-panel-bordered-soft text-sm text-onicord-muted;
+  }
+  .onicord-panel-card {
+    @apply onicord-panel onicord-panel-base onicord-panel-bordered rounded-onicord-inner transition-colors duration-200 select-none;
+  }
+  .onicord-modal-preview-box {
+    @apply flex items-center justify-center gap-4 p-3.5 rounded-onicord-inner bg-onicord-base/50 border border-white/5 shadow-inner;
+  }
+}
