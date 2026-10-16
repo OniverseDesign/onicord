@@ -27,7 +27,13 @@
 
   <p>
     <a href="https://github.com/OniverseDesign/onicord/releases/latest">
-      <img src="https://img.shields.io/badge/Download%20for%20Windows-Setup%20&%20Portable%20(.exe)-cba6f7?style=for-the-badge&labelColor=1e1e2e" alt="Download Installer" />
+      <img src="https://img.shields.io/badge/Windows-Setup%20&%20Portable%20(.exe)-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" />
+    </a>
+    <a href="https://github.com/OniverseDesign/onicord/releases/latest">
+      <img src="https://img.shields.io/badge/Linux-AppImage%20&%20.deb-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download for Linux" />
+    </a>
+    <a href="https://github.com/OniverseDesign/onicord/releases/latest">
+      <img src="https://img.shields.io/badge/macOS-DMG%20&%20Zip-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS" />
     </a>
   </p>
 
@@ -169,7 +175,23 @@ Onicord provides a first-class, built-in **Model Context Protocol (MCP)** server
 * **P2P Networking**: [Hyperswarm](https://github.com/holepunchto/hyperswarm) (DHT & Hole-punching) + [simple-peer](https://github.com/feross/simple-peer) (WebRTC).
 * **Media & Audio Engine**: Embedded `yt-dlp` integration with local streaming server.
 * **Security & Crypto**: Node.js `crypto` (AES-256-GCM cipher).
-* **Internationalization**: `i18next` with complete dual support for **English** and **Spanish**.
+* **Internationalization**: `i18next` with full multi-language localization (**Spanish**, **English**, and **Portuguese**), easily extensible by the community.
+
+---
+
+## Downloads & Supported Platforms
+
+Official release assets are available on the [Latest Release Page](https://github.com/OniverseDesign/onicord/releases/latest):
+
+| Platform | Packaging / Format | Architecture | Download Link |
+| :--- | :--- | :--- | :--- |
+| **Windows** | Setup Installer (`.exe`) | `x64` | [Download Installer](https://github.com/OniverseDesign/onicord/releases/latest) |
+| **Windows** | Standalone Portable (`.exe`) | `x64` | [Download Portable](https://github.com/OniverseDesign/onicord/releases/latest) |
+| **Linux** | Universal AppImage (`.AppImage`) | `x86_64` | [Download AppImage](https://github.com/OniverseDesign/onicord/releases/latest) |
+| **Linux** | Debian / Ubuntu Package (`.deb`) | `amd64` | [Download .deb](https://github.com/OniverseDesign/onicord/releases/latest) |
+| **macOS** | Apple Disk Image (`.dmg`) | Apple Silicon (`arm64`) | [Download DMG](https://github.com/OniverseDesign/onicord/releases/latest) |
+| **macOS** | Zipped Application Bundle (`.zip`) | Apple Silicon (`arm64`) | [Download Zip](https://github.com/OniverseDesign/onicord/releases/latest) |
+| **Verification** | Cryptographic Hashes | All Files | [`SHA256SUMS.txt`](https://github.com/OniverseDesign/onicord/releases/latest/download/SHA256SUMS.txt) |
 
 ---
 
@@ -211,16 +233,20 @@ Onicord provides a first-class, built-in **Model Context Protocol (MCP)** server
 
 ## Packaging and Releases
 
-Compile standalone binaries for distribution:
+Compile standalone binaries for distribution across platforms:
 
 ```bash
-# Build Windows NSIS Installer Setup (.exe)
+# Build Windows binaries (NSIS installer setup & standalone portable exe)
 npm run pack
-
-# Build Standalone Portable Executable (.exe)
 npm run pack:portable
 
-# Synchronize, compile, and publish release directly to GitHub
+# Build Linux packages (Universal AppImage & Debian .deb package)
+npm run pack:linux
+
+# Build macOS bundles (DMG installer & compressed app bundle)
+npm run pack:mac
+
+# Synchronize, tag, and publish release directly to GitHub (automated CI build)
 npm run export:github
 ```
 

@@ -4,7 +4,7 @@
   "description": "Onicord",
   "main": "electron/main.cjs",
   "type": "module",
-  "author": "Oniverse <contact@oniverse.app>",
+  "author": "Oniverse <oniverse.dsg@gmail.com>",
   "license": "GPL-3.0-only",
   "engines": {
     "node": ">=20.0.0"
@@ -145,7 +145,7 @@
       "artifactName": "${productName}-Portable-${version}.${ext}"
     },
     "linux": {
-      "maintainer": "Oniverse <contact@oniverse.app>",
+      "maintainer": "Oniverse <oniverse.dsg@gmail.com>",
       "target": [
         "AppImage",
         "deb"

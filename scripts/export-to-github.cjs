@@ -203,30 +203,40 @@ async function main() {
     }
   }
 
+  const enableLocalBuild = process.argv.includes("--local-build");
+
   log(`4. Instalando dependencias en /project/ (Versión: v${targetVersion})...`);
   execSync("npm install --no-audit --no-fund", { cwd: TARGET_DIR, stdio: "inherit" });
 
-  log("5. Compilando binarios de la aplicación...");
+  log("5. Validando compilación web (Vite & icons)...");
   execSync("npm run icons", { cwd: TARGET_DIR, stdio: "inherit" });
   execSync("npm run build", { cwd: TARGET_DIR, stdio: "inherit" });
 
-  log(`   Compilando Instalador Setup NSIS v${targetVersion} (.exe)...`);
-  execSync("npx electron-builder --win nsis", {
-    cwd: TARGET_DIR,
-    stdio: "inherit",
-  });
+  if (enableLocalBuild) {
+    log(`   [--local-build activo] Compilando Instalador Setup NSIS v${targetVersion} (.exe)...`);
+    execSync("npx electron-builder --win nsis", {
+      cwd: TARGET_DIR,
+      stdio: "inherit",
+    });
 
-  log(`   Compilando Ejecutable Portable v${targetVersion} (.exe)...`);
-  execSync("npx electron-builder --win portable", {
-    cwd: TARGET_DIR,
-    stdio: "inherit",
-  });
+    log(`   [--local-build activo] Compilando Ejecutable Portable v${targetVersion} (.exe)...`);
+    execSync("npx electron-builder --win portable", {
+      cwd: TARGET_DIR,
+      stdio: "inherit",
+    });
+  } else {
+    log("   Compilación de instaladores y paquetes delegada a GitHub Actions CI en la nube (Windows, Linux, macOS).");
+    log("   (Usa --local-build si deseas generar los ejecutables Windows localmente antes de exportar).");
+  }
 
-  log("6. Verificando binarios en /project/release/...");
+  log("6. Verificando directorio /project/release/...");
   const releaseDir = path.join(TARGET_DIR, "release");
-  if (fs.existsSync(releaseDir)) {
-    const files = fs.readdirSync(releaseDir);
-    log(`Archivos generados en release: ${files.join(", ")}`);
+  if (!fs.existsSync(releaseDir)) {
+    fs.mkdirSync(releaseDir, { recursive: true });
+  }
+  const files = fs.readdirSync(releaseDir);
+  if (files.length > 0) {
+    log(`Archivos existentes en release: ${files.join(", ")}`);
   }
 
   log(`7. Sincronizando v${targetVersion} con GitHub (${GITHUB_REPO_URL})...`);
@@ -378,24 +388,27 @@ async function publishGitHubRelease(targetVersion, releaseDir, args = []) {
     log(`Generado archivo SHA256SUMS.txt con ${binFiles.length} hashes de verificación.`);
   }
 
-  const releaseAssets = fs
-    .readdirSync(releaseDir)
-    .filter((f) =>
-      f.endsWith(".exe") ||
-      f.endsWith(".yml") ||
-      f.endsWith(".AppImage") ||
-      f.endsWith(".deb") ||
-      f.endsWith(".dmg") ||
-      f.endsWith(".zip") ||
-      f === "SHA256SUMS.txt"
-    )
-    .map((f) => path.join(releaseDir, f));
-
-  if (releaseAssets.length === 0) return;
-
-  log(`8. Generando Changelog y subiendo artefactos y metadata (latest.yml) a GitHub Releases (${releaseAssets.map((f) => path.basename(f)).join(", ")})...`);
+  const releaseAssets = fs.existsSync(releaseDir)
+    ? fs
+        .readdirSync(releaseDir)
+        .filter((f) =>
+          f.endsWith(".exe") ||
+          f.endsWith(".yml") ||
+          f.endsWith(".AppImage") ||
+          f.endsWith(".deb") ||
+          f.endsWith(".dmg") ||
+          f.endsWith(".zip") ||
+          f === "SHA256SUMS.txt"
+        )
+        .map((f) => path.join(releaseDir, f))
+    : [];
 
   const changelog = resolveChangelog(targetVersion, args);
+  if (releaseAssets.length > 0) {
+    log(`8. Generando Changelog y subiendo artefactos locales (${releaseAssets.map((f) => path.basename(f)).join(", ")})...`);
+  } else {
+    log(`8. Creando/actualizando Release v${targetVersion} en GitHub (los artefactos se compilarán en GitHub Actions CI)...`);
+  }
   log(`   Changelog a publicar:\n\n${changelog}\n`);
 
   // Intento 1: Vía gh CLI si está disponible
@@ -404,7 +417,7 @@ async function publishGitHubRelease(targetVersion, releaseDir, args = []) {
     const tempNotesPath = path.join(releaseDir, "temp_release_notes.md");
     try {
       fs.writeFileSync(tempNotesPath, changelog, "utf8");
-      const fileArgs = releaseAssets.map((f) => `"${f}"`).join(" ");
+      const fileArgs = releaseAssets.length > 0 ? releaseAssets.map((f) => `"${f}"`).join(" ") : "";
 
       // Comprobamos si el release ya existe en GitHub
       let releaseExists = false;
@@ -417,11 +430,13 @@ async function publishGitHubRelease(targetVersion, releaseDir, args = []) {
       } catch {}
 
       if (releaseExists) {
-        log(`Release ${tagName} ya existe en GitHub. Actualizando notas y subiendo binarios...`);
-        execSync(
-          `${ghCmd} release upload ${tagName} ${fileArgs} --clobber --repo OniverseDesign/onicord`,
-          { cwd: TARGET_DIR, stdio: "inherit" }
-        );
+        log(`Release ${tagName} ya existe en GitHub. Actualizando notas...`);
+        if (fileArgs) {
+          execSync(
+            `${ghCmd} release upload ${tagName} ${fileArgs} --clobber --repo OniverseDesign/onicord`,
+            { cwd: TARGET_DIR, stdio: "inherit" }
+          );
+        }
         execSync(
           `${ghCmd} release edit ${tagName} --notes-file "${tempNotesPath}" --title "Release ${tagName}" --repo OniverseDesign/onicord`,
           { cwd: TARGET_DIR, stdio: "inherit" }
@@ -429,7 +444,7 @@ async function publishGitHubRelease(targetVersion, releaseDir, args = []) {
       } else {
         log(`Creando Release ${tagName} en GitHub...`);
         execSync(
-          `${ghCmd} release create ${tagName} ${fileArgs} --title "Release ${tagName}" --notes-file "${tempNotesPath}" --repo OniverseDesign/onicord`,
+          `${ghCmd} release create ${tagName} ${fileArgs ? fileArgs + " " : ""}--title "Release ${tagName}" --notes-file "${tempNotesPath}" --repo OniverseDesign/onicord`,
           { cwd: TARGET_DIR, stdio: "inherit" }
         );
       }
