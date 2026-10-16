@@ -461,7 +461,9 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   if (process.platform === "win32") {
-    app.setAppUserModelId("com.onicord.voice");
+    const aumid = app.isPackaged ? "com.onicord.voice" : process.execPath;
+    app.setAppUserModelId(aumid);
+    diagService.log("info", "Console", `[Onicord Core] AUMID configurado: ${aumid} (isPackaged: ${app.isPackaged})`);
   }
   await profileService.loadProfile();
 

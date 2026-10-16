@@ -1,6 +1,6 @@
 {
   "name": "onicord",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Onicord",
   "main": "electron/main.cjs",
   "type": "module",
@@ -79,6 +79,15 @@
         "schemes": [
           "onicord"
         ]
+      }
+    ],
+    "fileAssociations": [
+      {
+        "ext": "onipkg",
+        "name": "Onicord Package",
+        "description": "Onicord Unified Package",
+        "icon": "build/icon.png",
+        "role": "Viewer"
       }
     ],
     "directories": {

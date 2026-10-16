@@ -509,6 +509,8 @@ export function useChatMessages({
             });
           } else {
             notificationManager.trigger("RECEIVE_MESSAGE", {
+              nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              text: msg.text,
               isCurrentChannel: document.hasFocus(),
             });
           }

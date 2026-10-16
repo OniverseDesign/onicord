@@ -175,7 +175,7 @@ class PluginService {
 
   async installPluginArchive(archiveFilePath) {
     if (!fs.existsSync(archiveFilePath)) {
-      throw new Error("El archivo .onimod no existe");
+      throw new Error("El archivo .onipkg no existe");
     }
 
     const compressed = fs.readFileSync(archiveFilePath);
@@ -188,7 +188,7 @@ class PluginService {
 
     const packageData = JSON.parse(decompressed);
     if (!packageData.manifest || !packageData.manifest.id) {
-      throw new Error("El paquete .onimod no contiene un manifest.json válido con 'id'");
+      throw new Error("El paquete .onipkg no contiene un manifest.json válido con 'id'");
     }
 
     const manifest = packageData.manifest;
@@ -255,7 +255,7 @@ class PluginService {
 
     const cleanId = pluginId.replace(/[^a-zA-Z0-9._-]/g, "");
     const REPO_BASE = "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main";
-    const packageUrl = `${REPO_BASE}/plugins/${cleanId}/package.onimod`;
+    const packageUrl = `${REPO_BASE}/plugins/${cleanId}/package.onipkg`;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -388,6 +388,8 @@ class PluginService {
     readDirRecursive(folderPath, folderPath);
 
     const packageData = {
+      formatVersion: 1,
+      type: "plugin",
       version: 1,
       manifest,
       files,
@@ -397,7 +399,7 @@ class PluginService {
     const jsonString = JSON.stringify(packageData);
     const compressed = zlib.gzipSync(Buffer.from(jsonString, "utf-8"));
 
-    const finalOutput = outputPath || path.join(folderPath, `${manifest.id}.onimod`);
+    const finalOutput = outputPath || path.join(folderPath, `${manifest.id}.onipkg`);
     fs.writeFileSync(finalOutput, compressed);
 
     console.log(`[PLUGIN SERVICE] Complemento empaquetado en: ${finalOutput}`);

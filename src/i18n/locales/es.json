@@ -456,7 +456,7 @@
       "noCatalogPlugins": "No hay complementos disponibles en el catálogo remoto.",
       "installed": "Instalado",
       "loadingPackage": "Cargando paquete...",
-      "loadLocalPackage": "Cargar paquete local (.onimod)",
+      "loadLocalPackage": "Cargar paquete local (.onipkg)",
       "removeModalTitle": "Quitar Complemento",
       "removeModalConfirm": "¿Estás seguro de que deseas quitar el complemento \"{{name}}\" de este servidor?",
       "prefixPlaceholder": "Ej. /g o /",
@@ -597,7 +597,7 @@
       "installSuccessTitle": "Instalación Exitosa",
       "installSuccessDesc": "¡Pack \"{{name}}\" instalado con éxito!\nSe indexaron {{count}} stickers en tu biblioteca.",
       "installErrorTitle": "Error de Instalación",
-      "installErrorDesc": "No se pudo procesar el paquete de stickers .opk."
+      "installErrorDesc": "No se pudo procesar el paquete .onipkg."
     },
     "complementBadge": "Complemento",
     "pluginCommandFallback": "Comando del complemento {{name}}"
@@ -803,6 +803,10 @@
       "toastTitle": "Notificaciones Toast In-App",
       "systemNotifTitle": "Notificaciones del Sistema y Sonidos",
       "launchNotif": "Lanzar Notificación Nativa del Sistema Operativo",
+      "testNotifTitle": "Onicord Dev Sandbox",
+      "testNotifBody": "Esta es una prueba de notificación nativa del sistema operativo.",
+      "notifDispatched": "Notificación nativa enviada al sistema operativo.",
+      "notifNotSupported": "Notification.isSupported() devolvió false o el sistema bloqueó la notificación.",
       "soundTestTitle": "Prueba de Sonidos de Interfaz:",
       "diagTitle": "Diagnóstico P2P y Exportación OniDiag",
       "saveLogs": "Guardar todos los Logs locales",
@@ -817,7 +821,7 @@
     "plugins": {
       "installedPlugins": "Complementos Instalados",
       "loadingLocal": "Cargando complementos locales...",
-      "noLocalPlugins": "No tienes complementos instalados en tu equipo. Descarga uno desde el catálogo oficial abajo o importa un paquete .onimod.",
+      "noLocalPlugins": "No tienes complementos instalados en tu equipo. Descarga uno desde el catálogo oficial abajo o importa un paquete .onipkg.",
       "detailsAndConfig": "Detalles y Configuración del complemento",
       "uninstallApp": "Eliminar complemento del equipo",
       "securityInfo": "Información y Permisos de Seguridad",
@@ -842,24 +846,24 @@
       "packPluginFolder": "Empaquetar carpeta de complemento",
       "uninstallSuccess": "Complemento '{{name}}' eliminado de tu equipo.",
       "loadingPackage": "Cargando paquete...",
-      "loadLocalPackage": "Cargar paquete local (.onimod)"
+      "loadLocalPackage": "Cargar paquete local (.onipkg)"
     },
     "profile": {
       "vipMember": "Miembro VIP"
     },
     "stickers": {
       "importTitle": "Importa tus Stickers",
-      "importHint": "Selecciona imágenes, GIFs animados o archivos de paquete .opk de Onicord para cargarlos directamente a tu biblioteca.",
+      "importHint": "Selecciona imágenes, GIFs animados o archivos de paquete .onipkg de Onicord para cargarlos directamente a tu biblioteca.",
       "groupNamePlaceholder": "Nombre del grupo (Ej: Silly Cats)",
       "deleteLocalTitle": "Eliminar del almacenamiento local",
-      "selectFiles": "Seleccionar archivos (.png, .gif, .opk, etc)",
+      "selectFiles": "Seleccionar archivos (.png, .gif, .onipkg, etc)",
       "importing": "Importando elementos...",
       "indexingLibrary": "Indexando biblioteca...",
       "createdGroupsTitle": "Grupos Creados",
       "units": "unidades",
       "editGroupStickers": "Editar stickers",
       "disassembleGroup": "Desarmar grupo",
-      "noGroupsYet": "Aún no tienes grupos creados. Organiza tus carpetas seleccionando stickers de tu biblioteca o arrastrando un archivo .opk.",
+      "noGroupsYet": "Aún no tienes grupos creados. Organiza tus carpetas seleccionando stickers de tu biblioteca o arrastrando un archivo .onipkg.",
       "yourLibraryTitle": "Tu Biblioteca de Stickers",
       "libraryHelp": "Haz clic en una imagen para añadirla o quitarla del grupo actual. Pasa el cursor por encima para eliminarla físicamente.",
       "cancelEditing": "Cancelar edición",
@@ -867,7 +871,7 @@
       "dismantleConfirm": "¿Desarmar grupo \"{{name}}\"?",
       "dismantleWarning": "Los stickers no se eliminarán físicamente.",
       "packSuccessMsg": "¡Grupo \"{{name}}\" importado!\nSe agregaron {{count}} stickers a tu biblioteca.",
-      "packErrorMsg": "No se pudo procesar el archivo .opk.",
+      "packErrorMsg": "No se pudo procesar el archivo .onipkg.",
       "installedPacksCount": "Paquetes Instalados ({{count}})",
       "noPacksInstalled": "No tienes paquetes de stickers instalados o creados en tu equipo.",
       "localPackDesc": "Paquete de stickers local.",
@@ -876,7 +880,7 @@
       "noRemotePacks": "No hay paquetes de stickers disponibles en el catálogo remoto.",
       "installed": "Instalado",
       "downloadPack": "Descargar Pack",
-      "loadLocalOpk": "Cargar paquete local (.opk) o imágenes",
+      "loadLocalOpk": "Cargar paquete local (.onipkg) o imágenes",
       "noStickersFound": "No se encontraron stickers en este paquete.",
       "exportSuccessTitle": "Paquete Exportado",
       "exportSuccessMsg": "Guardado en: {{path}}"
@@ -998,7 +1002,7 @@
         "servers": "Servidores + Chat + Archivos",
         "serversDesc": "Lista de servidores, historial de mensajes de todos los canales e índice de archivos compartidos.",
         "addons": "Complementos",
-        "addonsDesc": "Addons .onimod instalados y su configuración.",
+        "addonsDesc": "Addons .onipkg instalados y su configuración.",
         "stickers": "Stickers",
         "stickersDesc": "Packs de stickers instalados. Pueden ser pesados."
       },
@@ -1066,7 +1070,7 @@
   },
   "stickers": {
     "looseStickers": "Stickers Sueltos",
-    "exportPackTitle": "Exportar paquete .opk",
+    "exportPackTitle": "Exportar paquete .onipkg",
     "editGroupTitle": "Editar grupo de stickers",
     "unpackGroupTitle": "Desarmar paquete",
     "updatePackToVer": "Actualizar pack a v{{ver}}"
@@ -1154,5 +1158,11 @@
   "profileSetup": {
     "title": "Configura tu perfil",
     "subtitle": "Se usará en todos tus servidores guardados"
+  },
+  "notifications": {
+    "newMessageReceived": "Nuevo mensaje recibido",
+    "userMentionedYouChat": "{{name}} te mencionó en el chat.",
+    "userMentionedYou": "@{{name}} te mencionó",
+    "userMentionedYouFallback": "Te han mencionado en el chat de Onicord."
   }
 }

@@ -456,7 +456,7 @@
       "noCatalogPlugins": "No addons available in remote catalog.",
       "installed": "Installed",
       "loadingPackage": "Loading package...",
-      "loadLocalPackage": "Load local package (.onimod)",
+      "loadLocalPackage": "Load local package (.onipkg)",
       "removeModalTitle": "Remove Addon",
       "removeModalConfirm": "Are you sure you want to remove the addon \"{{name}}\" from this server?",
       "prefixPlaceholder": "e.g. /g or /",
@@ -597,7 +597,7 @@
       "installSuccessTitle": "Installation Successful",
       "installSuccessDesc": "Sticker pack \"{{name}}\" successfully installed!\n{{count}} stickers indexed in your library.",
       "installErrorTitle": "Installation Error",
-      "installErrorDesc": "Failed to process the .opk sticker pack."
+      "installErrorDesc": "Failed to process the .onipkg package."
     },
     "complementBadge": "Addon",
     "pluginCommandFallback": "Command from {{name}} plugin"
@@ -803,6 +803,10 @@
       "toastTitle": "In-App Toast Notifications",
       "systemNotifTitle": "System Notifications & Sounds",
       "launchNotif": "Trigger OS Native Notification",
+      "testNotifTitle": "Onicord Dev Sandbox",
+      "testNotifBody": "This is a test of a native operating system notification.",
+      "notifDispatched": "Native OS notification sent successfully.",
+      "notifNotSupported": "Notification.isSupported() returned false or the notification was blocked by the OS.",
       "soundTestTitle": "UI Sound Test:",
       "diagTitle": "P2P Diagnostics & OniDiag Export",
       "saveLogs": "Save All Local Logs",
@@ -817,7 +821,7 @@
     "plugins": {
       "installedPlugins": "Installed Addons",
       "loadingLocal": "Loading local addons...",
-      "noLocalPlugins": "You don't have addons installed on your device. Download one from the official catalog below or import an .onimod package.",
+      "noLocalPlugins": "You don't have addons installed on your device. Download one from the official catalog below or import an .onipkg package.",
       "detailsAndConfig": "Addon Details and Security Permissions",
       "uninstallApp": "Uninstall addon from device",
       "securityInfo": "Security Information & Permissions",
@@ -842,24 +846,24 @@
       "packPluginFolder": "Package addon folder",
       "uninstallSuccess": "Addon '{{name}}' removed from your device.",
       "loadingPackage": "Loading package...",
-      "loadLocalPackage": "Load local package (.onimod)"
+      "loadLocalPackage": "Load local package (.onipkg)"
     },
     "profile": {
       "vipMember": "VIP Member"
     },
     "stickers": {
       "importTitle": "Import Your Stickers",
-      "importHint": "Select images, animated GIFs, or Onicord .opk pack files to upload directly to your library.",
+      "importHint": "Select images, animated GIFs, or Onicord .onipkg pack files to upload directly to your library.",
       "groupNamePlaceholder": "Group name (e.g. Silly Cats)",
       "deleteLocalTitle": "Delete from local storage",
-      "selectFiles": "Select files (.png, .gif, .opk, etc)",
+      "selectFiles": "Select files (.png, .gif, .onipkg, etc)",
       "importing": "Importing items...",
       "indexingLibrary": "Indexing library...",
       "createdGroupsTitle": "Created Groups",
       "units": "items",
       "editGroupStickers": "Edit stickers",
       "disassembleGroup": "Disassemble group",
-      "noGroupsYet": "You do not have groups created yet. Organize your folders by selecting stickers from your library or dragging a file .opk.",
+      "noGroupsYet": "You do not have groups created yet. Organize your folders by selecting stickers from your library or dragging a file .onipkg.",
       "yourLibraryTitle": "Your Stickers Library",
       "libraryHelp": "Click on an image to add or remove it from the current group. Hover to physically delete it.",
       "cancelEditing": "Cancel editing",
@@ -867,7 +871,7 @@
       "dismantleConfirm": "Dismantle group \"{{name}}\"?",
       "dismantleWarning": "Stickers won't be deleted.",
       "packSuccessMsg": "Sticker pack \"{{name}}\" imported!\nAdded {{count}} stickers to your library.",
-      "packErrorMsg": "Could not process .opk file.",
+      "packErrorMsg": "Could not process .onipkg file.",
       "installedPacksCount": "Installed Packs ({{count}})",
       "noPacksInstalled": "No sticker packs installed or created on your device.",
       "localPackDesc": "Local sticker pack.",
@@ -876,7 +880,7 @@
       "noRemotePacks": "No sticker packs available in remote catalog.",
       "installed": "Installed",
       "downloadPack": "Download Pack",
-      "loadLocalOpk": "Load local package (.opk) or images",
+      "loadLocalOpk": "Load local package (.onipkg) or images",
       "noStickersFound": "No stickers found in this pack.",
       "exportSuccessTitle": "Pack Exported",
       "exportSuccessMsg": "Saved to: {{path}}"
@@ -998,7 +1002,7 @@
         "servers": "Servers + Chat + Files",
         "serversDesc": "Server list, message history for all channels, and shared files index.",
         "addons": "Plugins & Addons",
-        "addonsDesc": "Installed .onimod plugins and their settings.",
+        "addonsDesc": "Installed .onipkg plugins and their settings.",
         "stickers": "Stickers",
         "stickersDesc": "Installed sticker packs. May be large in size."
       },
@@ -1066,7 +1070,7 @@
   },
   "stickers": {
     "looseStickers": "Loose Stickers",
-    "exportPackTitle": "Export .opk package",
+    "exportPackTitle": "Export .onipkg package",
     "editGroupTitle": "Edit sticker group",
     "unpackGroupTitle": "Unpack package",
     "updatePackToVer": "Update pack to v{{ver}}"
@@ -1154,5 +1158,11 @@
   "profileSetup": {
     "title": "Set up your profile",
     "subtitle": "It will be used across all your saved servers"
+  },
+  "notifications": {
+    "newMessageReceived": "New message received",
+    "userMentionedYouChat": "{{name}} mentioned you in chat.",
+    "userMentionedYou": "@{{name}} mentioned you",
+    "userMentionedYouFallback": "You were mentioned in the Onicord chat."
   }
 }

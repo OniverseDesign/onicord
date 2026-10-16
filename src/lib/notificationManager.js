@@ -1,4 +1,5 @@
 import { soundEngine } from "./soundEngine";
+import i18n from "../i18n/config";
 
 class NotificationManager {
   constructor() {
@@ -49,6 +50,17 @@ class NotificationManager {
     );
   }
 
+  notifySystem(title, body) {
+    if (window.electronAPI?.testOSNotification) {
+      return window.electronAPI.testOSNotification(title, body);
+    }
+    if (window.electronAPI?.sendOSNotification) {
+      window.electronAPI.sendOSNotification(title, body);
+      return Promise.resolve({ success: true });
+    }
+    return Promise.resolve({ success: false, reason: "NOT_SUPPORTED" });
+  }
+
   trigger(actionType, data = {}) {
     switch (actionType) {
       case "LOCAL_JOIN_VOICE":
@@ -77,9 +89,15 @@ class NotificationManager {
         if (!data.isCurrentChannel) {
           soundEngine.playCue("notification");
           if (!document.hasFocus() && (this.settings?.enableNotifications !== false)) {
+            const sender = data.nickname || "Onicord";
+            const preview = data.text
+              ? data.text.length > 120
+                ? data.text.substring(0, 117) + "..."
+                : data.text
+              : i18n.t("notifications.newMessageReceived", "New message received");
             window.electronAPI?.sendOSNotification?.(
-              `Message from ${data.nickname || "someone"}`,
-              "Te han enviado un mensaje.",
+              `Onicord • ${sender}`,
+              preview,
             );
           }
         } else {
@@ -90,13 +108,25 @@ class NotificationManager {
         soundEngine.playCue("mention");
         this.showToast(
           "Mention",
-          `${data.nickname} te mencionó en el chat.`,
+          i18n.t("notifications.userMentionedYouChat", {
+            name: data.nickname || "someone",
+            defaultValue: `${data.nickname || "someone"} mentioned you in chat.`,
+          }),
           "warning",
         );
         if (!document.hasFocus() && (this.settings?.enableNotifications !== false)) {
+          const sender = data.nickname || "someone";
+          const preview = data.text
+            ? data.text.length > 120
+              ? data.text.substring(0, 117) + "..."
+              : data.text
+            : i18n.t("notifications.userMentionedYouFallback", "You were mentioned in the Onicord chat.");
           window.electronAPI?.sendOSNotification?.(
-            `@${data.nickname} mentioned you`,
-            data.text || "Check the Onicord chat!",
+            i18n.t("notifications.userMentionedYou", {
+              name: sender,
+              defaultValue: `@${sender} mentioned you`,
+            }),
+            preview,
           );
         }
         break;

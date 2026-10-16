@@ -130,27 +130,79 @@ function registerSystemDiagHandlers() {
     }
   });
 
-  ipcMain.on("show-os-notification", (event, { title, body }) => {
-    try {
-      if (Notification.isSupported()) {
-        const notif = new Notification({
-          title: title || "Onicord",
-          body: body || "",
-          silent: false,
-        });
-        notif.on("click", () => {
-          const mainWindow = global.mainWindow || BrowserWindow.getAllWindows()[0];
-          if (mainWindow) {
-            if (mainWindow.isMinimized()) mainWindow.restore();
-            mainWindow.focus();
-          }
-        });
-        notif.show();
-      } else {
-        console.warn("[OS Notification] Notification.isSupported() devolvió false");
+  function getNotificationIcon() {
+    const candidates = [
+      path.join(__dirname, "../../../dist/icon.png"),
+      path.join(__dirname, "../../../build/icon.png"),
+      path.join(__dirname, "../../../public/icon.png"),
+      path.join(process.resourcesPath, "icon.png"),
+      path.join(process.resourcesPath, "build/icon.png"),
+      path.join(process.resourcesPath, "public/icon.png"),
+      path.join(app.getAppPath(), "build/icon.png"),
+      path.join(app.getAppPath(), "dist/icon.png"),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+    return undefined;
+  }
+
+  function displayOSNotification({ title, body, silent = false }) {
+    if (!Notification.isSupported()) {
+      console.warn("[OS Notification] Notification.isSupported() devolvió false");
+      diagService.log("warn", "Console", "[OS Notification] Notification.isSupported() devolvió false");
+      return { success: false, reason: "NOT_SUPPORTED" };
+    }
+
+    const iconPath = getNotificationIcon();
+    const notifOptions = {
+      title: title || "Onicord",
+      body: body || "",
+      silent: Boolean(silent),
+    };
+
+    if (iconPath) {
+      notifOptions.icon = iconPath;
+    }
+
+    const notif = new Notification(notifOptions);
+
+    notif.on("click", () => {
+      const mainWindow = global.mainWindow || BrowserWindow.getAllWindows()[0];
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        if (!mainWindow.isVisible()) mainWindow.show();
+        mainWindow.focus();
       }
+    });
+
+    notif.on("failed", (_event, error) => {
+      console.error("[OS Notification Failed]", error);
+      diagService.log("error", "Console", `[OS Notification Failed] ${error}`);
+    });
+
+    notif.show();
+    diagService.log("info", "Console", `[OS Notification] Notification displayed: "${title}" - "${body}"`);
+    return { success: true };
+  }
+
+  ipcMain.on("show-os-notification", (_event, { title, body }) => {
+    try {
+      displayOSNotification({ title, body });
     } catch (err) {
       console.error("[OS Notification Error]", err);
+      diagService.log("error", "Console", `[OS Notification Error] ${err.message}`);
+    }
+  });
+
+  ipcMain.handle("system:test-notification", async (_event, customData) => {
+    try {
+      const title = customData?.title || "Onicord";
+      const body = customData?.body || "Desktop notifications are working correctly.";
+      return displayOSNotification({ title, body });
+    } catch (err) {
+      console.error("[OS Test Notification Error]", err);
+      return { success: false, error: err.message };
     }
   });
 

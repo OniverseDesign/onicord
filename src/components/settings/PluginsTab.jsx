@@ -360,7 +360,7 @@ export default function PluginsTab() {
             />
             <p className="text-xs text-onicord-muted italic">
               {plugins.length === 0
-                ? t("settings.plugins.noLocalPlugins", "No tienes complementos instalados en tu equipo. Descarga uno desde el catálogo oficial abajo o importa un paquete .onimod.")
+                ? t("settings.plugins.noLocalPlugins", "No tienes complementos instalados en tu equipo. Descarga uno desde el catálogo oficial abajo o importa un paquete .onipkg.")
                 : t("settings.plugins.noMatchingPlugins", "No se encontraron complementos con el filtro seleccionado.")}
             </p>
           </div>
@@ -728,7 +728,7 @@ export default function PluginsTab() {
           <span>
             {isImporting
               ? t("settings.plugins.loadingPackage", "Cargando paquete...")
-              : t("settings.plugins.loadLocalPackage", "Cargar paquete local (.onimod)")}
+              : t("settings.plugins.loadLocalPackage", "Cargar paquete local (.onipkg)")}
           </span>
         </button>
 

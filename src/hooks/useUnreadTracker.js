@@ -75,6 +75,8 @@ export function useUnreadTracker(activeRoomCode, activeChannelId, profileId) {
 
         if (!isMuted) {
           notificationManager.trigger("RECEIVE_MESSAGE", {
+            nickname: msg.authorName || msg.user?.nickname || "Alguien",
+            text: msg.text,
             isCurrentChannel: false,
           });
         }

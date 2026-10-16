@@ -62,6 +62,7 @@ const USEFUL_FOLDERS = [
   "scripts",
   "docs",
   ".github",
+  "mcp-server",
 ];
 
 const USEFUL_FILES = [
@@ -78,6 +79,7 @@ const USEFUL_FILES = [
   "LICENSE",
   "README.md",
   "RELEASE_NOTES.md",
+  "check-i18n.js",
 ];
 
 function copyDirRecursive(src, dest) {
@@ -112,6 +114,47 @@ function copyDirRecursive(src, dest) {
   }
 }
 
+function prepareTargetDir(targetDir, remoteUrl) {
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+
+  const gitDir = path.join(targetDir, ".git");
+  if (!fs.existsSync(gitDir)) {
+    log("Inicializando repositorio Git en /project/...");
+    execSync("git init", { cwd: targetDir, stdio: "inherit" });
+    execSync(`git remote add origin ${remoteUrl}`, { cwd: targetDir, stdio: "inherit" });
+    try {
+      log("Descargando rama main desde el repositorio remoto...");
+      execSync("git fetch origin main", { cwd: targetDir, stdio: "inherit" });
+      execSync("git checkout -B main origin/main", { cwd: targetDir, stdio: "inherit" });
+    } catch (fetchErr) {
+      log("Aviso: No se pudo hacer checkout de origin/main (puede ser un repositorio nuevo).");
+      execSync("git branch -M main", { cwd: targetDir, stdio: "inherit" });
+    }
+  } else {
+    try {
+      log("Sincronizando rama main con el repositorio remoto...");
+      execSync(`git remote set-url origin ${remoteUrl}`, { cwd: targetDir, stdio: "inherit" });
+      execSync("git fetch origin main", { cwd: targetDir, stdio: "inherit" });
+      execSync("git checkout main", { cwd: targetDir, stdio: "inherit" });
+      execSync("git reset --hard origin/main", { cwd: targetDir, stdio: "inherit" });
+    } catch (syncErr) {
+      console.warn("Aviso: No se pudo sincronizar con origin/main previamente:", syncErr.message);
+    }
+  }
+
+  log("Limpiando archivos de /project/ (preservando .git y node_modules)...");
+  const entries = fs.readdirSync(targetDir);
+  for (const entry of entries) {
+    if (entry === ".git" || entry === "node_modules") {
+      continue;
+    }
+    const fullPath = path.join(targetDir, entry);
+    fs.rmSync(fullPath, { recursive: true, force: true });
+  }
+}
+
 async function main() {
   const rootPkgPath = path.join(ROOT_DIR, "package.json");
   const rootPkg = JSON.parse(fs.readFileSync(rootPkgPath, "utf8"));
@@ -125,12 +168,8 @@ async function main() {
     fs.writeFileSync(rootPkgPath, JSON.stringify(rootPkg, null, 2) + "\n", "utf8");
   }
 
-  log(`1. Preparando directorio limpio: ${TARGET_DIR}`);
-  if (fs.existsSync(TARGET_DIR)) {
-    log("Limpiando directorio /project/ anterior...");
-    fs.rmSync(TARGET_DIR, { recursive: true, force: true });
-  }
-  fs.mkdirSync(TARGET_DIR, { recursive: true });
+  log(`1. Preparando directorio /project/ (preservando historial Git)...`);
+  prepareTargetDir(TARGET_DIR, GITHUB_REPO_URL);
 
   log("2. Copiando archivos y carpetas útiles...");
   for (const folder of USEFUL_FOLDERS) {
@@ -153,20 +192,16 @@ async function main() {
 
   log("3. Actualizando README.md...");
   const readmePath = path.join(TARGET_DIR, "README.md");
-  let readmeContent = fs.existsSync(readmePath)
-    ? fs.readFileSync(readmePath, "utf8")
-    : "# Onicord\n\nPlataforma de comunicación de voz, chat y música P2P descentralizada desarrollada por Oniverse.";
-
-  if (/^# Onicord/m.test(readmeContent)) {
-    readmeContent = readmeContent.replace(
-      /^# Onicord(?:\s+\(v[0-9.]+(?:-[a-zA-Z0-9.]+)?\))?/m,
-      `# Onicord (v${targetVersion})`
-    );
-  } else {
-    readmeContent = `# Onicord (v${targetVersion})\n\n` + readmeContent;
+  if (fs.existsSync(readmePath)) {
+    let readmeContent = fs.readFileSync(readmePath, "utf8");
+    if (/^# Onicord/m.test(readmeContent)) {
+      readmeContent = readmeContent.replace(
+        /^# Onicord(?:\s+\(v[0-9.]+(?:-[a-zA-Z0-9.]+)?\))?/m,
+        `# Onicord (v${targetVersion})`
+      );
+      fs.writeFileSync(readmePath, readmeContent, "utf8");
+    }
   }
-
-  fs.writeFileSync(readmePath, readmeContent, "utf8");
 
   log(`4. Instalando dependencias en /project/ (Versión: v${targetVersion})...`);
   execSync("npm install --no-audit --no-fund", { cwd: TARGET_DIR, stdio: "inherit" });
@@ -194,26 +229,18 @@ async function main() {
     log(`Archivos generados en release: ${files.join(", ")}`);
   }
 
-  log(`7. Sincronizando v${targetVersion} con GitHub (https://github.com/OniverseDesign/onicord)...`);
+  log(`7. Sincronizando v${targetVersion} con GitHub (${GITHUB_REPO_URL})...`);
   try {
-    execSync("git init", { cwd: TARGET_DIR, stdio: "inherit" });
-    try {
-      execSync(`git remote add origin ${GITHUB_REPO_URL}`, {
-        cwd: TARGET_DIR,
-        stdio: "inherit",
-      });
-    } catch {
-      execSync(`git remote set-url origin ${GITHUB_REPO_URL}`, {
-        cwd: TARGET_DIR,
-        stdio: "inherit",
-      });
+    execSync("git add -A", { cwd: TARGET_DIR, stdio: "inherit" });
+    const status = execSync("git status --porcelain", { cwd: TARGET_DIR }).toString().trim();
+    if (status.length > 0) {
+      execSync(
+        `git commit -m "release: v${targetVersion} - proyecto limpio, compilación de ejecutable e instalador portable"`,
+        { cwd: TARGET_DIR, stdio: "inherit" },
+      );
+    } else {
+      log("No se detectaron modificaciones en los archivos para commitear.");
     }
-    execSync("git add .", { cwd: TARGET_DIR, stdio: "inherit" });
-    execSync(
-      `git commit -m "release: v${targetVersion} - proyecto limpio, compilación de ejecutable e instalador portable"`,
-      { cwd: TARGET_DIR, stdio: "inherit" },
-    );
-    execSync("git branch -M main", { cwd: TARGET_DIR, stdio: "inherit" });
 
     try {
       execSync(`git tag -a v${targetVersion} -m "Release v${targetVersion}"`, {
@@ -225,11 +252,11 @@ async function main() {
     }
 
     log("Subiendo cambios y tags a GitHub...");
-    execSync("git push -u origin main --force --tags", {
+    execSync("git push origin main --tags", {
       cwd: TARGET_DIR,
       stdio: "inherit",
     });
-    log(`[OK] ¡Onicord v${targetVersion} compilado, organizado y subido con éxito a GitHub!`);
+    log(`[OK] Onicord v${targetVersion} compilado, organizado y subido con éxito a GitHub!`);
 
     await publishGitHubRelease(targetVersion, releaseDir, process.argv.slice(2));
   } catch (gitErr) {
@@ -237,7 +264,7 @@ async function main() {
     log(
       "El proyecto se organizó y compiló correctamente en /project/release/. Puedes realizar el push manualmente ejecutando:",
     );
-    console.log(`cd project && git push -u origin main --tags`);
+    console.log(`cd project && git push origin main --tags`);
   }
 }
 

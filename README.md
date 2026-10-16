@@ -1,16 +1,67 @@
-# Onicord (v0.1.1)
+<div align="center">
 
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20Me%20a%20Coffee-FF5E5B?style=flat-square&logo=ko-fi&logoColor=white)](https://ko-fi.com/oniversedesign)
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%20v3-blue.svg?style=flat-square)](LICENSE)
+  <img src="docs/logo.svg" alt="Onicord Logo" width="320" />
 
-> **Decentralized, End-to-End Encrypted, P2P Voice, Chat, and Media Platform.**  
-> Built on a hybrid serverless architecture (Hyperswarm + WebRTC) for direct peer-to-peer communication between devices without central servers or required router port forwarding.
+  <p>
+    <strong>Serverless communication. Private, direct, and high-fidelity.</strong><br/>
+    <em>Decentralized, End-to-End Encrypted, P2P Voice, Video, Chat, and Media Platform.</em>
+  </p>
+
+  <p>
+    <a href="https://github.com/OniverseDesign/onicord/releases/latest">
+      <img src="https://img.shields.io/github/v/release/OniverseDesign/onicord?style=for-the-badge&label=Release&color=cba6f7" alt="Latest Release" />
+    </a>
+    <a href="https://github.com/OniverseDesign/onicord/releases">
+      <img src="https://img.shields.io/github/downloads/OniverseDesign/onicord/total?style=for-the-badge&color=89b4fa&label=Downloads" alt="Total Downloads" />
+    </a>
+    <a href="LICENSE">
+      <img src="https://img.shields.io/badge/License-GPL%20v3-74c7ec.svg?style=for-the-badge" alt="License: GPL-3.0" />
+    </a>
+    <a href="#native-model-context-protocol-mcp-server-onicord-mcp">
+      <img src="https://img.shields.io/badge/AI-MCP%20Native-a6e3a1.svg?style=for-the-badge" alt="MCP Server" />
+    </a>
+    <a href="https://ko-fi.com/oniversedesign">
+      <img src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi" />
+    </a>
+  </p>
+
+  <p>
+    <a href="https://github.com/OniverseDesign/onicord/releases/latest">
+      <img src="https://img.shields.io/badge/Download%20for%20Windows-Setup%20&%20Portable%20(.exe)-cba6f7?style=for-the-badge&labelColor=1e1e2e" alt="Download Installer" />
+    </a>
+  </p>
+
+  <h4>
+    <a href="https://github.com/OniverseDesign/onicord/releases/latest">Download</a> ·
+    <a href="#core-features">Features</a> ·
+    <a href="#architecture-and-technological-innovation">Architecture</a> ·
+    <a href="#interactive-dashboard-widgets">Widgets</a> ·
+    <a href="#modular-addon-ecosystem-onipkg">Addons</a> ·
+    <a href="#native-model-context-protocol-mcp-server-onicord-mcp">MCP Server</a> ·
+    <a href="#ecosystem-repositories">Ecosystem</a>
+  </h4>
+
+  <br/>
+
+  <a href="https://github.com/OniverseDesign/onicord/releases/latest">
+    <img src="docs/mockup.png" alt="Onicord Desktop App Showcase" width="95%" style="border-radius: 12px; box-shadow: 0 16px 38px rgba(0,0,0,0.6);" />
+  </a>
+
+</div>
+
+---
+
+## Overview
+
+**Onicord** is a sovereign, serverless communication suite built for users who value privacy, audio clarity, and independence. Unlike traditional platforms (such as Discord, Teams, or Slack), Onicord requires **no central accounts, no cloud servers, and no phone numbers**. 
+
+All voice, chat, file sharing, screen streaming, and synchronized music flow directly between room participants over encrypted P2P swarms.
 
 ---
 
 ## Architecture and Technological Innovation
 
-Onicord replaces traditional centralized client-server models (like Discord or Teams) with a **federated, decentralized mesh network** controlled directly by its users.
+Onicord replaces centralized client-server relays with an **autonomous, federated P2P mesh network** orchestrated directly by user devices:
 
 ```
                   ┌───────────────────────────────┐
@@ -27,172 +78,162 @@ Onicord replaces traditional centralized client-server models (like Discord or T
 └──────────────────┘                               └──────────────────┘
 ```
 
-* **Decentralized Mesh Network**: Every room participant acts as both a client and a host node. If a room creator disconnects, active peers maintain room operations and synchronize chat history automatically.
-* **DHT and Hole Punching**: Utilizes **Hyperswarm** for peer discovery across global Distributed Hash Tables (DHT). Traverses NAT firewalls transparently via direct TCP/UDP sockets without opening router ports.
-* **Bi-Directional State Synchronization**: When two peers connect, they automatically reconcile chat logs, channel structures, shared files, and room metadata based on cryptographic timestamp verification.
+* **Decentralized Mesh Network**: Every room participant acts as both client and host. If the original room host goes offline, active peers maintain the room and synchronize history autonomously.
+* **DHT Hole Punching with Hyperswarm**: Discovers peers across global Distributed Hash Tables (DHT) and traverses NAT firewalls transparently without manual port forwarding.
+* **Cryptographic Bi-Directional State Synchronization**: When peers connect, they reconcile chat logs, channels, roles, and media indexes verified by cryptographic timestamping.
+* **Zero-Knowledge Local Storage**: Profiles, private keys, and message history are kept strictly on your local drive in AES-256-GCM encrypted storage. Decryption occurs purely in-memory.
 
 ---
 
 ## Core Features
 
-### Server Management and Customization
+### Privacy & Networking
+* **Adaptive Connection Engine**: Automatically negotiates the optimal route: **Direct LAN**, **DHT Hole Punching (Hyperswarm)**, direct mapped ports, or custom user-provided **STUN/TURN relays**.
+* **End-to-End Encryption (E2EE)**: AES-256-GCM ciphers protect all chat messages, file indices, and room metadata.
+* **Privacy-First Game & Activity Scanner**: Detects active games locally against an offline dictionary (`games.json`). No process telemetry, window titles, or private paths leave your computer.
+* **1-on-1 Direct Messages & Streaks**: Private encrypted DMs with daily interaction streaks and activity counters.
 
-* **Custom Roles and Hierarchy**: Fine-grained role permissions, color customization, administrative hierarchy, and role badge rendering in member lists and chat.
-* **Audit Logs**: Server event logging recording administrative actions (channel creations, role modifications, bans/kicks, and server settings updates).
-* **Animated Icons and Cover Banners**: Support for animated GIF and WebP server icons and header cover banners to personalize server identities.
-* **Channel Categories**: Collapsible channel categories to structure text, voice, media, and announcement channels efficiently.
-* **Screen Sharing and Video Streaming**: High-quality WebRTC screen broadcasting, window selection, multi-user video feeds, and Picture-in-Picture (PiP) streaming.
+### Audio, Video & Collaboration
+* **Crystal-Clear WebRTC Voice**: Ultra-low latency voice mesh with Opus audio, noise reduction, and smart bandwidth throttling (decoding pauses when peers mute/deafen).
+* **60 FPS Screen Sharing & Video**: Smooth multi-stream window/desktop broadcasting with Picture-in-Picture (PiP) support.
+* **Synchronized Jukebox & Music Island**: Embedded `yt-dlp` audio streaming from YouTube and SoundCloud, synchronized in real time across the room with dedicated media controls.
 
-### Advanced Chat Experience and Interactions
+### Modern Chat Experience
+* **Floating WYSIWYG Formatting Bar**: Contextual styling toolbar on text selection for instant bold, italic, spoilers, quotes, and inline code.
+* **Interactive Slash Commands (`/commands`)**: Built-in utilities for server administration, polls, dice rolls (`/roll`), and custom commands.
+* **Rich P2P Invite Cards**: Cryptographically signed invite cards with member count previews and 1-click joining.
+* **Custom Sticker Packs (`.onipkg`) & Emojis**: Support for animated WebP/APNG stickers and community packs. Discover and contribute collections in the [Official Sticker Packs Repository](https://github.com/OniverseDesign/onicord-stickers).
 
-* **Floating Formatting Bar (WYSIWYG)**: Interactive formatting toolbar appearing upon text selection in chat inputs for quick application of bold, italic, strikethrough, inline code, blockquote, and spoiler tags.
-* **Interactive Slash Commands (`/commands`)**: Built-in slash command popover supporting server utilities, polls, dice rolls (`/roll`), and administrative actions.
-* **Smart Mentions (`@mentions`)**: Auto-completion popover for `@user`, `@role`, `@everyone`, and `@here` with role badge coloring.
-* **Interactive P2P Server Invite Cards**: Cryptographically signed server invite cards shared directly in chat with member count previews and 1-click server joining.
+---
 
-### Network Architecture and Connection Modes
+## Interactive Dashboard Widgets
 
-Onicord provides adaptive networking fallback modes to guarantee reliable connectivity across any network environment:
+Customize your server view with modular, real-time interactive widgets:
 
-* **Direct LAN**: Automatic zero-latency peer discovery and data exchange within local area networks.
-* **Port Forwarding (Direct TCP/UDP)**: Optimized direct socket connections when public IPs and router ports are mapped.
-* **DHT Hole Punching (Hyperswarm)**: Automatic NAT traversal across routers using global DHT signaling without manual configuration.
-* **TURN / STUN Relay Infrastructure**: Default relay fallback support, plus the ability for users and room owners to configure their own custom, self-hosted STUN and TURN server URLs and credentials directly in network settings for private relay infrastructure.
-* **Real-time Diagnostic Panel**: Interactive overlay showing live metrics:
-  * **RTT / Latency (Ping)** calculated dynamically via WebRTC `getStats()`.
-  * **Audio Packet Loss Rate** and dynamic bandwidth management.
-  * Bandwidth optimization disabling remote audio decoding (`track.enabled = false`) when peers mute or deafen.
+| Widget | Description |
+| :--- | :--- |
+| **Music Jukebox** | Control room audio, track search, queue management, and volume. |
+| **Gaming & Activity** | Real-time game presence, playtime tracking, and status display. |
+| **P2P Diagnostics** | Live RTT latency (Ping), WebRTC bitrate (RX/TX), packet loss, and peer counter. |
+| **Hardware Monitor** | Desktop CPU, memory usage, and network activity indicators. |
+| **Shared Files** | P2P file transfer history, room cache, and local storage access. |
+| **Weather Forecast** | Real-time weather, local temperature, and forecasts. |
+| **World Clock** | Server uptime clock, stopwatch, and multi-timezone indicators. |
 
-### End-to-End Encryption (E2EE)
+---
 
-* **AES-256-GCM Cipher**: All text messages, media indexes, and private metadata are encrypted at the source using AES-256-GCM with keys derived from private room credentials.
-* **Zero-Knowledge Storage**: Local SQLite/JSON storage stores messages strictly in E2EE format. Decryption occurs strictly in-memory during UI rendering.
+## Modular Addon Ecosystem (`.onipkg`)
 
-### Private Direct Messages (DMs) and Friend Streaks
+Extend Onicord with community mini-apps, automated bots, and custom user interfaces. Explore the [Official Addons Repository](https://github.com/OniverseDesign/onicord-addons) to browse open-source plugins, Dashboard Bento widgets, and technical specifications.
 
-* **1-on-1 Encrypted DMs**: Direct P2P private text, file transfers, and media streams without server intermediaries.
-* **Interaction Streaks System**: Track daily activity streaks with friends and community members, featuring streak counters, status indicators, and activity retention rewards.
+* **Standardized Package Format (`.onipkg`)**: Easy drag-and-drop installation via the Addon Manager.
+* **Isolated V8 Sandbox**: Plugins execute inside a guarded Node.js V8 sandbox (`pluginSandboxService.cjs`) with fine-grained permission prompts.
+* **Developer SDK**: Full access to register custom slash commands, floating panels, theme overlays, and automated responses.
+* **Official Registry**: View source code for official addons and Dashboard widgets in [OniverseDesign/onicord-addons](https://github.com/OniverseDesign/onicord-addons).
 
-### YouTube and SoundCloud Music Player
+---
 
-* **Integrated Room Jukebox**: Stream audio in voice channels directly from YouTube and SoundCloud using embedded `yt-dlp` services.
-* **Synchronized Playback**: Real-time playback synchronization (Play, Pause, Queue management) across all connected room peers.
-* **Dedicated Music Island Widget**: Control bar with track search, album art previews, and volume controls.
+## Native Model Context Protocol (MCP) Server (`onicord-mcp`)
 
-### Modular Addons and Plugin System (`.onimod`)
+Onicord provides a first-class, built-in **Model Context Protocol (MCP)** server (`mcp-server/`). AI assistants (such as [Antigravity IDE](https://github.com) or [Claude Desktop](https://claude.ai/download)) can monitor, diagnose, and automate Onicord in real-time.
 
-* **Open Addon Ecosystem**: Create, package, install, and share custom plugins and modules (`.onimod` - Onicord Module Package).
-* **Security Sandbox**: Executes custom plugins in an isolated Node.js V8 sandbox (`pluginSandboxService.cjs`) with permission checks to ensure security.
-* **Plugin Capabilities**: Extend functionality with custom UI elements, automated utilities, themes, and server bots.
-* **Addon Marketplace and Manager**: Built-in management interface in server settings to install, enable, disable, and configure local plugins safely.
+```json
+{
+  "mcpServers": {
+    "onicord-mcp": {
+      "command": "node",
+      "args": ["path/to/onicord/mcp-server/index.js"]
+    }
+  }
+}
+```
 
-### Custom Sticker Packs and Emojis
+<details>
+<summary><b>Click to view available MCP Tools & Capabilities</b></summary>
+<br/>
 
-* **Sticker Pack Manager**: Support for downloadable custom sticker collections (`.opk` package format).
-* **Rich Animated Media**: Native rendering of animated WebP, APNG, and custom animated stickers in chat.
-* **Picker Popovers**: Integrated emoji and sticker pickers with quick search and category filtering.
+* **`onicord_get_live_logs`**: Inspect in-memory `DiagService` logs with level/category filtering in real time.
+* **`onicord_request_peer_logs`**: Fetch diagnostic logs directly from remote P2P peers over the encrypted network.
+* **`onicord_get_webrtc_stats`**: Real-time inspection of incoming/outgoing bitrates (RX/TX kbps), audio packet loss, audio energy, and transceivers.
+* **`onicord_trigger_action`**: Dispatch application actions directly (`toggle_mute`, `toggle_deafen`, `toggle_stream`, `disconnect_voice`, `open_settings`, etc.).
+* **`onicord_join_voice_channel` / `onicord_leave_voice_channel`**: Programmatic voice channel automation.
 
-### Customizable Theme Engine
-
-* **Dynamic UI Styling**: Tailor the visual interface with customizable theme presets, dark/light modes, CSS custom properties, and background customization.
-
-### Multi-Language System (i18n)
-
-* **Full Localization**: Seamless dual-language support for Spanish and English, switchable dynamically on the fly within the application settings.
-* **Automated i18n Auditing**: Integrated script (`node check-i18n.js`) to validate translation completeness across JSX components and locale files.
-
-### Privacy-First Activity Status and Game Scanner
-
-* **Privacy-First Local Scanning**: Game process detection (`gameScanner.cjs`) operates strictly on the user's local machine against an internal dictionary (`games.json`). No personal data, file paths, window titles, or telemetry logs are collected or transmitted to external servers.
-* **Native Rich Presence**: Displays real-time game status ("Playing [Game]"), active server name, voice channel state, and music playback directly inside user profiles and member lists within Onicord.
-* **Granular Privacy Controls**: Users can toggle activity status broadcasting and process scanning on or off at any time within privacy settings.
-
-### Custom Dashboard Widgets
-
-Onicord features a modular dashboard layout customizable with real-time interactive widgets:
-
-1. **Music Player Widget**: Room audio controls, track queue, and history.
-2. **Gaming & Activity Widget**: Game status detection, user activity tracking, and playtime stats.
-3. **P2P Diagnostic Widget**: Real-time bandwidth usage, ping graph, packet loss, and active peer count.
-4. **Shared Files Widget**: Download history, and storage access.
-5. **Hardware Monitor Widget**: CPU, Memory, and Internet performance indicators.
-6. **Weather Widget**: Real-time weather forecasts and local climate updates.
-7. **Clock Widget**: Server uptime clock, stopwatches, and timezone indicators.
-
-### Native Model Context Protocol (MCP) Server (`onicord-mcp`)
-
-Onicord includes a native **Model Context Protocol (MCP)** server (`mcp-server/`) allowing AI assistants (such as Antigravity IDE or Claude Desktop) to interact with, monitor, and automate the application in real-time:
-
-* **Real-time Diagnostic Inspection (`onicord_get_live_logs`)**: Query in-memory `DiagService` logs instantly with level/category filtering without manual JSON file exports.
-* **Remote P2P Peer Log Requests (`onicord_request_peer_logs`)**: Fetch diagnostic logs directly from connected P2P room members over the encrypted network.
-* **Live WebRTC Bandwidth & Packet Monitoring (`onicord_get_webrtc_stats`)**: Real-time inspection of incoming/outgoing bitrates (RX/TX kbps), WebRTC audio packet loss, audio energy levels, and transceiver states.
-* **Universal Action & Keybinding Controller (`onicord_trigger_action`)**: Remotely dispatch any application shortcut or action (`toggle_mute`, `toggle_deafen`, `toggle_stream`, `disconnect_voice`, `switch_server`, `open_settings`, etc.) directly into Onicord's Keybinding Engine.
-* **Zero-Dependency Bridge**: Connects via an isolated, lightweight local HTTP/JSON-RPC bridge (`http://127.0.0.1:42884`) embedded in Electron's main process (`mcpBridgeService.cjs`).
+</details>
 
 ---
 
 ## Technology Stack
 
-* **Runtime**: [Electron 33](https://www.electronjs.org/) (Main & Preload processes in CommonJS).
-* **Frontend**: [React 18](https://react.dev/) + [Vite 6](https://vite.dev/) + Vanilla CSS.
-* **P2P Networking**: [Hyperswarm](https://github.com/holepunchto/hyperswarm) & [simple-peer](https://github.com/feross/simple-peer) (WebRTC).
-* **Media Engine**: Native `yt-dlp` integration for audio stream extraction.
-* **Cryptography**: Node.js `crypto` module (AES-256-GCM).
-* **Internationalization**: `i18next` with full coverage for English and Spanish, validated via `check-i18n.js`.
+* **Desktop Runtime**: [Electron 33](https://www.electronjs.org/) (Isolated Preload & Main processes in CommonJS).
+* **User Interface**: [React 18](https://react.dev/) + [Vite 6](https://vite.dev/) + Vanilla CSS (Catppuccin Mocha palette).
+* **P2P Networking**: [Hyperswarm](https://github.com/holepunchto/hyperswarm) (DHT & Hole-punching) + [simple-peer](https://github.com/feross/simple-peer) (WebRTC).
+* **Media & Audio Engine**: Embedded `yt-dlp` integration with local streaming server.
+* **Security & Crypto**: Node.js `crypto` (AES-256-GCM cipher).
+* **Internationalization**: `i18next` with complete dual support for **English** and **Spanish**.
 
 ---
+
+## Ecosystem Repositories
+
+| Repository | Description | Link |
+| :--- | :--- | :--- |
+| **Onicord Client** | Main desktop application, P2P mesh network engine, and native MCP server. | [OniverseDesign/onicord](https://github.com/OniverseDesign/onicord) |
+| **Onicord Addons** | Official catalog, SDK documentation, and open-source `.onipkg` plugins. | [OniverseDesign/onicord-addons](https://github.com/OniverseDesign/onicord-addons) |
+| **Onicord Stickers** | Official and community sticker packs repository (`.onipkg`). | [OniverseDesign/onicord-stickers](https://github.com/OniverseDesign/onicord-stickers) |
 
 ## Installation and Development
 
 ### Prerequisites
 
-* **Node.js**: v20 LTS or higher.
-* **npm**: v8 or higher.
+* **Node.js**: v20 LTS or higher
+* **npm**: v8 or higher
 
-### Setup Instructions
+### Getting Started
 
-1. Clone the repository and install dependencies:
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/OniverseDesign/onicord.git
    cd onicord
+   ```
+
+2. **Install dependencies:**
+   ```bash
    npm install
    ```
 
-2. Start the development environment:
+3. **Start the development environment:**
    ```bash
    npm run start
    ```
-   *Note: `npm run start` launches Vite development server and Electron native window concurrently.*
-
-3. Validate internationalization strings before submitting changes:
-   ```bash
-   node check-i18n.js
-   ```
+   *Launches Vite dev server and the Electron native application window concurrently.*
 
 ---
 
-## Packaging and Distribution
+## Packaging and Releases
 
-To build standalone production executables:
+Compile standalone binaries for distribution:
 
 ```bash
-# Build Windows Installer (NSIS Setup .exe)
+# Build Windows NSIS Installer Setup (.exe)
 npm run pack
 
 # Build Standalone Portable Executable (.exe)
 npm run pack:portable
 
-# Export, version, compile and publish release to GitHub
+# Synchronize, compile, and publish release directly to GitHub
 npm run export:github
 ```
 
-Compiled binaries will be generated inside the `release/` and `project/release/` directories.
+Output binaries are generated in `release/` and `project/release/`.
 
 ---
 
-## Support and Donations
+## Support and Community
 
-Onicord is an independent, free, and open-source project created by Oniverse. If you enjoy using Onicord and want to support the development of independent digital tools, consider buying me a coffee:
+Onicord is free, open-source software under the **GPL-3.0 License**, crafted with passion by **Oniverse**. If you love decentralized software and want to support our independent development:
+
+<div align="center">
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Ko--fi-Buy%20Me%20a%20Coffee-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/oniversedesign)
 
+</div>

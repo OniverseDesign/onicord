@@ -103,42 +103,36 @@ export default function StickerManagerTab() {
     for (const file of Array.from(files)) {
       const ext = file.name.split(".").pop().toLowerCase();
 
-      if (ext === "opk") {
-        await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = async () => {
-            try {
-              const response = await window.electronAPI.importStickerPackRaw(
-                reader.result,
-              );
+      if (ext === "onipkg") {
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const response = await window.electronAPI.importStickerPackRaw(
+            new Uint8Array(arrayBuffer),
+          );
 
-              if (response && response.success) {
-                const copiaPacks = { ...packs };
-                copiaPacks[response.name] = response.ids;
+          if (response && response.success) {
+            const copiaPacks = { ...packs };
+            copiaPacks[response.name] = response.ids;
 
-                localStorage.setItem(PACKS_KEY, JSON.stringify(copiaPacks));
-                setPacks(copiaPacks);
+            localStorage.setItem(PACKS_KEY, JSON.stringify(copiaPacks));
+            setPacks(copiaPacks);
 
-                setAlertModal({
-                  isOpen: true,
-                  title: t("common.installationSuccess", "Instalación exitosa"),
-                  msg: t("settings.stickers.packSuccessMsg", {
-                    name: response.name,
-                    count: response.count,
-                  }),
-                });
-              }
-            } catch (err) {
-              setAlertModal({
-                isOpen: true,
-                title: "Error de formato",
-                msg: "No se pudo procesar el archivo .opk.",
-              });
-            }
-            resolve();
-          };
-          reader.readAsText(file);
-        });
+            setAlertModal({
+              isOpen: true,
+              title: t("common.installationSuccess", "Instalación exitosa"),
+              msg: t("settings.stickers.packSuccessMsg", {
+                name: response.name,
+                count: response.count,
+              }),
+            });
+          }
+        } catch (err) {
+          setAlertModal({
+            isOpen: true,
+            title: "Error de formato",
+            msg: t("settings.stickers.packErrorMsg", "No se pudo procesar el archivo .onipkg."),
+          });
+        }
       } else {
         await new Promise((resolve) => {
           const reader = new FileReader();
@@ -378,7 +372,7 @@ export default function StickerManagerTab() {
                         type="button"
                         onClick={() => handleExportOPK(packTitle)}
                         className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-onicord-text text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
-                        title={t("stickers.exportPackTitle", "Exportar paquete .opk")}
+                        title={t("stickers.exportPackTitle", "Exportar paquete .onipkg")}
                       >
                         <MaterialIcon name="download" size={14} />
                         <span>{t("common.export", "Exportar")}</span>
@@ -555,12 +549,12 @@ export default function StickerManagerTab() {
         <span>
           {isuploadingMassive
             ? t("common.saving", "Importando...")
-            : t("settings.stickers.loadLocalOpk", "Cargar paquete local (.opk) o imágenes")}
+            : t("settings.stickers.loadLocalOpk", "Cargar paquete local (.onipkg) o imágenes")}
         </span>
         <input
           type="file"
           multiple
-          accept="image/*,.opk"
+          accept="image/*,.onipkg"
           className="hidden"
           onChange={handleAddStickersMultiple}
           disabled={isuploadingMassive}

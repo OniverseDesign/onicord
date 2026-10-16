@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   sendOSNotification: (title, body) =>
     ipcRenderer.send("show-os-notification", { title, body }),
+  testOSNotification: (title, body) =>
+    ipcRenderer.invoke("system:test-notification", { title, body }),
 
   getRealCPU: () => ipcRenderer.invoke("hardware:getRealCPU"),
   getRealRAM: () => ipcRenderer.invoke("hardware:getRealRAM"),

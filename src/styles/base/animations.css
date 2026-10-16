@@ -66,6 +66,20 @@
   animation: logo-bounce 2s infinite ease-in-out;
 }
 
+/* Rotación en sentido antihorario para iconos con flechas orientadas a la izquierda (como sync/refresh) */
+@keyframes spin-reverse {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.animate-spin-reverse {
+  animation: spin-reverse 1s linear infinite;
+}
+
 /* ==========================================================
    ANIMACIÓN OFICIAL ONICORD WORDMARK (LOADING SCREEN)
    ========================================================== */

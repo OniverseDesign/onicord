@@ -38,8 +38,8 @@ function registerPluginDriveHandlers() {
   ipcMain.handle("plugins:install-dialog", async (event) => {
     const window = BrowserWindow.fromWebContents(event.sender);
     const result = await dialog.showOpenDialog(window, {
-      title: "Seleccionar paquete de complemento (.onimod)",
-      filters: [{ name: "Complemento Onicord", extensions: ["onimod"] }],
+      title: "Seleccionar paquete de Onicord (.onipkg)",
+      filters: [{ name: "Paquete Onicord (*.onipkg)", extensions: ["onipkg"] }],
       properties: ["openFile"],
     });
 

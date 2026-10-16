@@ -127,7 +127,7 @@ export default function ModalShell({
             </button>
           </header>
 
-          <div ref={contentRef} className="flex-1 overflow-y-auto px-6 minimal-scrollbar">{children}</div>
+          <div ref={contentRef} className="onicord-modal-content-body minimal-scrollbar">{children}</div>
 
           {footer && (
             <footer className="onicord-modal-footer">

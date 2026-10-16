@@ -281,7 +281,7 @@ export default function AboutTab() {
                 size={22}
                 className={
                   updateState.status === "checking" || updateState.status === "downloading"
-                    ? "animate-spin"
+                    ? "animate-spin-reverse"
                     : ""
                 }
               />

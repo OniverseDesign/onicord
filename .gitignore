@@ -2,15 +2,12 @@ node_modules/
 dist/
 release/
 project/
-proyect/
 dev-user-2/
 logs/
-VideoCallApp-master/
 *.log
 .DS_Store
 Thumbs.db
 .env
 .env.*
 !.env.example
-client_secret*.json
 *.enc

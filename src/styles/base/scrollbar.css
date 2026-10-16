@@ -30,3 +30,34 @@ html,
 *::-webkit-scrollbar-thumb:hover {
   background-color: rgb(var(--onicord-lavender)) !important;
 }
+
+/* 🌟 Minimal scrollbar utility & layout shift prevention */
+.minimal-scrollbar {
+  scrollbar-gutter: stable;
+}
+
+.minimal-scrollbar::-webkit-scrollbar,
+* .minimal-scrollbar::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.minimal-scrollbar::-webkit-scrollbar-track,
+* .minimal-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.minimal-scrollbar::-webkit-scrollbar-thumb,
+* .minimal-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--onicord-bg-overlay)) !important;
+  border-radius: 9999px !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box !important;
+  transition: background-color 0.15s ease-out !important;
+}
+
+.minimal-scrollbar::-webkit-scrollbar-thumb:hover,
+* .minimal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--onicord-lavender)) !important;
+}
+

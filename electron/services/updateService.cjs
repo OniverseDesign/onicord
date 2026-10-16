@@ -133,7 +133,9 @@ class UpdateService {
 
   quitAndInstall() {
     if (this.autoUpdater) {
-      this.autoUpdater.quitAndInstall(false, true);
+      // isSilent: true (executes installer in background with /S, preserving custom install location)
+      // isForceRunAfter: true (automatically relaunches Onicord after completion)
+      this.autoUpdater.quitAndInstall(true, true);
     }
   }
 

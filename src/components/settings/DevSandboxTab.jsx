@@ -102,11 +102,35 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
     if (type === "danger") notificationManager.showToast("Error", "Critical error processing request", "danger");
   };
 
-  const handleTriggerOSNotif = () => {
-    notificationManager.notifySystem?.(
-      "Onicord Dev Sandbox",
-      "This is a test of a native operating system notification."
-    );
+  const [testingOSNotif, setTestingOSNotif] = useState(false);
+
+  const handleTriggerOSNotif = async () => {
+    if (testingOSNotif) return;
+    setTestingOSNotif(true);
+    try {
+      const res = await notificationManager.notifySystem(
+        t("settings.devSandbox.testNotifTitle", "Onicord Dev Sandbox"),
+        t("settings.devSandbox.testNotifBody", "This is a test of a native operating system notification.")
+      );
+      if (res && res.success === false) {
+        notificationManager.showToast(
+          "OniDiag",
+          t("settings.devSandbox.notifNotSupported", "Notification.isSupported() returned false or notification failed"),
+          "danger"
+        );
+      } else {
+        notificationManager.showToast(
+          "OniDiag",
+          t("settings.devSandbox.notifDispatched", "Native OS notification sent successfully"),
+          "success"
+        );
+      }
+    } catch (err) {
+      console.error("Error triggering OS notification:", err);
+      notificationManager.showToast("Error", err.message || "Failed to trigger OS notification", "danger");
+    } finally {
+      setTimeout(() => setTestingOSNotif(false), 1000);
+    }
   };
 
   const handlePlaySound = (soundName) => {
@@ -221,10 +245,15 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
         <div className="space-y-3">
           <button
             onClick={handleTriggerOSNotif}
-            className="px-3.5 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-2"
+            disabled={testingOSNotif}
+            className="px-3.5 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-2 active:scale-95 disabled:opacity-50"
           >
             <MaterialIcon name="desktop_windows" size={16} />
-            <span>{t("settings.devSandbox.launchNotif", "Lanzar Notificación Nativa del Sistema Operativo")}</span>
+            <span>
+              {testingOSNotif
+                ? t("common.sending", "Enviando...")
+                : t("settings.devSandbox.launchNotif", "Lanzar Notificación Nativa del Sistema Operativo")}
+            </span>
           </button>
 
           <div className="pt-2 border-t border-white/5">

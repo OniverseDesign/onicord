@@ -36,7 +36,7 @@ export function getFileTypeIcon(fileName = "") {
   if ([".csv", ".xls", ".xlsx"].includes(ext)) {
     return { name: "table_chart", color: "text-green-400 bg-green-500/10 border-green-500/30" };
   }
-  if ([".zip", ".rar", ".7z", ".tar", ".gz", ".opk"].includes(ext)) {
+  if ([".zip", ".rar", ".7z", ".tar", ".gz", ".onipkg"].includes(ext)) {
     return { name: "folder_zip", color: "text-teal-400 bg-teal-500/10 border-teal-500/30" };
   }
   if ([".exe", ".bat", ".cmd", ".ps1", ".vbs", ".msi"].includes(ext)) {
@@ -193,7 +193,7 @@ export default function MessageMediaAttachment({
       const response = await window.electronAPI.importStickerPackRaw(activePath);
 
       if (response && response.success) {
-        const PACKS_KEY = "onicord_stickers_packs";
+        const PACKS_KEY = "onicord_sticker_packs_v1";
         const savedPacks = JSON.parse(
           localStorage.getItem(PACKS_KEY) || "{}",
         );
@@ -215,7 +215,7 @@ export default function MessageMediaAttachment({
         t("chat.stickers.installErrorTitle", "Installation Error"),
         t(
           "chat.stickers.installErrorDesc",
-          "No se pudo procesar el paquete de stickers .opk.",
+          "No se pudo procesar el paquete .onipkg.",
         ),
       );
     }
@@ -283,13 +283,13 @@ export default function MessageMediaAttachment({
                   ) : isCompleted ? (
                     <span className="text-onicord-success font-medium flex flex-col items-start gap-1">
                       {t("chat.downloadCompleted")}
-                      {fileData.name?.endsWith(".opk") && activePath && (
+                      {fileData.name?.endsWith(".onipkg") && activePath && (
                         <button
                           type="button"
                           onClick={handleInstallPackClick}
                           className="onicord-btn-primary onicord-btn-primary-sm mt-1.5"
                         >
-                          {t("chat.installStickerPack")}
+                          {t("chat.installStickerPack", "Instalar Paquete")}
                         </button>
                       )}
                     </span>
