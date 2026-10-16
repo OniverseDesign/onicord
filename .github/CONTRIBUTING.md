@@ -49,13 +49,47 @@ Thank you for your interest in contributing to **Onicord**! We welcome community
 
 ## Internationalization (i18n) Guidelines
 
-Onicord provides a bilingual experience (English & Spanish). To maintain localization parity:
+Onicord provides a multi-language experience. To maintain localization parity:
 - **Never hardcode user-visible strings** directly in JSX components or backend user notices.
 - Always use the `t("namespace.key")` translation function from `react-i18next`.
-- Whenever you add or modify a string key, you **must update both locale files**:
-  - `src/i18n/locales/en.json` (English)
+- Whenever you add or modify a string key, you **must update both base locale files**:
+  - `src/i18n/locales/en.json` (English - canonical source of truth)
   - `src/i18n/locales/es.json` (Spanish)
 - Ensure translation keys are placed under logical namespaces matching the component or domain (e.g., `sidebar`, `settings`, `chat`, `voice`).
+
+### Adding a New Language Translation
+
+We welcome community translations to any language! To contribute a new translation:
+
+1. **Copy the canonical source**:
+   Copy `src/i18n/locales/en.json` and save it as `src/i18n/locales/<language-code>.json` using standard two-letter ISO 639-1 language codes (e.g., `pt.json`, `fr.json`, `de.json`, `it.json`, `ja.json`).
+
+2. **Translate the string values**:
+   - Translate only the values on the right side of the colon; **keep all JSON keys identical** to `en.json`.
+   - **Do not translate interpolation variables** enclosed in curly braces (e.g., `{{count}}`, `{{username}}`, `{{days}}`).
+   - Preserve HTML tags and markdown markers if present in the text.
+
+3. **Register the language in the app**:
+   Open `src/i18n/languages.js`, import your new JSON file, and add your language to the `SUPPORTED_LANGUAGES` array:
+   ```javascript
+   import pt from "./locales/pt.json";
+
+   export const SUPPORTED_LANGUAGES = [
+     // ... existing languages
+     {
+       code: "pt",
+       name: "Portuguese",
+       nativeName: "Português",
+       translation: pt,
+     },
+   ];
+   ```
+   The application will automatically register the translation bundle and display the new language in the Settings selector without any extra UI changes.
+
+4. **Verify and submit**:
+   - Run `npm start` and verify your language in **Settings > General > Language**.
+   - Ensure `npm run build` succeeds without syntax errors.
+   - Open a Pull Request with the title: `i18n: add <Language Name> translation`.
 
 ---
 

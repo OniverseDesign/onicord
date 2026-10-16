@@ -1,23 +1,19 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import es from "./locales/es.json";
-import en from "./locales/en.json";
+import { getLanguageResources, isLanguageSupported } from "./languages";
 
 const getInitialLanguage = () => {
   const saved = localStorage.getItem("onicord_language");
-  if (saved) return saved;
+  if (saved && isLanguageSupported(saved)) return saved;
   const browserLang = typeof navigator !== "undefined" ? (navigator.language || navigator.userLanguage || "en") : "en";
   const langCode = browserLang.split("-")[0].toLowerCase();
-  return langCode === "es" ? "es" : "en";
+  return isLanguageSupported(langCode) ? langCode : "es";
 };
 
 const savedLanguage = getInitialLanguage();
 
 i18n.use(initReactI18next).init({
-  resources: {
-    es: { translation: es },
-    en: { translation: en },
-  },
+  resources: getLanguageResources(),
   lng: savedLanguage,
   fallbackLng: "es",
   interpolation: {

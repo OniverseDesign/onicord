@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { DEFAULT_GENERAL } from "../../lib/generalSettings";
 import { soundEngine } from "../../lib/soundEngine";
+import { SUPPORTED_LANGUAGES } from "../../i18n/languages";
 
 const STORAGE_LINE_HEIGHT_KEY = "onicord_chat_line_height";
 
@@ -96,8 +97,11 @@ export default function GeneralTab({ general, setGeneral }) {
               onChange={(e) => handleChange("language", e.target.value)}
               className="onicord-select w-[150px] shrink-0 h-9 text-xs"
             >
-              <option value="es">{t("settings.general.langEs", "Español")}</option>
-              <option value="en">{t("settings.general.langEn", "English")}</option>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.nativeName}
+                </option>
+              ))}
             </select>
           </div>
 
