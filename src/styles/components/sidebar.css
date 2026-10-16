@@ -1,0 +1,69 @@
+@layer components {
+  /* 🗂️ SIDEBAR & NAVIGATION STYLES */
+  .onicord-channel-wrapper {
+    @apply relative mx-2 mb-1 flex w-[calc(100%-16px)] items-center select-none cursor-pointer text-left;
+  }
+
+  .onicord-channel-indicator {
+    @apply absolute left-[-8px] top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-onicord-text transition-all duration-200 pointer-events-none;
+  }
+
+  .onicord-channel {
+    @apply flex w-full items-center rounded-onicord-button px-2 py-[6px] gap-2 text-[15px] leading-5 select-none cursor-pointer;
+    transition: transform 0.15s ease-out, width 0.15s ease-out, background-color 0.15s ease-out, color 0.15s ease-out;
+    color: var(--onicord-muted);
+  }
+  .onicord-channel-wrapper:hover .onicord-channel {
+    background: var(--hover);
+    color: var(--onicord-text);
+    transform: translateX(var(--hover-slide-amount));
+    width: calc(100% - var(--hover-slide-amount));
+  }
+  .onicord-channel-active .onicord-channel {
+    background: transparent;
+    color: var(--onicord-text);
+  }
+  .onicord-channel-active:hover .onicord-channel {
+    background: var(--hover);
+  }
+
+  .onicord-category {
+    @apply mx-1 mb-1 flex w-[calc(100%-16px)] items-center gap-1.5 rounded-onicord-button px-2 py-[6px] text-left text-[15px] leading-5 select-none;
+    transition: transform 0.15s ease-out, width 0.15s ease-out, color 0.15s ease-out;
+    color: var(--onicord-faded);
+  }
+  .onicord-category:hover {
+    transform: translateX(calc(var(--hover-slide-amount) * 0.75));
+    width: calc(100% - 16px - (var(--hover-slide-amount) * 0.75));
+  }
+
+  .onicord-icon-btn {
+    @apply flex h-8 w-8 items-center justify-center rounded-onicord-button transition-colors duration-150 cursor-pointer;
+    color: var(--onicord-base);
+  }
+  .onicord-icon-btn:hover {
+    background: var(--hover);
+    color: var(--onicord-text);
+  }
+  .onicord-icon-btn-active {
+    background: var(--active);
+    color: rgb(var(--onicord-lavender));
+  }
+  .onicord-icon-btn-danger:hover {
+    background: rgb(var(--onicord-danger));
+    color: rgb(var(--onicord-bg-surface));
+  }
+
+  .onicord-sidebar-header {
+    @apply mb-2 px-2 text-xs font-semibold uppercase tracking-wide select-none;
+  }
+  .onicord-channel-icon {
+    @apply text-[20px] font-semibold leading-none opacity-70 shrink-0 select-none;
+  }
+  .onicord-vector-icon-button {
+    @apply transition-colors duration-150 text-onicord-muted cursor-pointer;
+  }
+  .group:hover .onicord-vector-icon-button {
+    color: var(--onicord-text);
+  }
+}

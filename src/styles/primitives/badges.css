@@ -1,0 +1,52 @@
+@layer components {
+  /* 🏷️ ONICORD ATOMIC BADGES SYSTEM */
+  .onicord-badge {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider select-none;
+  }
+
+  /* 🔄 COMPATIBILIDAD CON CLASES VIEJAS (Legacy alias wrappers) */
+  .onicord-live-badge {
+    @apply bg-onicord-danger text-white text-[10px] font-bold px-1 rounded uppercase tracking-wider animate-pulse;
+  }
+  .onicord-live-badge-interactive {
+    @apply onicord-badge bg-onicord-danger text-white hover:scale-105 active:scale-95 cursor-pointer animate-pulse transition shadow-sm;
+  }
+  .onicord-chip-accent {
+    @apply text-[10px] bg-onicord-overlay px-2 py-0.5 rounded-full text-onicord-text hover:bg-onicord-accent hover:text-onicord-mantle transition-all duration-150 font-semibold cursor-pointer opacity-80;
+  }
+  .onicord-widget-badge {
+    @apply font-mono bg-black/10 px-2 py-0.5 rounded-full border border-black/10 font-bold uppercase tracking-tight text-[10px] select-none;
+  }
+  .onicord-widget-badge-fixed {
+    @apply font-mono bg-black/10 border border-black/10 text-onicord-dark opacity-80 rounded-full uppercase tracking-tight select-none;
+  }
+  .onicord-widget-badge-dynamic {
+    @apply font-mono bg-onicord-surface/40 border border-onicord-island text-onicord-text rounded-full uppercase tracking-tight select-none;
+  }
+  .onicord-error-banner {
+    @apply rounded-onicord-inner bg-onicord-danger/10 px-4 py-3 text-sm text-onicord-danger font-medium;
+  }
+  
+  .onicord-racha-badge-tier-0 {
+    @apply bg-slate-400 text-slate-950 border-transparent;
+  }
+  .onicord-racha-badge-tier-1 {
+    @apply bg-yellow-400 text-slate-950 border-transparent shadow-[0_0_10px_rgba(250,204,21,0.35)];
+  }
+  .onicord-racha-badge-tier-2 {
+    @apply bg-orange-400 text-slate-950 border-transparent shadow-[0_0_12px_rgba(251,146,60,0.45)];
+  }
+  .onicord-racha-badge-tier-3 {
+    @apply bg-red-400 text-slate-950 border-transparent shadow-[0_0_14px_rgba(248,113,113,0.55)];
+  }
+  .onicord-racha-badge-tier-4 {
+    @apply bg-purple-400 text-slate-950 border-transparent shadow-[0_0_16px_rgba(192,132,252,0.65)];
+  }
+  .onicord-racha-badge-tier-5 {
+    @apply bg-sky-400 text-slate-950 border-transparent shadow-[0_0_18px_rgba(56,189,248,0.75)];
+  }
+  .onicord-racha-badge-tier-6 {
+    @apply bg-white border-transparent;
+    animation: rgb-glow-anim 20s linear infinite !important;
+  }
+}

@@ -1,0 +1,48 @@
+@layer components {
+  /* 📐 ONICORD LAYOUT PRIMITIVES & HELPER CLASSES */
+  .gap-onicord-gap {
+    gap: var(--gap);
+  }
+  .p-onicord-gap {
+    padding: var(--gap);
+  }
+
+  /* RADIUS FLOTANTES PREMIUM SIN HARDCODEO */
+  .rounded-onicord-outer-p4 {
+    border-radius: var(--radius);
+  }
+  .rounded-onicord-inner {
+    border-radius: calc(var(--radius) - var(--gap));
+  }
+  .rounded-onicord-button {
+    border-radius: calc(var(--radius) - (var(--gap) * 3));
+  }
+
+  /* RESIZERS */
+  .onicord-resizer-handle {
+    @apply w-[6px] mx-[-3px] rounded-full shrink-0 cursor-col-resize z-20 hover:bg-onicord-accent/20 active:bg-onicord-accent/40 transition-colors duration-150;
+  }
+  .onicord-bento-resize-edge-v {
+    @apply absolute top-2 bottom-2 w-[7px] cursor-ew-resize pointer-events-auto bg-transparent hover:bg-onicord-accent/30 rounded transition-colors duration-100;
+  }
+  .onicord-bento-resize-edge-h {
+    @apply absolute left-2 right-2 h-[7px] cursor-ns-resize pointer-events-auto bg-transparent hover:bg-onicord-accent/30 rounded transition-colors duration-100;
+  }
+
+  /* MICRO-ANIMATIONS & HOVER SLIDE TOKENS */
+  .onicord-hover-slide {
+    transition: transform 0.15s ease-out, width 0.15s ease-out;
+  }
+  .onicord-hover-slide:hover {
+    transform: translateX(var(--hover-slide-amount));
+    width: calc(100% - var(--hover-slide-amount));
+  }
+
+  .onicord-hover-slide-sm {
+    transition: transform 0.15s ease-out, width 0.15s ease-out;
+  }
+  .onicord-hover-slide-sm:hover {
+    transform: translateX(calc(var(--hover-slide-amount) * 0.5));
+    width: calc(100% - (var(--hover-slide-amount) * 0.5));
+  }
+}

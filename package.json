@@ -1,0 +1,135 @@
+{
+  "name": "onicord",
+  "version": "0.1.0",
+  "description": "Onicord",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "author": "Oniverse",
+  "license": "GPL-3.0-only",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "electron": "cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "electron:dev": "wait-on -t 60000 http-get://127.0.0.1:5173 && npm run electron",
+    "prestart": "kill-port 5173",
+    "start": "node scripts/dev.cjs",
+    "start:concurrent": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"npm run dev\" \"npm run electron:dev\"",
+    "build": "vite build",
+    "icons": "node scripts/prepare-icons.cjs",
+    "pack": "npm run icons && npm run build && electron-builder --win nsis",
+    "pack:portable": "npm run icons && npm run build && electron-builder --win portable",
+    "dist": "npm run pack",
+    "export:github": "node scripts/export-to-github.cjs"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.0",
+    "b4a": "^1.6.9",
+    "clsx": "^2.1.1",
+    "electron-updater": "^6.8.9",
+    "find-process": "^2.1.1",
+    "hyperswarm": "^4.9.0",
+    "i18next": "^26.3.3",
+    "pdfjs-dist": "^4.9.155",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.8",
+    "react-icons": "^5.6.0",
+    "react-resizable-panels": "^4.11.1",
+    "tailwind-merge": "^3.6.0",
+    "uiohook-napi": "^1.5.5",
+    "uisfx": "^0.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react-swc": "^3.7.2",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "daisyui": "^5.5.23",
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8",
+    "eslint": "^10.4.1",
+    "kill-port": "^2.0.1",
+    "postcss": "^8.4.49",
+    "react-devtools": "^7.0.1",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
+    "vite": "^5.4.14",
+    "vite-plugin-svgr": "^5.2.0",
+    "wait-on": "^8.0.2"
+  },
+  "build": {
+    "npmRebuild": false,
+    "appId": "com.onicord.voice",
+    "productName": "Onicord",
+    "icon": "build/icon.png",
+    "copyright": "Copyright © 2026 Oniverse",
+    "publish": {
+      "provider": "github",
+      "owner": "OniverseDesign",
+      "repo": "onicord"
+    },
+    "protocols": [
+      {
+        "name": "Onicord",
+        "role": "Viewer",
+        "schemes": [
+          "onicord"
+        ]
+      }
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "public/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "electron/bin/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Onicord",
+      "installerLanguages": [
+        "es_ES",
+        "en_US"
+      ],
+      "language": "1034"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    }
+  }
+}

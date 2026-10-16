@@ -1,0 +1,45 @@
+@layer components {
+  /* 💬 CHAT COMPONENT STYLES */
+  .onicord-chat-input-bar {
+    @apply rounded-onicord-inner bg-onicord-mantle flex flex-col overflow-hidden border border-onicord-island;
+  }
+  .onicord-chat-toolbar-btn {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-onicord-inner border-2 border-transparent bg-transparent shadow-none transition-all duration-200 hover:bg-onicord-base hover:shadow-sm;
+  }
+  .onicord-chat-input {
+    @apply min-w-0 flex-1 bg-transparent py-[14px] text-[15px] text-onicord-text placeholder:text-onicord-muted outline-none;
+  }
+  .onicord-chat-input[contenteditable]:empty::before {
+    content: attr(placeholder);
+    color: var(--onicord-muted);
+    opacity: 0.6;
+    pointer-events: none;
+    display: inline-block;
+  }
+  .onicord-chat-panel-header {
+    @apply flex h-12 shrink-0 items-center gap-2 border-b border-onicord-mantle px-4 shadow-onicord-header;
+  }
+  .onicord-date-divider {
+    @apply relative my-4 flex items-center px-4;
+  }
+  .onicord-date-divider-line {
+    @apply h-px flex-1 bg-onicord-overlay;
+  }
+  .onicord-date-divider-label {
+    @apply mx-4 text-xs font-semibold text-onicord-muted;
+  }
+  .onicord-reply-bar {
+    @apply mx-2 mb-1 px-3 py-1.5 bg-onicord-mantle/60 border border-b-0 border-onicord-island flex items-center justify-between text-xs animate-fade-in select-none;
+    border-top-left-radius: calc(var(--radius) - var(--gap));
+    border-top-right-radius: calc(var(--radius) - var(--gap));
+  }
+  .onicord-pending-file-card {
+    @apply m-3 p-3 max-w-[360px] rounded-onicord-inner bg-onicord-surface border border-onicord-mantle flex items-center gap-3 relative animate-fade-in;
+  }
+  .onicord-dismiss-chip {
+    @apply absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-full bg-black/40 text-onicord-muted hover:bg-onicord-danger hover:text-white transition-colors duration-150 shadow cursor-pointer;
+  }
+  .onicord-channel-welcome-icon {
+    @apply mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-onicord-surface;
+  }
+}

@@ -1,0 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap");
+
+@font-face {
+  font-family: "Material Symbols Outlined";
+  src: url("../../assets/fonts/MaterialSymbolsOutlined.ttf") format("truetype");
+  font-weight: 100 700;
+  font-style: normal;
+}

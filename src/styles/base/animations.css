@@ -1,0 +1,324 @@
+@keyframes logo-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  50% {
+    transform: translateY(-8px);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+}
+
+@keyframes estrella-gira {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes estrella-doble-giro-pausa {
+  0% {
+    transform: rotate(0deg);
+  }
+  35% {
+    transform: rotate(720deg);
+  }
+  100% {
+    transform: rotate(720deg);
+  }
+}
+
+.onicord-loading-star {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: estrella-doble-giro-pausa 3.2s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+@keyframes demonio-parpadea {
+  0%,
+  43%,
+  45%,
+  85%,
+  87%,
+  100% {
+    transform: scaleY(1);
+  }
+  44%,
+  86% {
+    transform: scaleY(0.05);
+  }
+}
+
+.onicord-loading-container #Estrella {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: estrella-gira 5s linear infinite;
+}
+
+.onicord-loading-container #Ojos {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: demonio-parpadea 4.2s infinite;
+}
+
+.onicord-bounce-logo {
+  animation: logo-bounce 2s infinite ease-in-out;
+}
+
+/* ⚡ EFECTO NOSTÁLGICO: ZUMBIDO DE INTERFAZ (MSN MESSENGER STYLE) */
+@keyframes msn-zumbido {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  10% {
+    transform: translate(-4px, 3px) rotate(-1deg);
+  }
+  20% {
+    transform: translate(-3px, -2px) rotate(1deg);
+  }
+  30% {
+    transform: translate(3px, 2px) rotate(0deg);
+  }
+  40% {
+    transform: translate(2px, -1px) rotate(1deg);
+  }
+  50% {
+    transform: translate(-2px, 3px) rotate(-1deg);
+  }
+  60% {
+    transform: translate(-3px, 1px) rotate(0deg);
+  }
+  70% {
+    transform: translate(3px, 1px) rotate(-1deg);
+  }
+  80% {
+    transform: translate(-2px, -2px) rotate(1deg);
+  }
+  90% {
+    transform: translate(2px, 3px) rotate(0deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+.onicord-nudge-active {
+  /* Ejecuta una sacudida violenta utilizando la GPU (idealmente transition-transform) */
+  animation: msn-zumbido 0.5s ease-in-out infinite;
+}
+
+/* 🌈 EFECTO RGB ANIMADO SUAVE PARA NIVEL 6 DE FLAMA */
+@keyframes rgb-glow-anim {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.8), 0 0 8px rgba(244, 63, 94, 0.4);
+    border-color: rgba(244, 63, 94, 0.8);
+    color: #f43f5e;
+  }
+  25% {
+    box-shadow: 0 0 16px rgba(251, 146, 60, 0.8), 0 0 8px rgba(251, 146, 60, 0.4);
+    border-color: rgba(251, 146, 60, 0.8);
+    color: #fb923c;
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.8), 0 0 8px rgba(56, 189, 248, 0.4);
+    border-color: rgba(56, 189, 248, 0.8);
+    color: #38bdf8;
+  }
+  75% {
+    box-shadow: 0 0 10px rgba(192, 132, 252, 0.8), 0 0 8px rgba(192, 132, 252, 0.4);
+    border-color: rgba(192, 132, 252, 0.8);
+    color: #c084fc;
+  }
+}
+
+.animate-rgb-glow {
+  animation: rgb-glow-anim 10s linear infinite !important;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s infinite ease-in-out;
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.onicord-picker-transition {
+  animation: onicord-picker-pop 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes onicord-picker-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* SISTEMA UNIFICADO DE ANIMACIONES ONICORD */
+
+/* 1. Telon / Backdrop */
+@keyframes onicord-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes onicord-backdrop-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.onicord-animate-backdrop-in {
+  animation: onicord-backdrop-enter 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity;
+}
+
+.onicord-animate-backdrop-out {
+  animation: onicord-backdrop-exit 140ms ease-in forwards !important;
+  will-change: opacity;
+}
+
+/* 2. Tarjetas y Modales */
+@keyframes onicord-modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes onicord-modal-exit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+}
+
+.onicord-animate-modal-in {
+  animation: onicord-modal-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.onicord-animate-modal-out {
+  animation: onicord-modal-exit 140ms cubic-bezier(0.4, 0, 1, 1) forwards !important;
+  will-change: transform, opacity;
+}
+
+/* 3. Menus Contextuales y Popovers */
+@keyframes onicord-popover-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes onicord-popover-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+.onicord-animate-popup-in {
+  animation: onicord-popover-enter 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  transform-origin: top left;
+}
+
+.onicord-animate-popup-out {
+  animation: onicord-popover-exit 110ms ease-in forwards !important;
+  will-change: transform, opacity;
+}
+
+/* 4. Transicion de Vistas / Servidores / Canales */
+@keyframes onicord-view-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.onicord-animate-view-in {
+  animation: onicord-view-enter 175ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 5. Panel Lateral de Hilos (Slide in/out desde la derecha) */
+@keyframes onicord-thread-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes onicord-thread-exit {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+}
+
+.onicord-animate-thread-in {
+  animation: onicord-thread-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.onicord-animate-thread-out {
+  animation: onicord-thread-exit 150ms cubic-bezier(0.4, 0, 1, 1) forwards !important;
+  will-change: transform, opacity;
+}
+
+/* 6. Accesibilidad: Reduccion de movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+

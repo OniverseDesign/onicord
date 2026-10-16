@@ -1,0 +1,5 @@
+:root {
+  /* Curvas y transiciones personalizadas */
+  --transition-default: all 0.15s ease-out;
+  --hover-slide-amount: 8px;
+}

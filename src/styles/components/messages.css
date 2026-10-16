@@ -1,0 +1,35 @@
+@layer components {
+  /* 💬 INDIVIDUAL MESSAGES & ATTACHMENT CARDS STYLES */
+  .onicord-message-row {
+    @apply mx-4 flex gap-4 rounded-onicord-inner px-2 relative hover:bg-onicord-overlay/20;
+    transition: transform 0.15s ease-out, width 0.15s ease-out, background-color 0.15s ease-out;
+  }
+  .onicord-message-row:hover {
+    transform: translateX(calc(var(--hover-slide-amount) * 0.5));
+    width: calc(100% - 32px - (var(--hover-slide-amount) * 0.5));
+  }
+  .onicord-message-avatar {
+    @apply mt-0.5 h-11 w-11 shrink-0 cursor-pointer overflow-hidden rounded-full bg-onicord-accent hover:opacity-80;
+  }
+  .onicord-message-toolbar {
+    @apply absolute right-2 top-3 z-30 opacity-0 flex items-center rounded-onicord-inner bg-onicord-base border border-onicord-island h-7 overflow-hidden transition-all duration-150 pointer-events-auto;
+  }
+  .group:hover .onicord-message-toolbar {
+    opacity: 1;
+  }
+  .onicord-message-toolbar-btn {
+    @apply flex h-7 w-8 items-center justify-center text-onicord-muted transition-colors cursor-pointer hover:bg-onicord-accent hover:text-white;
+  }
+  .onicord-message-toolbar-btn-danger {
+    @apply hover:bg-onicord-danger hover:text-white;
+  }
+  .onicord-message-toolbar-btn-divider {
+    @apply border-r border-white/5;
+  }
+  .onicord-mention {
+    @apply font-bold text-onicord-accent text-[13px] shrink-0 cursor-pointer;
+  }
+  .onicord-file-attachment-card {
+    @apply mt-2 max-w-[400px] w-full rounded-onicord-inner bg-onicord-mantle border border-onicord-island p-3.5 block;
+  }
+}
