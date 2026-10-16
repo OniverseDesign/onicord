@@ -20,6 +20,9 @@
     "icons": "node scripts/prepare-icons.cjs",
     "pack": "npm run icons && npm run build && electron-builder --win nsis",
     "pack:portable": "npm run icons && npm run build && electron-builder --win portable",
+    "pack:linux": "npm run icons && npm run build && electron-builder --linux AppImage deb",
+    "pack:mac": "npm run icons && npm run build && electron-builder --mac dmg zip",
+    "pack:all": "npm run icons && npm run build && electron-builder -mwl",
     "dist": "npm run pack",
     "export:github": "node scripts/export-to-github.cjs"
   },
@@ -139,6 +142,41 @@
     },
     "portable": {
       "artifactName": "${productName}-Portable-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network;Chat;",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.social-networking",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "icon": "build/icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     }
   }
 }

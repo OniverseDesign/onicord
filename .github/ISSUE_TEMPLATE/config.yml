@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/OniverseDesign/onicord/discussions
+    about: Ask questions, share ideas, showcase addons, or connect with the community.
+  - name: Security Vulnerability Reporting
+    url: https://github.com/OniverseDesign/onicord/security/advisories/new
+    about: Report sensitive security vulnerabilities privately.

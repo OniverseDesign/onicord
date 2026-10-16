@@ -5,29 +5,69 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
-  release:
-    runs-on: windows-latest
+  build:
+    name: Build & Publish (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: --win nsis portable
+          - os: ubuntu-latest
+            platform: --linux AppImage deb
+          - os: macos-latest
+            platform: --mac dmg zip
 
     steps:
-      - name: Checkout Código
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Instalar Dependencias
+      - name: Install System Libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
+
+      - name: Install Dependencies
         run: npm ci
 
-      - name: Preparar Iconos y Compilar Vite
+      - name: Prepare Icons & Build Frontend
         run: |
           npm run icons
           npm run build
 
-      - name: Build y Publicar en GitHub Releases con electron-builder
+      - name: Build and Publish with electron-builder
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --win nsis portable --publish always
+        run: npx electron-builder ${{ matrix.platform }} --publish always
+
+  checksums:
+    name: Generate & Attach SHA256 Checksums
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Release Assets and Generate SHA256SUMS.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p release_assets
+          cd release_assets
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern "*" || true
+          rm -f SHA256SUMS.txt
+          if [ -n "$(ls -A .)" ]; then
+            sha256sum * > SHA256SUMS.txt
+            cat SHA256SUMS.txt
+            gh release upload "$TAG" SHA256SUMS.txt --clobber --repo "${{ github.repository }}"
+          fi

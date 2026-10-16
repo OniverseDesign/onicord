@@ -1,0 +1,82 @@
+name: Bug Report
+description: File a bug report to help us improve Onicord.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please ensure you have checked existing issues and discussions before filing a new report.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide step-by-step instructions to reproduce the problem.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows 11
+        - Windows 10
+        - Linux (AppImage)
+        - Linux (Debian/Ubuntu package)
+        - macOS
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: package_type
+    attributes:
+      label: Installation Type
+      options:
+        - NSIS Installer (.exe)
+        - Portable Executable (.exe)
+        - Linux AppImage
+        - Linux .deb
+        - macOS (.dmg / .zip)
+        - Running from source (npm start)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Onicord Version
+      description: Release version or commit hash (e.g., v0.1.2).
+      placeholder: "v0.1.2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs or Screenshots
+      description: Paste any relevant console output, OniDiag diagnostic logs, or attach screenshots. (Please sanitize personal identifiers).
+    validations:
+      required: false
