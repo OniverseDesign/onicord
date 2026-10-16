@@ -243,16 +243,16 @@ async function main() {
     }
 
     try {
-      execSync(`git tag -a v${targetVersion} -m "Release v${targetVersion}"`, {
+      execSync(`git tag -f -a v${targetVersion} -m "Release v${targetVersion}"`, {
         cwd: TARGET_DIR,
         stdio: "inherit",
       });
     } catch (tagErr) {
-      console.warn(`Tag v${targetVersion} ya existente o no pudo crearse.`);
+      console.warn(`Tag v${targetVersion} ya existente o no pudo crearse:`, tagErr.message);
     }
 
     log("Subiendo cambios y tags a GitHub...");
-    execSync("git push origin main --tags", {
+    execSync("git push origin main --tags --force", {
       cwd: TARGET_DIR,
       stdio: "inherit",
     });

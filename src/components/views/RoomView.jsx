@@ -105,28 +105,6 @@ export default function RoomView({
     setActiveThreadMessage(null);
   }, [server.roomCode, textChannelId]);
 
-  const resolvedDmUser = useMemo(() => {
-    if (!textChannelId || !textChannelId.startsWith("dm_")) return null;
-    if (activeDmUser) return activeDmUser;
-
-    const parts = textChannelId.replace("dm_", "").split("_");
-    const otherUserId = parts.find((id) => id !== profile?.id) || parts[0];
-    if (!otherUserId) return null;
-
-    if (Array.isArray(peers)) {
-      const foundInPeers = peers.find(
-        (p) => p.id === otherUserId || p.userId === otherUserId || p.peerId === otherUserId
-      );
-      if (foundInPeers) return foundInPeers;
-    }
-
-    if (server?.savedMembers && server.savedMembers[otherUserId]) {
-      return server.savedMembers[otherUserId];
-    }
-
-    return { id: otherUserId, nickname: "Usuario" };
-  }, [textChannelId, activeDmUser, profile?.id, peers, server?.savedMembers]);
-
   const handleSendThreadReply = useCallback(
     async (parentMsgId, replyText) => {
       if (
@@ -434,6 +412,58 @@ export default function RoomView({
     t,
   ]);
 
+  const resolvedDmUser = useMemo(() => {
+    if (!textChannelId || !textChannelId.startsWith("dm_")) return null;
+
+    const raw = textChannelId.slice(3);
+    const myId = profile?.id;
+    let otherUserId = null;
+
+    if (myId && raw.includes(myId)) {
+      if (raw.startsWith(myId + "_")) {
+        otherUserId = raw.slice(myId.length + 1);
+      } else if (raw.endsWith("_" + myId)) {
+        otherUserId = raw.slice(0, raw.length - myId.length - 1);
+      }
+    }
+
+    if (!otherUserId) {
+      const parts = raw.split("_");
+      otherUserId = parts.find((id) => id !== myId) || parts[0];
+    }
+
+    if (
+      activeDmUser &&
+      (activeDmUser.id === otherUserId ||
+        activeDmUser.userId === otherUserId ||
+        activeDmUser.peerId === otherUserId)
+    ) {
+      return activeDmUser;
+    }
+
+    if (!otherUserId) return null;
+
+    if (Array.isArray(peers)) {
+      const foundInPeers = peers.find(
+        (p) => p.id === otherUserId || p.userId === otherUserId || p.peerId === otherUserId
+      );
+      if (foundInPeers) return foundInPeers;
+    }
+
+    if (Array.isArray(sanitizedMembersList)) {
+      const foundInMembers = sanitizedMembersList.find(
+        (m) => m.id === otherUserId || m.userId === otherUserId || m.peerId === otherUserId
+      );
+      if (foundInMembers) return foundInMembers;
+    }
+
+    if (server?.savedMembers && server.savedMembers[otherUserId]) {
+      return server.savedMembers[otherUserId];
+    }
+
+    return { id: otherUserId, nickname: "Usuario" };
+  }, [textChannelId, activeDmUser, profile?.id, peers, server?.savedMembers, sanitizedMembersList]);
+
   const voiceMembersDisplay = useMemo(() => {
     const serverChannelIds = new Set((server.channels || []).map((c) => c.id));
 
@@ -669,6 +699,39 @@ export default function RoomView({
     }
     if (!channelId?.startsWith("dm_")) {
       setActiveDmUser(null);
+    } else {
+      const raw = channelId.slice(3);
+      const myId = profile?.id;
+      let otherUserId = null;
+      if (myId && raw.includes(myId)) {
+        if (raw.startsWith(myId + "_")) otherUserId = raw.slice(myId.length + 1);
+        else if (raw.endsWith("_" + myId)) otherUserId = raw.slice(0, raw.length - myId.length - 1);
+      }
+      if (!otherUserId) {
+        otherUserId = raw.split("_").find((id) => id !== myId) || raw.split("_")[0];
+      }
+      const found =
+        (Array.isArray(sanitizedMembersList)
+          ? sanitizedMembersList.find(
+              (m) =>
+                m.id === otherUserId ||
+                m.userId === otherUserId ||
+                m.peerId === otherUserId
+            )
+          : null) ||
+        (Array.isArray(peers)
+          ? peers.find(
+              (p) =>
+                p.id === otherUserId ||
+                p.userId === otherUserId ||
+                p.peerId === otherUserId
+            )
+          : null) ||
+        server?.savedMembers?.[otherUserId] ||
+        null;
+      if (found) {
+        setActiveDmUser(found);
+      }
     }
     setTextChannelId(channelId);
     markChannelAsRead?.(server.roomCode, channelId);
@@ -766,12 +829,36 @@ export default function RoomView({
     onSwitchServer(targetId);
   };
 
-  const handleMessageUser = (targetUserId) => {
+  const handleMessageUser = (target) => {
     soundEngine.playNav("select");
-    const sorted = [profile.id, targetUserId].sort();
+    const targetId =
+      typeof target === "object" && target !== null
+        ? target.id || target.userId || target.peerId
+        : target;
+
+    if (!targetId || !profile?.id) return;
+
+    const sorted = [String(profile.id), String(targetId)].sort();
     const dmChannelId = `dm_${sorted[0]}_${sorted[1]}`;
 
-    const targetUser = sanitizedMembersList.find((m) => m.id === targetUserId);
+    const targetUser =
+      typeof target === "object" && target !== null && target.nickname
+        ? target
+        : (sanitizedMembersList?.find(
+            (m) =>
+              m.id === targetId || m.userId === targetId || m.peerId === targetId
+          ) ||
+          (Array.isArray(peers)
+            ? peers.find(
+                (p) =>
+                  p.id === targetId ||
+                  p.userId === targetId ||
+                  p.peerId === targetId
+              )
+            : null) ||
+          server?.savedMembers?.[targetId] ||
+          null);
+
     if (targetUser) {
       setActiveDmUser(targetUser);
     }

@@ -413,14 +413,32 @@ class ChatService {
     await this.persistAndEmit(message, code);
 
     if (channelId.startsWith("dm_")) {
-      const parts = channelId.split("_");
-      const user1 = parts[1];
-      const user2 = parts[2];
-      const recipientUserId = user1 === this.p2p.profile?.id ? user2 : user1;
+      const raw = channelId.slice(3);
+      const myUserId = this.p2p.profile?.id;
+      let recipientUserId = null;
+
+      if (myUserId && raw.includes(myUserId)) {
+        if (raw.startsWith(myUserId + "_")) {
+          recipientUserId = raw.slice(myUserId.length + 1);
+        } else if (raw.endsWith("_" + myUserId)) {
+          recipientUserId = raw.slice(0, raw.length - myUserId.length - 1);
+        }
+      }
+
+      if (!recipientUserId) {
+        const parts = channelId.split("_");
+        const user1 = parts[1];
+        const user2 = parts[2];
+        recipientUserId = user1 === myUserId ? user2 : user1;
+      }
 
       let foundPeerId = null;
       for (const [pId, peerObj] of this.p2p.peers.entries()) {
-        if (peerObj.userId === recipientUserId) {
+        if (
+          peerObj.userId === recipientUserId ||
+          pId === recipientUserId ||
+          peerObj.id === recipientUserId
+        ) {
           foundPeerId = pId;
           break;
         }
@@ -501,11 +519,14 @@ class ChatService {
 
     const channelId = payload.channelId || "general";
     if (channelId.startsWith("dm_")) {
-      const parts = channelId.split("_");
-      const user1 = parts[1];
-      const user2 = parts[2];
+      const raw = channelId.slice(3);
       const myUserId = this.p2p.profile?.id;
-      if (myUserId !== user1 && myUserId !== user2) {
+      const involvesMe =
+        myUserId &&
+        (raw.startsWith(myUserId + "_") ||
+          raw.endsWith("_" + myUserId) ||
+          channelId.includes(myUserId));
+      if (!involvesMe) {
         return; // Discard DMs that don't involve us
       }
     }

@@ -209,7 +209,7 @@ export default function UserListItem({
               className={`truncate font-medium leading-tight transition-colors duration-100 ${textColor} ${textSize} flex items-center gap-1`}
               style={nameColor && !isOffline ? { color: nameColor } : undefined}
             >
-              <span>{name}</span>
+              <span className="truncate">{name}</span>
               {isOwner && (
                 <MaterialIcon
                   name="crown"
