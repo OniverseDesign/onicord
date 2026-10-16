@@ -4,7 +4,7 @@
   "description": "Onicord",
   "main": "electron/main.cjs",
   "type": "module",
-  "author": "Oniverse",
+  "author": "Oniverse <contact@oniverse.app>",
   "license": "GPL-3.0-only",
   "engines": {
     "node": ">=20.0.0"
@@ -73,7 +73,8 @@
     "publish": {
       "provider": "github",
       "owner": "OniverseDesign",
-      "repo": "onicord"
+      "repo": "onicord",
+      "releaseType": "release"
     },
     "protocols": [
       {
@@ -104,18 +105,18 @@
       "build/icon.png",
       "package.json"
     ],
-    "extraResources": [
-      {
-        "from": "build/icon.png",
-        "to": "icon.png"
-      }
-    ],
     "asar": true,
     "asarUnpack": [
       "**/*.node",
       "electron/bin/**"
     ],
     "win": {
+      "extraResources": [
+        {
+          "from": "build/icon.png",
+          "to": "icon.png"
+        }
+      ],
       "target": [
         {
           "target": "nsis",
@@ -144,6 +145,7 @@
       "artifactName": "${productName}-Portable-${version}.${ext}"
     },
     "linux": {
+      "maintainer": "Oniverse <contact@oniverse.app>",
       "target": [
         "AppImage",
         "deb"

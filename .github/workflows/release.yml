@@ -55,6 +55,7 @@ jobs:
   checksums:
     name: Generate & Attach SHA256 Checksums
     needs: build
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - name: Download Release Assets and Generate SHA256SUMS.txt
