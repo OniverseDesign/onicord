@@ -1,5 +1,6 @@
 import es from "./locales/es.json";
 import en from "./locales/en.json";
+import pt from "./locales/pt.json";
 
 /**
  * Registry of languages supported by Onicord.
@@ -19,6 +20,12 @@ export const SUPPORTED_LANGUAGES = [
     name: "English",
     nativeName: "English",
     translation: en,
+  },
+  {
+    code: "pt",
+    name: "Portuguese",
+    nativeName: "Portugu\u00eas",
+    translation: pt,
   },
 ];
 

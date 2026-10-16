@@ -79,7 +79,6 @@ const USEFUL_FILES = [
   "LICENSE",
   "README.md",
   "RELEASE_NOTES.md",
-  "check-i18n.js",
 ];
 
 function copyDirRecursive(src, dest) {
@@ -100,6 +99,7 @@ function copyDirRecursive(src, dest) {
       entry.name === "proyect" ||
       entry.name === "logs" ||
       entry.name === "pack-addons-repo.cjs" ||
+      entry.name === "check-i18n.js" ||
       entry.name === ".DS_Store" ||
       entry.name === "Thumbs.db"
     ) {
@@ -233,13 +233,35 @@ async function main() {
   try {
     execSync("git add -A", { cwd: TARGET_DIR, stdio: "inherit" });
     const status = execSync("git status --porcelain", { cwd: TARGET_DIR }).toString().trim();
+    const changelog = resolveChangelog(targetVersion, process.argv.slice(2));
+    const bullets = changelog
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.startsWith("- ") || l.startsWith("* "))
+      .map((l) => l.replace(/^[-*]\s+/, ""));
+
+    let commitSubject = `release: v${targetVersion}`;
+    if (bullets.length > 0) {
+      const topics = bullets.map((b) => {
+        const match = b.match(/^\*\*([^*]+)\*\*:\s*(.+)$/);
+        return match ? match[1].toLowerCase() : b.slice(0, 40);
+      });
+      commitSubject += ` - ${topics.slice(0, 3).join(", ")}`;
+    }
+
+    const commitMsgFile = path.join(TARGET_DIR, ".git", "COMMIT_EDITMSG_CUSTOM");
+    const commitBody = [commitSubject, "", ...bullets.map((b) => `- ${b}`)].join("\n");
+    fs.writeFileSync(commitMsgFile, commitBody, "utf8");
+
     if (status.length > 0) {
-      execSync(
-        `git commit -m "release: v${targetVersion} - proyecto limpio, compilación de ejecutable e instalador portable"`,
-        { cwd: TARGET_DIR, stdio: "inherit" },
-      );
+      execSync(`git commit -F "${commitMsgFile}"`, {
+        cwd: TARGET_DIR,
+        stdio: "inherit",
+      });
+      try { fs.unlinkSync(commitMsgFile); } catch {}
     } else {
       log("No se detectaron modificaciones en los archivos para commitear.");
+      try { fs.unlinkSync(commitMsgFile); } catch {}
     }
 
     try {
@@ -308,8 +330,17 @@ function resolveChangelog(version = "0.1.0", args = []) {
     if (fs.existsSync(p)) {
       const content = fs.readFileSync(p, "utf8").trim();
       if (content) {
+        const normalized = content.replace(/\r\n/g, "\n");
+        const sections = normalized.split(/(?=\n#\s*Onicord\s*v)/i);
+        const match = sections.find((s) =>
+          s.toLowerCase().includes(`onicord v${version.toLowerCase()}`)
+        );
+        if (match && match.trim()) {
+          log(`Usando notas de versión v${version} encontradas en ${f}`);
+          return match.trim();
+        }
         log(`Usando notas de versión encontradas en ${f}`);
-        return content;
+        return sections[0].trim();
       }
     }
   }
@@ -332,10 +363,32 @@ async function publishGitHubRelease(targetVersion, releaseDir, args = []) {
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
   const tagName = `v${targetVersion}`;
 
-  if (!fs.existsSync(releaseDir)) return;
+  // Generar SHA256SUMS.txt para verificación criptográfica de integridad
+  const crypto = require("crypto");
+  const binFiles = fs.readdirSync(releaseDir).filter((f) =>
+    f.endsWith(".exe") || f.endsWith(".AppImage") || f.endsWith(".deb") || f.endsWith(".dmg") || f.endsWith(".zip")
+  );
+  if (binFiles.length > 0) {
+    const checksumLines = binFiles.map((file) => {
+      const data = fs.readFileSync(path.join(releaseDir, file));
+      const hash = crypto.createHash("sha256").update(data).digest("hex");
+      return `${hash}  ${file}`;
+    });
+    fs.writeFileSync(path.join(releaseDir, "SHA256SUMS.txt"), checksumLines.join("\n") + "\n", "utf8");
+    log(`Generado archivo SHA256SUMS.txt con ${binFiles.length} hashes de verificación.`);
+  }
+
   const releaseAssets = fs
     .readdirSync(releaseDir)
-    .filter((f) => f.endsWith(".exe") || f.endsWith(".yml"))
+    .filter((f) =>
+      f.endsWith(".exe") ||
+      f.endsWith(".yml") ||
+      f.endsWith(".AppImage") ||
+      f.endsWith(".deb") ||
+      f.endsWith(".dmg") ||
+      f.endsWith(".zip") ||
+      f === "SHA256SUMS.txt"
+    )
     .map((f) => path.join(releaseDir, f));
 
   if (releaseAssets.length === 0) return;
