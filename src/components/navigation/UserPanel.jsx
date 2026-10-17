@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   IconMicOn,
@@ -46,6 +46,18 @@ export default function UserPanel({
   const [targetRect, setTargetRect] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+
+  useEffect(() => {
+    if (!inVoice && isModalOpen) {
+      setIsModalOpen(false);
+    }
+  }, [inVoice, isModalOpen]);
+
+  useEffect(() => {
+    if (!canShareVideo && isModalOpen) {
+      setIsModalOpen(false);
+    }
+  }, [canShareVideo, isModalOpen]);
 
   const handleStatusSelect = async (status) => {
     localStorage.setItem("onicord_explicit_status", status);

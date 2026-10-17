@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { IconClose } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import { soundEngine } from "../../lib/soundEngine";
-import { useAnimatedMount, useInternalClose } from "../../hooks/useAnimatedMount";
+import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { cn } from "../../lib/cn";
 
 export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
@@ -16,8 +16,6 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
   const [selectedSourceId, setSelectedSourceId] = useState(null);
 
   const { shouldRender, isAnimatingOut } = useAnimatedMount(isOpen, 140);
-  const { isClosing, triggerClose } = useInternalClose(onClose, 140);
-  const isExiting = isClosing || isAnimatingOut;
 
   useEffect(() => {
     if (isOpen) {
@@ -26,10 +24,10 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
   }, [isOpen]);
 
   const handleClose = useCallback(() => {
-    if (isExiting) return;
+    if (isAnimatingOut) return;
     soundEngine.playNav("close");
-    triggerClose();
-  }, [isExiting, triggerClose]);
+    onClose?.();
+  }, [isAnimatingOut, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,6 +62,8 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
           console.error("Error cargando fuentes de video:", err);
           setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
   }, [isOpen]);
 
@@ -101,7 +101,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
     <div
       className={cn(
         "onicord-modal-backdrop",
-        isExiting && "onicord-animate-backdrop-out"
+        isAnimatingOut && "onicord-animate-backdrop-out"
       )}
       onClick={handleClose}
       role="presentation"
@@ -109,7 +109,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
       <div
         className={cn(
           "relative flex flex-col w-full max-w-[700px] h-[580px] max-h-[90vh] rounded-2xl bg-onicord-surface border border-onicord-island shadow-2xl overflow-hidden select-none onicord-animate-modal-in",
-          isExiting && "onicord-animate-modal-out"
+          isAnimatingOut && "onicord-animate-modal-out"
         )}
         onClick={(e) => e.stopPropagation()}
       >

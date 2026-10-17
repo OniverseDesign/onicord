@@ -12,6 +12,12 @@ export function useAnimatedMount(isOpen, durationMs = 150) {
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const timeoutRef = useRef(null);
 
+  // Synchronous state adjustment when isOpen transitions to true
+  if (isOpen && !shouldRender) {
+    setShouldRender(true);
+    setIsAnimatingOut(false);
+  }
+
   useEffect(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -58,8 +64,17 @@ export function useInternalClose(onCloseCallback, durationMs = 150) {
 
     setTimeout(() => {
       onCloseCallback?.();
+      closingRef.current = false;
+      setIsClosing(false);
     }, durationMs);
   }, [onCloseCallback, durationMs]);
+
+  useEffect(() => {
+    return () => {
+      closingRef.current = false;
+      setIsClosing(false);
+    };
+  }, []);
 
   return { isClosing, triggerClose };
 }
