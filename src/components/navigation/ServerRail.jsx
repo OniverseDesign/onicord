@@ -414,7 +414,7 @@ export default function ServerRail({
           }
         } catch {}
       }}
-      className="flex w-[72px] h-full shrink-0 flex-col items-center bg-onicord-base py-3 select-none"
+      className="flex w-[66px] h-full shrink-0 flex-col items-center bg-onicord-base py-2 select-none"
     >
       {/* Home / Dashboard Button */}
       <button

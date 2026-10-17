@@ -170,7 +170,7 @@ export default function UserListItem({
 
   return (
     <Component
-      className={`onicord-list-row-interactive group flex items-center pl-4 pr-2 py-1 ${
+      className={`onicord-list-row-interactive group flex items-center py-1 ${
         isOffline ? "opacity-40 hover:opacity-100" : ""
       } ${className}`}
       onContextMenu={onContextMenu}

@@ -397,8 +397,8 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
           setMicHardwareError(true);
           setMicErrorMessage(manager.micErrorMessage);
           notificationManager.showToast(
-            t("voice.micErrorTitle", "Micrófono en modo solo escuchar"),
-            manager.micErrorMessage,
+            t("voice.listenOnlyNotice", "Solo escuchar (Mic ocupado)"),
+            manager.micErrorMessage || t("voice.micErrorFallback", "Error en el micrófono"),
             "warning"
           );
         } else {
@@ -673,6 +673,29 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
   }, [refreshState]);
 
   const toggleMute = useCallback(async () => {
+    if (micHardwareError && muted) {
+      const success = await managerRef.current?.reclaimMicrophone();
+      if (success) {
+        setMicHardwareError(false);
+        setMicErrorMessage(null);
+        notificationManager.showToast(
+          t("voice.micReclaimedTitle", "Micrófono Restablecido"),
+          t("voice.micReclaimedDesc", "Se ha reactivado la captura de micrófono."),
+          "success"
+        );
+      } else {
+        const errDesc = managerRef.current?.micErrorMessage || t("voice.micRetryFailed", "No se pudo acceder al micrófono aún.");
+        setMicHardwareError(true);
+        setMicErrorMessage(errDesc);
+        notificationManager.showToast(
+          t("voice.listenOnlyNotice", "Solo escuchar (Mic ocupado)"),
+          errDesc,
+          "warning"
+        );
+        return;
+      }
+    }
+
     const next = !muted;
 
     setMuted(next);
@@ -691,7 +714,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     await window.electronAPI?.setVoiceMuted?.(next);
     // NOTE: setVoiceMuted on the backend already emits voice:state -> onVoiceState -> refreshState().
     // Manual getVoiceState() call removed to prevent double render.
-  }, [muted, deafened]);
+  }, [muted, deafened, micHardwareError, t]);
 
   const toggleDeafen = useCallback(async () => {
     const next = !deafened;
@@ -845,7 +868,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
         setMicHardwareError(true);
         setMicErrorMessage(errDesc);
         notificationManager.showToast(
-          t("voice.errorTitle", "Error de Audio"),
+          t("voice.listenOnlyNotice", "Solo escuchar (Mic ocupado)"),
           errDesc,
           "warning"
         );

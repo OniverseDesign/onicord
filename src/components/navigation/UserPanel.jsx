@@ -232,24 +232,6 @@ export default function UserPanel({
               </p>
             </div>
           </div>
-          {micHardwareError && (
-            <div className="mt-1.5 p-1.5 bg-onicord-danger/10 border border-onicord-danger/30 rounded-lg text-xs flex items-center justify-between gap-1 select-none">
-              <span className="truncate text-onicord-danger font-medium text-[11px]" title={micErrorMessage || t("voice.micErrorFallback")}>
-                ⚠️ {t("voice.listenOnlyNotice", "Solo escuchar (Mic ocupado)")}
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRetryMicrophone?.();
-                }}
-                className="px-2 py-0.5 bg-onicord-danger text-white rounded text-[10px] font-semibold hover:opacity-90 transition-opacity shrink-0 cursor-pointer"
-                title={t("voice.retryMic", "Reintentar micrófono")}
-              >
-                {t("voice.retryMic", "Reintentar")}
-              </button>
-            </div>
-          )}
           <hr className="my-2 border-onicord-dark-muted border-t-1" />
         </div>
       )}
@@ -257,7 +239,7 @@ export default function UserPanel({
         <UserListItem
           as="button"
           type="button"
-          className="onicord-user-panel-profile-btn !pl-1 !pr-1 min-w-0 flex-1 text-left cursor-pointer"
+          className="onicord-user-panel-profile-btn min-w-0 flex-1 text-left cursor-pointer"
           nickname={profile?.nickname ?? t("common.user")}
           avatar={profile?.avatar}
           status={avatarStatus}
