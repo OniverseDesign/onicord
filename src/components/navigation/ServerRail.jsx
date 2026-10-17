@@ -446,7 +446,7 @@ export default function ServerRail({
       <div className="mb-2 h-0.5 w-8 rounded-full bg-onicord-overlay" />
 
       {/* Servers/Folders Scroll Area */}
-      <div className="flex w-full flex-1 flex-col items-center gap-2.5 overflow-y-auto minimal-scrollbar">
+      <div className="flex w-full flex-1 flex-col items-center gap-2.5 overflow-y-auto no-scrollbar">
         {/* Render Folders */}
         {folders.map((folder) => (
           <ServerFolderItem
