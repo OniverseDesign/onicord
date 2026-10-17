@@ -1,3 +1,15 @@
+# Onicord v0.1.4
+
+## Changes
+
+- **Automatic Startup Update Checker**: Checks for new versions on startup and notifies the user via an in-app toast notification.
+- **Native OS Background Notification**: Alerts users with native system notifications when an update is available while the app is minimized or running in the background.
+- **Custom Select Component**: Replaced all native `<select>` dropdowns across the application with a unified, keyboard-accessible, and dark-theme styled Select component.
+- **Standardized UI Control Heights**: Unified control heights (`sm: 32px`, `md: 36px`, `lg: 44px`) and corner radiuses across buttons, inputs, and selects.
+- **Streamlined Deeplinks & Landing Bridge**: Simplified invitation URLs (`?code=ROOMCODE`) and redesigned the web launcher fallback screen and download section.
+- **Screen Share Modal Polish**: Refined the screen share interface with segmented pill tabs, 1080p default resolution, seamless borders, and cleaner typography.
+- **Micro-interactions & Stability**: Fixed backdrop overlay glitches, converted hardware error banners to toasts, and improved server rail alignment.
+
 # Onicord v0.1.3
 
 ## Changes
