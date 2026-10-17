@@ -61,6 +61,32 @@ class NotificationManager {
     return Promise.resolve({ success: false, reason: "NOT_SUPPORTED" });
   }
 
+  async notifyUpdateAvailable(version) {
+    const title = i18n.t("notifications.updateAvailableTitle", "Actualización disponible");
+    const message = i18n.t("notifications.updateAvailableMsg", {
+      version,
+      defaultValue: `Hay una nueva versión de Onicord disponible (v${version}).`,
+    });
+
+    this.showToast(title, message, "info");
+
+    if (this.settings && this.settings.enableNotifications !== false) {
+      let isMinimized = false;
+      try {
+        if (window.electronAPI?.isWindowMinimized) {
+          isMinimized = await window.electronAPI.isWindowMinimized();
+        }
+      } catch (err) {
+        console.warn("[NotificationManager] Error checking window minimized state:", err);
+      }
+
+      const isHiddenOrUnfocused = isMinimized || document.hidden || !document.hasFocus();
+      if (isHiddenOrUnfocused) {
+        this.notifySystem(title, message);
+      }
+    }
+  }
+
   trigger(actionType, data = {}) {
     switch (actionType) {
       case "LOCAL_JOIN_VOICE":

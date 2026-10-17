@@ -1,6 +1,23 @@
 const { app } = require("electron");
 const diagService = require("./diagService.cjs");
 
+function isNewerVersion(latest, current) {
+  if (!latest || !current) return false;
+  const clean = (v) =>
+    v
+      .replace(/^v/, "")
+      .trim()
+      .split(".")
+      .map((n) => parseInt(n, 10) || 0);
+  const [lMaj = 0, lMin = 0, lPatch = 0] = clean(latest);
+  const [cMaj = 0, cMin = 0, cPatch = 0] = clean(current);
+  if (lMaj > cMaj) return true;
+  if (lMaj < cMaj) return false;
+  if (lMin > cMin) return true;
+  if (lMin < cMin) return false;
+  return lPatch > cPatch;
+}
+
 class UpdateService {
   constructor() {
     this.mainWindow = null;
@@ -90,7 +107,36 @@ class UpdateService {
 
   async checkForUpdates() {
     if (!app.isPackaged) {
-      diagService.log("info", "UpdateService", "Dev mode: auto update disabled");
+      diagService.log("info", "UpdateService", "Dev mode: checking GitHub releases directly");
+      try {
+        const response = await fetch(
+          "https://api.github.com/repos/OniverseDesign/onicord/releases/latest",
+          {
+            headers: { "User-Agent": "Onicord-App" },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          const latestVersion = (data.tag_name || "").replace(/^v/, "");
+          const currentVersion = app.getVersion();
+          if (latestVersion && isNewerVersion(latestVersion, currentVersion)) {
+            diagService.log("info", "UpdateService", `Dev mode update available: v${latestVersion}`);
+            this._sendToRenderer("update:status", {
+              status: "available",
+              version: latestVersion,
+              releaseDate: data.published_at,
+              releaseNotes: data.body,
+              isPortable: this.isPortable,
+            });
+            return {
+              status: "ok",
+              updateInfo: { version: latestVersion, releaseDate: data.published_at },
+            };
+          }
+        }
+      } catch (err) {
+        diagService.log("warn", "UpdateService", `Dev mode GitHub check failed: ${err.message}`);
+      }
       return {
         status: "dev-mode",
         message: "Las actualizaciones automáticas están deshabilitadas en entorno de desarrollo.",

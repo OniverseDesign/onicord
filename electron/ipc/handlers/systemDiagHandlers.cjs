@@ -79,6 +79,12 @@ function registerSystemDiagHandlers() {
     global.mainWindow?.minimize();
   });
 
+  ipcMain.handle("window:isMinimized", () => {
+    return global.mainWindow && !global.mainWindow.isDestroyed()
+      ? global.mainWindow.isMinimized()
+      : false;
+  });
+
   ipcMain.on("window:maximize", () => {
     if (global.mainWindow?.isMaximized()) global.mainWindow.unmaximize();
     else global.mainWindow?.maximize();

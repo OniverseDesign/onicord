@@ -1231,6 +1231,8 @@
     "newMessageReceived": "New message received",
     "userMentionedYouChat": "{{name}} mentioned you in chat.",
     "userMentionedYou": "@{{name}} mentioned you",
-    "userMentionedYouFallback": "You were mentioned in the Onicord chat."
+    "userMentionedYouFallback": "You were mentioned in the Onicord chat.",
+    "updateAvailableTitle": "Update Available",
+    "updateAvailableMsg": "A newer version of Onicord is available (v{{version}})."
   }
 }

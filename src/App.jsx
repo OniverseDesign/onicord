@@ -10,6 +10,7 @@ import { soundEngine } from "./lib/soundEngine";
 import { ACCENT_PALETTE, applyDynamicTheme } from "./lib/colors";
 import { VoiceProvider } from "./context/VoiceContext";
 import { MusicProvider } from "./context/MusicContext";
+import { useAppUpdater } from "./hooks/useAppUpdater";
 import IconOnicord from "./components/icons/Onicord.svg?react";
 
 // Hook renderer console logs and redirect to OniDiag backend
@@ -133,6 +134,8 @@ function TitleBar() {
 }
 
 export default function App() {
+  useAppUpdater();
+
   const [profile, setProfile] = useState(null);
   const [servers, setServers] = useState([]);
   const [activeServer, setActiveServer] = useState(null);
