@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { IconClose } from "../icons/StreamIcons";
-import MaterialIcon from "../icons/MaterialIcon";
 import { soundEngine } from "../../lib/soundEngine";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { cn } from "../../lib/cn";
@@ -116,9 +115,8 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
         {/* HEADER */}
         <header className="flex items-center justify-between px-6 pt-5 pb-4 shrink-0 border-b border-white/5 bg-onicord-surface">
           <div>
-            <h3 className="text-lg font-bold text-onicord-text tracking-wide flex items-center gap-2">
-              <MaterialIcon name="screen_share" size={22} className="text-onicord-accent" />
-              <span>{t("screenShare.title", "Compartir pantalla")}</span>
+            <h3 className="text-lg font-bold text-onicord-text tracking-wide">
+              {t("screenShare.title", "Compartir pantalla")}
             </h3>
             <p className="text-xs text-onicord-muted mt-0.5">
               {t("screenShare.subtitle", "Elegí qué monitor o aplicación querés transmitir en la sala")}
@@ -134,67 +132,50 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
           </button>
         </header>
 
-        {/* CONTROLS BAR: SEGMENTED PILLS TABS + QUALITY SELECTOR */}
+        {/* CONTROLS BAR: SERVER STORAGE STYLE FILTER PILLS + QUALITY SELECTOR */}
         <div className="flex items-center justify-between px-6 py-2.5 shrink-0 bg-onicord-mantle/60 border-b border-white/5 gap-3">
-          {/* SEGMENTED TAB BUTTONS WITH PILL CONTAINER */}
-          <div className="flex items-center gap-1.5 p-1 bg-onicord-mantle rounded-xl border border-white/5">
-            <button
-              type="button"
-              onClick={() => handleTabChange("screen")}
-              className={cn(
-                "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
-                activeTab === "screen"
-                  ? "bg-onicord-surface text-onicord-accent shadow-sm border border-white/10"
-                  : "text-onicord-muted hover:text-onicord-text hover:bg-white/[0.04]"
-              )}
-            >
-              <MaterialIcon name="desktop_windows" size="sm" />
-              <span>{t("screenShare.screens", "Pantallas")}</span>
-              <span
-                className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-0.5 leading-none",
-                  activeTab === "screen"
-                    ? "bg-onicord-accent/20 text-onicord-accent"
-                    : "bg-white/5 text-onicord-muted"
-                )}
-              >
-                {screens.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleTabChange("window")}
-              className={cn(
-                "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer select-none",
-                activeTab === "window"
-                  ? "bg-onicord-surface text-onicord-accent shadow-sm border border-white/10"
-                  : "text-onicord-muted hover:text-onicord-text hover:bg-white/[0.04]"
-              )}
-            >
-              <MaterialIcon name="window" size="sm" />
-              <span>{t("screenShare.windows", "Ventanas")}</span>
-              <span
-                className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-0.5 leading-none",
-                  activeTab === "window"
-                    ? "bg-onicord-accent/20 text-onicord-accent"
-                    : "bg-white/5 text-onicord-muted"
-                )}
-              >
-                {windows.length}
-              </span>
-            </button>
+          {/* CATEGORY FILTER PILLS LIKE SERVER STORAGE TAB */}
+          <div className="flex items-center gap-2">
+            {[
+              { id: "screen", label: t("screenShare.screens", "Pantallas"), count: screens.length },
+              { id: "window", label: t("screenShare.windows", "Ventanas"), count: windows.length },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handleTabChange(tab.id)}
+                  className={cn(
+                    "px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all flex items-center gap-2 cursor-pointer select-none",
+                    isActive
+                      ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold shadow-sm"
+                      : "bg-onicord-base/40 text-onicord-muted border-white/5 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={cn(
+                      "text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none",
+                      isActive
+                        ? "bg-black/20 text-onicord-dark"
+                        : "bg-white/5 text-onicord-muted"
+                    )}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* QUALITY / RESOLUTION SELECTOR */}
-          <div className="flex items-center gap-2 bg-onicord-mantle/80 px-3 py-1.5 rounded-xl border border-white/5 shrink-0">
+          <div className="flex items-center gap-2 bg-onicord-mantle px-3 py-1.5 rounded-xl border border-white/5 shrink-0">
             <label
               htmlFor="stream-res"
-              className="text-[11px] font-semibold text-onicord-muted flex items-center gap-1.5 select-none shrink-0"
+              className="text-[11px] font-semibold text-onicord-muted select-none shrink-0"
             >
-              <MaterialIcon name="tune" size="sm" className="text-onicord-accent" />
-              <span>{t("screenShare.quality", "Calidad:")}</span>
+              {t("screenShare.quality", "Calidad:")}
             </label>
             <select
               id="stream-res"
@@ -218,7 +199,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
           </div>
         </div>
 
-        {/* SOURCES GRID AREA (STABLE SCROLL CONTAINER WITH FIXED HEIGHT) */}
+        {/* SOURCES GRID AREA */}
         <div className="flex-1 min-h-0 overflow-y-auto minimal-scrollbar p-5 bg-onicord-base/40">
           {loading ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 text-onicord-muted py-12">
@@ -228,16 +209,13 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
               </p>
             </div>
           ) : filteredSources.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center gap-3 text-onicord-muted py-12 text-center">
-              <MaterialIcon name="desktop_access_disabled" size={40} className="opacity-30" />
-              <div>
-                <p className="text-sm font-semibold text-onicord-text">
-                  {t("screenShare.noSourcesFound", "No se encontraron fuentes disponibles")}
-                </p>
-                <p className="text-xs text-onicord-muted mt-1 max-w-sm">
-                  {t("screenShare.noSourcesDesc", "Asegúrate de que las ventanas no estén minimizadas.")}
-                </p>
-              </div>
+            <div className="h-full flex flex-col items-center justify-center gap-2 text-onicord-muted py-12 text-center">
+              <p className="text-sm font-semibold text-onicord-text">
+                {t("screenShare.noSourcesFound", "No se encontraron fuentes disponibles")}
+              </p>
+              <p className="text-xs text-onicord-muted mt-0.5 max-w-sm">
+                {t("screenShare.noSourcesDesc", "Asegúrate de que las ventanas no estén minimizadas.")}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 animate-fade-in">
@@ -270,13 +248,25 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
                           className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-200"
                         />
                       ) : (
-                        <MaterialIcon name="screen_share" size="lg" className="text-onicord-muted/30" />
+                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-onicord-muted/30 text-xs">
+                          {src.name.slice(0, 2).toUpperCase()}
+                        </div>
                       )}
 
                       {/* Selected check badge */}
                       {isSelected && (
                         <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-onicord-accent text-onicord-dark flex items-center justify-center shadow-md animate-scale-up">
-                          <MaterialIcon name="check" size={14} weight={700} />
+                          <svg
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
                         </div>
                       )}
 
@@ -320,9 +310,9 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
         <footer className="flex items-center justify-between px-6 py-3.5 shrink-0 bg-onicord-surface border-t border-white/5">
           <div className="min-w-0 flex-1 pr-4">
             {selectedSource ? (
-              <p className="text-xs text-onicord-muted truncate flex items-center gap-1.5">
+              <p className="text-xs text-onicord-muted truncate flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-onicord-accent shrink-0" />
-                <span className="truncate">{selectedSource.name}</span>
+                <span className="truncate text-onicord-text font-medium">{selectedSource.name}</span>
               </p>
             ) : (
               <p className="text-xs text-onicord-muted/70">
@@ -343,10 +333,9 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
               type="button"
               onClick={handleConfirm}
               disabled={!selectedSource}
-              className="onicord-btn-primary flex items-center gap-2"
+              className="onicord-btn-primary"
             >
-              <MaterialIcon name="cast" size="sm" />
-              <span>{t("screenShare.shareBtn", "Transmitir")}</span>
+              {t("screenShare.shareBtn", "Transmitir")}
             </button>
           </div>
         </footer>
