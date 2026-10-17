@@ -147,7 +147,11 @@
     "screens": "Screens",
     "windows": "Windows",
     "quality": "Quality:",
-    "native": "Original (Native)"
+    "native": "Original (Native)",
+    "shareBtn": "Go Live",
+    "loadingSources": "Searching for screens and windows...",
+    "noSourcesFound": "No available sources found",
+    "noSourcesDesc": "Make sure target windows are not minimized."
   },
   "dashboard": {
     "title": "Main Dashboard",

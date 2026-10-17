@@ -147,7 +147,11 @@
     "screens": "Telas",
     "windows": "Janelas",
     "quality": "Qualidade:",
-    "native": "Original (Nativa)"
+    "native": "Original (Nativa)",
+    "shareBtn": "Transmitir",
+    "loadingSources": "Procurando telas e janelas...",
+    "noSourcesFound": "Nenhuma fonte disponível encontrada",
+    "noSourcesDesc": "Certifique-se de que as janelas não estejam minimizadas."
   },
   "dashboard": {
     "title": "Painel Principal",

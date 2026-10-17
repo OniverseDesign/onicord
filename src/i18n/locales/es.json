@@ -147,7 +147,11 @@
     "screens": "Pantallas",
     "windows": "Ventanas",
     "quality": "Calidad:",
-    "native": "Original (Nativa)"
+    "native": "Original (Nativa)",
+    "shareBtn": "Transmitir",
+    "loadingSources": "Buscando pantallas y ventanas...",
+    "noSourcesFound": "No se encontraron fuentes disponibles",
+    "noSourcesDesc": "Asegúrate de que las ventanas no estén minimizadas."
   },
   "dashboard": {
     "title": "Dashboard Principal",
