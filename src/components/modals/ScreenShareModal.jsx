@@ -11,7 +11,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
   const [sources, setSources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("screen"); // "screen" | "window"
-  const [resolution, setResolution] = useState("720");
+  const [resolution, setResolution] = useState("1080");
   const [selectedSourceId, setSelectedSourceId] = useState(null);
 
   const { shouldRender, isAnimatingOut } = useAnimatedMount(isOpen, 140);
@@ -113,7 +113,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
-        <header className="flex items-center justify-between px-6 pt-5 pb-4 shrink-0 border-b border-white/5 bg-onicord-surface">
+        <header className="flex items-center justify-between px-6 pt-5 pb-4 shrink-0 bg-onicord-surface">
           <div>
             <h3 className="text-lg font-bold text-onicord-text tracking-wide">
               {t("screenShare.title", "Compartir pantalla")}
@@ -133,7 +133,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
         </header>
 
         {/* CONTROLS BAR: SERVER STORAGE STYLE FILTER PILLS + QUALITY SELECTOR */}
-        <div className="flex items-center justify-between px-6 py-2.5 shrink-0 bg-onicord-mantle/60 border-b border-white/5 gap-3">
+        <div className="flex items-center justify-between px-6 py-2.5 shrink-0 gap-3">
           {/* CATEGORY FILTER PILLS LIKE SERVER STORAGE TAB */}
           <div className="flex items-center gap-2">
             {[
@@ -170,13 +170,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
           </div>
 
           {/* QUALITY / RESOLUTION SELECTOR */}
-          <div className="flex items-center gap-2 bg-onicord-mantle px-3 py-1.5 rounded-xl border border-white/5 shrink-0">
-            <label
-              htmlFor="stream-res"
-              className="text-[11px] font-semibold text-onicord-muted select-none shrink-0"
-            >
-              {t("screenShare.quality", "Calidad:")}
-            </label>
+          <div className="flex items-center gap-2 bg-onicord-mantle px-2 py-2 rounded-xl border border-white/5 shrink-0">
             <select
               id="stream-res"
               value={resolution}
@@ -187,13 +181,13 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
                 {t("screenShare.native", "Original (Nativa)")}
               </option>
               <option value="1080" className="bg-onicord-mantle text-onicord-text">
-                1080p (FHD)
+                1080p
               </option>
               <option value="720" className="bg-onicord-mantle text-onicord-text">
-                720p (HD)
+                720p
               </option>
               <option value="480" className="bg-onicord-mantle text-onicord-text">
-                480p (SD)
+                480p
               </option>
             </select>
           </div>
