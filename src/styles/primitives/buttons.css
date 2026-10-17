@@ -7,37 +7,37 @@
   /* Variant: Primary */
   .onicord-btn-primary {
     @apply inline-flex items-center justify-center font-semibold select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
-    @apply px-5 py-2 text-sm rounded-onicord-button bg-onicord-accent text-onicord-dark shadow-sm hover:opacity-90;
+    @apply h-9 px-4 text-xs sm:text-sm rounded-onicord-button bg-onicord-accent text-onicord-dark shadow-sm hover:opacity-90 box-border;
   }
 
   /* Variant: Secondary */
   .onicord-btn-secondary {
     @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
-    @apply px-5 py-2 text-sm rounded-onicord-button bg-transparent text-onicord-text hover:bg-onicord-overlay/40;
+    @apply h-9 px-4 text-xs sm:text-sm rounded-onicord-button bg-transparent text-onicord-text hover:bg-onicord-overlay/40 box-border;
   }
 
   /* Variant: Secondary Outline */
   .onicord-btn-secondary-outline {
     @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
-    @apply px-6 py-3 rounded-onicord-inner border border-white/5 text-onicord-text hover:bg-onicord-overlay/40 flex-1;
+    @apply h-9 px-4 rounded-onicord-inner border border-white/5 text-onicord-text hover:bg-onicord-overlay/40 flex-1 box-border text-xs sm:text-sm;
   }
 
   /* Variant: Danger */
   .onicord-btn-danger {
     @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
-    @apply px-5 py-2 text-sm rounded-onicord-button bg-onicord-danger text-onicord-surface shadow-sm hover:opacity-90;
+    @apply h-9 px-4 text-xs sm:text-sm rounded-onicord-button bg-onicord-danger text-onicord-surface shadow-sm hover:opacity-90 box-border;
   }
 
   /* Variant: Danger Soft */
   .onicord-btn-danger-soft {
     @apply inline-flex items-center justify-center font-bold select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
-    @apply px-4 py-2 text-xs rounded-onicord-button bg-onicord-danger/10 text-onicord-danger border border-onicord-danger/20 hover:bg-onicord-danger/20 shadow-sm;
+    @apply h-9 px-4 text-xs rounded-onicord-button bg-onicord-danger/10 text-onicord-danger border border-onicord-danger/20 hover:bg-onicord-danger/20 shadow-sm box-border;
   }
 
   /* Variant: Success */
   .onicord-btn-success {
     @apply inline-flex items-center justify-center font-bold select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
-    @apply px-1 py-1 text-xs rounded-onicord-button bg-onicord-success/20 text-onicord-success border border-onicord-success/20 hover:bg-onicord-success/30 shadow-sm;
+    @apply h-9 w-9 text-xs rounded-onicord-button bg-onicord-success/20 text-onicord-success border border-onicord-success/20 hover:bg-onicord-success/30 shadow-sm box-border;
   }
 
   /* Variant: Text/Link style */
@@ -51,26 +51,26 @@
     @apply text-onicord-text hover:underline active:scale-100 bg-transparent p-0 cursor-pointer font-medium text-[14px];
   }
 
-  /* Sizes modifiers (composed with .onicord-btn + any variant class) */
+  /* Sizes modifiers (Control Heights: sm=32px, md=36px, lg=44px) */
   .onicord-btn-sm {
-    @apply px-3 py-1 text-xs rounded-onicord-button !important;
+    @apply h-8 px-3 text-xs rounded-lg !important;
   }
   .onicord-btn-md {
-    @apply px-5 py-2 text-sm rounded-onicord-button !important;
+    @apply h-9 px-4 text-xs sm:text-sm rounded-onicord-button !important;
   }
   .onicord-btn-lg {
-    @apply px-6 py-3 font-bold rounded-onicord-inner !important;
+    @apply h-11 px-6 text-sm font-bold rounded-onicord-inner !important;
   }
 
   /* 🔄 COMPATIBILIDAD CON CLASES VIEJAS ADICIONALES */
   .onicord-btn-destructive {
     @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
-    @apply px-7 py-2.5 rounded-onicord-inner bg-onicord-danger text-onicord-surface shadow-sm hover:opacity-90;
+    @apply h-9 px-4 text-xs sm:text-sm rounded-onicord-button bg-onicord-danger text-onicord-surface shadow-sm hover:opacity-90 box-border;
   }
   
   .onicord-btn-primary-lg {
     @apply inline-flex items-center justify-center font-bold select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
-    @apply px-6 py-3 rounded-onicord-inner bg-onicord-accent text-onicord-dark shadow-sm hover:opacity-90 flex-1;
+    @apply h-11 px-6 text-sm rounded-onicord-inner bg-onicord-accent text-onicord-dark shadow-sm hover:opacity-90 flex-1 box-border;
   }
   
   .onicord-btn-remove {

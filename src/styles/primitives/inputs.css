@@ -1,7 +1,18 @@
 @layer components {
-  /* 📝 ONICORD ATOMIC INPUTS SYSTEM */
+  /* 📝 ONICORD ATOMIC INPUTS SYSTEM (Control Heights: sm=32px, md=36px, lg=44px) */
   .onicord-input-base {
-    @apply rounded-onicord-button bg-onicord-base px-4 py-2.5 text-[15px] text-onicord-text outline-none ring-onicord-accent focus:ring-2 border border-white/5 placeholder:text-onicord-faded transition-all duration-150;
+    @apply h-9 px-3.5 text-xs sm:text-sm rounded-onicord-button bg-onicord-base text-onicord-text outline-none ring-onicord-accent focus:ring-2 border border-white/5 placeholder:text-onicord-faded transition-all duration-150 box-border;
+  }
+
+  /* Modificadores de altura para inputs */
+  .onicord-input-sm {
+    @apply h-8 px-3 text-xs rounded-lg !important;
+  }
+  .onicord-input-md {
+    @apply h-9 px-3.5 text-xs sm:text-sm rounded-onicord-button !important;
+  }
+  .onicord-input-lg {
+    @apply h-11 px-4 text-sm rounded-onicord-inner !important;
   }
 
   /* 🔄 COMPATIBILIDAD CON CLASES VIEJAS (Legacy alias wrappers) */

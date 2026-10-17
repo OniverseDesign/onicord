@@ -181,7 +181,7 @@ export function ModalButton({
     variant === "primary"
       ? "onicord-btn-primary"
       : variant === "danger"
-        ? "onicord-btn-destructive px-5 py-2 text-sm"
+        ? "onicord-btn-destructive"
         : "onicord-btn-secondary";
 
   return (
