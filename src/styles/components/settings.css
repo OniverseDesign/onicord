@@ -43,7 +43,7 @@
     @apply flex items-center justify-between bg-onicord-surface p-2.5 rounded-onicord-button border border-white/5;
   }
   .onicord-user-panel-profile-btn {
-    @apply flex min-w-[110px] flex-1 items-center gap-2 rounded-onicord-inner p-1 text-left hover:bg-onicord-overlay/40 overflow-hidden cursor-pointer;
+    @apply flex w-full items-center gap-2 rounded-onicord-inner p-1 text-left hover:bg-onicord-overlay/40 overflow-hidden cursor-pointer;
   }
   .onicord-avatar-picker {
     @apply shrink-0 overflow-hidden rounded-full border-2 border-dashed border-white/5 bg-onicord-overlay hover:border-onicord-accent transition-colors cursor-pointer;

@@ -236,23 +236,25 @@ export default function UserPanel({
         </div>
       )}
       <div className="flex items-center justify-between w-full min-w-0">
-        <UserListItem
-          as="button"
-          type="button"
-          className="onicord-user-panel-profile-btn min-w-0 flex-1 text-left cursor-pointer"
-          nickname={profile?.nickname ?? t("common.user")}
-          avatar={profile?.avatar}
-          status={avatarStatus}
-          isSelf={true}
-          activity={activeGame}
-          customStatus={customStatus ? undefined : null}
-          fallbackSubtitle={subtitleText}
-          avatarSize="md"
-          showStatusDot={true}
-          showFlame={false}
-          onClick={onOpenAppSettings}
-          onContextMenu={handleUserPanelContextMenu}
-        />
+        <div className="flex-1 min-w-0">
+          <UserListItem
+            as="button"
+            type="button"
+            className="onicord-user-panel-profile-btn w-full min-w-0 text-left cursor-pointer"
+            nickname={profile?.nickname ?? t("common.user")}
+            avatar={profile?.avatar}
+            status={avatarStatus}
+            isSelf={true}
+            activity={activeGame}
+            customStatus={customStatus ? undefined : null}
+            fallbackSubtitle={subtitleText}
+            avatarSize="md"
+            showStatusDot={true}
+            showFlame={false}
+            onClick={onOpenAppSettings}
+            onContextMenu={handleUserPanelContextMenu}
+          />
+        </div>
         {renderVoiceControls()}
       </div>
 
