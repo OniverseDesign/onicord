@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
+import Select from "../ui/Select";
 import { DEFAULT_AUDIO } from "../../lib/audioSettings";
 
 export default function AudioTab({
@@ -29,22 +30,22 @@ export default function AudioTab({
               <span>{t("settings.voiceVideo.inputDevice", "Dispositivo de Entrada")}</span>
               <MaterialIcon name="mic" size={16} className="text-onicord-muted" />
             </label>
-            <select
+            <Select
               value={audio.inputDeviceId === "default" ? "" : (audio.inputDeviceId || "")}
               onChange={(e) =>
                 setAudio((a) => ({ ...a, inputDeviceId: e.target.value }))
               }
-              className="onicord-select w-full h-9 text-xs"
-            >
-              <option value="">{t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema")}</option>
-              {inputs
-                .filter((d) => d.deviceId && d.deviceId !== "default")
-                .map((d) => (
-                  <option key={d.deviceId} value={d.deviceId}>
-                    {d.label || `Mic ${d.deviceId.slice(0, 8)}`}
-                  </option>
-                ))}
-            </select>
+              options={[
+                { value: "", label: t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema") },
+                ...inputs
+                  .filter((d) => d.deviceId && d.deviceId !== "default")
+                  .map((d) => ({
+                    value: d.deviceId,
+                    label: d.label || `Mic ${d.deviceId.slice(0, 8)}`,
+                  })),
+              ]}
+              className="w-full"
+            />
 
             <div className="pt-2">
               <div className="flex justify-between items-center mb-1">
@@ -77,22 +78,22 @@ export default function AudioTab({
               <span>{t("settings.voiceVideo.outputDevice", "Dispositivo de Salida")}</span>
               <MaterialIcon name="volume_up" size={16} className="text-onicord-muted" />
             </label>
-            <select
+            <Select
               value={audio.outputDeviceId === "default" ? "" : (audio.outputDeviceId || "")}
               onChange={(e) =>
                 setAudio((a) => ({ ...a, outputDeviceId: e.target.value }))
               }
-              className="onicord-select w-full h-9 text-xs"
-            >
-              <option value="">{t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema")}</option>
-              {outputs
-                .filter((d) => d.deviceId && d.deviceId !== "default")
-                .map((d) => (
-                  <option key={d.deviceId} value={d.deviceId}>
-                    {d.label || `Speaker ${d.deviceId.slice(0, 8)}`}
-                  </option>
-                ))}
-            </select>
+              options={[
+                { value: "", label: t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema") },
+                ...outputs
+                  .filter((d) => d.deviceId && d.deviceId !== "default")
+                  .map((d) => ({
+                    value: d.deviceId,
+                    label: d.label || `Speaker ${d.deviceId.slice(0, 8)}`,
+                  })),
+              ]}
+              className="w-full"
+            />
 
             <div className="pt-2">
               <div className="flex justify-between items-center mb-1">

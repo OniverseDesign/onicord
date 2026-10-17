@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { notificationManager } from "../../lib/notificationManager";
 import FlameBadge from "../ui/FlameBadge";
 import MaterialIcon from "../icons/MaterialIcon";
+import Select from "../ui/Select";
 
 export default function DevSandboxTab({ profile, onProfileChange, servers = [], activeServerId = null }) {
   const { t } = useTranslation();
@@ -171,17 +172,15 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
             <span className="text-xs font-semibold text-onicord-muted shrink-0">
               {t("settings.devSandbox.targetServer", "Servidor Objetivo:")}
             </span>
-            <select
+            <Select
               value={selectedServerId}
               onChange={(e) => setSelectedServerId(e.target.value)}
-              className="onicord-select flex-1 h-9 text-xs"
-            >
-              {servers.map((s) => (
-                <option key={s.id} value={s.roomCode || s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+              className="flex-1"
+              options={servers.map((s) => ({
+                value: s.roomCode || s.id,
+                label: s.name,
+              }))}
+            />
           </div>
         )}
 

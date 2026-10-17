@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
+import Select from "../ui/Select";
 
 export default function KeybindingsTab({
   keybindings = [],
@@ -172,17 +173,12 @@ export default function KeybindingsTab({
               <div key={kb.id} className="flex items-center justify-between py-3.5 gap-4">
                 {/* Action Selector */}
                 <div className="flex-1 min-w-0">
-                  <select
+                  <Select
                     value={kb.action}
                     onChange={(e) => handleActionChange(kb.id, e.target.value)}
-                    className="onicord-select w-full h-9 text-xs"
-                  >
-                    {ACTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={ACTIONS}
+                    className="w-full"
+                  />
                 </div>
 
                 {/* Key Combination Recorder */}
@@ -190,7 +186,7 @@ export default function KeybindingsTab({
                   <button
                     type="button"
                     onClick={() => setRecordingId(kb.id)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold min-w-[120px] text-center select-none shadow-inner uppercase cursor-pointer transition-colors ${
+                    className={`h-9 flex items-center justify-center px-3 rounded-lg border text-xs font-mono font-bold min-w-[120px] text-center select-none shadow-inner uppercase cursor-pointer transition-colors box-border ${
                       recordingId === kb.id
                         ? "bg-onicord-danger/10 border-onicord-danger/50 text-onicord-danger animate-pulse"
                         : "bg-onicord-base border-white/15 text-onicord-accent hover:border-white/25"
@@ -204,7 +200,7 @@ export default function KeybindingsTab({
                   <button
                     type="button"
                     onClick={() => handleDelete(kb.id)}
-                    className="onicord-icon-btn onicord-icon-btn-danger shrink-0"
+                    className="h-9 w-9 flex items-center justify-center rounded-lg text-onicord-muted hover:text-onicord-danger hover:bg-onicord-danger/10 transition-colors shrink-0 cursor-pointer"
                     title={t("common.delete", "Eliminar")}
                   >
                     <MaterialIcon name="delete" size={16} />

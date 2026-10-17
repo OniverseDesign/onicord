@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
+import Select from "../ui/Select";
 import { notificationManager } from "../../lib/notificationManager";
 
 const CATEGORY_KEYS = [
@@ -194,7 +195,7 @@ function BackupCard({ selectedCats, onToggleCat, estimatedSize, onBackup, progre
         type="button"
         onClick={onBackup}
         disabled={selectedCats.length === 0 || !!progress}
-        className="onicord-btn-primary w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        className="onicord-btn-primary w-full flex items-center justify-center gap-2 cursor-pointer"
       >
         {progress
           ? t("settings.cloudBackup.uploading", "Subiendo...")
@@ -256,16 +257,18 @@ function AutoBackupCard({ settings, onUpdateSettings }) {
                 {t("settings.cloudBackup.frequency", "Frecuencia de backup")}
               </p>
             </div>
-            <select
+            <Select
               value={settings.frequency || "weekly"}
               onChange={handleFrequencyChange}
-              className="onicord-select w-[170px] shrink-0 h-9 text-xs"
-            >
-              <option value="daily">{t("settings.cloudBackup.freqDaily", "Todos los días")}</option>
-              <option value="weekly">{t("settings.cloudBackup.freqWeekly", "Una vez por semana")}</option>
-              <option value="biweekly">{t("settings.cloudBackup.freqBiweekly", "Cada 15 días")}</option>
-              <option value="monthly">{t("settings.cloudBackup.freqMonthly", "Una vez al mes")}</option>
-            </select>
+              align="right"
+              className="w-[170px] shrink-0"
+              options={[
+                { value: "daily", label: t("settings.cloudBackup.freqDaily", "Todos los días") },
+                { value: "weekly", label: t("settings.cloudBackup.freqWeekly", "Una vez por semana") },
+                { value: "biweekly", label: t("settings.cloudBackup.freqBiweekly", "Cada 15 días") },
+                { value: "monthly", label: t("settings.cloudBackup.freqMonthly", "Una vez al mes") },
+              ]}
+            />
           </div>
         )}
 

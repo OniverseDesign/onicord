@@ -5,6 +5,7 @@ import { IconClose } from "../icons/StreamIcons";
 import { soundEngine } from "../../lib/soundEngine";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { cn } from "../../lib/cn";
+import Select from "../ui/Select";
 
 export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
   const { t } = useTranslation();
@@ -147,7 +148,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
                   type="button"
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition-all flex items-center gap-2 cursor-pointer select-none",
+                    "h-8 px-3 text-xs font-semibold rounded-lg border transition-all flex items-center gap-2 cursor-pointer select-none box-border",
                     isActive
                       ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold shadow-sm"
                       : "bg-onicord-base/40 text-onicord-muted border-white/5 hover:bg-white/10 hover:text-white"
@@ -170,27 +171,19 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
           </div>
 
           {/* QUALITY / RESOLUTION SELECTOR */}
-          <div className="flex items-center gap-2 bg-onicord-mantle px-2 py-2 rounded-xl border border-white/5 shrink-0">
-            <select
-              id="stream-res"
-              value={resolution}
-              onChange={(e) => setResolution(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-onicord-text focus:outline-none cursor-pointer pr-1"
-            >
-              <option value="original" className="bg-onicord-mantle text-onicord-text">
-                {t("screenShare.native", "Original (Nativa)")}
-              </option>
-              <option value="1080" className="bg-onicord-mantle text-onicord-text">
-                1080p
-              </option>
-              <option value="720" className="bg-onicord-mantle text-onicord-text">
-                720p
-              </option>
-              <option value="480" className="bg-onicord-mantle text-onicord-text">
-                480p
-              </option>
-            </select>
-          </div>
+          <Select
+            id="stream-res"
+            value={resolution}
+            onChange={(e) => setResolution(e.target.value)}
+            align="right"
+            size="sm"
+            options={[
+              { value: "original", label: t("screenShare.native", "Original") },
+              { value: "1080", label: "1080p" },
+              { value: "720", label: "720p" },
+              { value: "480", label: "480p" },
+            ]}
+          />
         </div>
 
         {/* SOURCES GRID AREA */}

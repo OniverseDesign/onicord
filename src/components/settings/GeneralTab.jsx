@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { DEFAULT_GENERAL } from "../../lib/generalSettings";
 import { soundEngine } from "../../lib/soundEngine";
 import { SUPPORTED_LANGUAGES } from "../../i18n/languages";
+import Select from "../ui/Select";
 
 const STORAGE_LINE_HEIGHT_KEY = "onicord_chat_line_height";
 
@@ -92,17 +93,16 @@ export default function GeneralTab({ general, setGeneral }) {
                 {t("settings.general.languageDesc", "Selecciona el idioma principal de la interfaz.")}
               </p>
             </div>
-            <select
+            <Select
               value={general.language || "es"}
               onChange={(e) => handleChange("language", e.target.value)}
-              className="onicord-select w-[150px] shrink-0 h-9 text-xs"
-            >
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.nativeName}
-                </option>
-              ))}
-            </select>
+              options={SUPPORTED_LANGUAGES.map((lang) => ({
+                value: lang.code,
+                label: lang.nativeName,
+              }))}
+              align="right"
+              className="w-[170px] shrink-0"
+            />
           </div>
 
           {/* Zoom Level (Fila con slider) */}
@@ -354,25 +354,27 @@ export default function GeneralTab({ general, setGeneral }) {
                 {t("settings.sfx.packDesc", "Estilo acústico para las interacciones y respuestas del sistema.")}
               </p>
             </div>
-            <select
+            <Select
               value={sfxPack}
               disabled={general.enableSoundEffects === false}
               onChange={handleSfxPackChange}
-              className="onicord-select w-[150px] shrink-0 h-9 text-xs"
-            >
-              <option value="minimal">{t("settings.sfxPacks.minimal", "Minimal")}</option>
-              <option value="zen">{t("settings.sfxPacks.zen", "Zen")}</option>
-              <option value="soft">{t("settings.sfxPacks.soft", "Soft")}</option>
-              <option value="glass">{t("settings.sfxPacks.glass", "Glass")}</option>
-              <option value="arcade">{t("settings.sfxPacks.arcade", "Arcade")}</option>
-              <option value="mechanical">{t("settings.sfxPacks.mechanical", "Mechanical")}</option>
-              <option value="organic">{t("settings.sfxPacks.organic", "Organic")}</option>
-              <option value="dreamy">{t("settings.sfxPacks.dreamy", "Dreamy")}</option>
-              <option value="scifi">{t("settings.sfxPacks.scifi", "Sci-Fi")}</option>
-              <option value="rubber">{t("settings.sfxPacks.rubber", "Rubber")}</option>
-              <option value="cinematic">{t("settings.sfxPacks.cinematic", "Cinematic")}</option>
-              <option value="studio">{t("settings.sfxPacks.studio", "Studio")}</option>
-            </select>
+              align="right"
+              className="w-[170px] shrink-0"
+              options={[
+                { value: "minimal", label: t("settings.sfxPacks.minimal", "Minimal") },
+                { value: "zen", label: t("settings.sfxPacks.zen", "Zen") },
+                { value: "soft", label: t("settings.sfxPacks.soft", "Soft") },
+                { value: "glass", label: t("settings.sfxPacks.glass", "Glass") },
+                { value: "arcade", label: t("settings.sfxPacks.arcade", "Arcade") },
+                { value: "mechanical", label: t("settings.sfxPacks.mechanical", "Mechanical") },
+                { value: "organic", label: t("settings.sfxPacks.organic", "Organic") },
+                { value: "dreamy", label: t("settings.sfxPacks.dreamy", "Dreamy") },
+                { value: "scifi", label: t("settings.sfxPacks.scifi", "Sci-Fi") },
+                { value: "rubber", label: t("settings.sfxPacks.rubber", "Rubber") },
+                { value: "cinematic", label: t("settings.sfxPacks.cinematic", "Cinematic") },
+                { value: "studio", label: t("settings.sfxPacks.studio", "Studio") },
+              ]}
+            />
           </div>
 
           {/* Volumen de Efectos (Fila con slider - estilo idéntico a Escala) */}
@@ -527,7 +529,7 @@ export default function GeneralTab({ general, setGeneral }) {
         <button
           type="button"
           onClick={() => setGeneral({ ...DEFAULT_GENERAL })}
-          className="onicord-btn-danger-soft block w-full text-center py-2.5"
+          className="onicord-btn-danger-soft w-full text-center"
         >
           {t("settings.general.resetGeneral", "Restablecer ajustes generales por defecto")}
         </button>

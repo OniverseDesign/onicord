@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ModalInput } from "../ui/ModalShell";
 import MaterialIcon from "../icons/MaterialIcon";
+import Select from "../ui/Select";
 import { copyTextToClipboard } from "../../lib/clipboard";
 import { getWebDirectInviteUrl } from "../../lib/inviteUtils";
 
@@ -321,14 +322,15 @@ export default function ServerNetworkTab({
               <label className="text-[10px] font-bold text-onicord-muted uppercase block mb-1">
                 {t("serverSettings.network.type", "Tipo de Servidor")}
               </label>
-              <select
+              <Select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value)}
-                className="onicord-select w-full h-9 text-xs"
-              >
-                <option value="stun">{t("serverSettings.network.optionStun", "STUN (Solo Detección de IP)")}</option>
-                <option value="turn">{t("serverSettings.network.optionTurn", "TURN / TURNS (Puente de Voz)")}</option>
-              </select>
+                className="w-full"
+                options={[
+                  { value: "stun", label: t("serverSettings.network.optionStun", "STUN (Solo Detección de IP)") },
+                  { value: "turn", label: t("serverSettings.network.optionTurn", "TURN / TURNS (Puente de Voz)") },
+                ]}
+              />
             </div>
 
             <div className="sm:col-span-2">
