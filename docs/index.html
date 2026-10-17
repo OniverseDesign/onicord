@@ -300,9 +300,9 @@
       background: var(--onicord-bg-surface);
       border: 1px solid var(--border-mauve);
       border-radius: var(--radius-outer);
-      max-width: 480px;
+      max-width: 440px;
       margin: 2rem auto 3.5rem;
-      padding: 2.75rem 2rem 2.25rem;
+      padding: 2rem;
       box-shadow: var(--shadow-elevated), 0 0 35px var(--onicord-mauve-glow);
       text-align: center;
       animation: fadeIn 0.3s ease;
@@ -409,10 +409,7 @@
     }
 
     .launcher-fallback {
-      display: none;
-      border-top: 1px solid var(--border-subtle);
-      padding-top: 1.5rem;
-      margin-top: 0.5rem;
+      display: block;
       animation: fadeIn 0.3s ease;
     }
 
@@ -820,24 +817,8 @@
 
     <!-- Tarjeta Trampolín (Visible solo si se ingresa con un enlace de invitación) -->
     <div id="launcher-card">
-      <div class="radar-container">
-        <div class="radar-pulse"></div>
-        <div class="radar-icon">
-          <img src="./icon.png?v=2" alt="Onicord">
-        </div>
-      </div>
-
-      <h2 class="launcher-title" id="launcher-title" data-i18n="launcher_opening">Abriendo Onicord...</h2>
-      <p class="launcher-desc" id="launcher-desc" data-i18n="launcher_connecting">Conectando de forma segura con la sala
-        P2P.</p>
-
-      <div class="code-badge">
-        <span id="display-code">--------</span>
-        <button class="btn-icon-copy" onclick="copyRoomCode()" data-i18n="launcher_copy">Copiar</button>
-      </div>
-
       <div id="launcher-fallback" class="launcher-fallback">
-        <p style="font-size: 0.875rem; color: var(--onicord-subtext); margin-bottom: 1rem;"
+        <p style="font-size: 0.95rem; font-weight: 500; color: var(--onicord-text); margin-bottom: 1.25rem;"
           data-i18n="launcher_fallback_question">
           ¿No se abrió la aplicación automáticamente?
         </p>
@@ -1016,15 +997,9 @@
     <section class="downloads-section" id="descargas">
       <div class="download-container">
         <div class="download-card unified">
-          <div class="download-badges-row">
-            <span class="download-badge">Windows 10 / 11</span>
-            <span class="download-badge">Linux (x86_64)</span>
-            <span class="download-badge">macOS (Apple Silicon)</span>
-            <span class="download-badge">SHA-256 Verificado</span>
-          </div>
           <h4 data-i18n="dl_card_title">Comienza a comunicarte en Onicord</h4>
           <p class="desc" data-i18n="dl_card_desc">
-            Binarios oficiales para Windows (.exe), Linux (.AppImage, .deb) y macOS (.dmg, .zip) disponibles sin coste ni registros.
+            Binarios oficiales para Windows, Linux y macOS disponibles sin coste ni registros.
           </p>
 
           <div class="download-actions-row" style="margin-bottom: 0;">
@@ -1123,7 +1098,7 @@
         step3_title: "Pega el código de sala",
         step3_desc: "Haz clic en el enlace de invitación recibido o pega el código de 8 caracteres directamente.",
         dl_card_title: "Comienza a comunicarte en Onicord",
-        dl_card_desc: "Binarios oficiales para Windows (.exe), Linux (.AppImage, .deb) y macOS (.dmg, .zip) disponibles sin coste ni registros.",
+        dl_card_desc: "Binarios oficiales para Windows, Linux y macOS disponibles sin coste ni registros.",
         dl_btn_releases: "Descargar en GitHub Releases",
         dl_btn_source: "Ver Código Fuente",
         footer_credit: '<strong>Onicord</strong> — Diseñado y desarrollado de forma independiente por <strong>Oniverse</strong>.',
@@ -1273,11 +1248,7 @@
 
     const launcherCard = document.getElementById('launcher-card');
     const standardHero = document.getElementById('standard-hero');
-    const launcherTitle = document.getElementById('launcher-title');
-    const launcherDesc = document.getElementById('launcher-desc');
-    const displayCode = document.getElementById('display-code');
     const manualOpenBtn = document.getElementById('manual-open-btn');
-    const fallbackBox = document.getElementById('launcher-fallback');
 
     function setLanguage(lang) {
       if (!TRANSLATIONS[lang]) lang = 'es';
@@ -1306,20 +1277,6 @@
       document.title = dict.page_title;
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) metaDesc.setAttribute('content', dict.page_desc);
-
-      if (deepLink) {
-        if (serverName) {
-          launcherTitle.textContent = dict.launcher_invited_to.replace('{name}', serverName);
-        } else {
-          launcherTitle.textContent = dict.launcher_opening;
-        }
-
-        if (inviterName) {
-          launcherDesc.textContent = dict.launcher_invited_by.replace('{inviter}', inviterName);
-        } else {
-          launcherDesc.textContent = dict.launcher_connecting;
-        }
-      }
     }
 
     function initLanguage() {
@@ -1364,21 +1321,14 @@
     updateHeaderOnScroll();
 
     if (deepLink) {
-      // Modo Lanzador Activo
+      // Modo Lanzador Activo (Opciones de apertura manual y copia inmediatamente disponibles)
       launcherCard.style.display = 'block';
       standardHero.style.display = 'none';
 
-      displayCode.innerText = code || addonId || "ENLACE";
       manualOpenBtn.href = deepLink;
 
-      // Intento de apertura automática inmediata
+      // Intento de apertura automática inmediata en background
       window.location.href = deepLink;
-
-      // Mostrar opciones alternativas si el usuario sigue en la página tras 1.5s
-      setTimeout(() => {
-        fallbackBox.style.display = 'block';
-      }, 1500);
-
     } else {
       // Modo Landing Explicativa Estándar
       launcherCard.style.display = 'none';

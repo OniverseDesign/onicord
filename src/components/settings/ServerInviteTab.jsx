@@ -117,14 +117,14 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
               <span>
                 {t(
                   "serverSettings.invites.webLinkTitle",
-                  "Enlace Universal Web (HTTPS)",
+                  "Enlace Universal Web",
                 )}
               </span>
             </h3>
             <p className="onicord-settings-row-desc -mt-2 mb-3">
               {t(
                 "serverSettings.invites.webLinkHint",
-                "Compatible con WhatsApp, Discord y navegadores. Abre Onicord automáticamente o guía a la descarga.",
+                "Abre Onicord automáticamente o guía a la descarga.",
               )}
             </p>
 
@@ -157,20 +157,15 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
                 onClick={handleCopyRawProtocolLink}
                 className="w-full text-center text-xs text-white/50 hover:text-white/80 transition-colors pt-1 cursor-pointer flex items-center justify-center gap-1.5"
               >
-                <MaterialIcon
-                  name={copiedRawLinkState ? "check" : "terminal"}
-                  size={14}
-                  className={copiedRawLinkState ? "text-emerald-400" : ""}
-                />
                 <span>
                   {copiedRawLinkState
                     ? t(
                         "serverSettings.invites.rawCopied",
-                        "¡Protocolo onicord:// copiado!",
+                        "¡Copiado!",
                       )
                     : t(
                         "serverSettings.invites.copyRawProtocol",
-                        "Copiar enlace de protocolo nativo (onicord://)",
+                        "Copiar enlace de protocolo nativo",
                       )}
                 </span>
               </button>

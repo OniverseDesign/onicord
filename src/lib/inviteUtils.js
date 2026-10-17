@@ -7,16 +7,10 @@ export const WEB_INVITE_BASE_URL = "https://oniversedesign.github.io/onicord";
  * @param {string} [inviterName] - Nombre del usuario que invita
  * @returns {string} URL HTTPS completa
  */
-export function getWebInviteUrl(roomCode, serverName = "", inviterName = "") {
+export function getWebInviteUrl(roomCode) {
   if (!roomCode) return "";
   const params = new URLSearchParams();
   params.set("code", roomCode.toUpperCase());
-  if (serverName && serverName !== `Servidor ${roomCode}`) {
-    params.set("name", serverName);
-  }
-  if (inviterName) {
-    params.set("by", inviterName);
-  }
   return `${WEB_INVITE_BASE_URL}/?${params.toString()}`;
 }
 
@@ -25,18 +19,14 @@ export function getWebInviteUrl(roomCode, serverName = "", inviterName = "") {
  * @param {string} ip - Dirección IP o Hostname
  * @param {number|string} port - Puerto TCP
  * @param {string} roomCode - Código de la sala
- * @param {string} [serverName] - Nombre del servidor
  * @returns {string} URL HTTPS completa
  */
-export function getWebDirectInviteUrl(ip, port, roomCode, serverName = "") {
+export function getWebDirectInviteUrl(ip, port, roomCode) {
   if (!ip || !port || !roomCode) return "";
   const params = new URLSearchParams();
   params.set("ip", String(ip).trim());
   params.set("port", String(port));
   params.set("code", roomCode.toUpperCase());
-  if (serverName && serverName !== `Servidor ${roomCode}`) {
-    params.set("name", serverName);
-  }
   return `${WEB_INVITE_BASE_URL}/?${params.toString()}`;
 }
 
