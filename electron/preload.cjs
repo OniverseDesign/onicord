@@ -46,6 +46,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("game-activity-changed", handler);
   },
   getCurrentGame: () => ipcRenderer.invoke("game:get-current"),
+  openExecutableDialog: () => ipcRenderer.invoke("dialog:openExecutable"),
+  extractFileIcon: (filePath) => ipcRenderer.invoke("system:extractFileIcon", filePath),
 
   // Voice Overlay
   updateOverlayMembers: (members) => ipcRenderer.send("overlay:update-members", members),

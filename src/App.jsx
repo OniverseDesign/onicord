@@ -11,6 +11,7 @@ import { ACCENT_PALETTE, applyDynamicTheme } from "./lib/colors";
 import { VoiceProvider } from "./context/VoiceContext";
 import { MusicProvider } from "./context/MusicContext";
 import { useAppUpdater } from "./hooks/useAppUpdater";
+import { initGlobalPlaytimeTracker } from "./lib/playtimeTracker";
 import IconOnicord from "./components/icons/Onicord.svg?react";
 
 // Hook renderer console logs and redirect to OniDiag backend
@@ -135,6 +136,11 @@ function TitleBar() {
 
 export default function App() {
   useAppUpdater();
+
+  useEffect(() => {
+    const cleanup = initGlobalPlaytimeTracker();
+    return () => cleanup?.();
+  }, []);
 
   const [profile, setProfile] = useState(null);
   const [servers, setServers] = useState([]);

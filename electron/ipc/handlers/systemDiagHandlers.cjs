@@ -1,4 +1,4 @@
-const { app, ipcMain, shell, Notification, BrowserWindow, nativeImage } = require("electron");
+const { app, ipcMain, shell, Notification, BrowserWindow, nativeImage, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -676,10 +676,179 @@ function registerSystemDiagHandlers() {
     return weatherService.loadForecast(lat, lon);
   });
 
-  // === Game Presence ===
+  // === Game & App Presence ===
   ipcMain.handle("game:get-current", () => {
     const { getCurrentState } = require("../../gameScanner.cjs");
     return getCurrentState();
+  });
+
+  async function autoClassifyProgram(filePath, targetPath) {
+    const parsedTarget = path.parse(targetPath);
+    const parsedFile = path.parse(filePath);
+    const exeName = parsedTarget.base;
+    const cleanBaseName = parsedFile.ext.toLowerCase() === ".lnk" ? parsedFile.name : parsedTarget.name;
+
+    // 1. Catálogo base oficial games.json
+    try {
+      const gamesDB = require("../../games.json");
+      const inDb = gamesDB.find((g) => g.exe && g.exe.toLowerCase() === exeName.toLowerCase());
+      if (inDb) {
+        return {
+          title: inDb.title || cleanBaseName,
+          type: inDb.type || "game",
+          cover: inDb.cover || null,
+        };
+      }
+    } catch {}
+
+    // Formatear nombre preliminar limpio
+    let candidateTitle = cleanBaseName
+      .replace(/[_-]+/g, " ")
+      .replace(/([a-z])([A-Z0-9])/g, "$1 $2")
+      .trim();
+    if (candidateTitle) {
+      candidateTitle = candidateTitle.charAt(0).toUpperCase() + candidateTitle.slice(1);
+    } else {
+      candidateTitle = cleanBaseName;
+    }
+
+    // 2. Heurísticas de directorio y nombre
+    const lowerPath = targetPath.toLowerCase();
+    const lowerExe = exeName.toLowerCase();
+
+    const gameIndicators = [
+      "steamapps", "steam", "epic games", "riot games", "ubisoft", "gog galaxy",
+      "gog", "juegos", "games", "game", "ea desktop", "origin games", "battlenet",
+      "unity", "unreal", "godot"
+    ];
+    const appIndicators = [
+      "adobe", "blender", "studio", "code", "jetbrains", "intellij", "pycharm",
+      "webstorm", "rider", "visual studio", "office", "microsoft", "discord",
+      "slack", "browser", "chrome", "firefox", "brave", "edge", "opera",
+      "notepad", "sublime", "git", "terminal", "obs-studio", "fl studio", "ableton"
+    ];
+
+    let detectedType = null;
+    if (gameIndicators.some((kw) => lowerPath.includes(kw) || lowerExe.includes(kw))) {
+      detectedType = "game";
+    } else if (appIndicators.some((kw) => lowerPath.includes(kw) || lowerExe.includes(kw))) {
+      detectedType = "app";
+    }
+
+    // 3. Consulta rápida y ligera a Wikipedia API
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1800);
+      const searchUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(candidateTitle)}`;
+      const res = await fetch(searchUrl, {
+        signal: controller.signal,
+        headers: { "User-Agent": "Onicord-Presence/0.1.4 (https://github.com/OniverseDesign)" },
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = `${data.title || ""} ${data.description || ""} ${data.extract || ""}`.toLowerCase();
+
+        const isWikiGame = /\b(video game|videojuego|roguelike|rpg|shooter|gameplay|arcade|action-adventure|platformer)\b/i.test(text);
+        const isWikiApp = /\b(software|application|suite|digital audio|editor|compiler|3d computer|utility|development)\b/i.test(text);
+
+        if (isWikiGame) {
+          detectedType = "game";
+          if (data.title && !data.title.includes("(")) {
+            candidateTitle = data.title;
+          }
+        } else if (isWikiApp) {
+          detectedType = "app";
+          if (data.title && !data.title.includes("(")) {
+            candidateTitle = data.title;
+          }
+        }
+      }
+    } catch {}
+
+    if (!detectedType) {
+      detectedType = lowerPath.includes("program files") && !lowerPath.includes("game") ? "app" : "game";
+    }
+
+    return {
+      title: candidateTitle,
+      type: detectedType,
+      cover: null,
+    };
+  }
+
+  ipcMain.handle("dialog:openExecutable", async () => {
+    const win = BrowserWindow.getFocusedWindow() || global.mainWindow;
+    const isWindows = process.platform === "win32";
+    const filters = isWindows
+      ? [
+          { name: "Juegos y Aplicaciones (*.exe, *.lnk)", extensions: ["exe", "lnk"] },
+          { name: "Ejecutables (*.exe)", extensions: ["exe"] },
+          { name: "Accesos directos (*.lnk)", extensions: ["lnk"] },
+          { name: "Todos los archivos", extensions: ["*"] },
+        ]
+      : [{ name: "Todos los archivos", extensions: ["*"] }];
+
+    const result = await dialog.showOpenDialog(win, {
+      title: "Seleccionar Juego o Aplicación",
+      properties: ["openFile"],
+      filters,
+    });
+
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+      return null;
+    }
+
+    const filePath = result.filePaths[0];
+    let targetPath = filePath;
+
+    if (isWindows && filePath.toLowerCase().endsWith(".lnk")) {
+      try {
+        const link = shell.readShortcutLink(filePath);
+        if (link && link.target && fs.existsSync(link.target)) {
+          targetPath = link.target;
+        }
+      } catch (e) {
+        console.warn("[dialog:openExecutable] Error leyendo shortcut:", e.message);
+      }
+    }
+
+    const parsedTarget = path.parse(targetPath);
+    let iconDataUrl = null;
+    try {
+      const iconTarget = fs.existsSync(targetPath) ? targetPath : filePath;
+      const nativeImg = await app.getFileIcon(iconTarget, { size: "large" });
+      if (nativeImg && !nativeImg.isEmpty()) {
+        iconDataUrl = nativeImg.toDataURL();
+      }
+    } catch (err) {
+      console.warn("[dialog:openExecutable] No se pudo extraer icono:", err.message);
+    }
+
+    const classification = await autoClassifyProgram(filePath, targetPath);
+
+    return {
+      filePath: targetPath,
+      fileName: parsedTarget.base,
+      title: classification.title,
+      type: classification.type,
+      icon: classification.cover || iconDataUrl,
+    };
+  });
+
+  ipcMain.handle("system:extractFileIcon", async (_event, filePath) => {
+    if (!filePath || typeof filePath !== "string") return null;
+    try {
+      const nativeImg = await app.getFileIcon(filePath, { size: "large" });
+      if (nativeImg && !nativeImg.isEmpty()) {
+        return nativeImg.toDataURL();
+      }
+      return null;
+    } catch (err) {
+      console.warn("[system:extractFileIcon] Error extrayendo icono:", err.message);
+      return null;
+    }
   });
 }
 

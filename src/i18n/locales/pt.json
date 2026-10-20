@@ -673,6 +673,8 @@
       "profile": "Perfil",
       "voiceVideo": "Voz e Vídeo",
       "keybindings": "Atalhos de Teclado",
+      "overlay": "Overlay",
+      "games": "Atividade de Jogos",
       "widgets": "Widgets",
       "general": "Geral",
       "appearance": "Aparência",
@@ -1234,5 +1236,28 @@
     "userMentionedYouFallback": "Você foi mencionado no chat do Onicord.",
     "updateAvailableTitle": "Atualização disponível",
     "updateAvailableMsg": "Uma nova versão do Onicord está disponível (v{{version}})."
+  },
+  "gamesTab": {
+    "masterTitle": "Atividade e Presença de Jogos",
+    "showRichPresence": "Mostrar o que você está jogando ou qual aplicativo está usando",
+    "showRichPresenceDesc": "Permite que seus amigos em salas e canais de voz vejam sua atividade em tempo real. Protegido por uma Allowlist estrita.",
+    "currentGame": "Jogo atual",
+    "noActiveGame": "Nenhum jogo ou aplicativo detectado",
+    "typeGame": "Videogame",
+    "typeApp": "Software / Aplicativo",
+    "typeMusic": "Música",
+    "usingNow": "Usando agora",
+    "customGamesTitle": "Seus Jogos e Softwares Registrados",
+    "customGamesDescShort": "Selecione qualquer executável ou atalho (.lnk/.exe) e o Onicord configurará automaticamente seu nome e ícone.",
+    "addProgramBtn": "Adicionar jogo ou software",
+    "alreadyRegistered": "\"{{title}}\" já está na sua lista de atividades.",
+    "addedSuccess": "\"{{title}}\" adicionado automaticamente como {{type}}.",
+    "emptyHintSimple": "Clique em 'Adicionar jogo ou software' acima para adicionar qualquer jogo ou programa da sua área de trabalho ou disco.",
+    "clickToRename": "Clique para editar o nome",
+    "clickToToggleType": "Clique para alternar entre Jogo e Software",
+    "badgeGame": "Jogo",
+    "badgeApp": "App",
+    "toggleTooltip": "Ativar ou pausar detecção",
+    "errorBrowse": "Não foi possível ler o arquivo selecionado."
   }
 }

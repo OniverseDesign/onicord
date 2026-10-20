@@ -673,6 +673,8 @@
       "profile": "Perfil",
       "voiceVideo": "Voz y Video",
       "keybindings": "Atajos de Teclado",
+      "overlay": "Overlay",
+      "games": "Actividad de Juegos",
       "widgets": "Widgets",
       "general": "General",
       "appearance": "Apariencia",
@@ -1234,5 +1236,28 @@
     "userMentionedYouFallback": "Te han mencionado en el chat de Onicord.",
     "updateAvailableTitle": "Actualización disponible",
     "updateAvailableMsg": "Hay una nueva versión de Onicord disponible (v{{version}})."
+  },
+  "gamesTab": {
+    "masterTitle": "Actividad y Presencia de Juegos",
+    "showRichPresence": "Mostrar a qué estás jugando o qué aplicación usas",
+    "showRichPresenceDesc": "Permite que tus amigos en salas y canales de voz vean tu actividad en tiempo real. Protegido mediante lista blanca estricta (Allowlist).",
+    "currentGame": "Juego actual",
+    "noActiveGame": "Ningún juego o aplicación detectada",
+    "typeGame": "Videojuego",
+    "typeApp": "Software / Aplicación",
+    "typeMusic": "Música",
+    "usingNow": "Usando ahora",
+    "customGamesTitle": "Tus Juegos y Software Registrados",
+    "customGamesDescShort": "Selecciona cualquier ejecutable o acceso directo (.lnk/.exe) y Onicord configurará automáticamente su nombre e icono.",
+    "addProgramBtn": "Agregar juego o software",
+    "alreadyRegistered": "\"{{title}}\" ya está en tu lista de actividad.",
+    "addedSuccess": "\"{{title}}\" añadido automáticamente como {{type}}.",
+    "emptyHintSimple": "Haz clic en 'Agregar juego o software' arriba para añadir cualquier juego o programa desde tu escritorio o disco.",
+    "clickToRename": "Clic para editar nombre",
+    "clickToToggleType": "Clic para alternar entre Juego y Software",
+    "badgeGame": "Juego",
+    "badgeApp": "App",
+    "toggleTooltip": "Activar o pausar detección",
+    "errorBrowse": "No se pudo leer el archivo seleccionado."
   }
 }

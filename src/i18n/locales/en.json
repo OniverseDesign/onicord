@@ -673,6 +673,8 @@
       "profile": "Profile",
       "voiceVideo": "Voice & Video",
       "keybindings": "Keybindings",
+      "overlay": "Overlay",
+      "games": "Game Activity",
       "widgets": "Widgets",
       "general": "General",
       "appearance": "Appearance",
@@ -1234,5 +1236,28 @@
     "userMentionedYouFallback": "You were mentioned in the Onicord chat.",
     "updateAvailableTitle": "Update Available",
     "updateAvailableMsg": "A newer version of Onicord is available (v{{version}})."
+  },
+  "gamesTab": {
+    "masterTitle": "Game Activity & Presence",
+    "showRichPresence": "Display what game or app you are using",
+    "showRichPresenceDesc": "Allows friends in rooms and voice channels to see your real-time activity. Protected by a strict Allowlist.",
+    "currentGame": "Current Game",
+    "noActiveGame": "No game or application detected",
+    "typeGame": "Video Game",
+    "typeApp": "Software / App",
+    "typeMusic": "Music",
+    "usingNow": "Using now",
+    "customGamesTitle": "Registered Games & Software",
+    "customGamesDescShort": "Select any executable or shortcut (.lnk/.exe) and Onicord will automatically configure its name and icon.",
+    "addProgramBtn": "Add Game or Software",
+    "alreadyRegistered": "\"{{title}}\" is already in your activity list.",
+    "addedSuccess": "\"{{title}}\" automatically added as {{type}}.",
+    "emptyHintSimple": "Click 'Add Game or Software' above to add any game or program from your desktop or disk.",
+    "clickToRename": "Click to edit name",
+    "clickToToggleType": "Click to toggle between Game and Software",
+    "badgeGame": "Game",
+    "badgeApp": "App",
+    "toggleTooltip": "Enable or pause detection",
+    "errorBrowse": "Could not read the selected file."
   }
 }

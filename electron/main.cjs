@@ -49,13 +49,14 @@ try {
   }
 } catch (err) {}
 
-const { startGameScanner, stopGameScanner, setBackgroundMode } = require("./gameScanner.cjs");
+const { startGameScanner, stopGameScanner, setBackgroundMode, setCustomGames } = require("./gameScanner.cjs");
 const profileService = require("./services/profileService.cjs");
 const ytdlpService = require("./services/ytdlpService.cjs");
 const updateService = require("./services/updateService.cjs");
 const mcpBridgeService = require("./services/mcpBridgeService.cjs");
 const overlayService = require("./services/overlayService.cjs");
 const globalKeybindService = require("./services/globalKeybindService.cjs");
+const rpcServerService = require("./services/rpcServerService.cjs");
 const { registerIPCHandlers } = require("./ipc/ipcRouter.cjs");
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
@@ -589,17 +590,22 @@ app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
-  global.updateScannerState = (showRP) => {
+  global.updateScannerState = (showRP, customGames) => {
+    if (customGames) {
+      setCustomGames(customGames);
+    }
     if (showRP) {
+      rpcServerService.startRpcServer();
       startGameScanner(global.mainWindow, (newState) => {
         if (global.roomManager) {
           global.roomManager.setLocalActivity(newState);
         }
-        // Overlay: show/hide based on game activity
+        // Overlay: solo se activa para videojuegos, no para software/apps de trabajo
         const isGame = newState && newState.name && (newState.type === "game" || newState.type === "client");
         overlayService.setGameActive(Boolean(isGame));
       });
     } else {
+      rpcServerService.stopRpcServer();
       stopGameScanner();
       const emptyState = {
         name: null,
@@ -628,16 +634,18 @@ app.whenReady().then(async () => {
   const showRP = activeProfile
     ? (activeProfile.showRichPresence ?? true)
     : true;
-  global.updateScannerState(showRP);
+  global.updateScannerState(showRP, activeProfile?.customGames);
 });
 
 app.on("will-quit", () => {
   globalKeybindService.stop();
+  rpcServerService.stopRpcServer();
 });
 
 app.on("before-quit", () => {
   global.isQuitting = true;
   globalKeybindService.stop();
+  rpcServerService.stopRpcServer();
   overlayService.destroyOverlay();
 });
 

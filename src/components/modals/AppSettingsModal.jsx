@@ -24,6 +24,7 @@ import KeybindingsTab from "../settings/KeybindingsTab";
 import { normalizeGeneralSettings, DEFAULT_GENERAL } from "../../lib/generalSettings";
 import CloudBackupTab from "../settings/CloudBackupTab";
 import OverlayTab from "../settings/OverlayTab";
+import GamesActivityTab from "../settings/GamesActivityTab";
 import { soundEngine } from "../../lib/soundEngine";
 
 export default function AppSettingsModal({
@@ -47,6 +48,7 @@ export default function AppSettingsModal({
       { id: "audio", label: t("settings.tabs.voiceVideo"), icon: "mic" },
       { id: "keybindings", label: t("settings.tabs.keybindings", "Atajos de Teclado"), icon: "keyboard" },
       { id: "overlay", label: t("settings.tabs.overlay", "Overlay"), icon: "layers" },
+      { id: "games", label: t("settings.tabs.games", "Actividad de Juegos"), icon: "sports_esports" },
       { id: "appearance", label: t("settings.tabs.appearance"), icon: "palette" },
       { id: "widgets", label: t("settings.tabs.widgets", "Dashboard"), icon: "dashboard" },
       { id: "stickers", label: t("settings.tabs.stickers", "Stickers"), icon: "sticky_note_2" },
@@ -93,6 +95,9 @@ export default function AppSettingsModal({
     profile?.showRichPresence ?? true,
   );
   const [customStatus, setCustomStatus] = useState(profile?.customStatus ?? "");
+  const [customGames, setCustomGames] = useState(() =>
+    Array.isArray(profile?.customGames) ? profile.customGames : []
+  );
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -322,6 +327,21 @@ export default function AppSettingsModal({
     if (overlay.avatarOnly !== origOverlay.avatarOnly) return true;
     if (overlay.showNameOnlyWhenSpeaking !== origOverlay.showNameOnlyWhenSpeaking) return true;
 
+    const origCustomGames = Array.isArray(profile?.customGames) ? profile.customGames : [];
+    if (customGames.length !== origCustomGames.length) return true;
+    for (let i = 0; i < customGames.length; i++) {
+      const cg = customGames[i];
+      const orig = origCustomGames.find((o) => (o.id && o.id === cg.id) || o.exe === cg.exe);
+      if (!orig) return true;
+      if (
+        cg.title !== orig.title ||
+        cg.enabled !== orig.enabled ||
+        cg.type !== orig.type ||
+        cg.cover !== orig.cover
+      )
+        return true;
+    }
+
     return false;
   })();
 
@@ -357,6 +377,7 @@ export default function AppSettingsModal({
         customStatus: customStatus.trim(),
         keybindings,
         overlay,
+        customGames,
       });
       if (window.electronAPI?.setOverlaySettings) {
         await window.electronAPI.setOverlaySettings(overlay);
@@ -463,6 +484,15 @@ export default function AppSettingsModal({
 
       {section === "overlay" && (
         <OverlayTab overlay={overlay} setOverlay={setOverlay} />
+      )}
+
+      {section === "games" && (
+        <GamesActivityTab
+          showRichPresence={showRichPresence}
+          setShowRichPresence={setShowRichPresence}
+          customGames={customGames}
+          setCustomGames={setCustomGames}
+        />
       )}
 
       {section === "appearance" && <ThemeManagerTab profile={profile} />}

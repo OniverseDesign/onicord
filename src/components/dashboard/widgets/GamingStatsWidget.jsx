@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { IconJoystick } from "../../icons/StreamIcons";
+import MaterialIcon from "../../icons/MaterialIcon";
 import {
   getPlaytimeData,
-  addPlaytime,
   formatPlaytime,
   formatRelativeDate,
 } from "../../../lib/playtimeTracker";
@@ -59,19 +59,20 @@ function GameCardItem({ game, isActive, activeStartTime }) {
     };
   }, [game.name]);
 
+  const isApp = game.type === "app";
   const displayTime = isActive
     ? elapsedTime
     : formatPlaytime(game.totalSeconds);
 
   const detailsText = isActive
-    ? t("userPanel.playing", "Jugando ahora")
-    : `${t("widgets.gaming.totalTime", "Tiempo acumulado")}: ${formatPlaytime(game.totalSeconds)} • ${formatRelativeDate(game.lastPlayed)}`;
+    ? (isApp ? t("gamesTab.usingNow", "Usando ahora") : t("userPanel.playing", "Jugando ahora"))
+    : `${t("widgets.gaming.totalTime", "Tiempo acumulado")}: ${formatPlaytime(game.totalSeconds)} • ${formatRelativeDate(game.lastPlayed, t)}`;
 
   return (
     <div className="shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island py-3 w-full transition-all duration-200">
       <div className="flex items-center gap-4 px-4">
         {/* Carátula / Portada */}
-        <div className="w-14 h-14 shrink-0 rounded-[10px] overflow-hidden flex items-center justify-center">
+        <div className="w-14 h-14 shrink-0 rounded-[10px] overflow-hidden flex items-center justify-center bg-onicord-surface/30">
           {game.cover ? (
             <img
               src={game.cover}
@@ -124,7 +125,11 @@ function GameCardItem({ game, isActive, activeStartTime }) {
               isActive ? "text-onicord-success" : "text-onicord-muted"
             }`}
           >
-            <IconJoystick size="lg" />
+            {isApp ? (
+              <MaterialIcon name="apps" size={16} />
+            ) : (
+              <IconJoystick size="lg" />
+            )}
             <span className="text-[12px] font-mono font-bold tracking-tight">
               {displayTime}
             </span>
@@ -144,52 +149,33 @@ export default function GamingStatsWidget({ activeGame = null }) {
   const { t } = useTranslation();
   const [playtimeMap, setPlaytimeMap] = useState(() => getPlaytimeData());
 
-  const activeGameRef = useRef(activeGame);
-  activeGameRef.current = activeGame;
-
-  // Track playtime every 10 seconds while a game is active
+  // Escuchar actualizaciones globales de tiempo (generadas por initGlobalPlaytimeTracker)
   useEffect(() => {
-    if (!activeGame || activeGame.type === "music" || !activeGame.name) {
-      return;
-    }
-
-    const isGame = activeGame.type === "game" || activeGame.type === "client";
-    if (!isGame) return;
-
-    const gameName = activeGame.name;
-    const cover = activeGame.cover || null;
-
-    addPlaytime(gameName, 1, cover);
-    setPlaytimeMap(getPlaytimeData());
-
-    const interval = setInterval(() => {
-      if (activeGameRef.current?.name === gameName) {
-        addPlaytime(gameName, 10, activeGameRef.current?.cover || cover);
-        setPlaytimeMap(getPlaytimeData());
+    const handleUpdate = (e) => {
+      if (e.detail) {
+        setPlaytimeMap(e.detail);
       }
-    }, 10000);
+    };
+    window.addEventListener("onicord-playtime-updated", handleUpdate);
+    return () => window.removeEventListener("onicord-playtime-updated", handleUpdate);
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [activeGame?.name, activeGame?.type]);
-
-  // Combine stored games with active game state
+  // Combinar juegos almacenados con el juego activo actual
   const gamesList = useMemo(() => {
     const map = { ...playtimeMap };
-    if (
-      activeGame?.name &&
-      (activeGame.type === "game" || activeGame.type === "client")
-    ) {
+    if (activeGame?.name && activeGame.type !== "music") {
       if (!map[activeGame.name]) {
         map[activeGame.name] = {
           name: activeGame.name,
           cover: activeGame.cover || null,
+          type: activeGame.type || "game",
           totalSeconds: 0,
           lastPlayed: Date.now(),
         };
       }
     }
 
-    // Sort by active first, then most played
+    // Ordenar: primero el activo en vivo, luego por mayor tiempo jugado
     return Object.values(map).sort((a, b) => {
       const aActive = activeGame?.name === a.name;
       const bActive = activeGame?.name === b.name;

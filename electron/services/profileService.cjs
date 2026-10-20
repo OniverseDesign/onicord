@@ -128,6 +128,10 @@ class ProfileService {
         showNameOnlyWhenSpeaking: profile.overlay?.showNameOnlyWhenSpeaking ?? existing?.overlay?.showNameOnlyWhenSpeaking ?? false,
       },
 
+      customGames: Array.isArray(profile.customGames)
+        ? profile.customGames
+        : (existing?.customGames || []),
+
       updatedAt: Date.now(),
     };
 
