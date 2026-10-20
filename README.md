@@ -30,6 +30,9 @@
     <a href="https://github.com/OniverseDesign/onicord/releases/latest">
       <img src="https://img.shields.io/badge/Windows-Setup%20&%20Portable%20(.exe)-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" />
     </a>
+    <a href="https://github.com/microsoft/winget-pkgs/pull/456403">
+      <img src="https://img.shields.io/badge/winget-install%20onicord-0078D6?style=for-the-badge&logo=windows-terminal&logoColor=white" alt="Install with WinGet" />
+    </a>
     <a href="https://github.com/OniverseDesign/onicord/releases/latest">
       <img src="https://img.shields.io/badge/Linux-AppImage%20&%20.deb-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download for Linux" />
     </a>
@@ -204,7 +207,21 @@ Official release assets are available on the [Latest Release Page](https://githu
 | **Onicord Addons** | Official catalog, SDK documentation, and open-source `.onipkg` plugins. | [OniverseDesign/onicord-addons](https://github.com/OniverseDesign/onicord-addons) |
 | **Onicord Stickers** | Official and community sticker packs repository (`.onipkg`). | [OniverseDesign/onicord-stickers](https://github.com/OniverseDesign/onicord-stickers) |
 
-## Installation and Development
+## Installation
+
+### Quick Install (Windows via WinGet)
+
+Install or update Onicord with a single command via the official Windows Package Manager:
+
+```powershell
+winget install onicord
+# or explicitly by ID:
+winget install Oniverse.Onicord
+```
+
+---
+
+## Development Setup
 
 ### Prerequisites
 
