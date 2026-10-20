@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Mapa del sitio oficial para indexación en Google y Bing
+Sitemap: https://oniversedesign.github.io/onicord/sitemap.xml

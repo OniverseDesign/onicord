@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://oniversedesign.github.io/onicord/</loc>
+    <lastmod>2026-10-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://raw.githubusercontent.com/OniverseDesign/onicord/main/docs/mockup.png</image:loc>
+      <image:title>Onicord Desktop Application Showcase</image:title>
+      <image:caption>Interfaz moderna, privada y descentralizada de Onicord</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://raw.githubusercontent.com/OniverseDesign/onicord/main/docs/logo.svg</image:loc>
+      <image:title>Onicord Logo</image:title>
+      <image:caption>Logo oficial de Onicord</image:caption>
+    </image:image>
+  </url>
+</urlset>

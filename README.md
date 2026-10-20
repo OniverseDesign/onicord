@@ -2,9 +2,10 @@
 
   <img src="docs/logo.svg" alt="Onicord Logo" width="320" />
 
+  <h1>Onicord — Sovereign P2P Voice, Video &amp; Chat Platform</h1>
   <p>
-    <strong>Serverless communication. Private, direct, and high-fidelity.</strong><br/>
-    <em>Decentralized, End-to-End Encrypted, P2P Voice, Video, Chat, and Media Platform.</em>
+    <strong>The Open-Source, Serverless Alternative to Discord with Encrypted Mesh Networking.</strong><br/>
+    <em>Decentralized, End-to-End Encrypted, P2P Voice, Video, Chat, Screen Sharing &amp; Media Suite.</em>
   </p>
 
   <p>
