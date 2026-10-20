@@ -72,3 +72,18 @@ jobs:
             cat SHA256SUMS.txt
             gh release upload "$TAG" SHA256SUMS.txt --clobber --repo "${{ github.repository }}"
           fi
+
+  winget:
+    name: Publish to Windows Package Manager (WinGet)
+    needs: [build, checksums]
+    if: success()
+    runs-on: windows-latest
+    steps:
+      - name: Submit package to WinGet Community Repository
+        uses: vedantmgoyal2009/winget-releaser@v2
+        if: env.WINGET_TOKEN != ''
+        env:
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        with:
+          identifier: Oniverse.Onicord
+          token: ${{ secrets.WINGET_TOKEN }}
