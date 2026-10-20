@@ -406,13 +406,20 @@ export default function UserProfilePopout({
               <RichPresenceCard
                 gameName={member.activity.name}
                 cover={member.activity.cover}
+                smallCover={member.activity.smallCover}
                 startTime={member.activity.startTime}
+                type={member.activity.type || "game"}
+                state={member.activity.state}
+                party={member.activity.party}
                 details={
-                  member.activity.type === "music"
-                    ? t("userPanel.listeningTo")
-                    : member.activity.type === "client"
-                      ? t("userPopout.inMenus")
-                      : t("userPanel.playing")
+                  member.activity.details ||
+                  (member.activity.type === "music"
+                    ? t("userPanel.listeningTo", "Escuchando a")
+                    : member.activity.type === "app"
+                      ? t("gamesTab.usingNow", "Usando ahora")
+                      : member.activity.type === "client"
+                        ? t("userPopout.inMenus", "En los menús")
+                        : t("userPanel.playing", "Jugando a"))
                 }
               />
             </div>

@@ -686,10 +686,28 @@ export default function RoomView({
       );
     });
 
+    const unsubActivity = window.electronAPI?.on?.(
+      "peer:activity",
+      ({ peerId, userId, activity }) => {
+        setPeers((prev) =>
+          prev.map((p) => {
+            const isMatch =
+              (userId && (p.id === userId || p.userId === userId)) ||
+              (peerId && (p.id === peerId || p.peerId === peerId));
+            if (isMatch) {
+              return { ...p, activity };
+            }
+            return p;
+          })
+        );
+      }
+    );
+
     return () => {
       unsubPeerUpdated?.();
       unsubJoin?.();
       unsubLeave?.();
+      unsubActivity?.();
     };
   }, [server.roomCode]);
 
@@ -1115,13 +1133,20 @@ export default function RoomView({
           <RichPresenceCard
             gameName={activeGame.name}
             cover={activeGame.cover}
+            smallCover={activeGame.smallCover}
             startTime={activeGame.startTime}
+            type={activeGame.type || "game"}
+            state={activeGame.state}
+            party={activeGame.party}
             details={
-              activeGame.type === "music"
-                ? t("userPanel.listeningTo")
-                : activeGame.type === "client"
-                  ? t("userPopout.inMenus")
-                  : t("userPanel.playing")
+              activeGame.details ||
+              (activeGame.type === "music"
+                ? t("userPanel.listeningTo", "Escuchando a")
+                : activeGame.type === "app"
+                  ? t("gamesTab.usingNow", "Usando ahora")
+                  : activeGame.type === "client"
+                    ? t("userPopout.inMenus", "En los menús")
+                    : t("userPanel.playing", "Jugando a"))
             }
           />
         )}

@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { IconJoystick } from "../icons/StreamIcons";
+import MaterialIcon from "../icons/MaterialIcon";
 
 export default function RichPresenceCard({
   gameName,
   details,
   startTime,
   cover,
+  smallCover = null,
+  type = "game",
+  state = null,
+  party = null,
 }) {
   const { t } = useTranslation();
   const [elapsedTime, setElapsedTime] = useState("00:00");
@@ -61,36 +66,58 @@ export default function RichPresenceCard({
 
   if (!gameName) return null;
 
+  const isApp = type === "app";
+  const isMusic = type === "music";
+
   return (
     <div className="shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island py-3">
-      <div className="flex items-center gap-5 px-4">
-        <div className="w-14 h-14 shrink-0 rounded-[10px] overflow-hidden flex items-center justify-center bg-onicord-surface/40">
-          {cover ? (
-            <img
-              src={cover}
-              alt={gameName}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-xl font-bold text-onicord-muted">
-              {gameName.slice(0, 1).toUpperCase()}
-            </span>
+      <div className="flex items-center gap-4 px-4">
+        {/* Carátula / Portada / Icono */}
+        <div className="relative w-14 h-14 shrink-0">
+          <div className="w-full h-full rounded-[10px] overflow-hidden flex items-center justify-center bg-onicord-surface/40">
+            {cover ? (
+              <img
+                src={cover}
+                alt={gameName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-full h-full">
+                <MaterialIcon
+                  name={isApp ? "apps" : isMusic ? "music_note" : "sports_esports"}
+                  size={26}
+                  className="text-onicord-muted"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Sub-icono de emulador o cliente */}
+          {smallCover && (
+            <div
+              className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full overflow-hidden border-2 border-onicord-base bg-onicord-surface shadow-sm flex items-center justify-center"
+              title={details || undefined}
+            >
+              <img
+                src={smallCover}
+                alt="Sub-icon"
+                className="w-full h-full object-cover"
+              />
+            </div>
           )}
         </div>
 
         <div className="flex flex-col min-w-0 flex-1">
-          {}
+          {/* Título animado con marquee */}
           <div
             ref={containerRef}
             className="relative w-full overflow-hidden whitespace-nowrap group"
           >
-            {}
             <div
               className={`flex min-w-full w-max ${
                 isOverflowing ? "animate-marquee group-hover:animate-none" : ""
               }`}
             >
-              {}
               <p
                 ref={textRef}
                 className={`text-[14px] font-bold text-onicord-text leading-tight shrink-0 ${
@@ -100,7 +127,6 @@ export default function RichPresenceCard({
                 {gameName}
               </p>
 
-              {}
               {isOverflowing && (
                 <p
                   className="text-[14px] font-bold text-onicord-text leading-tight shrink-0 pr-6 group-hover:hidden"
@@ -112,17 +138,44 @@ export default function RichPresenceCard({
             </div>
           </div>
 
+          {/* Detalles de la actividad */}
           {details && (
             <p className="text-[12px] text-onicord-subtext truncate leading-snug mt-0.5">
               {details}
             </p>
           )}
 
-          <div className="flex items-center text-onicord-success gap-1.5 mt-1">
-            <IconJoystick size="lg" />
-            <span className="text-[12px] font-mono font-bold tracking-tight">
-              {elapsedTime}
-            </span>
+          {/* Estado dinámico de partida (Discord RPC) */}
+          {state && (
+            <p className="text-[11px] text-onicord-muted truncate leading-snug">
+              {state}
+            </p>
+          )}
+
+          {/* Timer y Badges */}
+          <div className="flex items-center justify-between text-onicord-success gap-1.5 mt-1">
+            <div className="flex items-center gap-1.5">
+              {isApp ? (
+                <MaterialIcon name="apps" size={16} />
+              ) : isMusic ? (
+                <MaterialIcon name="headphones" size={16} />
+              ) : (
+                <IconJoystick size="lg" />
+              )}
+              <span className="text-[12px] font-mono font-bold tracking-tight">
+                {elapsedTime}
+              </span>
+            </div>
+
+            {/* Badge de Grupo / Lobby si viene de RPC */}
+            {party && party.size && (
+              <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-white/5 text-onicord-subtext flex items-center gap-1">
+                <MaterialIcon name="groups" size={12} />
+                <span>
+                  {party.size}/{party.max || party.size}
+                </span>
+              </span>
+            )}
           </div>
         </div>
       </div>

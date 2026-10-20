@@ -1,5 +1,68 @@
 [
   {
+    "exe": "rpcs3.exe",
+    "title": "RPCS3",
+    "cover": "https://cdn.discordapp.com/app-icons/424004941485572097/98c33c7dc727300263a385abf9d8a0cf.png",
+    "priority": 80,
+    "type": "game"
+  },
+  {
+    "exe": "pcsx2-qtx64.exe",
+    "title": "PCSX2",
+    "cover": "https://cdn2.steamgriddb.com/icon/adcf9fc6f424c520dd472b52dbb05fd4.ico",
+    "priority": 80,
+    "type": "game"
+  },
+  {
+    "exe": "pcsx2.exe",
+    "title": "PCSX2",
+    "cover": "https://cdn2.steamgriddb.com/icon/adcf9fc6f424c520dd472b52dbb05fd4.ico",
+    "priority": 80,
+    "type": "game"
+  },
+  {
+    "exe": "dolphin.exe",
+    "title": "Dolphin",
+    "cover": "https://cdn2.steamgriddb.com/icon/35f0f35a0cfb0616b7ffcb774cbfad86.ico",
+    "priority": 80,
+    "type": "game"
+  },
+  {
+    "exe": "cemu.exe",
+    "title": "Cemu",
+    "cover": "https://cdn2.steamgriddb.com/icon/c92eb2ce0d04c9959f6b9c9f77f805a9.ico",
+    "priority": 80,
+    "type": "game"
+  },
+  {
+    "exe": "yuzu.exe",
+    "title": "Yuzu",
+    "cover": "https://cdn2.steamgriddb.com/icon/1d4cfb92d6cfce0d96d74ad2946c1a84.ico",
+    "priority": 80,
+    "type": "game"
+  },
+  {
+    "exe": "ryujinx.exe",
+    "title": "Ryujinx",
+    "cover": "https://cdn2.steamgriddb.com/icon/1a6fba947b1c312b9264c12ef029f600.ico",
+    "priority": 80,
+    "type": "game"
+  },
+  {
+    "exe": "ppssppwindows64.exe",
+    "title": "PPSSPP",
+    "cover": "https://cdn2.steamgriddb.com/icon/358891fcfffa2641bceb1a9f074dff48.ico",
+    "priority": 80,
+    "type": "game"
+  },
+  {
+    "exe": "retroarch.exe",
+    "title": "RetroArch",
+    "cover": "https://cdn2.steamgriddb.com/icon/a67c519a7976e330be2ca68ad697d848.ico",
+    "priority": 80,
+    "type": "game"
+  },
+  {
     "exe": "League of Legends.exe",
     "title": "League of Legends",
     "cover": "https://cdn2.steamgriddb.com/icon/882137f311c5728f8e257e56820af92c.png",

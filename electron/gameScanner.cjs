@@ -1,21 +1,50 @@
 const { exec } = require("child_process");
 const gamesDB = require("./games.json");
 
-const gamesMap = new Map(
-  gamesDB.map((g) => [
-    g.exe.toLowerCase(),
-    { ...g, priority: g.priority ?? 0 },
-  ]),
-);
+const gamesMap = new Map();
+let customGamesList = [];
 
+function rebuildGamesMap() {
+  gamesMap.clear();
+
+  // 1. Cargar catálogo base oficial
+  for (const g of gamesDB) {
+    if (!g.exe) continue;
+    gamesMap.set(g.exe.toLowerCase(), {
+      ...g,
+      priority: g.priority ?? 50,
+      type: g.type || "game",
+      isCustom: false,
+    });
+  }
+
+  // 2. Fusionar con lista blanca personalizada del usuario
+  for (const cg of customGamesList) {
+    if (cg.enabled === false) continue;
+    if (!cg.exe) continue;
+    gamesMap.set(cg.exe.toLowerCase(), {
+      exe: cg.exe,
+      title: cg.title || cg.name || cg.exe,
+      cover: cg.cover || null,
+      type: cg.type || "game",
+      priority: cg.priority ?? 85,
+      isCustom: true,
+    });
+  }
+}
+
+// Inicializar mapa de juegos
+rebuildGamesMap();
 
 let currentState = { name: null, cover: null, type: "game", startTime: null };
-let lockedGame = null; 
+let lockedGame = null;
+let rpcActivity = null; // Prioridad máxima si un juego se comunica vía IPC/RPC
 let scannerStarted = false;
 let scanInProgress = false;
 let timer = null;
 let currentSessionId = 0;
 let onActivityChangeCallback = null;
+let globalMainWindow = null;
 
 const SCAN_INTERVAL = 5000;
 const LOCK_PRIORITY = 100;
@@ -61,8 +90,9 @@ function detectBestGame(runningSet) {
 }
 
 function broadcast(mainWindow) {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("game-activity-changed", currentState);
+  const targetWin = mainWindow || globalMainWindow;
+  if (targetWin && !targetWin.isDestroyed()) {
+    targetWin.webContents.send("game-activity-changed", currentState);
   }
 }
 
@@ -91,10 +121,10 @@ function getSpotifySong() {
           if (err || !stdout) return resolve(null);
           const titleMatch = stdout.match(/string\s+"xesam:title"\s*\n\s*variant\s+string\s+"([^"]+)"/s);
           const artistMatch = stdout.match(/string\s+"xesam:artist"\s*\n\s*variant\s+array\s+\[\s*string\s+"([^"]+)"/s);
-          
+
           const title = titleMatch ? titleMatch[1] : null;
           const artist = artistMatch ? artistMatch[1] : null;
-          
+
           if (title && artist) {
             resolve(`${artist} - ${title}`);
           } else if (title) {
@@ -119,20 +149,29 @@ function updateState(bestGame, customTitle) {
           currentState.name === targetName
             ? currentState.startTime
             : Date.now(),
+        source: bestGame.isCustom ? "custom" : "builtin",
       }
     : { name: null, cover: null, type: "game", startTime: null };
 
-  console.log(`[Rich Presence] Actividad: ${currentState.name || "Nada"}`);
+  console.log(`[Rich Presence] Actividad (${currentState.type}): ${currentState.name || "Nada"}`);
 }
 
 async function runScan(mainWindow, sessionId) {
   if (scanInProgress || sessionId !== currentSessionId) return;
+
+  // Si hay una actividad de RPC activa, tiene prioridad absoluta sobre el escáner
+  if (rpcActivity) {
+    broadcast(mainWindow);
+    return;
+  }
+
   scanInProgress = true;
 
   try {
     const runningProcesses = await getActiveProcesses();
 
     if (sessionId !== currentSessionId) return;
+    if (rpcActivity) return;
 
     if (lockedGame && runningProcesses.has(lockedGame.exe.toLowerCase())) {
       if (lockedGame.type === "music") {
@@ -187,10 +226,55 @@ function setBackgroundMode(bg) {
   isBackgroundMode = Boolean(bg);
 }
 
+function setCustomGames(list) {
+  customGamesList = Array.isArray(list) ? list : [];
+  rebuildGamesMap();
+  // Si el escáner está activo y no hay actividad RPC, forzar chequeo inmediato
+  if (scannerStarted && globalMainWindow && !rpcActivity) {
+    runScan(globalMainWindow, currentSessionId);
+  }
+}
+
+function setRpcActivity(activity) {
+  if (activity && activity.name) {
+    rpcActivity = activity;
+    currentState = {
+      name: activity.name,
+      details: activity.details || null,
+      state: activity.state || null,
+      cover: activity.cover || null,
+      smallCover: activity.smallCover || null,
+      type: activity.type || "game",
+      startTime: activity.startTime || Date.now(),
+      party: activity.party || null,
+      source: "rpc",
+    };
+  } else {
+    rpcActivity = null;
+    currentState = { name: null, cover: null, type: "game", startTime: null };
+  }
+
+  if (onActivityChangeCallback) onActivityChangeCallback(currentState);
+  broadcast(globalMainWindow);
+}
+
+function clearRpcActivity() {
+  rpcActivity = null;
+  // Retornar limpiamente al escáner de procesos
+  if (scannerStarted && globalMainWindow) {
+    runScan(globalMainWindow, currentSessionId);
+  } else {
+    currentState = { name: null, cover: null, type: "game", startTime: null };
+    if (onActivityChangeCallback) onActivityChangeCallback(currentState);
+    broadcast(globalMainWindow);
+  }
+}
+
 function startGameScanner(mainWindow, onStateChange) {
+  globalMainWindow = mainWindow;
   if (scannerStarted) return;
 
-  onActivityChangeCallback = onStateChange; 
+  onActivityChangeCallback = onStateChange;
 
   scannerStarted = true;
   currentSessionId++;
@@ -225,4 +309,13 @@ function getCurrentState() {
   return currentState;
 }
 
-module.exports = { startGameScanner, stopGameScanner, getCurrentState, setBackgroundMode };
+module.exports = {
+  startGameScanner,
+  stopGameScanner,
+  getCurrentState,
+  setBackgroundMode,
+  setCustomGames,
+  setRpcActivity,
+  clearRpcActivity,
+  getActiveProcesses,
+};
