@@ -24,37 +24,37 @@ export default function DeleteMessageModal({
       minute: "2-digit",
     });
 
-  const cleanText = message.text?.includes("[FILE_ATTACHMENT]:")
-    ? message.text.split("[FILE_ATTACHMENT]:")[0].trim() || "Archivo adjunto"
-    : message.text;
+  const cleanText = message?.text?.includes("[FILE_ATTACHMENT]:")
+    ? message.text.split("[FILE_ATTACHMENT]:")[0].trim() || t("chat.attachment", "Archivo adjunto")
+    : message?.text || "";
 
   return createPortal(
     <div className="onicord-modal-backdrop" onClick={onClose}>
-      {}
       <div
-        className="onicord-modal-card-destructive"
+        className="onicord-modal-card-destructive !max-w-[480px] w-full max-h-[85vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           className="onicord-icon-btn absolute right-5 top-5"
+          aria-label={t("common.close", "Cerrar")}
         >
           <IconClose size="base" />
         </button>
 
-        <div className="pb-4">
+        <div className="pb-3 shrink-0">
           <h2 className="text-xl font-bold text-onicord-text tracking-wide">
-            Delete message
+            {t("chat.deleteModalTitle", "Eliminar mensaje")}
           </h2>
-          <p className="mt-1.5 text-[15px] text-onicord-muted leading-normal">
-            Are you sure you want to delete this message?
+          <p className="mt-1 text-[14px] text-onicord-muted leading-normal">
+            {t("chat.deleteModalConfirm", "¿Estás seguro de que deseas eliminar este mensaje? Esta acción no se puede deshacer.")}
           </p>
         </div>
 
-        <div className="space-y-5">
-          {}
-          <div className="onicord-modal-preview-box">
+        <div className="space-y-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Preview box */}
+          <div className="onicord-modal-preview-box !items-start !justify-start gap-3.5 p-3.5 max-h-[220px] overflow-hidden shrink-0">
             <div className={`h-10 w-10 shrink-0 overflow-hidden rounded-full select-none ${authorAvatar ? "" : "bg-onicord-accent"}`}>
               {authorAvatar ? (
                 <SmartAnimatedImage
@@ -69,46 +69,45 @@ export default function DeleteMessageModal({
                 </span>
               )}
             </div>
-            <div className="min-w-0 flex-1 pt-0.5 text-left">
-              <div className="flex items-baseline gap-2">
-                <span className="text-[14px] font-medium text-onicord-text">
+            <div className="min-w-0 flex-1 text-left flex flex-col max-h-[190px]">
+              <div className="flex items-baseline gap-2 shrink-0">
+                <span className="text-[14px] font-semibold text-onicord-text truncate">
                   {authorName}
                 </span>
-                <time className="text-[11px] text-onicord-muted">
+                <time className="text-[11px] text-onicord-muted shrink-0">
                   {timeStr}
                 </time>
               </div>
-              <p className="mt-0.5 break-words text-[14px] text-onicord-text whitespace-pre-wrap leading-relaxed">
+              <div className="mt-1 overflow-y-auto max-h-[155px] pr-1.5 minimal-scrollbar break-words [overflow-wrap:anywhere] whitespace-pre-wrap select-text text-[13.5px] text-onicord-text leading-relaxed font-normal">
                 {cleanText}
-              </p>
+              </div>
             </div>
           </div>
 
-          {}
-          <div className="onicord-modal-warning-box">
+          {/* Consejo banner */}
+          <div className="onicord-modal-warning-box shrink-0 text-left">
             <strong className="block text-onicord-success text-[11px] uppercase font-bold tracking-wider mb-1">
-              Consejo:
+              {t("common.tip", "Consejo")}:
             </strong>
-            Puedes mantener pulsado{" "}
-            <span className="font-semibold text-onicord-text">{t("chat.shift")}</span>{" "}
-            when you click on{" "}
-            <span className="font-semibold text-onicord-text">
-              delete message
-            </span>{" "}
-            to ignore this confirmation completely.
+            <span className="text-[12.5px] leading-relaxed text-onicord-muted">
+              {t(
+                "chat.shiftDeleteTip",
+                "Puedes mantener pulsado Shift al hacer clic en eliminar mensaje para omitir esta confirmación en el futuro."
+              )}
+            </span>
           </div>
         </div>
 
-        <div className="pt-6 flex items-center justify-end gap-6">
-          <button type="button" onClick={onClose} className="onicord-btn-text">
-            Cancelar
+        <div className="pt-5 flex items-center justify-end gap-3 shrink-0">
+          <button type="button" onClick={onClose} className="onicord-btn-secondary">
+            {t("common.cancel", "Cancelar")}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             className="onicord-btn-destructive"
           >
-            Eliminar
+            {t("common.delete", "Eliminar")}
           </button>
         </div>
       </div>

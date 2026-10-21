@@ -1,7 +1,7 @@
 @layer components {
   /* MODAL SHELL & STRUCTURE STYLES */
   .onicord-modal-backdrop {
-    @apply fixed inset-0 z-[99999] flex items-center justify-center bg-onicord-mantle/90 p-4 backdrop-blur-[2px] onicord-animate-backdrop-in pointer-events-auto;
+    @apply fixed inset-0 z-[10000000] flex items-center justify-center bg-onicord-mantle/90 p-4 backdrop-blur-[2px] onicord-animate-backdrop-in pointer-events-auto;
   }
   .onicord-modal-warning-box {
     @apply text-[13px] leading-[1.3] text-onicord-muted mt-4 select-none;

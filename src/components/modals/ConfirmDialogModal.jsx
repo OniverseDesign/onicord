@@ -13,6 +13,7 @@ export default function ConfirmDialogModal({
   onConfirm,
   onCancel,
   type = "confirm", 
+  confirmButtonClass = "",
 }) {
   const confirmButtonRef = useRef(null);
   const { shouldRender, isAnimatingOut } = useAnimatedMount(isOpen, 140);
@@ -27,10 +28,13 @@ export default function ConfirmDialogModal({
 
   if (!shouldRender) return null;
 
+  const isDanger = type === "danger";
+  const isAlert = type === "alert";
+
   return createPortal(
-    <div className={cn("onicord-modal-backdrop", isAnimatingOut && "onicord-animate-backdrop-out")}>
+    <div className={cn("onicord-modal-backdrop !z-[10000000]", isAnimatingOut && "onicord-animate-backdrop-out")}>
       {}
-      <div className={cn("onicord-modal-card", isAnimatingOut && "onicord-animate-modal-out")}>
+      <div className={cn("onicord-modal-card !z-[10000001]", isAnimatingOut && "onicord-animate-modal-out")}>
         {}
         <div className="mb-3">
           <h2 className="text-[18px] font-bold text-onicord-text leading-tight text-left">
@@ -59,7 +63,7 @@ export default function ConfirmDialogModal({
 
         {}
         <div className="pt-6 flex items-center justify-end gap-4">
-          {type === "confirm" && (
+          {!isAlert && (
             <button
               type="button"
               onClick={onCancel}
@@ -72,7 +76,10 @@ export default function ConfirmDialogModal({
             ref={confirmButtonRef}
             type="button"
             onClick={onConfirm}
-            className="onicord-btn-primary"
+            className={cn(
+              isDanger ? "onicord-btn-danger" : "onicord-btn-primary",
+              confirmButtonClass
+            )}
           >
             {confirmLabel}
           </button>

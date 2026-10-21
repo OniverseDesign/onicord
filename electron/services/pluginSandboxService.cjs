@@ -29,6 +29,7 @@ class PluginSandboxService {
       broadcaster("plugins:widgets-updated", this.getAllPluginIslandWidgets());
       broadcaster("plugins:commands-updated", this.getAllPluginCommands());
       broadcaster("plugins:dashboard-widgets-updated", this.getRegisteredDashboardWidgets());
+      broadcaster("plugins:voice-control-buttons-updated", this.getAllVoiceControlButtons());
     }
   }
 
@@ -61,8 +62,23 @@ class PluginSandboxService {
     const code = fs.readFileSync(mainFile, "utf-8");
 
     const widgets = [];
+    const voiceButtons = [];
+    const voiceButtonHandlers = new Map();
     const commandHandlers = new Map();
     const p2pListeners = new Set();
+
+    if (Array.isArray(manifest.voiceControlButtons)) {
+      for (const btn of manifest.voiceControlButtons) {
+        voiceButtons.push({
+          id: btn.id || `btn_${Date.now()}`,
+          pluginId,
+          pluginName: manifest.name,
+          icon: btn.icon || "sports_esports",
+          tooltip: btn.tooltip || manifest.name,
+          action: btn.action || btn.id,
+        });
+      }
+    }
 
     // Idioma por defecto del sistema
     const appLanguage = (app.getLocale ? app.getLocale() : "es").split("-")[0] || "es";
@@ -246,6 +262,111 @@ class PluginSandboxService {
           if (ipcBroadcaster) {
             ipcBroadcaster("plugins:show-toast", { pluginId, message });
           }
+        },
+        registerVoiceControlButton: (btnDef) => {
+          if (manifest.permissions?.includes("ui.voice_control_button") || manifest.permissions?.includes("ui.custom_widget")) {
+            const locName = (manifest.locales && manifest.locales[appLanguage] && manifest.locales[appLanguage].name) || manifest.name || "Complemento";
+            let resolvedIcon = btnDef.icon || manifest.icon || "extension";
+            if (pluginService.resolvePluginIcon && typeof resolvedIcon === "string" && (resolvedIcon.includes("/") || resolvedIcon.includes("\\") || resolvedIcon.endsWith(".svg") || resolvedIcon.endsWith(".png"))) {
+              const fileIcon = pluginService.resolvePluginIcon(resolvedIcon, pluginId);
+              if (fileIcon) resolvedIcon = fileIcon;
+            }
+            const btnObj = {
+              id: btnDef.id || `btn_${Date.now()}`,
+              pluginId,
+              pluginName: locName,
+              icon: resolvedIcon,
+              tooltip: btnDef.tooltip || locName,
+              action: btnDef.action || btnDef.id,
+              badge: btnDef.badge || null,
+            };
+            const existingIdx = voiceButtons.findIndex((b) => b.id === btnObj.id);
+            if (existingIdx >= 0) {
+              voiceButtons[existingIdx] = { ...voiceButtons[existingIdx], ...btnObj };
+            } else {
+              voiceButtons.push(btnObj);
+            }
+            if (typeof btnDef.onClick === "function") {
+              voiceButtonHandlers.set(btnObj.id, btnDef.onClick);
+            }
+            if (ipcBroadcaster) {
+              ipcBroadcaster("plugins:voice-control-buttons-updated", this.getAllVoiceControlButtons());
+            }
+          } else {
+            console.warn(`[SANDBOX] ${pluginId} bloqueado: falta permiso ui.voice_control_button`);
+          }
+        },
+        openStageView: (stageDef) => {
+          if (manifest.permissions?.includes("ui.stage_view") || manifest.permissions?.includes("ui.custom_widget")) {
+            const pluginsDir = pluginService.getPluginsDir ? pluginService.getPluginsDir() : "";
+            const pluginDir = (pluginService.findPluginDir && pluginService.findPluginDir(pluginId)) || (pluginsDir ? path.join(pluginsDir, pluginId) : "");
+            let htmlContent = stageDef?.htmlContent || "";
+            if (stageDef?.entryPoint && pluginDir) {
+              const entryPath = path.join(pluginDir, stageDef.entryPoint);
+              try {
+                if (fs.existsSync(entryPath)) {
+                  htmlContent = fs.readFileSync(entryPath, "utf-8");
+                  const widgetDir = path.dirname(entryPath);
+                  const baseHref = `onicord-media://win-disk/${widgetDir.replace(/\\/g, "/")}/`;
+                  if (!htmlContent.includes("<base ") && htmlContent.includes("<head>")) {
+                    htmlContent = htmlContent.replace("<head>", `<head>\n  <base href="${baseHref}">`);
+                  }
+                }
+              } catch (err) {
+                console.error(`[SANDBOX] Error reading stage entryPoint HTML ${entryPath}:`, err.message);
+              }
+            }
+
+            const enriched = {
+              pluginId,
+              ...stageDef,
+              htmlContent: htmlContent || stageDef?.htmlContent || undefined,
+            };
+            global.activeStageDef = enriched;
+            let scripts = Array.isArray(enriched?.frameScripts) ? [...enriched.frameScripts] : [];
+            const bridgeScript = `
+              try {
+                window.onicord = window.onicord || {};
+                if (!window.onicord.confirm) {
+                  window.onicord.confirm = function(opts) {
+                    return new Promise(function(resolve) {
+                      var reqId = "req_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+                      function onMsg(ev) {
+                        if (ev.data && ev.data.type === "ONICORD_CONFIRM_RESPONSE" && ev.data.requestId === reqId) {
+                          window.removeEventListener("message", onMsg);
+                          resolve(Boolean(ev.data.confirmed));
+                        }
+                      }
+                      window.addEventListener("message", onMsg);
+                      window.parent.postMessage(Object.assign({
+                        type: "ONICORD_REQUEST_CONFIRM",
+                        requestId: reqId
+                      }, opts || {}), "*");
+                    });
+                  };
+                }
+              } catch (_) {}
+            `;
+            scripts.unshift(bridgeScript);
+            const nick = enriched?.userNick || enriched?.authorName;
+            if (nick && typeof nick === "string" && nick.trim()) {
+              scripts.unshift(`window._onicordUserNick = ${JSON.stringify(nick.trim().slice(0, 20))};`);
+            }
+            global.currentStageScripts = scripts;
+
+            if (ipcBroadcaster) {
+              ipcBroadcaster("plugins:open-stage-view", enriched);
+            }
+          } else {
+            console.warn(`[SANDBOX] ${pluginId} bloqueado: falta permiso ui.stage_view`);
+          }
+        },
+        closeStageView: () => {
+          global.activeStageDef = null;
+          global.currentStageScripts = [];
+          if (ipcBroadcaster) {
+            ipcBroadcaster("plugins:close-stage-view", { pluginId });
+          }
         }
       },
       user: {
@@ -283,6 +404,38 @@ class PluginSandboxService {
             return null;
           }
           return global.activeGameActivity || { name: null };
+        },
+        setActivity: (activity) => {
+          if (!manifest.permissions?.includes("gaming.activity")) {
+            console.warn(`[SANDBOX] ${pluginId} bloqueado: falta permiso gaming.activity`);
+            return;
+          }
+          try {
+            const { setRpcActivity } = require("../gameScanner.cjs");
+            const resolvedIcon = (pluginService.resolvePluginIcon && pluginService.resolvePluginIcon(manifest.icon, pluginId)) || manifest.icon || null;
+            const locName = (manifest.locales && manifest.locales[appLanguage] && manifest.locales[appLanguage].name) || manifest.name || "Complemento";
+            setRpcActivity({
+              ...activity,
+              source: `addon:${pluginId}`,
+              smallCover: activity.smallCover !== undefined ? activity.smallCover : resolvedIcon,
+              smallText: activity.smallText || locName,
+              details: activity.details || locName,
+            });
+          } catch (err) {
+            console.error(`[SANDBOX] Error seteando actividad para ${pluginId}:`, err);
+          }
+        },
+        clearActivity: () => {
+          if (!manifest.permissions?.includes("gaming.activity")) {
+            console.warn(`[SANDBOX] ${pluginId} bloqueado: falta permiso gaming.activity`);
+            return;
+          }
+          try {
+            const { clearRpcActivity } = require("../gameScanner.cjs");
+            clearRpcActivity();
+          } catch (err) {
+            console.error(`[SANDBOX] Error limpiando actividad para ${pluginId}:`, err);
+          }
         },
       },
       audio: {
@@ -351,6 +504,8 @@ class PluginSandboxService {
         context,
         manifest,
         widgets,
+        voiceButtons,
+        voiceButtonHandlers,
         commandHandlers,
         p2pListeners,
       });
@@ -359,6 +514,7 @@ class PluginSandboxService {
         ipcBroadcaster("plugins:widgets-updated", this.getAllPluginIslandWidgets());
         ipcBroadcaster("plugins:commands-updated", this.getAllPluginCommands());
         ipcBroadcaster("plugins:dashboard-widgets-updated", this.getRegisteredDashboardWidgets());
+        ipcBroadcaster("plugins:voice-control-buttons-updated", this.getAllVoiceControlButtons());
       }
     } catch (err) {
       console.error(`[SANDBOX] Error ejecutando complemento ${manifest.name}:`, err);
@@ -472,6 +628,43 @@ class PluginSandboxService {
       }
     }
     return allWidgets;
+  }
+
+  getAllVoiceControlButtons() {
+    const allButtons = [];
+    const seen = new Set();
+    for (const [pluginId, sandbox] of this.activeSandboxes) {
+      if (Array.isArray(sandbox.voiceButtons)) {
+        for (const btn of sandbox.voiceButtons) {
+          const key = `${pluginId}:${btn.id}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            allButtons.push({
+              ...btn,
+              pluginId,
+              pluginName: sandbox.manifest?.name || btn.pluginName,
+            });
+          }
+        }
+      }
+    }
+    return allButtons;
+  }
+
+  async triggerVoiceControlButton(pluginId, buttonId, data, broadcastToAll) {
+    const sandbox = this.activeSandboxes.get(pluginId);
+    if (!sandbox) return false;
+    if (broadcastToAll) {
+      broadcastToAll("plugins:voice-control-button-triggered", { pluginId, buttonId, data });
+    }
+    if (sandbox.voiceButtonHandlers && sandbox.voiceButtonHandlers.has(buttonId)) {
+      try {
+        await sandbox.voiceButtonHandlers.get(buttonId)(data);
+      } catch (err) {
+        console.error(`[SANDBOX] Error en handler de botón de voz (${pluginId}:${buttonId}):`, err);
+      }
+    }
+    return true;
   }
 
   handleIncomingWidgetP2PData(senderPeerId, payload) {

@@ -14,13 +14,13 @@ const path = require("path");
 const fs = require("fs");
 const diagService = require("./services/diagService.cjs");
 
-// Configurar flags de Chromium inmediatamente al inicio para deshabilitar WGC inestable en Windows y usar DXGI/GDI
+// Configurar flags de Chromium y V8 para captura DXGI, WebAssembly JSPI, Wasm EH, SharedArrayBuffer y aislamiento
 app.commandLine.appendSwitch("disable-features", "WgcScreenCapturer,WgcScreenCapturerWin,WgcScreenCapturerForWindow,WgcScreenCapturerForCursor");
-app.commandLine.appendSwitch("enable-features", "DxgiScreenCapturer");
+app.commandLine.appendSwitch("enable-features", "DxgiScreenCapturer,SharedArrayBuffer,WebAssemblyExperimentalJSPI,WebAssemblyJSPromiseIntegration,CrossOriginOpenerPolicyReporting,CrossOriginEmbedderPolicyCredentialless");
 app.commandLine.appendSwitch("disable-background-timer-throttling");
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
-app.commandLine.appendSwitch("js-flags", "--expose-gc");
+app.commandLine.appendSwitch("js-flags", "--expose-gc --experimental-wasm-jspi --experimental-wasm-legacy-eh --experimental-wasm-exnref");
 
 const PROTOCOL_PREFIX = "onicord"; 
 
@@ -57,6 +57,7 @@ const mcpBridgeService = require("./services/mcpBridgeService.cjs");
 const overlayService = require("./services/overlayService.cjs");
 const globalKeybindService = require("./services/globalKeybindService.cjs");
 const rpcServerService = require("./services/rpcServerService.cjs");
+const adBlockerService = require("./services/adBlockerService.cjs");
 const { registerIPCHandlers } = require("./ipc/ipcRouter.cjs");
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
@@ -239,6 +240,8 @@ function createWindow() {
       backgroundThrottling: false,
       plugins: true,
       pdfViewerEnabled: true,
+      webSecurity: false,
+      allowRunningInsecureContent: true,
     },
     backgroundColor: "#1e1e2e",
   });
@@ -306,9 +309,127 @@ function createWindow() {
     return { action: "deny" };
   });
 
+  global.mainWindow.webContents.on("will-navigate", (event, navigationUrl) => {
+    const isDevUrl = isDev && process.env.VITE_DEV_SERVER_URL && navigationUrl.startsWith(process.env.VITE_DEV_SERVER_URL);
+    const isLocalFile = navigationUrl.startsWith("file://");
+    const isLocalhost = navigationUrl.startsWith("http://127.0.0.1:") || navigationUrl.startsWith("http://localhost:");
+
+    if (!isDevUrl && !isLocalFile && !isLocalhost) {
+      event.preventDefault();
+      diagService.log("warn", "Security", `[Security] Bloqueada navegación externa de la ventana principal a: ${navigationUrl}`);
+      if (navigationUrl.startsWith("http:") || navigationUrl.startsWith("https:")) {
+        shell.openExternal(navigationUrl);
+      }
+    }
+  });
+
+  global.mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+    const lvl = level === 3 ? "error" : level === 2 ? "warn" : "info";
+    if (sourceId && !sourceId.includes("localhost") && !sourceId.includes("127.0.0.1") && !sourceId.startsWith("devtools:")) {
+      diagService.log(lvl, "Stage-Console", `[StageSubframe] ${message} (${sourceId}:${line})`);
+    }
+  });
+
+  global.mainWindow.webContents.on(
+    "did-frame-finish-load",
+    async (_event, isMainFrame, frameProcessId, frameRoutingId) => {
+      if (isMainFrame) return;
+      try {
+        const { webFrameMain } = require("electron");
+        const frame = webFrameMain.fromId(frameProcessId, frameRoutingId);
+        if (!frame || !frame.url) return;
+
+        // Inyección agnóstica de control de volumen maestro (Web Audio API & HTMLMediaElement)
+        const volumeScript = `
+          (() => {
+            if (window._onicordAudioHooked) return;
+            window._onicordAudioHooked = true;
+
+            const audioContexts = new Set();
+            let currentVolume = 1.0;
+            let isMuted = false;
+
+            window._onicordSetStageVolume = (vol, muted) => {
+              if (typeof vol === 'number') currentVolume = vol;
+              if (typeof muted === 'boolean') isMuted = muted;
+              const effectiveGain = isMuted ? 0 : Math.max(0, Math.min(1, currentVolume));
+
+              for (const ctx of audioContexts) {
+                try {
+                  if (ctx._onicordMasterGain) {
+                    ctx._onicordMasterGain.gain.setValueAtTime(effectiveGain, ctx.currentTime);
+                  }
+                } catch (_) {}
+              }
+
+              try {
+                document.querySelectorAll('audio, video').forEach((el) => {
+                  el.volume = effectiveGain;
+                  el.muted = isMuted;
+                });
+              } catch (_) {}
+            };
+
+            const OriginalAudioContext = window.AudioContext || window.webkitAudioContext;
+            if (OriginalAudioContext) {
+              const origConnect = AudioNode.prototype.connect;
+              AudioNode.prototype.connect = function(target, outputIndex, inputIndex) {
+                if (target && this.context && target === this.context.destination) {
+                  if (!this.context._onicordMasterGain) {
+                    try {
+                      const gainNode = this.context.createGain();
+                      const effectiveGain = isMuted ? 0 : Math.max(0, Math.min(1, currentVolume));
+                      gainNode.gain.setValueAtTime(effectiveGain, this.context.currentTime);
+                      origConnect.call(gainNode, this.context.destination);
+                      this.context._onicordMasterGain = gainNode;
+                      audioContexts.add(this.context);
+                    } catch (_) {}
+                  }
+                  if (this.context._onicordMasterGain) {
+                    return origConnect.call(this, this.context._onicordMasterGain, outputIndex, inputIndex);
+                  }
+                }
+                return origConnect.apply(this, arguments);
+              };
+            }
+          })();
+        `;
+        await frame.executeJavaScript(volumeScript).catch(() => {});
+
+        // Aplicar volumen actual si ya fue modificado por el usuario
+        if (global.currentStageVolume) {
+          const volRatio = typeof global.currentStageVolume.volume === "number"
+            ? Math.max(0, Math.min(1, global.currentStageVolume.volume / 100))
+            : 1.0;
+          const muted = Boolean(global.currentStageVolume.isMuted);
+          await frame.executeJavaScript(`if (typeof window._onicordSetStageVolume === 'function') { window._onicordSetStageVolume(${volRatio}, ${muted}); }`).catch(() => {});
+        }
+
+        const scripts = global.currentStageScripts;
+        if (!scripts || !Array.isArray(scripts) || scripts.length === 0) return;
+
+        for (const script of scripts) {
+          if (typeof script === "string" && script.trim()) {
+            await frame.executeJavaScript(script).catch(() => {});
+          }
+        }
+      } catch (_) {}
+    }
+  );
+
   session.defaultSession.protocol.registerFileProtocol(
     "onicord-media",
     (request, callback) => {
+      // Protección de aislamiento: bloquear cualquier solicitud originada desde un sitio web remoto no autorizado
+      const referrer = (request.referrer || "").toLowerCase();
+      const origin = (request.headers?.Origin || request.headers?.origin || "").toLowerCase();
+      const isRemote = (u) => (u.startsWith("http://") || u.startsWith("https://")) && !u.startsWith("http://localhost") && !u.startsWith("http://127.0.0.1");
+
+      if (isRemote(referrer) || isRemote(origin)) {
+        diagService.log("warn", "Security", `[Security] Acceso denegado a onicord-media desde origen remoto: ${referrer || origin}`);
+        return callback({ error: -10 }); // net::ERR_ACCESS_DENIED
+      }
+
       let urlPath = request.url.replace("onicord-media://", "");
       urlPath = urlPath.split("?")[0];
       if (urlPath.startsWith("win-disk/")) {
@@ -473,6 +594,9 @@ app.whenReady().then(async () => {
   // Without these, Chromium silently blocks microphone and screen capture access.
   session.defaultSession.setPermissionRequestHandler(
     (webContents, permission, callback) => {
+      if (permission.startsWith("clipboard")) {
+        return callback(true);
+      }
       const allowed = [
         "media",
         "mediaKeySystem",
@@ -483,6 +607,7 @@ app.whenReady().then(async () => {
         "clipboard-write",
         "clipboard-sanitized-write",
         "fullscreen",
+        "pointerLock",
       ];
       callback(allowed.includes(permission));
     }
@@ -490,6 +615,9 @@ app.whenReady().then(async () => {
 
   session.defaultSession.setPermissionCheckHandler(
     (webContents, permission) => {
+      if (permission.startsWith("clipboard")) {
+        return true;
+      }
       const allowed = [
         "media",
         "mediaKeySystem",
@@ -500,6 +628,7 @@ app.whenReady().then(async () => {
         "clipboard-write",
         "clipboard-sanitized-write",
         "fullscreen",
+        "pointerLock",
       ];
       return allowed.includes(permission);
     }
@@ -517,6 +646,8 @@ app.whenReady().then(async () => {
 
   await ytdlpService.autoUpdateYtdlp();
   ytdlpService.startLocalStreamServer();
+
+  adBlockerService.initAdBlocker(session.defaultSession);
 
   session.defaultSession.webRequest.onBeforeSendHeaders(
     {
@@ -557,6 +688,61 @@ app.whenReady().then(async () => {
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const url = details.url || "";
+    const responseHeaders = { ...details.responseHeaders };
+
+    // Si es un servicio de verificación / challenge (Cloudflare Turnstile, hCaptcha, reCAPTCHA),
+    // no alterar sus políticas de aislamiento ni sus encabezados CORS para evitar bloqueos por credenciales o duplicados
+    const isChallengeService =
+      url.includes("challenges.cloudflare.com") ||
+      url.includes("cloudflare.com/cdn-cgi/challenge-platform") ||
+      url.includes("hcaptcha.com") ||
+      url.includes("recaptcha.net");
+
+    if (isChallengeService) {
+      for (const h of Object.keys(responseHeaders)) {
+        if (h.toLowerCase() === "x-frame-options") {
+          delete responseHeaders[h];
+        }
+      }
+      return callback({ responseHeaders });
+    }
+
+    // Eliminar encabezados restrictivos de políticas previas sin importar mayúsculas/minúsculas
+    for (const h of Object.keys(responseHeaders)) {
+      const lower = h.toLowerCase();
+      if (
+        lower === "permissions-policy" ||
+        lower === "x-frame-options" ||
+        lower === "cross-origin-opener-policy" ||
+        lower === "cross-origin-embedder-policy" ||
+        lower === "cross-origin-resource-policy"
+      ) {
+        delete responseHeaders[h];
+      }
+    }
+
+    // Permitir portapapeles, fullscreen, gamepad, micrófono y aislamiento entre orígenes para frames y subframes
+    responseHeaders["Permissions-Policy"] = [
+      "clipboard-write=*, clipboard-read=*, fullscreen=*, gamepad=*, cross-origin-isolated=*, microphone=*",
+    ];
+
+    // Habilitar Cross-Origin Isolation para soportar WebAssembly con SharedArrayBuffer y multihilo (pthreads)
+    responseHeaders["Cross-Origin-Opener-Policy"] = ["same-origin"];
+    responseHeaders["Cross-Origin-Embedder-Policy"] = ["credentialless"];
+    responseHeaders["Cross-Origin-Resource-Policy"] = ["cross-origin"];
+
+    // Solo agregar Access-Control-Allow-Origin si el servidor remoto NO envió ya una política CORS
+    // y si la respuesta no requiere credenciales explícitas (las peticiones con credenciales prohíben '*')
+    const hasCors = Object.keys(responseHeaders).some(
+      (k) => k.toLowerCase() === "access-control-allow-origin"
+    );
+    const hasCredentials = Object.keys(responseHeaders).some(
+      (k) => k.toLowerCase() === "access-control-allow-credentials"
+    );
+    if (!hasCors && !hasCredentials) {
+      responseHeaders["Access-Control-Allow-Origin"] = ["*"];
+    }
+
     // Only apply Content-Security-Policy to local app files and dev server, never to 3rd-party websites
     const isAppResource =
       details.resourceType === "mainFrame" ||
@@ -565,7 +751,7 @@ app.whenReady().then(async () => {
       url.includes("localhost");
 
     if (!isAppResource) {
-      return callback({ responseHeaders: details.responseHeaders });
+      return callback({ responseHeaders });
     }
 
     const csp = isDev
@@ -575,12 +761,8 @@ app.whenReady().then(async () => {
       : [
           "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://www.tiktok.com https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: onicord-media: http://127.0.0.1:*; media-src 'self' blob: mediastream: https: onicord-media: http://127.0.0.1:* http://localhost:*; object-src 'self' file: blob:; frame-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; child-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* ws: wss: stun: turn: https:;",
         ];
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        "Content-Security-Policy": csp,
-      },
-    });
+    responseHeaders["Content-Security-Policy"] = csp;
+    callback({ responseHeaders });
   });
 
   createWindow();

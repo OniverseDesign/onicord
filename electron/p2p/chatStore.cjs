@@ -134,9 +134,37 @@ class ChatStore {
     return trimmed
   }
 
+  _tombstonesPath(roomCode) {
+    return path.join(this.dir, this._safeCode(roomCode), '_tombstones.json')
+  }
+
+  async getTombstones(roomCode) {
+    try {
+      const raw = await fs.readFile(this._tombstonesPath(roomCode), 'utf8')
+      const data = JSON.parse(raw)
+      return Array.isArray(data) ? new Set(data) : new Set()
+    } catch {
+      return new Set()
+    }
+  }
+
+  async addTombstone(roomCode, messageId) {
+    const safeId = String(messageId || '').trim()
+    if (!safeId) return
+    try {
+      const tombstones = await this.getTombstones(roomCode)
+      tombstones.add(safeId)
+      const list = Array.from(tombstones).slice(-2000)
+      await writeFileAtomic(this._tombstonesPath(roomCode), JSON.stringify(list))
+    } catch (err) {
+      console.error('[ChatStore] Error saving tombstone:', err)
+    }
+  }
+
   async delete(roomCode, channelId, messageId) {
     const safeId = String(messageId || '').trim()
     if (!safeId) return { ok: false, deleted: 0 }
+    await this.addTombstone(roomCode, safeId)
     const messages = await this.load(roomCode, channelId)
     const before = messages.length
     const next = messages.filter((m) => m.id !== safeId)
@@ -165,7 +193,7 @@ class ChatStore {
     const dir = path.join(this.dir, this._safeCode(roomCode))
     try {
       const files = await readdir(dir)
-      return files.filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''))
+      return files.filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => f.replace(/\.json$/, ''))
     } catch {
       return [DEFAULT_CHANNEL]
     }
@@ -184,13 +212,14 @@ class ChatStore {
   }
 
   async getMessagesSince(roomCode, watermarks = {}, limit = 400) {
+    const tombstones = await this.getTombstones(roomCode)
     const channels = await this.listChannelIds(roomCode)
     const out = []
     for (const channelId of channels) {
       const since = watermarks[channelId] || 0
       const messages = await this.load(roomCode, channelId)
       for (const m of messages) {
-        if ((m.timestamp || 0) > since) out.push(m)
+        if ((m.timestamp || 0) > since && !tombstones.has(m.id)) out.push(m)
       }
     }
     out.sort((a, b) => a.timestamp - b.timestamp)
@@ -198,11 +227,12 @@ class ChatStore {
   }
 
   async mergeBatch(roomCode, messages, { onMessage } = {}) {
+    const tombstones = await this.getTombstones(roomCode)
     let totalAdded = 0
     const byChannel = new Map()
 
     for (const msg of messages) {
-      if (!msg?.id) continue
+      if (!msg?.id || tombstones.has(msg.id)) continue
       const channelId = msg.channelId || DEFAULT_CHANNEL
       if (!byChannel.has(channelId)) byChannel.set(channelId, [])
       byChannel.get(channelId).push(msg)
@@ -214,7 +244,7 @@ class ChatStore {
       let channelAdded = 0
 
       for (const msg of batch.sort((a, b) => a.timestamp - b.timestamp)) {
-        if (existingIds.has(msg.id)) continue
+        if (existingIds.has(msg.id) || tombstones.has(msg.id)) continue
         existingIds.add(msg.id)
         existing.push(msg)
         channelAdded++

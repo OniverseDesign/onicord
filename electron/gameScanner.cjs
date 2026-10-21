@@ -245,9 +245,10 @@ function setRpcActivity(activity) {
       cover: activity.cover || null,
       smallCover: activity.smallCover || null,
       type: activity.type || "game",
+      isCatalog: Boolean(activity.isCatalog),
       startTime: activity.startTime || Date.now(),
       party: activity.party || null,
-      source: "rpc",
+      source: activity.source || "rpc",
     };
   } else {
     rpcActivity = null;
@@ -260,13 +261,13 @@ function setRpcActivity(activity) {
 
 function clearRpcActivity() {
   rpcActivity = null;
+  currentState = { name: null, cover: null, type: "game", startTime: null };
+  if (onActivityChangeCallback) onActivityChangeCallback(currentState);
+  broadcast(globalMainWindow);
+
   // Retornar limpiamente al escáner de procesos
   if (scannerStarted && globalMainWindow) {
     runScan(globalMainWindow, currentSessionId);
-  } else {
-    currentState = { name: null, cover: null, type: "game", startTime: null };
-    if (onActivityChangeCallback) onActivityChangeCallback(currentState);
-    broadcast(globalMainWindow);
   }
 }
 

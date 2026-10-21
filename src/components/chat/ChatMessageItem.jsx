@@ -271,8 +271,11 @@ const ChatMessageItem = memo(
     const urlRegex = /(https?:\/\/[^\s\)]+)/;
     const hasLink =
       Boolean(linkUrlOverride || (textContent && urlRegex.test(textContent))) &&
-      !isStickerPayload;
-    const detectedUrl = linkUrlOverride || (hasLink ? textContent.match(urlRegex)[0] : null);
+      !isStickerPayload &&
+      !isPluginEmbedPayload &&
+      !msg.hidePreview &&
+      !msg.suppressEmbeds;
+    const detectedUrl = linkUrlOverride || (hasLink ? textContent.match(urlRegex)?.[0] : null);
 
     const handleJumpToMessage = (targetId) => {
       if (!targetId) return;

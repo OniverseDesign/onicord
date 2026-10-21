@@ -6,11 +6,11 @@
 
   /* 🔄 COMPATIBILIDAD CON CLASES VIEJAS (Legacy standalone declarations restored to their original form to prevent modal layout breaking) */
   .onicord-modal-card-destructive {
-    @apply relative flex w-full max-w-[440px] flex-col rounded-onicord-outer-p4 bg-onicord-surface p-5 text-sm text-onicord-subtext shadow-onicord-elevated border border-white/5 onicord-animate-modal-in;
+    @apply relative flex z-[10000001] w-full max-w-[440px] flex-col rounded-onicord-outer-p4 bg-onicord-surface p-5 text-sm text-onicord-subtext shadow-onicord-elevated border border-white/5 onicord-animate-modal-in;
   }
   
   .onicord-modal-card {
-    @apply relative flex z-[99999] w-full max-w-[440px] flex-col rounded-onicord-outer-p4 bg-onicord-surface p-5 text-sm text-onicord-subtext shadow-onicord-elevated border border-white/5 onicord-animate-modal-in;
+    @apply relative flex z-[10000001] w-full max-w-[440px] flex-col rounded-onicord-outer-p4 bg-onicord-surface p-5 text-sm text-onicord-subtext shadow-onicord-elevated border border-white/5 onicord-animate-modal-in;
   }
   
   .onicord-setup-card {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   IconMicOn,
@@ -14,6 +14,7 @@ import ScreenShareModal from "../modals/ScreenShareModal";
 import UserListItem from "../ui/UserListItem";
 import NetworkPopover from "../ui/NetworkPopover";
 import ContextMenu from "../ui/ContextMenu";
+import MaterialIcon from "../icons/MaterialIcon";
 
 export default function UserPanel({
   profile,
@@ -46,6 +47,29 @@ export default function UserPanel({
   const [targetRect, setTargetRect] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+  const [voiceButtons, setVoiceButtons] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (window.electronAPI?.getVoiceControlButtons) {
+      window.electronAPI.getVoiceControlButtons().then((buttons) => {
+        if (isMounted && Array.isArray(buttons)) {
+          setVoiceButtons(buttons);
+        }
+      });
+    }
+
+    const unsub = window.electronAPI?.onVoiceControlButtonsUpdated?.((buttons) => {
+      if (isMounted && Array.isArray(buttons)) {
+        setVoiceButtons(buttons);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsub?.();
+    };
+  }, []);
 
   useEffect(() => {
     if (!inVoice && isModalOpen) {
@@ -165,60 +189,112 @@ export default function UserPanel({
     subtitleText = t("userPanel.online");
   }
 
+  const uniqueVoiceButtons = useMemo(() => {
+    const seen = new Set();
+    return voiceButtons.filter((btn) => {
+      const key = `${btn.pluginId}-${btn.id}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [voiceButtons]);
+
   const renderVoiceControls = () => {
     if (!inVoice) return null;
     return (
       <div className="flex shrink-0 items-center gap-1.5 ml-2">
-        <button
-          type="button"
-          disabled={!canShareVideo}
-          title={
-            canShareVideo
-              ? t("userPanel.shareScreen")
-              : t("userPanel.noShareVideoPermission", "Sin permisos para transmitir pantalla en este servidor")
-          }
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!canShareVideo) return;
-            setIsModalOpen(true);
-          }}
-          className={`onicord-icon-btn ${!canShareVideo ? "opacity-35 !cursor-not-allowed pointer-events-none" : ""}`}
-        >
-          <IconScreenShare size="lg" />
-        </button>
-        <button
-          type="button"
-          title={muted ? t("userPanel.unmute") : t("userPanel.mute")}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleMute();
-          }}
-          className={`onicord-icon-btn ${muted ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
-        >
-          {muted ? <IconMicOff size="lg" /> : <IconMicOn size="lg" />}
-        </button>
-        <button
-          type="button"
-          title={deafened ? t("userPanel.undeafen") : t("userPanel.deafen")}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleDeafen();
-          }}
-          className={`onicord-icon-btn ${deafened ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
-        >
-          {deafened ? <IconDeafenOff size="lg" /> : <IconDeafenOn size="lg" />}
-        </button>
-        <button
-          type="button"
-          title={t("userPanel.disconnect")}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDisconnect();
-          }}
-          className="onicord-icon-btn onicord-icon-btn-danger"
-        >
-          <IconCallEnd size="lg" />
-        </button>
+        {/* Slots dinámicos para botones de complementos en canal de voz */}
+        {uniqueVoiceButtons.map((btn) => {
+          const isImage = typeof btn.icon === "string" && (
+            btn.icon.startsWith("http://") ||
+            btn.icon.startsWith("https://") ||
+            btn.icon.startsWith("data:") ||
+            btn.icon.startsWith("onicord-media://") ||
+            btn.icon.endsWith(".svg") ||
+            btn.icon.endsWith(".png")
+          );
+
+          return (
+            <button
+              key={`${btn.pluginId}-${btn.id}`}
+              type="button"
+              title={btn.tooltip || btn.pluginName || t("common.plugin", "Complemento")}
+              onClick={(e) => {
+                e.stopPropagation();
+                window.electronAPI?.triggerVoiceControlButton?.(btn.pluginId, btn.id);
+              }}
+              className="onicord-icon-btn text-onicord-text hover:text-onicord-accent transition-colors flex items-center justify-center relative group"
+            >
+              {isImage ? (
+                <img
+                  src={btn.icon}
+                  alt={btn.tooltip || "icon"}
+                  className="w-5 h-5 object-contain"
+                />
+              ) : (
+                <MaterialIcon name={btn.icon || "extension"} size="lg" />
+              )}
+              {btn.badge && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-onicord-accent" />
+              )}
+            </button>
+          );
+        })}
+
+        {inVoice && (
+          <>
+            <button
+              type="button"
+              disabled={!canShareVideo}
+              title={
+                canShareVideo
+                  ? t("userPanel.shareScreen")
+                  : t("userPanel.noShareVideoPermission", "Sin permisos para transmitir pantalla en este servidor")
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!canShareVideo) return;
+                setIsModalOpen(true);
+              }}
+              className={`onicord-icon-btn ${!canShareVideo ? "opacity-35 !cursor-not-allowed pointer-events-none" : ""}`}
+            >
+              <IconScreenShare size="lg" />
+            </button>
+            <button
+              type="button"
+              title={muted ? t("userPanel.unmute") : t("userPanel.mute")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleMute();
+              }}
+              className={`onicord-icon-btn ${muted ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
+            >
+              {muted ? <IconMicOff size="lg" /> : <IconMicOn size="lg" />}
+            </button>
+            <button
+              type="button"
+              title={deafened ? t("userPanel.undeafen") : t("userPanel.deafen")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleDeafen();
+              }}
+              className={`onicord-icon-btn ${deafened ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
+            >
+              {deafened ? <IconDeafenOff size="lg" /> : <IconDeafenOn size="lg" />}
+            </button>
+            <button
+              type="button"
+              title={t("userPanel.disconnect")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDisconnect();
+              }}
+              className="onicord-icon-btn onicord-icon-btn-danger"
+            >
+              <IconCallEnd size="lg" />
+            </button>
+          </>
+        )}
       </div>
     );
   };

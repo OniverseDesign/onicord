@@ -65,7 +65,7 @@ function GameCardItem({ game, isActive, activeStartTime }) {
     : formatPlaytime(game.totalSeconds);
 
   const detailsText = isActive
-    ? (isApp ? t("gamesTab.usingNow", "Usando ahora") : t("userPanel.playing", "Jugando ahora"))
+    ? `${isApp ? t("gamesTab.usingNow", "Usando ahora") : t("userPanel.playing", "Jugando ahora")} • ${t("widgets.gaming.totalTime", "Total")}: ${formatPlaytime(game.totalSeconds)}`
     : `${t("widgets.gaming.totalTime", "Tiempo acumulado")}: ${formatPlaytime(game.totalSeconds)} • ${formatRelativeDate(game.lastPlayed, t)}`;
 
   return (
@@ -163,7 +163,15 @@ export default function GamingStatsWidget({ activeGame = null }) {
   // Combinar juegos almacenados con el juego activo actual
   const gamesList = useMemo(() => {
     const map = { ...playtimeMap };
-    if (activeGame?.name && activeGame.type !== "music") {
+    const isValidActiveGame =
+      activeGame?.name &&
+      activeGame.name !== "Arcade" &&
+      activeGame.name !== "Onicord Arcade" &&
+      activeGame.type !== "music" &&
+      activeGame.type !== "launcher" &&
+      !activeGame.isCatalog;
+
+    if (isValidActiveGame) {
       if (!map[activeGame.name]) {
         map[activeGame.name] = {
           name: activeGame.name,
@@ -175,10 +183,19 @@ export default function GamingStatsWidget({ activeGame = null }) {
       }
     }
 
+    // Filtrar para no mostrar lanzadores o catálogos en la lista de videojuegos
+    const validGames = Object.values(map).filter(
+      (g) =>
+        g.type !== "launcher" &&
+        !g.isCatalog &&
+        g.name !== "Arcade" &&
+        g.name !== "Onicord Arcade"
+    );
+
     // Ordenar: primero el activo en vivo, luego por mayor tiempo jugado
-    return Object.values(map).sort((a, b) => {
-      const aActive = activeGame?.name === a.name;
-      const bActive = activeGame?.name === b.name;
+    return validGames.sort((a, b) => {
+      const aActive = isValidActiveGame && activeGame?.name === a.name;
+      const bActive = isValidActiveGame && activeGame?.name === b.name;
       if (aActive && !bActive) return -1;
       if (!aActive && bActive) return 1;
       return (b.totalSeconds || 0) - (a.totalSeconds || 0);
@@ -225,7 +242,10 @@ export default function GamingStatsWidget({ activeGame = null }) {
           gamesList.map((game) => {
             const isActive =
               activeGame?.name === game.name &&
-              (activeGame?.type === "game" || activeGame?.type === "client");
+              activeGame?.name !== "Arcade" &&
+              activeGame?.name !== "Onicord Arcade" &&
+              (activeGame?.type === "game" || activeGame?.type === "client") &&
+              !activeGame?.isCatalog;
             return (
               <GameCardItem
                 key={game.name}

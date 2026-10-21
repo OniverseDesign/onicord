@@ -22,6 +22,7 @@ import { IconSearch, IconClose, IconTag } from "../icons/StreamIcons";
 import { useRoomResizers } from "../../hooks/useRoomResizers";
 import ChannelsSidebar from "../navigation/ChannelsSidebar";
 import RoomStreamStage from "../voice/RoomStreamStage";
+import AddonStageHost from "../voice/AddonStageHost";
 import { soundEngine } from "../../lib/soundEngine";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { cn } from "../../lib/cn";
@@ -97,6 +98,74 @@ export default function RoomView({
     soundEngine.playNav("open");
     setActiveThreadMessage(msg);
   }, []);
+
+  const [activeAddonStage, setActiveAddonStage] = useState(null);
+  const [isStageFloating, setIsStageFloating] = useState(false);
+  const [isStageFullscreen, setIsStageFullscreen] = useState(false);
+
+  const activeAddonStageRef = useRef(activeAddonStage);
+  activeAddonStageRef.current = activeAddonStage;
+
+  const handleCloseStage = useCallback((fromIpc = false) => {
+    soundEngine.playNav("close");
+    setActiveAddonStage(null);
+    setIsStageFloating(false);
+    setIsStageFullscreen(false);
+    window.electronAPI?.setFullscreen?.(false);
+    setActiveGame((prev) => (prev?.source?.startsWith("addon:") ? { name: null, cover: null, type: "game", startTime: null } : prev));
+    if (!fromIpc) {
+      window.electronAPI?.closeStageView?.();
+    }
+  }, []);
+
+  const handleOpenStage = useCallback((stageDef, fromIpc = false) => {
+    if (!stageDef) return;
+    const userNick = profile?.nickname || profile?.username || "Jugador";
+    const enrichedStageDef = {
+      ...stageDef,
+      userNick: stageDef.userNick || userNick,
+      authorName: stageDef.authorName || userNick,
+    };
+
+    const currentStage = activeAddonStageRef.current;
+    if (currentStage && currentStage.pluginId === enrichedStageDef.pluginId) {
+      // Si se abre un juego con URL diferente al actual, cargar el nuevo juego
+      const isDifferentTarget = (enrichedStageDef.url && enrichedStageDef.url !== currentStage.url) ||
+        (enrichedStageDef.activity?.name && enrichedStageDef.activity.name !== currentStage.activity?.name);
+      if (!isDifferentTarget) {
+        // Solo alternar PiP sin recargar si es exactamente la misma vista
+        setIsStageFloating((prevFloating) => !prevFloating);
+        return;
+      }
+    }
+
+    soundEngine.playNav("open");
+    setActiveAddonStage(enrichedStageDef);
+    setIsStageFloating(Boolean(enrichedStageDef.isFloating));
+
+    // Si viene de un evento DOM local (como clic en invitación del chat), sincronizar con Electron
+    if (!fromIpc) {
+      window.electronAPI?.openStageView?.(enrichedStageDef);
+    }
+  }, [profile?.nickname, profile?.username]);
+
+  useEffect(() => {
+    const unsubOpen = window.electronAPI?.onOpenStageView?.((stageDef) => handleOpenStage(stageDef, true));
+    const unsubClose = window.electronAPI?.onCloseStageView?.(() => handleCloseStage(true));
+
+    const onCustomOpen = (e) => handleOpenStage(e.detail, false);
+    const onCustomClose = () => handleCloseStage(false);
+
+    window.addEventListener("onicord:open-stage", onCustomOpen);
+    window.addEventListener("onicord:close-stage", onCustomClose);
+
+    return () => {
+      unsubOpen?.();
+      unsubClose?.();
+      window.removeEventListener("onicord:open-stage", onCustomOpen);
+      window.removeEventListener("onicord:close-stage", onCustomClose);
+    };
+  }, [handleOpenStage, handleCloseStage]);
 
   useEffect(() => {
     if (!textChannelId?.startsWith("dm_")) {
@@ -756,12 +825,16 @@ export default function RoomView({
     if (localStream) {
       setIsStreamFloating(true);
     }
+    if (activeAddonStage) {
+      setIsStageFloating(true);
+    }
     await window.electronAPI?.setServerChannel?.(server.id, channelId);
   };
 
   const prevVoiceChannelRef = useRef(selectedVoiceChannelId);
   useEffect(() => {
     if (prevVoiceChannelRef.current !== selectedVoiceChannelId) {
+      const wasInVoice = Boolean(prevVoiceChannelRef.current);
       prevVoiceChannelRef.current = selectedVoiceChannelId;
       if (localStream || remoteStream) {
         handleStopScreenShare();
@@ -769,8 +842,12 @@ export default function RoomView({
         setActiveStreamUserId(null);
         activeStreamUserIdRef.current = null;
       }
+      // Si el usuario sale del chat de voz, cerrar automáticamente cualquier escenario de addon abierto
+      if (wasInVoice && !selectedVoiceChannelId && activeAddonStageRef.current) {
+        handleCloseStage(false);
+      }
     }
-  }, [selectedVoiceChannelId]);
+  }, [selectedVoiceChannelId, handleCloseStage]);
 
   const selectVoiceChannel = async (channelId) => {
     if (channelId && channelId === selectedVoiceChannelId) {
@@ -792,6 +869,9 @@ export default function RoomView({
     if (channelId) {
       globalVoice.joinVoiceChannel(server, channelId);
     } else {
+      if (activeAddonStageRef.current) {
+        handleCloseStage(false);
+      }
       globalVoice.leaveVoiceChannel();
     }
   };
@@ -839,6 +919,9 @@ export default function RoomView({
   };
 
   const handleDisconnectVoice = async () => {
+    if (activeAddonStageRef.current) {
+      handleCloseStage(false);
+    }
     await handleStopScreenShare();
     globalVoice.leaveVoiceChannel();
   };
@@ -991,6 +1074,22 @@ export default function RoomView({
             </div>
           </header>
 
+          {activeAddonStage && isStageFloating && (
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playNav("open");
+                setIsStageFloating(false);
+              }}
+              className="h-12 px-3.5 rounded-full bg-onicord-accent/15 hover:bg-onicord-accent/25 text-onicord-accent border border-onicord-accent/30 flex items-center gap-2 text-xs font-semibold shadow-sm transition-all cursor-pointer shrink-0 animate-fade-in"
+              title="Volver a la vista del juego"
+            >
+              <MaterialIcon name={activeAddonStage.icon || "sports_esports"} size={18} />
+              <span className="truncate max-w-[130px]">{activeAddonStage.title || "Juego"}</span>
+              <MaterialIcon name="open_in_full" size={14} />
+            </button>
+          )}
+
           <div className="h-12 flex-1 min-w-0 flex items-center gap-4 px-4 bg-onicord-base rounded-full border border-onicord-island">
             <IconSearch size="lg" />
             <input
@@ -1029,7 +1128,7 @@ export default function RoomView({
         <div className="flex-1 min-h-0 flex gap-1 overflow-hidden">
           <div className="flex-1 min-w-0 h-full flex flex-col relative overflow-hidden bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island">
             <div
-              className={`flex-1 h-full min-h-0 flex flex-col ${(localStream || remoteStream) && !isStreamFloating ? "hidden" : "flex"}`}
+              className={`flex-1 h-full min-h-0 flex flex-col ${((localStream || remoteStream) && !isStreamFloating) || (activeAddonStage && !isStageFloating) ? "hidden" : "flex"}`}
             >
               <PluginBannerNotice serverPlugins={server?.plugins} />
               <ChatPanel
@@ -1067,6 +1166,49 @@ export default function RoomView({
                 setRemoteStream(null);
                 setActiveStreamUserId(null);
                 activeStreamUserIdRef.current = null;
+              }}
+            />
+
+            <AddonStageHost
+              activeStage={activeAddonStage}
+              onCloseStage={() => handleCloseStage(false)}
+              isStageFloating={isStageFloating}
+              isStageFullscreen={isStageFullscreen}
+              setIsStageFloating={setIsStageFloating}
+              setIsStageFullscreen={setIsStageFullscreen}
+              onShareToChat={(customUrl) => {
+                if (!activeAddonStage || !window.electronAPI?.sendChatMessage) return;
+                const joinUrl =
+                  typeof customUrl === "string" && customUrl.startsWith("http")
+                    ? customUrl
+                    : activeAddonStage.url;
+
+                const queryParam = activeAddonStage.shareCapture?.queryParam || "sala";
+                let roomCode = activeAddonStage.roomCode || server?.roomCode?.slice(0, 6) || "P2P";
+                try {
+                  const parsed = new URL(joinUrl);
+                  const roomValue = parsed.searchParams.get(queryParam) || parsed.searchParams.get("room") || parsed.searchParams.get("code");
+                  if (roomValue) roomCode = roomValue;
+                } catch (_) {}
+
+                const embedPayload = {
+                  pluginId: activeAddonStage.pluginId,
+                  type: activeAddonStage.embedType || "game_lobby",
+                  data: {
+                    gameTitle: activeAddonStage.title || "Partida Multijugador",
+                    gameIcon: activeAddonStage.icon || "sports_esports",
+                    roomCode,
+                    authorName: profile?.nickname || profile?.username || "Jugador",
+                    joinUrl,
+                    shareCapture: activeAddonStage.shareCapture,
+                    frameScripts: activeAddonStage.frameScripts,
+                  },
+                };
+                window.electronAPI.sendChatMessage(
+                  server.roomCode,
+                  textChannelId,
+                  `[PLUGIN_EMBED]:${JSON.stringify(embedPayload)}`
+                );
               }}
             />
           </div>

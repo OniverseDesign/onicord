@@ -450,6 +450,20 @@ export default function ThreadSidePanel({
     [server, parentMessage]
   );
 
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!messageToDelete?.msg?.id || !server?.roomCode) return;
+    try {
+      await window.electronAPI?.deleteChatMessage?.(
+        server.roomCode,
+        parentMessage.channelId || "general",
+        messageToDelete.msg.id
+      );
+      setMessageToDelete(null);
+    } catch (err) {
+      console.error("Error deleting message in thread:", err);
+    }
+  }, [messageToDelete, server?.roomCode, parentMessage?.channelId]);
+
   const handleForwardMessageConfirm = useCallback(
     async (originalMsg, targetChannelId) => {
       if (!originalMsg || !targetChannelId || !window.electronAPI?.sendChatMessage) return;

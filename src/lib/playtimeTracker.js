@@ -12,7 +12,23 @@ export function getPlaytimeData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) || {};
+    const data = JSON.parse(raw) || {};
+    let modified = false;
+    for (const key of Object.keys(data)) {
+      if (
+        key === "Arcade" ||
+        key === "Onicord Arcade" ||
+        data[key]?.type === "launcher" ||
+        data[key]?.isCatalog
+      ) {
+        delete data[key];
+        modified = true;
+      }
+    }
+    if (modified) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+    return data;
   } catch (err) {
     console.error("[PlaytimeTracker] Error loading playtime data:", err);
     return {};
@@ -27,7 +43,15 @@ export function getPlaytimeData() {
  * @param {string} type 
  */
 export function addPlaytime(gameName, addedSeconds, cover = null, type = "game") {
-  if (!gameName || addedSeconds <= 0) return;
+  if (
+    !gameName ||
+    addedSeconds <= 0 ||
+    gameName === "Arcade" ||
+    gameName === "Onicord Arcade" ||
+    type === "launcher"
+  ) {
+    return;
+  }
 
   try {
     const current = getPlaytimeData();
@@ -105,44 +129,86 @@ export function initGlobalPlaytimeTracker() {
   if (!api || typeof window === "undefined") return () => {};
 
   let currentActive = null;
+  let lastTimestamp = Date.now();
   let interval = null;
 
-  const startTracking = (activity) => {
-    if (interval) clearInterval(interval);
-    if (!activity || !activity.name || activity.type === "music") {
+  const flushElapsed = () => {
+    if (currentActive?.name) {
+      const now = Date.now();
+      const elapsedSeconds = Math.floor((now - lastTimestamp) / 1000);
+      if (elapsedSeconds > 0) {
+        addPlaytime(
+          currentActive.name,
+          elapsedSeconds,
+          currentActive.cover,
+          currentActive.type || "game"
+        );
+        lastTimestamp = now;
+      }
+    }
+  };
+
+  const handleActivityChange = (activity) => {
+    // 1. Guardar cualquier segundo acumulado del juego previo antes de cambiar
+    flushElapsed();
+
+    const isIgnored =
+      !activity ||
+      !activity.name ||
+      activity.name === "Arcade" ||
+      activity.name === "Onicord Arcade" ||
+      activity.type === "music" ||
+      activity.type === "launcher" ||
+      activity.isCatalog === true;
+
+    if (isIgnored) {
       currentActive = null;
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
       return;
     }
 
-    currentActive = activity;
-    // Registro inicial
-    addPlaytime(activity.name, 1, activity.cover, activity.type || "game");
+    // 2. Si es el mismo juego activo que ya está corriendo, NO reiniciar el temporizador
+    if (currentActive && currentActive.name === activity.name) {
+      if (activity.cover && !currentActive.cover) currentActive.cover = activity.cover;
+      if (activity.type && !currentActive.type) currentActive.type = activity.type;
+      return;
+    }
 
-    // Registro acumulativo cada 10 segundos
-    interval = setInterval(() => {
-      if (currentActive?.name) {
-        addPlaytime(currentActive.name, 10, currentActive.cover, currentActive.type || "game");
-      }
-    }, 10000);
+    // 3. Iniciar seguimiento del nuevo juego
+    currentActive = { ...activity };
+    lastTimestamp = Date.now();
+
+    // Acumular periódicamente cada 5 segundos
+    if (!interval) {
+      interval = setInterval(() => {
+        flushElapsed();
+      }, 5000);
+    }
   };
 
   // Consultar estado inicial
   api.getCurrentGame?.().then((game) => {
-    if (game?.name) startTracking(game);
+    if (game?.name) handleActivityChange(game);
   });
 
   // Escuchar cambios de actividad
   const unsub = api.onGameActivityChanged?.((game) => {
-    if (game?.name) {
-      startTracking(game);
-    } else {
-      if (interval) clearInterval(interval);
-      currentActive = null;
-    }
+    handleActivityChange(game);
   });
 
+  // Guardar tiempo si se cierra o recarga la aplicación
+  const handleBeforeUnload = () => {
+    flushElapsed();
+  };
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
   return () => {
+    flushElapsed();
     if (interval) clearInterval(interval);
     unsub?.();
+    window.removeEventListener("beforeunload", handleBeforeUnload);
   };
 }

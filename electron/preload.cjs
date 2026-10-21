@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, webUtils } = require("electron");
+const { contextBridge, ipcRenderer, webUtils, clipboard } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
   minimizeWindow: () => ipcRenderer.send("window:minimize"),
@@ -352,6 +352,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   packPluginDialog: () => ipcRenderer.invoke("plugins:pack-dialog"),
   uninstallPlugin: (pluginId) => ipcRenderer.invoke("plugins:uninstall", pluginId),
   togglePlugin: (pluginId, enabled) => ipcRenderer.invoke("plugins:toggle", pluginId, enabled),
+  reloadPlugin: (pluginId) => ipcRenderer.invoke("plugins:reload", pluginId),
   getPluginWidgets: () => ipcRenderer.invoke("plugins:get-widgets"),
   onPluginWidgetsUpdated: (callback) => {
     const handler = (_event, widgets) => callback(widgets);
@@ -381,6 +382,33 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("plugins:chat-clear-outbound", handler);
   },
   getDashboardWidgets: () => ipcRenderer.invoke("plugins:get-dashboard-widgets"),
+  getVoiceControlButtons: () => ipcRenderer.invoke("plugins:get-voice-control-buttons"),
+  triggerVoiceControlButton: (pluginId, buttonId, data) => ipcRenderer.invoke("plugins:trigger-voice-control-button", pluginId, buttonId, data),
+  onVoiceControlButtonsUpdated: (callback) => {
+    const handler = (_event, buttons) => callback(buttons);
+    ipcRenderer.on("plugins:voice-control-buttons-updated", handler);
+    return () => ipcRenderer.removeListener("plugins:voice-control-buttons-updated", handler);
+  },
+  onVoiceControlButtonTriggered: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("plugins:voice-control-button-triggered", handler);
+    return () => ipcRenderer.removeListener("plugins:voice-control-button-triggered", handler);
+  },
+  openStageView: (stageDef) => ipcRenderer.invoke("plugins:open-stage-view", stageDef),
+  closeStageView: (stageDef) => ipcRenderer.invoke("plugins:close-stage-view", stageDef),
+  setStageActivity: (activityData) => ipcRenderer.invoke("plugins:set-stage-activity", activityData),
+  setStageVolume: (volume, isMuted) => ipcRenderer.invoke("plugins:set-stage-volume", { volume, isMuted }),
+  clearStageStorage: (origins) => ipcRenderer.invoke("plugins:clear-stage-storage", origins),
+  onOpenStageView: (callback) => {
+    const handler = (_event, stageDef) => callback(stageDef);
+    ipcRenderer.on("plugins:open-stage-view", handler);
+    return () => ipcRenderer.removeListener("plugins:open-stage-view", handler);
+  },
+  onCloseStageView: (callback) => {
+    const handler = (_event, stageDef) => callback(stageDef);
+    ipcRenderer.on("plugins:close-stage-view", handler);
+    return () => ipcRenderer.removeListener("plugins:close-stage-view", handler);
+  },
   sendWidgetP2PData: (payload) => ipcRenderer.invoke("plugins:send-widget-p2p-data", payload),
   onWidgetP2PData: (callback) => {
     const handler = (_event, data) => callback(data);
@@ -417,6 +445,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
   downloadUpdate: () => ipcRenderer.invoke("update:download"),
   installUpdate: () => ipcRenderer.invoke("update:install"),
   isPortableBuild: () => ipcRenderer.invoke("update:isPortable"),
+  captureStageShareUrl: (stageConfig) => ipcRenderer.invoke("stage:capture-share-url", stageConfig),
+  readClipboard: () => {
+    try {
+      return clipboard.readText();
+    } catch (_) {
+      return "";
+    }
+  },
+  writeClipboard: (text) => {
+    try {
+      clipboard.writeText(String(text || ""));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  },
   onUpdateStatus: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("update:status", handler);

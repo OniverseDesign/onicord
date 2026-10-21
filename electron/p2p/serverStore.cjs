@@ -382,6 +382,7 @@ class ServerStore {
           const fsSync = require("fs");
           const roomMetaPath = path.join(this.userDataPath, "room-meta", `${code}.json`);
           const serverFilesDir = path.join(this.filesDir, code);
+          const serverChatsDir = path.join(this.userDataPath, "chats", code);
 
           if (fsSync.existsSync(roomMetaPath)) {
             fsSync.rmSync(roomMetaPath, { force: true });
@@ -389,7 +390,10 @@ class ServerStore {
           if (fsSync.existsSync(serverFilesDir)) {
             fsSync.rmSync(serverFilesDir, { recursive: true, force: true });
           }
-          console.log(`[ServerStore] Completely purged server ${code} (room-meta & files) from disk.`);
+          if (fsSync.existsSync(serverChatsDir)) {
+            fsSync.rmSync(serverChatsDir, { recursive: true, force: true });
+          }
+          console.log(`[ServerStore] Completely purged server ${code} (room-meta, files & chats) from disk.`);
         } catch (e) {
           console.error(`[ServerStore] Error purging disk files for server ${code}:`, e);
         }
