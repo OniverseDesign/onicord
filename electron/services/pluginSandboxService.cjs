@@ -3,6 +3,7 @@ const vm = require("vm");
 const fs = require("fs");
 const path = require("path");
 const pluginService = require("./pluginService.cjs");
+const profileService = require("./profileService.cjs");
 
 function resolvePluginAvatar(avatarProp, pluginId) {
   return pluginService.resolvePluginIcon(avatarProp, pluginId);
@@ -66,6 +67,7 @@ class PluginSandboxService {
     const voiceButtonHandlers = new Map();
     const commandHandlers = new Map();
     const p2pListeners = new Set();
+    const stageResolvers = [];
 
     if (Array.isArray(manifest.voiceControlButtons)) {
       for (const btn of manifest.voiceControlButtons) {
@@ -308,8 +310,14 @@ class PluginSandboxService {
                   htmlContent = fs.readFileSync(entryPath, "utf-8");
                   const widgetDir = path.dirname(entryPath);
                   const baseHref = `onicord-media://win-disk/${widgetDir.replace(/\\/g, "/")}/`;
-                  if (!htmlContent.includes("<base ") && htmlContent.includes("<head>")) {
-                    htmlContent = htmlContent.replace("<head>", `<head>\n  <base href="${baseHref}">`);
+                  const fallbackNick = profileService.activeProfile?.nickname || profileService.activeProfile?.username || "Oniverse";
+                  let initialUserNick = stageDef?.userNick || stageDef?.authorName;
+                  if (!initialUserNick || initialUserNick === "Jugador" || initialUserNick === "PLAYER") {
+                    initialUserNick = fallbackNick;
+                  }
+                  if (htmlContent.includes("<head>")) {
+                    const headInject = `<head>\n  <base href="${baseHref}">\n  <script>window._onicordUserNick = ${JSON.stringify(initialUserNick)};</script>`;
+                    htmlContent = htmlContent.replace("<head>", headInject);
                   }
                 }
               } catch (err) {
@@ -348,7 +356,11 @@ class PluginSandboxService {
               } catch (_) {}
             `;
             scripts.unshift(bridgeScript);
-            const nick = enriched?.userNick || enriched?.authorName;
+            const fallbackNick = profileService.activeProfile?.nickname || profileService.activeProfile?.username || "Oniverse";
+            let nick = enriched?.userNick || enriched?.authorName;
+            if (!nick || nick === "Jugador" || nick === "PLAYER") {
+              nick = fallbackNick;
+            }
             if (nick && typeof nick === "string" && nick.trim()) {
               scripts.unshift(`window._onicordUserNick = ${JSON.stringify(nick.trim().slice(0, 20))};`);
             }
@@ -369,15 +381,27 @@ class PluginSandboxService {
           }
         }
       },
+      stage: {
+        onResolveStage: (handler) => {
+          if (typeof handler === "function") {
+            stageResolvers.push(handler);
+          }
+        },
+      },
       user: {
         getProfile: () => {
           if (!manifest.permissions?.includes("user.profile")) {
             console.warn(`[SANDBOX] ${pluginId} bloqueado: falta permiso user.profile`);
             return null;
           }
-          if (global.roomManager?.p2pService?.profile) {
-            const p = global.roomManager.p2pService.profile;
-            return { nickname: p.nickname, avatar: p.avatar, id: p.id };
+          const p = global.roomManager?.p2pService?.profile || profileService.activeProfile;
+          if (p) {
+            return {
+              nickname: p.nickname || p.username || "Jugador",
+              avatar: p.avatar,
+              id: p.id,
+              username: p.username || p.nickname || "Jugador"
+            };
           }
           return null;
         },
@@ -508,6 +532,7 @@ class PluginSandboxService {
         voiceButtonHandlers,
         commandHandlers,
         p2pListeners,
+        stageResolvers,
       });
       console.log(`[SANDBOX] Complemento ${manifest.name} iniciado correctamente.`);
       if (ipcBroadcaster) {
@@ -519,6 +544,64 @@ class PluginSandboxService {
     } catch (err) {
       console.error(`[SANDBOX] Error ejecutando complemento ${manifest.name}:`, err);
     }
+  }
+
+  resolveStage(pluginId, stageDef) {
+    if (!pluginId) return stageDef;
+    const sandbox = this.activeSandboxes.get(pluginId);
+    let resolvedStage = stageDef;
+    if (sandbox?.stageResolvers && Array.isArray(sandbox.stageResolvers)) {
+      for (const resolver of sandbox.stageResolvers) {
+        try {
+          const resolved = resolver(stageDef);
+          if (resolved && typeof resolved === "object") {
+            resolvedStage = {
+              ...resolved,
+              ...stageDef,
+              frameScripts: Array.isArray(resolved.frameScripts) && resolved.frameScripts.length > 0
+                ? resolved.frameScripts
+                : stageDef?.frameScripts,
+              shareCapture: resolved.shareCapture || stageDef?.shareCapture,
+            };
+          }
+        } catch (e) {
+          console.error(`[SANDBOX] Error executing stage resolver for ${pluginId}:`, e);
+        }
+      }
+    }
+
+    // Si la etapa define un entryPoint HTML pero aún no tiene htmlContent precargado
+    if (resolvedStage?.entryPoint && !resolvedStage?.htmlContent) {
+      const pluginsDir = pluginService.getPluginsDir ? pluginService.getPluginsDir() : "";
+      const pluginDir = (pluginService.findPluginDir && pluginService.findPluginDir(pluginId)) || (pluginsDir ? path.join(pluginsDir, pluginId) : "");
+      if (pluginDir) {
+        const entryPath = path.join(pluginDir, resolvedStage.entryPoint);
+        try {
+          if (fs.existsSync(entryPath)) {
+            let htmlContent = fs.readFileSync(entryPath, "utf-8");
+            const widgetDir = path.dirname(entryPath);
+            const baseHref = `onicord-media://win-disk/${widgetDir.replace(/\\/g, "/")}/`;
+            const fallbackNick = profileService.activeProfile?.nickname || profileService.activeProfile?.username || "Oniverse";
+            let initialUserNick = resolvedStage?.userNick || resolvedStage?.authorName;
+            if (!initialUserNick || initialUserNick === "Jugador" || initialUserNick === "PLAYER") {
+              initialUserNick = fallbackNick;
+            }
+            if (htmlContent.includes("<head>")) {
+              const headInject = `<head>\n  <base href="${baseHref}">\n  <script>window._onicordUserNick = ${JSON.stringify(initialUserNick)};</script>`;
+              htmlContent = htmlContent.replace("<head>", headInject);
+            }
+            resolvedStage = {
+              ...resolvedStage,
+              htmlContent,
+            };
+          }
+        } catch (err) {
+          console.error(`[SANDBOX] Error resolving stage entryPoint HTML ${entryPath}:`, err.message);
+        }
+      }
+    }
+
+    return resolvedStage;
   }
 
   getAllPluginCommands() {

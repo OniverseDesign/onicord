@@ -151,26 +151,51 @@ export default function AddonStageDisplay({
     onClose?.();
   }, [onClose]);
 
-  // Retorno al Catálogo Launcher sin desmontar ni recargar la llamada de voz
-  const handleReturnToCatalog = useCallback(() => {
-    setActiveGame(null);
-    setActiveUrl(stageData?.url || null);
-    setActiveHtml(stageData?.htmlContent || null);
-    setActiveTitle(stageData?.title || "Escenario");
-
-    if (window.electronAPI?.setStageActivity) {
-      window.electronAPI.setStageActivity({
-        pluginId: stageData?.pluginId,
-        name: stageData?.title || stageData?.activity?.name || "Complemento",
-        details: stageData?.activity?.details || stageData?.title || "Complemento",
-        state: null,
-        cover: null,
-        type: "launcher",
-        isCatalog: true,
-        startTime: Date.now(),
-      });
+  // Guardar y preservar la definición original del launcher/catálogo agnósticamente
+  const catalogStageRef = useRef(stageData);
+  useEffect(() => {
+    if (stageData && (stageData.htmlContent || stageData.entryPoint || stageData.activity?.isCatalog)) {
+      catalogStageRef.current = stageData;
     }
   }, [stageData]);
+
+  // Retorno al Catálogo Launcher sin desmontar ni recargar la llamada de voz
+  const handleReturnToCatalog = useCallback(() => {
+    const catalog = catalogStageRef.current || stageData;
+    setActiveGame(null);
+    setActiveUrl(catalog?.url || null);
+    setActiveHtml(catalog?.htmlContent || null);
+    setActiveTitle(catalog?.title || "Escenario");
+
+    if (iframeRef.current) {
+      try {
+        iframeRef.current.src = "about:blank";
+      } catch (_) {}
+    }
+
+    const catalogActivity = {
+      pluginId: catalog?.pluginId,
+      name: catalog?.activity?.name || catalog?.title || "Arcade",
+      details: catalog?.activity?.details || "Catálogo de Juegos",
+      state: null,
+      cover: null,
+      type: "launcher",
+      isCatalog: true,
+      startTime: Date.now(),
+    };
+
+    if (window.electronAPI?.openStageView) {
+      window.electronAPI.openStageView({
+        ...catalog,
+        activity: catalogActivity,
+        isFloating: isMini,
+      });
+    }
+
+    if (window.electronAPI?.setStageActivity) {
+      window.electronAPI.setStageActivity(catalogActivity);
+    }
+  }, [stageData, isMini]);
 
   const activeGameRef = useRef(activeGame);
   activeGameRef.current = activeGame;
@@ -184,21 +209,19 @@ export default function AddonStageDisplay({
       if (!iframeRef.current || e.source !== iframeRef.current.contentWindow) return;
       if (!e.data || typeof e.data !== "object") return;
 
-      // 2. Control de aislamiento de catálogo:
-      // Cuando un juego externo está activo (activeGame no nulo y activeHtml es nulo),
-      // el sitio web remoto NO tiene permitido comandar navegación ni cerrar el escenario.
-      if (activeGameRef.current && !activeHtmlRef.current) {
-        return;
-      }
-
       if (
         e.data.type === "ONICORD_STAGE_LAUNCH_GAME" ||
         e.data.type === "ONICORD_STAGE_NAVIGATE"
       ) {
+        // Control de aislamiento: si ya hay un juego externo corriendo, no permitir comandar navegación desde la web remota
+        if (activeGameRef.current && !activeHtmlRef.current) {
+          return;
+        }
+
         const game = e.data.game || e.data.target;
         if (game && typeof game.url === "string") {
           const rawUrl = game.url.trim();
-          // 3. Validación estricta de protocolo web: solo https:// o http:// (bloquea javascript:, file:, data:, onicord-media:)
+          // Validación estricta de protocolo web: solo https:// o http:// (bloquea javascript:, file:, data:, onicord-media:)
           if (!rawUrl.startsWith("https://") && !rawUrl.startsWith("http://")) {
             console.warn("[AddonStageDisplay] URL de juego descartada por protocolo no seguro:", rawUrl);
             return;
@@ -215,6 +238,25 @@ export default function AddonStageDisplay({
             }
           }
 
+          const isGeneric = (n) => !n || n === "Jugador" || n === "PLAYER";
+          const userNick = (!isGeneric(game.userNick) ? game.userNick : null)
+            || (!isGeneric(game.authorName) ? game.authorName : null)
+            || (!isGeneric(stageData?.userNick) ? stageData?.userNick : null)
+            || (!isGeneric(stageData?.authorName) ? stageData?.authorName : null)
+            || (!isGeneric(window._onicordUserNick) ? window._onicordUserNick : null)
+            || "Oniverse";
+
+          const gameActivity = {
+            pluginId: stageData?.pluginId,
+            name: safeTitle,
+            details: safeDetails,
+            state: safeState,
+            cover: safeCover,
+            type: "game",
+            isCatalog: false,
+            startTime: Date.now(),
+          };
+
           const safeGame = {
             ...game,
             title: safeTitle,
@@ -222,6 +264,13 @@ export default function AddonStageDisplay({
             details: safeDetails,
             state: safeState,
             cover: safeCover,
+            userNick: userNick,
+            authorName: userNick,
+            shareCapture: game.shareCapture || stageData?.shareCapture || null,
+            frameScripts: Array.isArray(game.frameScripts) ? game.frameScripts : (stageData?.frameScripts || []),
+            type: "game",
+            isCatalog: false,
+            activity: gameActivity,
           };
 
           setActiveGame(safeGame);
@@ -229,20 +278,25 @@ export default function AddonStageDisplay({
           setActiveHtml(null); // Limpiar srcDoc para que el iframe cargue la URL del juego
           setActiveUrl(rawUrl);
 
-          if (window.electronAPI?.setStageActivity) {
-            window.electronAPI.setStageActivity({
-              pluginId: stageData?.pluginId,
-              name: safeTitle,
-              details: safeDetails,
-              state: safeState,
-              cover: safeCover,
-              type: "game",
-              isCatalog: false,
-              startTime: Date.now(),
+          // Sincronizar nuevo objetivo con Electron (para inyección de frameScripts, apodo y captura de enlaces de sala)
+          if (window.electronAPI?.openStageView) {
+            window.electronAPI.openStageView({
+              ...stageData,
+              ...safeGame,
+              activity: gameActivity,
+              url: rawUrl,
+              entryPoint: null,
+              htmlContent: null,
+              isFloating: isMini,
             });
+          }
+
+          if (window.electronAPI?.setStageActivity) {
+            window.electronAPI.setStageActivity(gameActivity);
           }
         }
       } else if (e.data.type === "ONICORD_CLOSE_STAGE") {
+        if (activeGameRef.current && !activeHtmlRef.current) return;
         handleTerminate();
       } else if (e.data.type === "ONICORD_REQUEST_CONFIRM") {
         const req = e.data;
@@ -289,25 +343,105 @@ export default function AddonStageDisplay({
     } catch (_) {}
   }, [volume, isMuted]);
 
-  // Detección dinámica de mandos
+  // Detección dinámica de mandos, transferencia de foco y puente continuo de entrada a juegos en iframe
   useEffect(() => {
-    const checkGamepads = () => {
-      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-      const connected = Array.from(pads).some((p) => p && p.connected);
+    let animId = null;
+
+    const checkAndSyncGamepads = () => {
+      const rawPads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const connected = Array.from(rawPads || []).some((p) => p && p.connected);
       setHasGamepad(connected);
+
+      if (connected && iframeRef.current?.contentWindow) {
+        // 1. Si hay juego activo y se pulsa algún botón, garantizar foco
+        const anyButtonPressed = Array.from(rawPads).some((p) => p?.buttons?.some((b) => b.pressed));
+        if (anyButtonPressed && activeGameRef.current && document.activeElement !== iframeRef.current) {
+          try {
+            iframeRef.current.focus();
+            iframeRef.current.contentWindow.focus();
+          } catch (_) {}
+        }
+
+        // 2. Transmitir estado serializado del mando al iframe para soslayar restricciones de aislamiento entre orígenes
+        try {
+          const serializablePads = Array.from(rawPads).map((p) => {
+            if (!p || !p.connected) return null;
+            return {
+              id: p.id || "Generic Gamepad",
+              index: p.index || 0,
+              connected: Boolean(p.connected),
+              mapping: p.mapping || "standard",
+              timestamp: p.timestamp || performance.now(),
+              buttons: p.buttons
+                ? p.buttons.map((b) => ({
+                    pressed: Boolean(b.pressed),
+                    value: typeof b.value === "number" ? b.value : (b.pressed ? 1 : 0),
+                  }))
+                : [],
+              axes: p.axes ? Array.from(p.axes) : [],
+            };
+          });
+
+          iframeRef.current.contentWindow.postMessage(
+            { type: "ONICORD_GAMEPAD_STATE", pads: serializablePads },
+            "*"
+          );
+        } catch (_) {}
+      }
+
+      animId = requestAnimationFrame(checkAndSyncGamepads);
     };
 
-    checkGamepads();
-    window.addEventListener("gamepadconnected", checkGamepads);
-    window.addEventListener("gamepaddisconnected", checkGamepads);
-    const interval = setInterval(checkGamepads, 2500);
+    animId = requestAnimationFrame(checkAndSyncGamepads);
 
     return () => {
-      window.removeEventListener("gamepadconnected", checkGamepads);
-      window.removeEventListener("gamepaddisconnected", checkGamepads);
-      clearInterval(interval);
+      if (animId) cancelAnimationFrame(animId);
     };
   }, []);
+
+  // Asegurar que el iframe del juego capture el foco activo necesario para el Gamepad API y controles
+  useEffect(() => {
+    if (activeGame && iframeRef.current) {
+      const focusFrame = () => {
+        try {
+          iframeRef.current?.focus();
+          iframeRef.current?.contentWindow?.focus();
+        } catch (_) {}
+      };
+      focusFrame();
+      const t1 = setTimeout(focusFrame, 200);
+      const t2 = setTimeout(focusFrame, 800);
+
+      // Sincronizar scripts con el subframe activo
+      if (window.electronAPI?.openStageView) {
+        const effectiveGameActivity = activeGame?.activity || {
+          pluginId: stageData?.pluginId,
+          name: activeGame?.title || activeTitle || "Juego",
+          details: activeGame?.details || "Arcade",
+          state: activeGame?.state || "En partida",
+          cover: activeGame?.cover || null,
+          type: "game",
+          isCatalog: false,
+          startTime: Date.now(),
+        };
+
+        window.electronAPI.openStageView({
+          ...stageData,
+          ...activeGame,
+          activity: effectiveGameActivity,
+          url: activeUrl || activeGame?.url,
+          entryPoint: null,
+          htmlContent: null,
+          isFloating: isMini,
+        });
+      }
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [activeGame, activeUrl]);
 
   // PiP Resize clamp y liberación global de puntero (idéntico a StreamDisplay)
   useEffect(() => {
@@ -450,16 +584,31 @@ export default function AddonStageDisplay({
       className={containerClasses}
     >
       {/* 1. PERSISTENT CENTRAL CONTENT (El iframe permanece siempre montado para evitar recargas) */}
-      <div className={`flex-1 w-full h-full relative overflow-hidden bg-black min-h-0 min-w-0 ${isDraggingState ? "pointer-events-none select-none" : "pointer-events-auto"}`}>
+      <div
+        onPointerDown={() => {
+          try {
+            iframeRef.current?.focus();
+            iframeRef.current?.contentWindow?.focus();
+          } catch (_) {}
+        }}
+        className={`flex-1 w-full h-full relative overflow-hidden bg-black min-h-0 min-w-0 ${isDraggingState ? "pointer-events-none select-none" : "pointer-events-auto"}`}
+      >
         <iframe
+          key={
+            activeGame
+              ? `game-${activeGame.id || activeGame.title || activeUrl || "active"}`
+              : activeHtml
+                ? `catalog-${stageData?.pluginId || "launcher"}`
+                : `direct-${activeUrl || "stage"}`
+          }
           ref={iframeRef}
           src={activeUrl || undefined}
           srcDoc={activeHtml || undefined}
           title={stageTitle}
-          credentialless="true"
           sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-downloads"
-          allow="cross-origin-isolated; gamepad; autoplay; fullscreen; clipboard-read; clipboard-write; microphone; pointer-lock"
-          className="w-full h-full border-0 bg-black block"
+          allow="gamepad; autoplay; fullscreen; pointer-lock; clipboard-read; clipboard-write; microphone; hid; usb"
+          className="w-full h-full border-0 bg-black block outline-none"
+          tabIndex={0}
         />
 
         {/* 2. OVERLAY INTEGRADO MODO PIP (Estilo StreamDisplay, arrastre en toda la superficie y botones) */}
@@ -643,7 +792,8 @@ export default function AddonStageDisplay({
                   let dynamicUrl = null;
                   const currentContext = {
                     ...stageData,
-                    url: activeUrl || stageData?.url,
+                    ...activeGame,
+                    url: activeUrl || activeGame?.url || stageData?.url,
                     shareCapture: activeGame?.shareCapture || stageData?.shareCapture,
                   };
 
@@ -659,10 +809,10 @@ export default function AddonStageDisplay({
                   const queryParam = currentContext.shareCapture?.queryParam;
                   if (dynamicUrl && (!queryParam || dynamicUrl.includes(queryParam))) {
                     console.log("[AddonStage] Compartiendo enlace al chat:", dynamicUrl);
-                    onShareToChat(dynamicUrl);
+                    onShareToChat(dynamicUrl, currentContext);
                   } else if (!queryParam && currentContext.url) {
                     // Si el complemento no usa parámetros de sala, compartir URL base
-                    onShareToChat(currentContext.url);
+                    onShareToChat(currentContext.url, currentContext);
                   } else {
                     console.warn("[AddonStage] No se detectó una sala activa.");
                     alert(

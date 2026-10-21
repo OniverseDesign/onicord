@@ -128,19 +128,141 @@ function registerPluginDriveHandlers() {
     return pluginSandboxService.triggerVoiceControlButton(pluginId, buttonId, data, broadcastToAll);
   });
 
-  ipcMain.handle("plugins:open-stage-view", async (event, stageDef) => {
-    global.activeStageDef = stageDef;
-    // SEGURIDAD: Los frameScripts ejecutables NO se aceptan desde IPC/renderers ni mensajes de red.
-    // Solo se permite configurar variables seguras (como el apodo del usuario) con sanitización estricta.
-    const nick = stageDef?.userNick || stageDef?.authorName;
-    const safeNick = typeof nick === "string" ? nick.trim().slice(0, 20) : "";
-    let scripts = [];
-    if (safeNick) {
-      scripts.push(`window._onicordUserNick = ${JSON.stringify(safeNick)};`);
+  // Colectar recursivamente todos los subframes del webContents
+  function collectFrames(frame) {
+    let list = [frame];
+    if (frame && frame.frames && frame.frames.length > 0) {
+      for (const child of frame.frames) {
+        list = list.concat(collectFrames(child));
+      }
     }
+    return list;
+  }
+
+  ipcMain.handle("plugins:open-stage-view", async (event, rawStageDef) => {
+    let stageDef = rawStageDef || {};
+    if (stageDef?.pluginId) {
+      stageDef = pluginSandboxService.resolveStage(stageDef.pluginId, stageDef);
+    }
+    global.activeStageDef = stageDef;
+    const fallbackNick = profileService.activeProfile?.nickname || profileService.activeProfile?.username || "Oniverse";
+    let candidateNick = stageDef?.userNick || stageDef?.authorName;
+    if (!candidateNick || candidateNick === "Jugador" || candidateNick === "PLAYER") {
+      candidateNick = fallbackNick;
+    }
+    const safeNick = typeof candidateNick === "string" && candidateNick.trim() ? candidateNick.trim().slice(0, 20) : fallbackNick;
+    let scripts = [];
+
+    // 1. Inyectar siempre el puente agnóstico de confirmaciones nativas de Onicord y puente de mandos (Gamepad API)
+    const bridgeScript = `
+      try {
+        window.onicord = window.onicord || {};
+        if (!window.onicord.confirm) {
+          window.onicord.confirm = function(opts) {
+            return new Promise(function(resolve) {
+              var reqId = "req_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+              function onMsg(ev) {
+                if (ev.data && ev.data.type === "ONICORD_CONFIRM_RESPONSE" && ev.data.requestId === reqId) {
+                  window.removeEventListener("message", onMsg);
+                  resolve(Boolean(ev.data.confirmed));
+                }
+              }
+              window.addEventListener("message", onMsg);
+              window.parent.postMessage(Object.assign({
+                type: "ONICORD_REQUEST_CONFIRM",
+                requestId: reqId
+              }, opts || {}), "*");
+            });
+          };
+        }
+
+        // Puente agnóstico de Gamepad API para juegos en iframe
+        if (!window._onicordGamepadBridgeInstalled) {
+          window._onicordGamepadBridgeInstalled = true;
+          window._onicordSyncedGamepads = [];
+
+          window.addEventListener("message", function(ev) {
+            if (ev.data && ev.data.type === "ONICORD_GAMEPAD_STATE" && Array.isArray(ev.data.pads)) {
+              window._onicordSyncedGamepads = ev.data.pads;
+              if (window.isaacPadReader && typeof window.isaacPadReader.wake === "function") {
+                window.isaacPadReader.wake();
+              }
+              if (!window._onicordGamepadEventDispatched && ev.data.pads.some(function(p) { return p && p.connected; })) {
+                window._onicordGamepadEventDispatched = true;
+                try {
+                  var p0 = ev.data.pads.find(function(p) { return p && p.connected; });
+                  window.dispatchEvent(new CustomEvent("gamepadconnected", { detail: { gamepad: p0 } }));
+                } catch (_) {}
+              }
+            }
+          });
+
+          var origGetGamepads = navigator.getGamepads ? navigator.getGamepads.bind(navigator) : function() { return []; };
+          navigator.getGamepads = function() {
+            var native = origGetGamepads();
+            if (native && Array.from(native).some(function(p) { return p && p.connected; })) {
+              return native;
+            }
+            if (window._onicordSyncedGamepads && window._onicordSyncedGamepads.length > 0) {
+              return window._onicordSyncedGamepads;
+            }
+            return native || [];
+          };
+        }
+      } catch (_) {}
+    `;
+    scripts.push(bridgeScript);
+
+    // 2. Inyectar el apodo del usuario sanitizado
+    scripts.push(`window._onicordUserNick = ${JSON.stringify(safeNick)};`);
+
+    // 3. Inyectar los frameScripts configurados en la etapa
+    if (Array.isArray(stageDef?.frameScripts)) {
+      for (const s of stageDef.frameScripts) {
+        if (typeof s === "string" && s.trim()) {
+          scripts.push(s);
+        }
+      }
+    }
+
     global.currentStageScripts = scripts;
 
-    if (stageDef?.activity && stageDef?.activity?.name) {
+    // Ejecutar inmediatamente los scripts en todos los subframes existentes
+    try {
+      if (event?.sender?.mainFrame) {
+        const subFrames = collectFrames(event.sender.mainFrame).filter((f) => f !== event.sender.mainFrame);
+        for (const frame of subFrames) {
+          for (const s of scripts) {
+            if (typeof s === "string" && s.trim()) {
+              frame.executeJavaScript(s).catch(() => {});
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Determinar la actividad efectiva a reportar (Launcher vs Juego)
+    let act = stageDef?.activity;
+    const isGameTarget = Boolean(stageDef?.url && !stageDef?.entryPoint && !stageDef?.htmlContent && !stageDef?.isCatalog);
+
+    if (isGameTarget) {
+      if (!act || act.isCatalog || act.name === "Arcade" || act.type === "launcher") {
+        act = {
+          name: stageDef.title || stageDef.name || "Juego",
+          details: stageDef.details || "Arcade",
+          state: stageDef.state || "En partida",
+          cover: stageDef.cover || null,
+          smallCover: stageDef.smallCover || null,
+          smallText: stageDef.smallText || stageDef.details || "Arcade",
+          party: stageDef.party || null,
+          startTime: stageDef.startTime || Date.now(),
+          type: "game",
+          isCatalog: false,
+        };
+      }
+    }
+
+    if (act && act.name) {
       try {
         const { setRpcActivity } = require("../../gameScanner.cjs");
         const pluginService = require("../../services/pluginService.cjs");
@@ -149,7 +271,6 @@ function registerPluginDriveHandlers() {
         const resolvedIcon = stageDef.pluginId && pluginService.resolvePluginIcon
           ? (pluginService.resolvePluginIcon(iconPath, stageDef.pluginId) || pluginService.resolvePluginIcon("assets/icon.png", stageDef.pluginId) || pluginService.resolvePluginIcon("assets/icon.svg", stageDef.pluginId))
           : null;
-        const act = stageDef.activity;
         const safeName = typeof act.name === "string" ? act.name.trim().slice(0, 100) : "Complemento";
         const safeDetails = typeof act.details === "string" ? act.details.trim().slice(0, 150) : (stageDef.title || "Complemento");
         const safeState = typeof act.state === "string" ? act.state.trim().slice(0, 100) : null;
@@ -158,6 +279,8 @@ function registerPluginDriveHandlers() {
           const trimmed = act.cover.trim();
           if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:image/") || trimmed.startsWith("onicord-media://")) {
             safeCover = trimmed;
+          } else if (stageDef.pluginId && pluginService.resolvePluginIcon) {
+            safeCover = pluginService.resolvePluginIcon(trimmed, stageDef.pluginId);
           }
         }
         setRpcActivity({
@@ -166,7 +289,7 @@ function registerPluginDriveHandlers() {
           state: safeState,
           cover: safeCover || resolvedIcon || null,
           smallCover: safeCover ? (act.smallCover || resolvedIcon) : null,
-          smallText: safeDetails,
+          smallText: act.smallText || safeDetails,
           party: act.party || null,
           startTime: act.startTime || Date.now(),
           type: act.type || (act.isCatalog ? "launcher" : "game"),
@@ -268,18 +391,14 @@ function registerPluginDriveHandlers() {
   ipcMain.handle("plugins:clear-stage-storage", async (_event, customOrigins) => {
     try {
       const { session } = require("electron");
-      const defaultGameOrigins = [
-        "https://pes6.optijuegos.net",
-        "https://dragonballbt3.online",
-        "https://nfsunderground2.site",
-        "https://silentspacemarine.com",
-        "https://tboi.online",
-        "https://mcraft.fun",
-        "https://archive.org",
-      ];
-      const targetOrigins = Array.isArray(customOrigins) && customOrigins.length > 0
-        ? [...new Set([...defaultGameOrigins, ...customOrigins])]
-        : defaultGameOrigins;
+      let targetOrigins = [];
+      if (Array.isArray(customOrigins) && customOrigins.length > 0) {
+        targetOrigins = customOrigins;
+      } else if (global.activeStageDef?.url) {
+        try {
+          targetOrigins = [new URL(global.activeStageDef.url).origin];
+        } catch (_) {}
+      }
 
       for (const origin of targetOrigins) {
         try {
@@ -408,35 +527,33 @@ function registerPluginDriveHandlers() {
     const config = stageConfig || global.activeStageDef || {};
     const { triggerSelector, windowProperty, queryParam } = config.shareCapture || {};
 
-    // Colectar recursivamente todos los subframes del webContents
-    function collectFrames(frame) {
-      let list = [frame];
-      if (frame && frame.frames && frame.frames.length > 0) {
-        for (const child of frame.frames) {
-          list = list.concat(collectFrames(child));
-        }
-      }
-      return list;
-    }
-
     try {
       const allFrames = collectFrames(event.sender.mainFrame);
       const subFrames = allFrames.filter((f) => f !== event.sender.mainFrame);
 
       for (const frame of subFrames) {
         try {
-          // 1. Primero verificar si la propiedad de ventana ya tiene el enlace activo
-          if (windowProperty) {
-            const propVal = await frame.executeJavaScript(`
-              (() => {
-                try {
-                  return window["${windowProperty}"] ? String(window["${windowProperty}"]) : null;
-                } catch (_) { return null; }
-              })()
-            `);
-            if (propVal && typeof propVal === "string" && (!queryParam || propVal.includes(queryParam))) {
-              return propVal.trim();
-            }
+          // 1. Invocar helper _onicordGetActiveRoomLink o verificar windowProperty
+          const qParam = queryParam || "";
+          const initialCheck = await frame.executeJavaScript(`
+            (() => {
+              try {
+                if (typeof window._onicordGetActiveRoomLink === 'function') {
+                  const link = window._onicordGetActiveRoomLink();
+                  if (link && (!${JSON.stringify(qParam)} || link.includes(${JSON.stringify(qParam)}))) return link;
+                }
+                const propKey = ${JSON.stringify(windowProperty || '_onicordRoomLink')};
+                if (window[propKey]) {
+                  const p = String(window[propKey]);
+                  if (p && (!${JSON.stringify(qParam)} || p.includes(${JSON.stringify(qParam)}))) return p;
+                }
+                return null;
+              } catch (_) { return null; }
+            })()
+          `).catch(() => null);
+
+          if (initialCheck && typeof initialCheck === "string" && initialCheck.startsWith("http")) {
+            return initialCheck.trim();
           }
 
           // 2. Si la URL actual del iframe ya tiene el parámetro de sala
@@ -444,26 +561,53 @@ function registerPluginDriveHandlers() {
             const urlVal = await frame.executeJavaScript(`
               (() => {
                 try {
-                  if (window.location && window.location.search && window.location.search.includes("${queryParam}")) {
+                  const q = ${JSON.stringify(queryParam)};
+                  if (window.location && window.location.search && window.location.search.includes(q)) {
                     return window.location.href;
                   }
                 } catch (_) {}
                 return null;
               })()
-            `);
-            if (urlVal && typeof urlVal === "string") {
+            `).catch(() => null);
+
+            if (urlVal && typeof urlVal === "string" && urlVal.includes(queryParam)) {
               return urlVal.trim();
             }
           }
 
-          // 3. Si hay un botón selector (ej. #roomsShare)
-          if (triggerSelector) {
+          // 3. Fallback al botón selector (ej. #roomsShare, #copy-invite o búsqueda agnóstica)
+          if (triggerSelector || queryParam) {
             const prevClip = clipboard.readText();
             const clickInfo = await frame.executeJavaScript(`
               (() => {
                 try {
-                  const btn = document.querySelector("${triggerSelector}");
+                  let btn = null;
+                  const sel = ${JSON.stringify(triggerSelector || "")};
+                  if (sel) {
+                    try { btn = document.querySelector(sel); } catch (_) {}
+                  }
+
+                  if (!btn) {
+                    const candidates = Array.from(document.querySelectorAll('button, [role="button"], a, input[type="button"]'));
+                    btn = candidates.find(el => {
+                      const txt = (el.textContent || '').trim().toLowerCase();
+                      const aria = (el.getAttribute('aria-label') || '').toLowerCase();
+                      const title = (el.getAttribute('title') || '').toLowerCase();
+                      const id = (el.id || '').toLowerCase();
+                      const cls = (el.className || '').toString().toLowerCase();
+                      return txt.includes('invit') || txt.includes('share') || txt.includes('compartir') || txt.includes('copiar') ||
+                             aria.includes('invit') || aria.includes('share') || aria.includes('copiar') ||
+                             cls.includes('invite') || cls.includes('share') ||
+                             id.includes('invite') || id.includes('share');
+                    });
+                  }
+
                   if (!btn) return { status: "not_found" };
+                  const attrUrl = btn.getAttribute("data-url") || btn.getAttribute("data-link") || btn.getAttribute("data-share") || btn.dataset?.url || btn.dataset?.link;
+                  const q = ${JSON.stringify(qParam)};
+                  if (attrUrl && (!q || attrUrl.includes(q))) {
+                    return { status: "found_attr", url: attrUrl };
+                  }
                   if (btn.disabled) return { status: "disabled" };
                   btn.click();
                   return { status: "clicked" };
@@ -471,34 +615,44 @@ function registerPluginDriveHandlers() {
                   return { status: "error", message: e.message };
                 }
               })()
-            `);
+            `).catch(() => null);
+
+            if (clickInfo && clickInfo.status === "found_attr" && clickInfo.url) {
+              return clickInfo.url.trim();
+            }
 
             if (clickInfo && clickInfo.status === "clicked") {
-              // Esperar a que la copia asíncrona o la actualización de windowProperty ocurra
-              for (let i = 0; i < 6; i++) {
-                await new Promise((r) => setTimeout(r, 100));
+              // Esperar a que la copia asíncrona o la actualización ocurra
+              for (let i = 0; i < 8; i++) {
+                await new Promise((r) => setTimeout(r, 120));
 
-                if (windowProperty) {
-                  const prop = await frame.executeJavaScript(`
-                    (() => {
-                      try {
-                        return window["${windowProperty}"] ? String(window["${windowProperty}"]) : null;
-                      } catch (_) { return null; }
-                    })()
-                  `).catch(() => null);
-                  if (prop && (!queryParam || prop.includes(queryParam))) {
-                    return prop.trim();
-                  }
+                const prop = await frame.executeJavaScript(`
+                  (() => {
+                    try {
+                      if (typeof window._onicordGetActiveRoomLink === 'function') {
+                        const l = window._onicordGetActiveRoomLink();
+                        if (l) return l;
+                      }
+                      const propKey = ${JSON.stringify(windowProperty || '_onicordRoomLink')};
+                      if (window[propKey]) {
+                        return String(window[propKey]);
+                      }
+                      return null;
+                    } catch (_) { return null; }
+                  })()
+                `).catch(() => null);
+
+                if (prop && (!queryParam || prop.includes(queryParam)) && prop.startsWith("http")) {
+                  return prop.trim();
                 }
 
                 const currentClip = clipboard.readText();
-                if (currentClip && currentClip !== prevClip && (!queryParam || currentClip.includes(queryParam))) {
+                if (currentClip && currentClip !== prevClip && (!queryParam || currentClip.includes(queryParam)) && currentClip.startsWith("http")) {
                   return currentClip.trim();
                 }
               }
             } else if (clickInfo && clickInfo.status === "disabled") {
               console.debug("[Stage Link Capture] Share trigger is disabled (room not active yet).");
-              return null;
             }
           }
         } catch (execErr) {

@@ -58,9 +58,9 @@ export default function MessagePluginEmbed({
     const [imgError, setImgError] = useState(false);
 
     return (
-      <div className="w-full max-w-sm my-2 p-3.5 rounded-onicord-inner bg-onicord-mantle border border-onicord-island select-none text-onicord-text font-sans transition-all duration-200 shadow-lg">
+      <div className="w-full max-w-sm my-2 p-3.5 rounded-onicord-inner bg-onicord-mantle border border-onicord-island select-none text-onicord-text font-sans transition-all duration-200">
         <div className="flex items-center gap-3 mb-2.5">
-          <div className="w-11 h-11 rounded-xl bg-onicord-accent/20 flex items-center justify-center text-onicord-accent shrink-0 border border-onicord-accent/30 shadow-sm overflow-hidden">
+          <div className="w-11 h-11 rounded-xl bg-onicord-accent/20 flex items-center justify-center text-onicord-accent shrink-0 border border-onicord-accent/30 overflow-hidden">
             {cover && !imgError ? (
               <img
                 src={cover}
@@ -81,7 +81,7 @@ export default function MessagePluginEmbed({
             </p>
           </div>
           <div
-            className="w-8 h-8 rounded-lg bg-onicord-surface/80 border border-white/10 flex items-center justify-center shrink-0 shadow-sm text-onicord-accent"
+            className="w-8 h-8 rounded-lg bg-onicord-surface/80 border border-white/10 flex items-center justify-center shrink-0 text-onicord-accent"
             title={embedPayload.pluginName || embedPayload.pluginId || "Complemento"}
           >
             <MaterialIcon name={gameIcon || "sports_esports"} size={18} />
@@ -117,7 +117,7 @@ export default function MessagePluginEmbed({
         <button
           type="button"
           onClick={handleJoinLobby}
-          className="w-full py-2 px-3 bg-onicord-accent hover:bg-onicord-accent/90 text-white rounded-lg font-semibold text-xs transition-all duration-150 flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer"
+          className="w-full py-2 px-3 bg-onicord-accent hover:bg-onicord-accent/90 text-white rounded-lg font-semibold text-xs transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
         >
           <MaterialIcon name="play_arrow" size={16} />
           Unirse a la partida
@@ -196,7 +196,7 @@ export default function MessagePluginEmbed({
                     <div
                       className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all shrink-0 ${
                         isSelected
-                          ? "border-onicord-accent bg-onicord-accent text-white shadow-[0_0_8px_rgba(99,102,241,0.4)]"
+                          ? "border-onicord-accent bg-onicord-accent text-white"
                           : "border-onicord-muted/40 bg-transparent group-hover:border-onicord-subtext"
                       }`}
                     >

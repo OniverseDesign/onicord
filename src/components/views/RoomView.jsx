@@ -121,6 +121,7 @@ export default function RoomView({
   const handleOpenStage = useCallback((stageDef, fromIpc = false) => {
     if (!stageDef) return;
     const userNick = profile?.nickname || profile?.username || "Jugador";
+    window._onicordUserNick = userNick;
     const enrichedStageDef = {
       ...stageDef,
       userNick: stageDef.userNick || userNick,
@@ -1176,32 +1177,48 @@ export default function RoomView({
               isStageFullscreen={isStageFullscreen}
               setIsStageFloating={setIsStageFloating}
               setIsStageFullscreen={setIsStageFullscreen}
-              onShareToChat={(customUrl) => {
-                if (!activeAddonStage || !window.electronAPI?.sendChatMessage) return;
+              onShareToChat={(customUrl, gameContext) => {
+                const effectiveStage = gameContext || activeAddonStage;
+                if (!effectiveStage || !window.electronAPI?.sendChatMessage) return;
                 const joinUrl =
                   typeof customUrl === "string" && customUrl.startsWith("http")
                     ? customUrl
-                    : activeAddonStage.url;
+                    : effectiveStage.url;
 
-                const queryParam = activeAddonStage.shareCapture?.queryParam || "sala";
-                let roomCode = activeAddonStage.roomCode || server?.roomCode?.slice(0, 6) || "P2P";
+                const queryParam = effectiveStage.shareCapture?.queryParam || "sala";
+                let roomCode = effectiveStage.roomCode || server?.roomCode?.slice(0, 6) || "P2P";
                 try {
                   const parsed = new URL(joinUrl);
-                  const roomValue = parsed.searchParams.get(queryParam) || parsed.searchParams.get("room") || parsed.searchParams.get("code");
-                  if (roomValue) roomCode = roomValue;
+                  const cleanParam = queryParam.replace("=", "").replace("?", "");
+                  const roomValue =
+                    (cleanParam ? parsed.searchParams.get(cleanParam) : null) ||
+                    parsed.searchParams.get("sala") ||
+                    parsed.searchParams.get("c") ||
+                    parsed.searchParams.get("room") ||
+                    parsed.searchParams.get("code");
+
+                  if (roomValue) {
+                    roomCode = roomValue;
+                  } else if (parsed.search && parsed.search.length > 1) {
+                    const rawSearch = parsed.search.slice(1);
+                    if (!rawSearch.includes("=")) {
+                      roomCode = rawSearch;
+                    }
+                  }
                 } catch (_) {}
 
                 const embedPayload = {
-                  pluginId: activeAddonStage.pluginId,
-                  type: activeAddonStage.embedType || "game_lobby",
+                  pluginId: effectiveStage.pluginId,
+                  type: effectiveStage.embedType || "game_lobby",
                   data: {
-                    gameTitle: activeAddonStage.title || "Partida Multijugador",
-                    gameIcon: activeAddonStage.icon || "sports_esports",
+                    gameTitle: effectiveStage.title || "Partida Multijugador",
+                    gameIcon: effectiveStage.icon || "sports_esports",
                     roomCode,
                     authorName: profile?.nickname || profile?.username || "Jugador",
                     joinUrl,
-                    shareCapture: activeAddonStage.shareCapture,
-                    frameScripts: activeAddonStage.frameScripts,
+                    coverUrl: effectiveStage.cover || null,
+                    shareCapture: effectiveStage.shareCapture,
+                    frameScripts: effectiveStage.frameScripts,
                   },
                 };
                 window.electronAPI.sendChatMessage(

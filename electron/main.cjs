@@ -14,11 +14,12 @@ const path = require("path");
 const fs = require("fs");
 const diagService = require("./services/diagService.cjs");
 
-// Configurar flags de Chromium y V8 para captura DXGI, WebAssembly JSPI, Wasm EH, SharedArrayBuffer y aislamiento
+// Configurar flags de Chromium y V8 para captura DXGI, WebAssembly JSPI, Wasm EH, SharedArrayBuffer, Mandos/HID y aislamiento
 app.commandLine.appendSwitch("disable-features", "WgcScreenCapturer,WgcScreenCapturerWin,WgcScreenCapturerForWindow,WgcScreenCapturerForCursor");
-app.commandLine.appendSwitch("enable-features", "DxgiScreenCapturer,SharedArrayBuffer,WebAssemblyExperimentalJSPI,WebAssemblyJSPromiseIntegration,CrossOriginOpenerPolicyReporting,CrossOriginEmbedderPolicyCredentialless");
+app.commandLine.appendSwitch("enable-features", "DxgiScreenCapturer,SharedArrayBuffer,WebAssemblyExperimentalJSPI,WebAssemblyJSPromiseIntegration,CrossOriginOpenerPolicyReporting,CrossOriginEmbedderPolicyCredentialless,GamepadTriggerRumble,GamepadMultitouch");
 app.commandLine.appendSwitch("disable-background-timer-throttling");
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
+app.commandLine.appendSwitch("disable-hid-blocklist");
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.commandLine.appendSwitch("js-flags", "--expose-gc --experimental-wasm-jspi --experimental-wasm-legacy-eh --experimental-wasm-exnref");
 
@@ -405,6 +406,11 @@ function createWindow() {
           await frame.executeJavaScript(`if (typeof window._onicordSetStageVolume === 'function') { window._onicordSetStageVolume(${volRatio}, ${muted}); }`).catch(() => {});
         }
 
+        // Inyectar el apodo del usuario actual desde profileService de forma persistente
+        const activeProfile = profileService.activeProfile;
+        const currentNick = activeProfile?.nickname || activeProfile?.username || "Oniverse";
+        await frame.executeJavaScript(`window._onicordUserNick = ${JSON.stringify(currentNick)};`).catch(() => {});
+
         const scripts = global.currentStageScripts;
         if (!scripts || !Array.isArray(scripts) || scripts.length === 0) return;
 
@@ -589,9 +595,8 @@ app.whenReady().then(async () => {
   }
   await profileService.loadProfile();
 
-  // — Media Permission Handlers —
-  // Electron 33+ requires explicit permission grants for getUserMedia/getDisplayMedia.
-  // Without these, Chromium silently blocks microphone and screen capture access.
+  // — Media and Hardware Permission Handlers —
+  // Electron 33+ requires explicit permission grants for getUserMedia, displayMedia, and hardware devices.
   session.defaultSession.setPermissionRequestHandler(
     (webContents, permission, callback) => {
       if (permission.startsWith("clipboard")) {
@@ -608,6 +613,12 @@ app.whenReady().then(async () => {
         "clipboard-sanitized-write",
         "fullscreen",
         "pointerLock",
+        "gamepad",
+        "gamepads",
+        "hid",
+        "usb",
+        "serial",
+        "accessibility-events",
       ];
       callback(allowed.includes(permission));
     }
@@ -629,10 +640,23 @@ app.whenReady().then(async () => {
         "clipboard-sanitized-write",
         "fullscreen",
         "pointerLock",
+        "gamepad",
+        "gamepads",
+        "hid",
+        "usb",
+        "serial",
+        "accessibility-events",
       ];
       return allowed.includes(permission);
     }
   );
+
+  session.defaultSession.setDevicePermissionHandler((details) => {
+    if (details.deviceType === "hid" || details.deviceType === "usb") {
+      return true;
+    }
+    return false;
+  });
 
   createTray();
 
@@ -721,9 +745,9 @@ app.whenReady().then(async () => {
       }
     }
 
-    // Permitir portapapeles, fullscreen, gamepad, micrófono y aislamiento entre orígenes para frames y subframes
+    // Permitir portapapeles, fullscreen, gamepad, micrófono, hid y control de hardware para frames y subframes
     responseHeaders["Permissions-Policy"] = [
-      "clipboard-write=*, clipboard-read=*, fullscreen=*, gamepad=*, cross-origin-isolated=*, microphone=*",
+      "clipboard-write=*, clipboard-read=*, fullscreen=*, gamepad=*, pointer-lock=*, hid=*, usb=*, microphone=*, autoplay=*",
     ];
 
     // Habilitar Cross-Origin Isolation para soportar WebAssembly con SharedArrayBuffer y multihilo (pthreads)

@@ -60,6 +60,25 @@ const BLOCKED_DOMAINS = new Set([
   "revcontent.com",
   "mgid.com",
   "yadro.ru",
+
+  // Redes publicitarias de juegos web (AdinPlay, NitroPay, Playwire, Venatus, etc.)
+  "adinplay.com",
+  "api.adinplay.com",
+  "delivery.adinplay.com",
+  "a.pub.network",
+  "ad4m.at",
+  "nitropay.com",
+  "api.nitropay.com",
+  "s.nitropay.com",
+  "playwire.com",
+  "cdn.intergi.com",
+  "intergi.com",
+  "ramp.alocdn.com",
+  "venatus.com",
+  "vntsm.com",
+  "cdn.vntsm.com",
+  "gamedistribution.com",
+  "gamepix.com",
 ]);
 
 const BLOCKED_PATH_PATTERNS = [
@@ -67,6 +86,10 @@ const BLOCKED_PATH_PATTERNS = [
   /\/pagead\//i,
   /\/prebid(\.min)?\.js/i,
   /beacon\.min\.js/i,
+  /\/adinplay/i,
+  /\/tag\/js\/gpt\.js/i,
+  /\/gpt\/pubads/i,
+  /\/ad-delivery/i,
 ];
 
 function isAdUrl(urlStr) {
