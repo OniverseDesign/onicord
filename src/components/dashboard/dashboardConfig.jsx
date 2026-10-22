@@ -5,7 +5,7 @@ import HoraWidget from "./widgets/HoraWidget";
 import WeatherWidget from "./widgets/WeatherWidget"; 
 import MusicPlayerWidget from "./widgets/MusicPlayerWidget";
 import SketchpadWidget from "./widgets/SketchpadWidget";
-import GamingStatsWidget from "./widgets/GamingStatsWidget";
+import ActivityWidget from "./widgets/ActivityWidget";
 import PluginWidgetAdapter from "./widgets/PluginWidgetAdapter";
 
 const ACTIVE_WIDGETS = [
@@ -16,7 +16,7 @@ const ACTIVE_WIDGETS = [
   WeatherWidget, 
   MusicPlayerWidget,
   SketchpadWidget,
-  GamingStatsWidget,
+  ActivityWidget,
 ];
 
 export const WIDGET_COMPONENTS = ACTIVE_WIDGETS.reduce((acc, Comp) => {

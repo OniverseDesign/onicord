@@ -547,4 +547,4 @@ class P2PService {
   }
 }
 
-module.exports = { P2PService, encodeMessage, decodeMessages, getLocalIPs, isSameSubnet };
+module.exports = { P2PService, encodeMessage, decodeMessages, getLocalIPs, isSameSubnet, safeWriteSocket };

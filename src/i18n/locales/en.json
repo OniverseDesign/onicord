@@ -125,6 +125,7 @@
   },
   "userPanel": {
     "playing": "Playing",
+    "using": "Using",
     "deafened": "Deafened",
     "muted": "Muted",
     "inVoiceChannel": "In voice channel",
@@ -224,10 +225,10 @@
       "addToQueue": "Add to queue"
     },
     "gaming": {
-      "title": "Gaming Activity",
+      "title": "Activity",
       "totalTime": "Total time",
-      "empty": "No games logged yet",
-      "emptyHint": "Launch any video game to automatically log your playtime.",
+      "empty": "No activity logged yet",
+      "emptyHint": "Launch any registered game or application to automatically log your time.",
       "live": "LIVE"
     },
     "files": {
@@ -254,7 +255,7 @@
       "music-player": "Music",
       "servidores": "P2P Network",
       "sketchpad": "Collaborative Space",
-      "gaming_stats": "Gaming"
+      "gaming_stats": "Activity"
     },
     "sketchpad": {
       "title": "Drawing Board",
@@ -674,7 +675,7 @@
       "voiceVideo": "Voice & Video",
       "keybindings": "Keybindings",
       "overlay": "Overlay",
-      "games": "Game Activity",
+      "games": "Activity",
       "widgets": "Widgets",
       "general": "General",
       "appearance": "Appearance",
@@ -1238,7 +1239,7 @@
     "updateAvailableMsg": "A newer version of Onicord is available (v{{version}})."
   },
   "gamesTab": {
-    "masterTitle": "Game Activity & Presence",
+    "masterTitle": "Activity & Presence",
     "showRichPresence": "Display what game or app you are using",
     "showRichPresenceDesc": "Allows friends in rooms and voice channels to see your real-time activity. Protected by a strict Allowlist.",
     "currentGame": "Current Game",

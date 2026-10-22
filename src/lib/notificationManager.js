@@ -38,14 +38,14 @@ class NotificationManager {
     soundEngine.playCue(cue);
   }
 
-  showToast(title, message, type = "info") {
+  showToast(title, message, type = "info", duration = 7500) {
     if (this.settings && this.settings.enableNotifications === false) return;
     this.playSound("notification");
     const safeId =
       Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
     window.dispatchEvent(
       new CustomEvent("onicord:toast", {
-        detail: { id: safeId, title, message, type },
+        detail: { id: safeId, title, message, type, duration },
       }),
     );
   }
@@ -68,21 +68,13 @@ class NotificationManager {
       defaultValue: `Hay una nueva versión de Onicord disponible (v${version}).`,
     });
 
-    this.showToast(title, message, "info");
+    this.showToast(title, message, "info", 12000);
 
     if (this.settings && this.settings.enableNotifications !== false) {
-      let isMinimized = false;
       try {
-        if (window.electronAPI?.isWindowMinimized) {
-          isMinimized = await window.electronAPI.isWindowMinimized();
-        }
+        await this.notifySystem(title, message);
       } catch (err) {
-        console.warn("[NotificationManager] Error checking window minimized state:", err);
-      }
-
-      const isHiddenOrUnfocused = isMinimized || document.hidden || !document.hasFocus();
-      if (isHiddenOrUnfocused) {
-        this.notifySystem(title, message);
+        console.warn("[NotificationManager] Error sending system update notification:", err);
       }
     }
   }

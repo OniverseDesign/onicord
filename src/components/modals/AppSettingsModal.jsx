@@ -48,7 +48,7 @@ export default function AppSettingsModal({
       { id: "audio", label: t("settings.tabs.voiceVideo"), icon: "mic" },
       { id: "keybindings", label: t("settings.tabs.keybindings", "Atajos de Teclado"), icon: "keyboard" },
       { id: "overlay", label: t("settings.tabs.overlay", "Overlay"), icon: "layers" },
-      { id: "games", label: t("settings.tabs.games", "Actividad de Juegos"), icon: "sports_esports" },
+      { id: "games", label: t("settings.tabs.games", "Actividad"), icon: "sports_esports" },
       { id: "appearance", label: t("settings.tabs.appearance"), icon: "palette" },
       { id: "widgets", label: t("settings.tabs.widgets", "Dashboard"), icon: "dashboard" },
       { id: "stickers", label: t("settings.tabs.stickers", "Stickers"), icon: "sticky_note_2" },

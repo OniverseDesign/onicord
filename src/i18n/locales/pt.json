@@ -125,6 +125,7 @@
   },
   "userPanel": {
     "playing": "Jogando",
+    "using": "Usando",
     "deafened": "Ensurdecido",
     "muted": "Mutado",
     "inVoiceChannel": "No canal de voz",
@@ -224,10 +225,10 @@
       "addToQueue": "Adicionar à fila"
     },
     "gaming": {
-      "title": "Atividade de Jogos",
+      "title": "Atividade",
       "totalTime": "Tempo acumulado",
-      "empty": "Nenhum jogo registrado ainda",
-      "emptyHint": "Inicie qualquer jogo para registrar seu tempo automaticamente.",
+      "empty": "Nenhuma atividade registrada ainda",
+      "emptyHint": "Inicie qualquer jogo ou aplicativo registrado para registrar seu tempo automaticamente.",
       "live": "AO VIVO"
     },
     "files": {
@@ -254,7 +255,7 @@
       "music-player": "Música",
       "servidores": "Rede P2P",
       "sketchpad": "Espaço Colaborativo",
-      "gaming_stats": "Jogos"
+      "gaming_stats": "Atividade"
     },
     "sketchpad": {
       "title": "Quadro de Desenho",
@@ -674,7 +675,7 @@
       "voiceVideo": "Voz e Vídeo",
       "keybindings": "Atalhos de Teclado",
       "overlay": "Overlay",
-      "games": "Atividade de Jogos",
+      "games": "Atividade",
       "widgets": "Widgets",
       "general": "Geral",
       "appearance": "Aparência",
@@ -1238,7 +1239,7 @@
     "updateAvailableMsg": "Uma nova versão do Onicord está disponível (v{{version}})."
   },
   "gamesTab": {
-    "masterTitle": "Atividade e Presença de Jogos",
+    "masterTitle": "Atividade e Presença",
     "showRichPresence": "Mostrar o que você está jogando ou qual aplicativo está usando",
     "showRichPresenceDesc": "Permite que seus amigos em salas e canais de voz vejam sua atividade em tempo real. Protegido por uma Allowlist estrita.",
     "currentGame": "Jogo atual",

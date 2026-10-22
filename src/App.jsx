@@ -546,29 +546,29 @@ export default function App() {
                 />
               )}
             </div>
-            <ToastContainer />
-            {/* Invite modal — shown when a deep link is received */}
-            {inviteData && (
-              <InviteModal
-                serverName={inviteData.serverName}
-                serverAvatar={inviteData.serverAvatar}
-                memberCount={inviteData.memberCount}
-                onlineCount={inviteData.onlineCount}
-                roomCode={inviteData.code}
-                isAlreadyMember={inviteData.isAlreadyMember}
-                busy={inviteBusy}
-                onAccept={handleAcceptInvite}
-                onClose={() => {
-                  if (!inviteBusy) {
-                    if (window.electronAPI.cancelInviteResolve) {
-                      window.electronAPI.cancelInviteResolve(inviteData.code);
-                    }
-                    setInviteData(null);
-                  }
-                }}
-              />
-            )}
           </div>
+        )}
+        <ToastContainer />
+        {/* Invite modal — shown when a deep link is received */}
+        {inviteData && (
+          <InviteModal
+            serverName={inviteData.serverName}
+            serverAvatar={inviteData.serverAvatar}
+            memberCount={inviteData.memberCount}
+            onlineCount={inviteData.onlineCount}
+            roomCode={inviteData.code}
+            isAlreadyMember={inviteData.isAlreadyMember}
+            busy={inviteBusy}
+            onAccept={handleAcceptInvite}
+            onClose={() => {
+              if (!inviteBusy) {
+                if (window.electronAPI.cancelInviteResolve) {
+                  window.electronAPI.cancelInviteResolve(inviteData.code);
+                }
+                setInviteData(null);
+              }
+            }}
+          />
         )}
       </MusicProvider>
     </VoiceProvider>

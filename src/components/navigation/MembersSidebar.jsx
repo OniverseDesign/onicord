@@ -30,12 +30,15 @@ export default function MembersSidebar({
   const activityCounts = {};
   const seenUserIds = new Set();
 
+  const isGameActivity = (act) =>
+    Boolean(act?.name && (!act.type || act.type === "game"));
+
   const registerUserActivity = (m) => {
     const userId = m.id || m.userId || m.peerId;
     if (!userId || seenUserIds.has(userId)) return;
     seenUserIds.add(userId);
 
-    if (m?.activity?.name && m?.activity?.type !== "music") {
+    if (isGameActivity(m?.activity)) {
       const name = m.activity.name.trim().toLowerCase();
       activityCounts[name] = (activityCounts[name] || 0) + 1;
     }
@@ -52,7 +55,7 @@ export default function MembersSidebar({
   const justOnline = [];
 
   online.forEach((m) => {
-    if (m.activity?.name && m.activity?.type !== "music") {
+    if (isGameActivity(m?.activity)) {
       const name = m.activity.name.trim().toLowerCase();
       if (activityCounts[name] > 1) {
         playingTogetherList.push(m);

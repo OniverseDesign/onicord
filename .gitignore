@@ -12,3 +12,4 @@ Thumbs.db
 !.env.example
 *.enc
 check-i18n.js
+other_projects/

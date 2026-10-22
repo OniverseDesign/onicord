@@ -11,13 +11,13 @@ export default function ToastContainer() {
 
   useEffect(() => {
     const handleToast = (e) => {
-      const { id, title, message, type } = e.detail;
+      const { id, title, message, type, duration } = e.detail;
 
       setToasts((prev) => [...prev, { id, title, message, type: type || "info" }]);
 
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 7500);
+      }, duration || 7500);
     };
 
     window.addEventListener("onicord:toast", handleToast);
@@ -64,10 +64,9 @@ export default function ToastContainer() {
         return (
           <div
             key={toast.id}
-            className={`bg-onicord-mantle border rounded-onicord-inner p-3.5 min-w-[320px] max-w-[400px] pointer-events-auto animate-fade-in flex items-center justify-between gap-3.5 transition-all ${styles.border}`}
+            className={`bg-onicord-mantle border rounded-onicord-inner p-3.5 min-w-[320px] max-w-[400px] pointer-events-auto animate-fade-in flex items-center justify-between gap-3.5 transition-all shadow-xl ${styles.border}`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              {}
               <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${styles.iconBg}`}>
                 {toast.type === "success" && <IconToastSuccess size="base" />}
                 {(toast.type === "danger" || toast.type === "error") && <IconToastError size="base" />}
@@ -75,7 +74,6 @@ export default function ToastContainer() {
                 {toast.type === "info" && <IconToastInfo size="base" />}
               </div>
 
-              {}
               <div className="min-w-0 flex-1">
                 <h4 className="text-sm font-bold text-onicord-text truncate leading-tight">
                   {toast.title}
@@ -88,7 +86,14 @@ export default function ToastContainer() {
               </div>
             </div>
 
-            {}
+            <button
+              type="button"
+              onClick={() => handleDismiss(toast.id)}
+              className="text-onicord-muted hover:text-onicord-text text-xs p-1 rounded transition cursor-pointer"
+              aria-label="Cerrar notificación"
+            >
+              ✕
+            </button>
           </div>
         );
       })}

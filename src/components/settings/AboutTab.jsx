@@ -129,12 +129,40 @@ export default function AboutTab() {
   const handleCheckUpdates = async () => {
     setUpdateState((prev) => ({ ...prev, status: "checking", error: null }));
     if (window.electronAPI?.checkForUpdates) {
-      const res = await window.electronAPI.checkForUpdates();
-      if (res?.status === "dev-mode") {
+      try {
+        const res = await window.electronAPI.checkForUpdates();
+        if (res?.status === "dev-mode") {
+          setUpdateState((prev) => ({
+            ...prev,
+            status: "dev-mode",
+            error: res.message,
+          }));
+        } else if (res?.status === "ok" && res?.updateInfo) {
+          setUpdateState((prev) => ({
+            ...prev,
+            status: "available",
+            version: res.updateInfo.version,
+            releaseDate: res.updateInfo.releaseDate,
+            releaseNotes: res.updateInfo.releaseNotes,
+          }));
+        } else if (res?.status === "not-available") {
+          setUpdateState((prev) => ({
+            ...prev,
+            status: "not-available",
+            version: res.version,
+          }));
+        } else if (res?.status === "error") {
+          setUpdateState((prev) => ({
+            ...prev,
+            status: "error",
+            error: res.error || "Error al comprobar actualizaciones",
+          }));
+        }
+      } catch (err) {
         setUpdateState((prev) => ({
           ...prev,
-          status: "dev-mode",
-          error: res.message,
+          status: "error",
+          error: err.message || "Error al comprobar actualizaciones",
         }));
       }
     } else {

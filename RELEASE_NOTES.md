@@ -1,3 +1,18 @@
+# Onicord v0.1.6
+
+## Changes
+
+- **Activity & Application Tracking (RPC)**: Renamed "Actividad de Juegos" to "Actividad" across settings, dashboard, and members sidebar to naturally support desktop software (Photoshop, Blender, IDEs, etc.) alongside games. Non-game applications now display contextually as "En [Software]" or "Usando [Software]" instead of "Jugando a [Software]".
+- **Activity Dashboard Widget**: Renamed widget script and components to `ActivityWidget` with an explicit "RPC" badge, displaying active software and real-time playtime tracker integration.
+- **Robust Update Notification Engine**: Overhauled startup and background update checker with GitHub Releases API fallbacks, strict cache busting, automatic 4-hour periodic checks, persistent actionable toast notifications, and manual "Buscar actualizaciones" button in the About tab.
+- **Interactive Addon Stage & Sandbox Runtime**:
+  - Full Gamepad API and WebHID controller bridging into sandboxed subframe games.
+  - Seamless return to catalog from web games cleanly remounting the frame without losing stage session.
+  - Agnostic nickname synchronization and real-time room link detection for web games (Gartic Phone, Skribbl, PES6).
+  - Built-in adblocker service hardened against AdinPlay, Google Publisher Tag (GPT), and gaming ad networks.
+- **P2P & Room Sync Reliability**: Fixed edge cases in room state replication, channel member resolution, and connection cleanup.
+- **Core Binary Updates**: Updated bundled `yt-dlp` binary to ensure reliable media audio extraction and playback.
+
 # Onicord v0.1.5
 
 ## Changes

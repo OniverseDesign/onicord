@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const { ChatStore } = require("./chatStore.cjs");
 const { RoomMetaStore } = require("./roomMetaStore.cjs");
 const { FileIndexStore } = require("./fileIndexStore.cjs");
-const { P2PService, encodeMessage, topicFromRoomCode } = require("../network/p2pService.cjs");
+const { P2PService, encodeMessage, topicFromRoomCode, safeWriteSocket } = require("../network/p2pService.cjs");
 const { VoiceService } = require("../network/voiceService.cjs");
 const { ChatService } = require("../network/chatService.cjs");
 const { FileService } = require("../network/fileService.cjs");
@@ -533,6 +533,7 @@ class RoomManager {
       .filter((p) => p.userId !== null)
       .map((p) => ({
         id: p.userId,
+        userId: p.userId,
         peerId: p.id,
         nickname: p.nickname,
         avatar: p.avatar,
@@ -541,6 +542,7 @@ class RoomManager {
         customLink: p.customLink || "",
         profileColor: p.profileColor || "",
         customStatus: p.customStatus || "",
+        showRichPresence: p.showRichPresence ?? true,
         flame: p.flame || null,
         ping: p.averagePing !== undefined ? Math.round(p.averagePing) : (p.ping !== undefined ? Math.round(p.ping) : null),
       }));
@@ -587,7 +589,11 @@ class RoomManager {
     this.voiceService.handlePeerJoined(peerId, socket);
 
     if (this.localActivity && this.localActivity.name) {
-      socket.write(encodeMessage("activity-state", this.localActivity));
+      if (this.p2pService.profile && this.p2pService.profile.showRichPresence === false) {
+        // No enviar si el usuario desactivó la presencia
+      } else {
+        safeWriteSocket(socket, encodeMessage("activity-state", this.localActivity));
+      }
     }
 
     this._emitPeerProfile(peerId);

@@ -135,7 +135,7 @@ export default function GamesActivityTab({
       {/* TARJETA 1: ESTADO Y JUEGO ACTUAL */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
-          <span>{t("gamesTab.masterTitle", "Actividad y Presencia de Juegos")}</span>
+          <span>{t("gamesTab.masterTitle", "Actividad y Presencia")}</span>
         </h3>
 
         <div className="onicord-settings-row">

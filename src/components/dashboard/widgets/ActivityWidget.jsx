@@ -145,7 +145,7 @@ function GameCardItem({ game, isActive, activeStartTime }) {
   );
 }
 
-export default function GamingStatsWidget({ activeGame = null }) {
+export default function ActivityWidget({ activeGame = null }) {
   const { t } = useTranslation();
   const [playtimeMap, setPlaytimeMap] = useState(() => getPlaytimeData());
 
@@ -213,13 +213,13 @@ export default function GamingStatsWidget({ activeGame = null }) {
           style={{ fontSize: "clamp(0.6rem, 3.5cqi, 0.8rem)" }}
           className="onicord-widget-title font-bold text-onicord-text truncate"
         >
-          {t("widgets.gaming.title", "Actividad de Juegos")}
+          {t("widgets.gaming.title", "Actividad")}
         </h3>
         <span
           style={{ fontSize: "clamp(0.6rem, 3cqi, 0.5rem)" }}
           className="onicord-widget-badge-dynamic shrink-0 px-2 py-0.5 font-medium"
         >
-          Gaming
+          RPC
         </span>
       </div>
 
@@ -229,12 +229,12 @@ export default function GamingStatsWidget({ activeGame = null }) {
           <div className="flex flex-col items-center justify-center h-full text-center p-4 text-onicord-muted">
             <IconJoystick size="lg" className="opacity-40 mb-2 w-8 h-8" />
             <p className="text-xs font-medium text-onicord-text">
-              {t("widgets.gaming.empty", "No hay juegos registrados aún")}
+              {t("widgets.gaming.empty", "No hay actividades registradas aún")}
             </p>
             <p className="text-[11px] text-onicord-subtext/70 mt-1">
               {t(
                 "widgets.gaming.emptyHint",
-                "Inicia cualquier videojuego para registrar tu tiempo automáticamente.",
+                "Inicia cualquier videojuego o programa registrado para registrar tu tiempo automáticamente.",
               )}
             </p>
           </div>
@@ -244,7 +244,7 @@ export default function GamingStatsWidget({ activeGame = null }) {
               activeGame?.name === game.name &&
               activeGame?.name !== "Arcade" &&
               activeGame?.name !== "Onicord Arcade" &&
-              (activeGame?.type === "game" || activeGame?.type === "client") &&
+              (activeGame?.type === "game" || activeGame?.type === "client" || activeGame?.type === "app") &&
               !activeGame?.isCatalog;
             return (
               <GameCardItem
@@ -263,9 +263,9 @@ export default function GamingStatsWidget({ activeGame = null }) {
   );
 }
 
-GamingStatsWidget.widgetId = "gaming_stats";
-GamingStatsWidget.badgeText = "Gaming";
-GamingStatsWidget.bgVariant = "dark";
-GamingStatsWidget.defaultGeo = { x: 8, y: 4, w: 2, h: 3 };
-GamingStatsWidget.minW = 2;
-GamingStatsWidget.minH = 2;
+ActivityWidget.widgetId = "gaming_stats";
+ActivityWidget.badgeText = "RPC";
+ActivityWidget.bgVariant = "dark";
+ActivityWidget.defaultGeo = { x: 8, y: 4, w: 2, h: 3 };
+ActivityWidget.minW = 2;
+ActivityWidget.minH = 2;

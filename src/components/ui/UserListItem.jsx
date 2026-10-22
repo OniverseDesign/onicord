@@ -142,14 +142,30 @@ export default function UserListItem({
       <span className="text-onicord-accent">{t("voice.connectedToVoice")}</span>
     );
   } else if (activity?.name) {
-    const prefixKey =
-      activity.type === "music" ? "userPanel.listeningTo" : "userPanel.playing";
+    const isApp = activity.type === "app";
+    const isMusic = activity.type === "music";
+    const isClient = activity.type === "client";
+
+    const prefix = isMusic
+      ? t("userPanel.listeningTo", "Escuchando a")
+      : isApp
+        ? t("userPanel.using", "Usando")
+        : isClient
+          ? t("userPopout.inMenus", "En los menús")
+          : t("userPanel.playing", "Jugando a");
+
     subtitle = (
       <span className="text-onicord-subtext group-hover:text-onicord-text transition-colors duration-150 truncate block">
-        {t(prefixKey)}{" "}
-        <strong className="font-semibold text-onicord-text">
-          {activity.name}
-        </strong>
+        {isClient ? (
+          <strong className="font-semibold text-onicord-text">{prefix}</strong>
+        ) : (
+          <>
+            {prefix}{" "}
+            <strong className="font-semibold text-onicord-text">
+              {activity.name}
+            </strong>
+          </>
+        )}
       </span>
     );
   } else if (fallbackSubtitle) {
