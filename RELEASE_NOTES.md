@@ -20,6 +20,12 @@
   - Tier `chat`: Essential audio plus incoming/outgoing chat messages and typing sound effects.
   - Tier `all`: Full soundscape with all UI interactions enabled.
   - Complete localization across Spanish (`es`), English (`en`), and Portuguese (`pt`).
+- **Rich Open Graph & Media Embed Cards**:
+  - **Spotify Embed Cards**: Dedicated media card featuring Spotify branding, album/track artwork, equalizer badge, title, artist description, and direct play action.
+  - **Pinterest Embed Cards**: Vertical layout cards preserving natural pin aspect ratios (up to 420px height) with full descriptions and high-resolution image containment.
+  - **GIF & Animation Streaming**: Native inline auto-play, looping, and muted playback for Tenor, GIPHY, and MP4 video GIFs without controls or awkward letterboxing.
+  - **YouTube & Video Optimization**: High-resolution thumbnail fallback (`hqdefault.jpg`) and aspect ratio preservation for horizontal 16:9 and vertical 9:16 reels/shorts.
+  - **Robust Link & Markdown Parser**: URLs and links are now parsed before italic and bold styles, preventing underscores `_` and asterisks `*` inside links from corrupting URLs or breaking markdown text.
 - **Arcade Stage & Dynamic Room Invitation Capture**:
   - Universal stage invite link capture supporting both query parameter games (`?c=...`, `?sala=...`) and path-based URLs (e.g. `https://garticphone.com/es/001C5257`).
   - Automated room creation: clicking "Invitar al chat" while on the home screen of games like Gartic Phone automatically starts the room, waits for lobby initialization, triggers the invite action, and shares the room link directly to chat.

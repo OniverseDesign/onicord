@@ -40,6 +40,8 @@ Esta bitácora sirve como registro histórico permanente de todos los hallazgos 
   - [`electron/p2p/searchStore.cjs`](file:///d:/Archivos/Escritorio/Oniverse/Onicord/electron/p2p/searchStore.cjs) [NUEVO]
   - [`electron/p2p/chatStore.cjs`](file:///d:/Archivos/Escritorio/Oniverse/Onicord/electron/p2p/chatStore.cjs)
   - [`electron/ipc/handlers/chatHandlers.cjs`](file:///d:/Archivos/Escritorio/Oniverse/Onicord/electron/ipc/handlers/chatHandlers.cjs)
+  - [`src/components/chat/subcomponents/MessageEmbedCard.jsx`](file:///d:/Archivos/Escritorio/Oniverse/Onicord/src/components/chat/subcomponents/MessageEmbedCard.jsx)
+  - [`src/lib/messageParser.jsx`](file:///d:/Archivos/Escritorio/Oniverse/Onicord/src/lib/messageParser.jsx)
   - [`src/lib/voice/VoicePeerManager.js`](file:///d:/Archivos/Escritorio/Oniverse/Onicord/src/lib/voice/VoicePeerManager.js)
 * **Requerimientos y Reglas Implementadas**:
   1. **Auto-Ducking de Audio en Tiempo Real y Limitador Master Anti-Clipping**:
@@ -50,23 +52,29 @@ Esta bitácora sirve como registro histórico permanente de todos los hallazgos 
      - Botón de audio de sistema (`includeAudio`): Permite incluir o silenciar el sonido de escritorio/aplicaciones, con avisos anti-eco recomendando auriculares.
      - Botón de Modo Juegos (`gameMode`): Alterna entre 60 FPS estables con audio estéreo optimizado para gaming y modo estándar 30 FPS para ahorro de CPU en texto/código.
      - Selector unificado de resolución (Original, 1080p, 720p, 480p) y limpieza estricta de pistas al cortar.
-  3. **Selector Escalonado de SFX en Configuración de Audio**:
+  3. **Tarjetas Enriquecidas Open Graph y Previsualización Multimedia**:
+     - **Spotify**: Tarjeta temática con carátula del álbum, ecualizador visual, información de pista/artista y botón de reproducción directa.
+     - **Pinterest**: Formato vertical nativo (hasta 420px de altura) conservando la escala y descripción original del Pin sin recortes forzados.
+     - **GIFs y Animaciones**: Reproducción inline nativa, loop automático y silencio predeterminado para clips de Tenor, GIPHY y MP4.
+     - **YouTube**: Miniaturas fallback en alta resolución (`hqdefault.jpg`) y cálculo de proporciones 16:9 y vertical 9:16 (Shorts/Reels).
+     - **Parseo Seguro de Enlaces**: Procesamiento de URLs prioritario antes del formato markdown, evitando que guiones bajos `_` en parámetros rompan enlaces o mutilen estilos cursiva/negrita.
+  4. **Selector Escalonado de SFX en Configuración de Audio**:
      - Se reemplazaron los conmutadores binarios individuales por un selector de 4 niveles (`none`, `essential`, `chat`, `all`).
      - `none`: silencio total.
      - `essential`: solo alertas críticas de voz (mute, deafen, connect, disconnect, screen share, notificaciones).
      - `chat`: esenciales + mensajes enviados/recibidos y sonido al escribir.
      - `all`: todos los sonidos de interfaz interactivos.
      - Persistencia y sincronización inmediata sin recarga.
-  4. **Captura Dinámica y Agnóstica de Enlaces en Escenario Arcade**:
+  5. **Captura Dinámica y Agnóstica de Enlaces en Escenario Arcade**:
      - Compatibilidad con juegos que estructuran enlaces en el pathname (e.g. `https://garticphone.com/es/001C5257`), no requiriendo forzosamente `?c=`.
      - Auto-creación de sala ("INICIAR") al pulsar "Invitar al chat" en la portada de Gartic Phone con sondeo activo hasta acceder al lobby y pulsar el botón de invitar.
      - Eliminación de errores de permisos `screen-wake-lock` y `wake-lock` en subframes de Electron y attributes `allow`.
      - Corrección del recolector de frames `collectFrames` y captura de excepciones con trazabilidad en OniDiag (`[StageCapture]`).
      - Renderizado de tarjetas enriquecidas (`MessageEmbedCard`) en el chat con código de partida limpio y botones de unirse y copiar.
-  5. **Motor de Búsqueda Full-Text P2P Cifrado (`searchStore.cjs`)**:
+  6. **Motor de Búsqueda Full-Text P2P Cifrado (`searchStore.cjs`)**:
      - Tokenización y búsqueda全文 local e indexada sobre el historial de mensajes de salas y canales.
      - Operadores avanzados (`from:`, `in:`, `has:file`, `has:image`, `has:link`, `"frase exacta"`).
-  6. **Estabilidad en WebRTC y Flujo de Transmisión**:
+  7. **Estabilidad en WebRTC y Flujo de Transmisión**:
      - Desasignación limpia de pistas de medios en `StreamDisplay` y mitigación de colisiones en Perfect Negotiation.
 
 ### [2026-10-09 — 01:00] Integración de `uIOhook` para Atajos Globales de Mouse y Teclas Combinadas en Segundo Plano
