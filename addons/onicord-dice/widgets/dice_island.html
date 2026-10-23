@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dados / Dices</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wdth,wght@0,75..100,100..900;1,75..100,100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,300..400,0,0" />
+  <style>
+    :root {
+      --text: #f8fafc;
+      --subtext: rgba(255, 255, 255, 0.72);
+      --muted: rgba(255, 255, 255, 0.45);
+      --border-die: rgba(255, 255, 255, 0.55);
+      --border-pill: rgba(255, 255, 255, 0.35);
+      --border-subtle: rgba(255, 255, 255, 0.18);
+      --gold: #f9e2af;
+      --red: #f38ba8;
+      --squircle-radius: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: "Roboto", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .material-symbols-outlined {
+      font-family: "Material Symbols Outlined";
+      font-weight: 300;
+      font-style: normal;
+      font-size: 17px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: transparent;
+      color: var(--text);
+      overflow: hidden;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 14px;
+      position: relative;
+    }
+
+    /* Transitions for elements that disappear during rolling */
+    .top-actions, .prompt-title, .total-pill {
+      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* When rolling: hide buttons, title text and total pill */
+    body.is-rolling .top-actions {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(-8px);
+    }
+
+    body.is-rolling .prompt-title {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(-8px);
+    }
+
+    body.is-rolling .total-pill {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(8px);
+    }
+
+    /* Top Right Action Buttons (Volume, History, Settings) */
+    .top-actions {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .btn-action {
+      background: transparent;
+      border: none;
+      color: var(--subtext);
+      opacity: 0.65;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+      outline: none;
+    }
+
+    .btn-action:hover {
+      opacity: 1;
+      color: var(--text);
+      transform: scale(1.08);
+    }
+
+    .btn-action.active {
+      opacity: 1;
+      color: var(--border-die);
+    }
+
+    /* Main Clickable Area */
+    .main-roller {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .main-roller.locked {
+      cursor: wait;
+    }
+
+    /* Prompt Title */
+    .prompt-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+      letter-spacing: -0.2px;
+      text-align: center;
+    }
+
+    .main-roller:hover:not(.locked) .prompt-title {
+      opacity: 0.9;
+    }
+
+    /* Dice Container */
+    .dice-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* Die Card - iOS Style Squircle matching the mockup, not darker than the island */
+    .die-card {
+      background: rgba(255, 255, 255, 0.035);
+      border: 2px solid var(--border-die);
+      border-radius: var(--squircle-radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      transition: transform 0.08s ease, border-color 0.15s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    }
+
+    .die-size-1, .die-size-2 { width: 90px; height: 90px; font-size: 46px; border-radius: 20px; }
+    .die-size-3 { width: 68px; height: 68px; font-size: 30px; border-radius: 16px; }
+    .die-size-4 { width: 60px; height: 60px; font-size: 26px; border-radius: 15px; }
+    .die-size-5, .die-size-6 { width: 52px; height: 52px; font-size: 22px; border-radius: 13px; }
+
+    .die-card.rolling {
+      animation: squircleShake 0.08s infinite alternate ease-in-out;
+      border-color: #fff;
+    }
+
+    .die-card.crit-success {
+      border-color: var(--gold) !important;
+      color: var(--gold) !important;
+      box-shadow: 0 0 16px rgba(249, 226, 175, 0.45) !important;
+    }
+
+    .die-card.crit-fail {
+      border-color: var(--red) !important;
+      color: var(--red) !important;
+      box-shadow: 0 0 16px rgba(243, 139, 168, 0.45) !important;
+    }
+
+    @keyframes squircleShake {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      50% { transform: translate(-1.5px, -1px) rotate(-1.5deg); }
+      100% { transform: translate(1px, -0.5px) rotate(1.5deg); }
+    }
+
+    /* Total Pill Badge */
+    .total-pill {
+      margin-top: 16px;
+      padding: 4px 22px;
+      border: 1.5px solid var(--border-pill);
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      display: inline-block;
+    }
+
+    /* ─── SIMPLIFIED OVERLAYS (Settings & History - Transparent Island Background) ─── */
+    .panel-overlay {
+      position: absolute;
+      inset: 0;
+      background: transparent;
+      padding: 14px 16px 14px;
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      z-index: 30;
+      overflow-y: auto;
+    }
+
+    .panel-overlay.show {
+      display: flex;
+      animation: modalFadeIn 0.15s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 6px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+
+    /* Settings UI simplified into pills and chips */
+    .setting-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .setting-label {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--subtext);
+    }
+
+    /* Pill Stepper */
+    .count-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1.5px solid var(--border-pill);
+      border-radius: 9999px;
+      padding: 2px 10px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .pill-btn {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      outline: none;
+      transition: opacity 0.15s;
+    }
+
+    .pill-btn:hover {
+      opacity: 0.7;
+    }
+
+    .count-num {
+      font-size: 13px;
+      font-weight: 700;
+      min-width: 18px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Faces Chips */
+    .faces-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .faces-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      width: 100%;
+    }
+
+    .face-chip {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      color: var(--subtext);
+      padding: 3px 10px;
+      font-size: 11.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      outline: none;
+    }
+
+    .face-chip:hover {
+      border-color: var(--border-die);
+      color: var(--text);
+    }
+
+    .face-chip.active {
+      border: 1.5px solid var(--border-die);
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .custom-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .custom-input {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      color: var(--text);
+      padding: 2px 10px;
+      font-size: 11px;
+      width: 58px;
+      text-align: center;
+      outline: none;
+    }
+
+    .custom-hint {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* Save Pill Button */
+    .save-pill-btn {
+      align-self: center;
+      border: 1.5px solid var(--border-die);
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      padding: 6px 32px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      outline: none;
+      margin-top: 6px;
+    }
+
+    .save-pill-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
+    }
+
+    /* History UI - Minimalist rows: User and Final Score Only */
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding-right: 2px;
+      margin: 6px 0;
+    }
+
+    .history-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.035);
+      font-size: 12.5px;
+      transition: background 0.15s ease;
+    }
+
+    .history-row:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .history-user {
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 70%;
+    }
+
+    .history-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .history-score {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      border: 1px solid var(--border-pill);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .empty-state {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      padding: 35px 0;
+    }
+
+    .clear-pill-btn {
+      align-self: center;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 18px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      outline: none;
+      margin-top: 4px;
+    }
+
+    .clear-pill-btn:hover {
+      background: rgba(243, 139, 168, 0.12);
+      border-color: rgba(243, 139, 168, 0.4);
+      color: #f38ba8;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Right Actions: Volume, History, Settings -->
+  <div class="top-actions">
+    <button class="btn-action" id="btnSound" title="Silenciar / Activar Sonido">
+      <span class="material-symbols-outlined" id="soundIcon">volume_up</span>
+    </button>
+    <button class="btn-action" id="btnHistory" title="Historial de Tiradas">
+      <span class="material-symbols-outlined">history</span>
+    </button>
+    <button class="btn-action" id="btnSettings" title="Configurar Dados">
+      <span class="material-symbols-outlined">settings</span>
+    </button>
+  </div>
+
+  <!-- Center Interactive Rolling Arena -->
+  <div class="main-roller" id="arena" title="Haz click para lanzar">
+    <div class="prompt-title" id="promptTitle">Haz click para lanzar.</div>
+
+    <div class="dice-container" id="diceGrid">
+      <!-- Rendered dynamically -->
+    </div>
+
+    <div class="total-pill" id="totalPill" style="visibility: hidden;">
+      Total: 12
+    </div>
+  </div>
+
+  <!-- Settings Simplified Overlay (Matching Island Color & Pill Style) -->
+  <div class="panel-overlay" id="panelSettings">
+    <div class="panel-header">
+      <span class="panel-title">Configuración</span>
+      <button class="btn-action" id="closeSettings" title="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="setting-section">
+      <div class="setting-row">
+        <span class="setting-label">Cantidad de dados</span>
+        <div class="count-pill">
+          <button class="pill-btn" id="btnDecCount">
+            <span class="material-symbols-outlined">remove</span>
+          </button>
+          <span class="count-num" id="valCount">2</span>
+          <button class="pill-btn" id="btnIncCount">
+            <span class="material-symbols-outlined">add</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="faces-group">
+        <span class="setting-label">Caras por dado</span>
+        <div class="faces-chips">
+          <button class="face-chip" data-faces="4">d4</button>
+          <button class="face-chip active" data-faces="6">d6</button>
+          <button class="face-chip" data-faces="8">d8</button>
+          <button class="face-chip" data-faces="10">d10</button>
+          <button class="face-chip" data-faces="12">d12</button>
+          <button class="face-chip" data-faces="20">d20</button>
+          <button class="face-chip" data-faces="100">d100</button>
+          <button class="face-chip" data-faces="custom">Otro</button>
+        </div>
+        <div class="custom-row" id="customFaceRow" style="display: none;">
+          <input type="number" class="custom-input" id="customFaceInput" min="2" max="100" value="6" />
+          <span class="custom-hint">Caras (2 - 100)</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-pill-btn" id="btnSaveConfig">
+      Listo
+    </button>
+  </div>
+
+  <!-- History Simplified Overlay (Matching Island Color & Clean Rows) -->
+  <div class="panel-overlay" id="panelHistory">
+    <div class="panel-header">
+      <span class="panel-title">Historial</span>
+      <button class="btn-action" id="closeHistory" title="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="history-list" id="historyList">
+      <div class="empty-state">No hay tiradas registradas aún.</div>
+    </div>
+
+    <button class="clear-pill-btn" id="btnClearHistory">
+      <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+      Borrar historial
+    </button>
+  </div>
+
+  <script>
+    // ─── STATE MANAGEMENT ──────────────────────────────────────────────
+    const state = {
+      count: 2,
+      faces: 6,
+      currentRolls: [6, 6],
+      isRolling: false,
+      soundEnabled: true,
+      configured: false,
+      history: []
+    };
+
+    // ─── AUDIO ENGINE (Web Audio API Procedural Synthesis) ──────────────
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playDiceTumbleSound() {
+      if (!state.soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const bufferSize = ctx.sampleRate * 0.045;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+        }
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = 750 + Math.random() * 550;
+        filter.Q.value = 3;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.045);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start();
+      } catch (e) {}
+    }
+
+    function playDiceStopSound(isCrit) {
+      if (!state.soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = isCrit ? "triangle" : "sine";
+        const baseFreq = isCrit ? 580 : 200 + Math.random() * 60;
+        osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.11);
+
+        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.13);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.14);
+      } catch (e) {}
+    }
+
+    // ─── DOM REFERENCES ────────────────────────────────────────────────
+    const topActionsEl = document.querySelector(".top-actions");
+    const arenaEl = document.getElementById("arena");
+    const diceGridEl = document.getElementById("diceGrid");
+    const promptTitleEl = document.getElementById("promptTitle");
+    const totalPillEl = document.getElementById("totalPill");
+
+    const panelSettingsEl = document.getElementById("panelSettings");
+    const panelHistoryEl = document.getElementById("panelHistory");
+    const historyListEl = document.getElementById("historyList");
+
+    const btnSoundEl = document.getElementById("btnSound");
+    const soundIconEl = document.getElementById("soundIcon");
+    const btnSettingsEl = document.getElementById("btnSettings");
+    const btnHistoryEl = document.getElementById("btnHistory");
+    const closeSettingsEl = document.getElementById("closeSettings");
+    const closeHistoryEl = document.getElementById("closeHistory");
+    const btnClearHistoryEl = document.getElementById("btnClearHistory");
+
+    const btnDecCountEl = document.getElementById("btnDecCount");
+    const btnIncCountEl = document.getElementById("btnIncCount");
+    const valCountEl = document.getElementById("valCount");
+    const customFaceRowEl = document.getElementById("customFaceRow");
+    const customFaceInputEl = document.getElementById("customFaceInput");
+    const btnSaveConfigEl = document.getElementById("btnSaveConfig");
+
+    function renderDiceElements(rolls, isRolling = false) {
+      diceGridEl.innerHTML = "";
+      const sizeClass = `die-size-${Math.min(state.count, 6)}`;
+
+      rolls.forEach((val) => {
+        const die = document.createElement("div");
+        die.className = `die-card ${sizeClass}`;
+        if (isRolling) {
+          die.classList.add("rolling");
+        }
+
+        if (!isRolling && state.faces === 20) {
+          if (val === 20) die.classList.add("crit-success");
+          else if (val === 1) die.classList.add("crit-fail");
+        }
+
+        die.textContent = val;
+        diceGridEl.appendChild(die);
+      });
+
+      const total = rolls.reduce((a, b) => a + b, 0);
+      totalPillEl.textContent = `Total: ${total}`;
+      if (state.count > 1) {
+        totalPillEl.style.visibility = "visible";
+      } else {
+        totalPillEl.style.visibility = "hidden";
+      }
+    }
+
+    function renderHistory() {
+      if (!state.history || state.history.length === 0) {
+        historyListEl.innerHTML = '<div class="empty-state">No hay tiradas registradas aún.</div>';
+        return;
+      }
+
+      historyListEl.innerHTML = "";
+      state.history.slice(0, 30).forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "history-row";
+
+        const userSpan = document.createElement("span");
+        userSpan.className = "history-user";
+        userSpan.textContent = item.user || "Usuario";
+
+        const rightDiv = document.createElement("div");
+        rightDiv.className = "history-right";
+
+        const scoreSpan = document.createElement("span");
+        scoreSpan.className = "history-score";
+        scoreSpan.textContent = item.total;
+
+        rightDiv.appendChild(scoreSpan);
+
+        row.appendChild(userSpan);
+        row.appendChild(rightDiv);
+
+        historyListEl.appendChild(row);
+      });
+    }
+
+    // ─── ROLLING ANIMATION ──────────────────────────────────────────────
+    function executeRollAnimation(targetRolls, authorName, callback) {
+      if (state.isRolling) return;
+      state.isRolling = true;
+      document.body.classList.add("is-rolling");
+      arenaEl.classList.add("locked");
+
+      const startTime = Date.now();
+      const totalDuration = 1600;
+      let lastTumbleSound = 0;
+
+      const interval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / totalDuration, 1);
+
+        const currentVals = [];
+        const lockedCount = Math.floor(progress * state.count);
+
+        for (let i = 0; i < state.count; i++) {
+          if (i < lockedCount) {
+            currentVals.push(targetRolls[i]);
+          } else {
+            currentVals.push(Math.floor(Math.random() * state.faces) + 1);
+          }
+        }
+
+        renderDiceElements(currentVals, true);
+
+        if (Date.now() - lastTumbleSound > 85) {
+          playDiceTumbleSound();
+          lastTumbleSound = Date.now();
+        }
+
+        if (progress >= 1) {
+          clearInterval(interval);
+          state.currentRolls = targetRolls;
+          state.isRolling = false;
+          document.body.classList.remove("is-rolling");
+          arenaEl.classList.remove("locked");
+
+          const isCrit = state.faces === 20 && (targetRolls.includes(20) || targetRolls.includes(1));
+          playDiceStopSound(isCrit);
+
+          renderDiceElements(targetRolls, false);
+
+          const total = targetRolls.reduce((a, b) => a + b, 0);
+
+          const now = new Date();
+          const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+          state.history.unshift({
+            user: authorName,
+            spec: `${state.count}d${state.faces}`,
+            rolls: targetRolls,
+            total,
+            time: timeStr,
+            timestamp: Date.now()
+          });
+          state.history = state.history.slice(0, 30);
+          renderHistory();
+          saveHistoryToStorage();
+
+          if (typeof callback === "function") callback();
+        }
+      }, 50);
+    }
+
+    function rollDice() {
+      if (state.isRolling) return;
+
+      const targetRolls = [];
+      for (let i = 0; i < state.count; i++) {
+        targetRolls.push(Math.floor(Math.random() * state.faces) + 1);
+      }
+
+      const total = targetRolls.reduce((a, b) => a + b, 0);
+      let authorName = "Usuario";
+      if (window.OnicordWidgetAPI?.user) {
+        const profile = window.OnicordWidgetAPI.user.getProfile();
+        if (profile?.nickname) authorName = profile.nickname;
+      }
+
+      const specStr = state.count === 1 ? `d${state.faces}` : `${state.count}d${state.faces}`;
+      const summaryText = `${authorName} lanzó ${specStr} -> ${total}`;
+
+      if (window.OnicordWidgetAPI?.island?.setSummary) {
+        window.OnicordWidgetAPI.island.setSummary(summaryText);
+      }
+
+      if (window.OnicordWidgetAPI?.p2p?.broadcast) {
+        window.OnicordWidgetAPI.p2p.broadcast({
+          type: "DICE_ROLL_START",
+          authorName,
+          count: state.count,
+          faces: state.faces,
+          rolls: targetRolls,
+          total,
+          summary: summaryText,
+          timestamp: Date.now()
+        });
+      }
+
+      executeRollAnimation(targetRolls, authorName);
+    }
+
+    arenaEl.addEventListener("click", () => {
+      rollDice();
+    });
+
+    function showView(view) {
+      if (view === "settings") {
+        arenaEl.style.display = "none";
+        topActionsEl.style.display = "none";
+        panelHistoryEl.classList.remove("show");
+        panelSettingsEl.classList.add("show");
+        valCountEl.textContent = state.count;
+        highlightActiveFaceChip(state.faces);
+      } else if (view === "history") {
+        arenaEl.style.display = "none";
+        topActionsEl.style.display = "none";
+        panelSettingsEl.classList.remove("show");
+        panelHistoryEl.classList.add("show");
+        renderHistory();
+      } else {
+        panelSettingsEl.classList.remove("show");
+        panelHistoryEl.classList.remove("show");
+        arenaEl.style.display = "flex";
+        topActionsEl.style.display = "flex";
+      }
+    }
+
+    // ─── SETTINGS INTERACTION ──────────────────────────────────────────
+    btnSettingsEl.addEventListener("click", () => {
+      showView("settings");
+    });
+
+    closeSettingsEl.addEventListener("click", () => {
+      showView("main");
+    });
+
+    btnDecCountEl.addEventListener("click", () => {
+      if (state.count > 1) {
+        state.count--;
+        valCountEl.textContent = state.count;
+      }
+    });
+
+    btnIncCountEl.addEventListener("click", () => {
+      if (state.count < 6) {
+        state.count++;
+        valCountEl.textContent = state.count;
+      }
+    });
+
+    function highlightActiveFaceChip(faces) {
+      const chips = document.querySelectorAll(".face-chip");
+      let matched = false;
+      chips.forEach((chip) => {
+        const f = chip.getAttribute("data-faces");
+        if (f === String(faces)) {
+          chip.classList.add("active");
+          matched = true;
+        } else {
+          chip.classList.remove("active");
+        }
+      });
+
+      if (!matched) {
+        const customChip = document.querySelector('.face-chip[data-faces="custom"]');
+        if (customChip) customChip.classList.add("active");
+        customFaceRowEl.style.display = "flex";
+        customFaceInputEl.value = faces;
+      } else {
+        customFaceRowEl.style.display = "none";
+      }
+    }
+
+    document.querySelectorAll(".face-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const f = chip.getAttribute("data-faces");
+        if (f === "custom") {
+          document.querySelectorAll(".face-chip").forEach((b) => b.classList.remove("active"));
+          chip.classList.add("active");
+          customFaceRowEl.style.display = "flex";
+        } else {
+          document.querySelectorAll(".face-chip").forEach((b) => b.classList.remove("active"));
+          chip.classList.add("active");
+          customFaceRowEl.style.display = "none";
+          state.faces = parseInt(f, 10);
+        }
+      });
+    });
+
+    btnSaveConfigEl.addEventListener("click", () => {
+      const activeFaceChip = document.querySelector(".face-chip.active");
+      if (activeFaceChip?.getAttribute("data-faces") === "custom") {
+        const customVal = parseInt(customFaceInputEl.value, 10);
+        state.faces = Math.min(Math.max(isNaN(customVal) ? 6 : customVal, 2), 100);
+      }
+
+      state.configured = true;
+      showView("main");
+
+      state.currentRolls = Array(state.count).fill(state.faces);
+      renderDiceElements(state.currentRolls, false);
+
+      saveConfigToStorage();
+
+      const specStr = state.count === 1 ? `d${state.faces}` : `${state.count}d${state.faces}`;
+      const configSummary = `Configuración actualizada a ${specStr}`;
+      if (window.OnicordWidgetAPI?.island?.setSummary) {
+        window.OnicordWidgetAPI.island.setSummary(configSummary);
+      }
+
+      if (window.OnicordWidgetAPI?.p2p?.broadcast) {
+        window.OnicordWidgetAPI.p2p.broadcast({
+          type: "DICE_CONFIG_UPDATE",
+          count: state.count,
+          faces: state.faces,
+          summary: configSummary
+        });
+      }
+    });
+
+    // ─── HISTORY INTERACTION ───────────────────────────────────────────
+    btnHistoryEl.addEventListener("click", () => {
+      showView("history");
+    });
+
+    closeHistoryEl.addEventListener("click", () => {
+      showView("main");
+    });
+
+    btnClearHistoryEl.addEventListener("click", () => {
+      state.history = [];
+      renderHistory();
+      saveHistoryToStorage();
+      const clearSummary = "Historial de tiradas reiniciado";
+      if (window.OnicordWidgetAPI?.island?.setSummary) {
+        window.OnicordWidgetAPI.island.setSummary(clearSummary);
+      }
+      if (window.OnicordWidgetAPI?.p2p?.broadcast) {
+        window.OnicordWidgetAPI.p2p.broadcast({
+          type: "DICE_CLEAR_HISTORY",
+          summary: clearSummary
+        });
+      }
+    });
+
+    // ─── AUDIO TOGGLE ──────────────────────────────────────────────────
+    btnSoundEl.addEventListener("click", () => {
+      state.soundEnabled = !state.soundEnabled;
+      soundIconEl.textContent = state.soundEnabled ? "volume_up" : "volume_off";
+      btnSoundEl.title = state.soundEnabled ? "Silenciar Sonido" : "Activar Sonido";
+    });
+
+    // ─── STORAGE PERSISTENCE ───────────────────────────────────────────
+    async function saveConfigToStorage() {
+      if (window.OnicordWidgetAPI?.storage?.set) {
+        await window.OnicordWidgetAPI.storage.set("dice_config", JSON.stringify({
+          count: state.count,
+          faces: state.faces,
+          configured: state.configured
+        }));
+      }
+    }
+
+    async function loadConfigFromStorage() {
+      if (window.OnicordWidgetAPI?.storage?.get) {
+        try {
+          const raw = await window.OnicordWidgetAPI.storage.get("dice_config");
+          if (raw) {
+            const data = JSON.parse(raw);
+            if (data.count) state.count = data.count;
+            if (data.faces) state.faces = data.faces;
+            state.configured = Boolean(data.configured);
+          }
+        } catch (e) {}
+      }
+    }
+
+    async function saveHistoryToStorage() {
+      if (window.OnicordWidgetAPI?.storage?.set) {
+        await window.OnicordWidgetAPI.storage.set("dice_history", JSON.stringify(state.history.slice(0, 30)));
+      }
+    }
+
+    async function loadHistoryFromStorage() {
+      if (window.OnicordWidgetAPI?.storage?.get) {
+        try {
+          const raw = await window.OnicordWidgetAPI.storage.get("dice_history");
+          if (raw) {
+            state.history = JSON.parse(raw) || [];
+          }
+        } catch (e) {}
+      }
+    }
+
+    function mergeRemoteHistory(remoteHistory) {
+      if (!Array.isArray(remoteHistory) || remoteHistory.length === 0) return;
+      const keySet = new Set(state.history.map(h => `${h.user}_${h.total}_${h.time || ""}_${h.timestamp || ""}`));
+      let changed = false;
+      for (const item of remoteHistory) {
+        const key = `${item.user}_${item.total}_${item.time || ""}_${item.timestamp || ""}`;
+        if (!keySet.has(key)) {
+          state.history.push(item);
+          keySet.add(key);
+          changed = true;
+        }
+      }
+      if (changed) {
+        state.history.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        state.history = state.history.slice(0, 30);
+        renderHistory();
+        saveHistoryToStorage();
+      }
+    }
+
+    function broadcastStateRequest() {
+      if (window.OnicordWidgetAPI?.p2p?.broadcast) {
+        window.OnicordWidgetAPI.p2p.broadcast({
+          type: "DICE_STATE_REQUEST"
+        });
+      }
+    }
+
+    // ─── INITIALIZATION & P2P LISTENERS ────────────────────────────────
+    let isInitialized = false;
+    async function initWidget() {
+      if (isInitialized) return;
+      isInitialized = true;
+
+      await loadConfigFromStorage();
+      await loadHistoryFromStorage();
+
+      if (!state.configured) {
+        showView("settings");
+      }
+
+      state.currentRolls = Array(state.count).fill(state.faces);
+      renderDiceElements(state.currentRolls, false);
+      renderHistory();
+
+      if (window.OnicordWidgetAPI?.p2p?.onMessage) {
+        window.OnicordWidgetAPI.p2p.onMessage((data, senderPeerId) => {
+          if (!data || typeof data !== "object") return;
+
+          if (data.type === "DICE_STATE_REQUEST") {
+            // Un compañero solicita el estado actual de los dados en la sala
+            if (state.configured && window.OnicordWidgetAPI?.p2p?.broadcast) {
+              const last = state.history && state.history.length > 0 ? state.history[0] : null;
+              const lastSummary = last ? `${last.user} lanzó ${last.spec || "dados"} -> ${last.total}` : undefined;
+              window.OnicordWidgetAPI.p2p.broadcast({
+                type: "DICE_STATE_RESPONSE",
+                count: state.count,
+                faces: state.faces,
+                configured: state.configured,
+                history: state.history,
+                currentRolls: state.currentRolls,
+                summary: lastSummary
+              });
+            }
+          } else if (data.type === "DICE_STATE_RESPONSE") {
+            // Recibido el estado configurado por otro usuario de la sala
+            if (data.configured) {
+              const wasNotConfigured = !state.configured;
+              state.count = data.count || 2;
+              state.faces = data.faces || 6;
+              state.configured = true;
+
+              if (Array.isArray(data.currentRolls) && data.currentRolls.length === state.count) {
+                state.currentRolls = data.currentRolls;
+              } else {
+                state.currentRolls = Array(state.count).fill(state.faces);
+              }
+              renderDiceElements(state.currentRolls, false);
+
+              if (Array.isArray(data.history)) {
+                mergeRemoteHistory(data.history);
+                if (data.history.length > 0 && window.OnicordWidgetAPI?.island?.setSummary) {
+                  const last = data.history[0];
+                  if (last && last.user && last.total) {
+                    window.OnicordWidgetAPI.island.setSummary(`${last.user} lanzó ${last.spec || "dados"} -> ${last.total}`);
+                  }
+                }
+              }
+
+              saveConfigToStorage();
+
+              if (wasNotConfigured) {
+                showView("main");
+              }
+            }
+          } else if (data.type === "DICE_ROLL_START") {
+            if (data.count && data.faces) {
+              state.count = data.count;
+              state.faces = data.faces;
+              state.configured = true;
+            }
+            if (window.OnicordWidgetAPI?.island?.setSummary && data.summary) {
+              window.OnicordWidgetAPI.island.setSummary(data.summary);
+            }
+            showView("main");
+            executeRollAnimation(data.rolls || [1], data.authorName || "Compañero");
+          } else if (data.type === "DICE_CONFIG_UPDATE") {
+            state.count = data.count || 2;
+            state.faces = data.faces || 6;
+            state.configured = true;
+            state.currentRolls = Array(state.count).fill(state.faces);
+            renderDiceElements(state.currentRolls, false);
+            saveConfigToStorage();
+            showView("main");
+          } else if (data.type === "DICE_CLEAR_HISTORY") {
+            state.history = [];
+            renderHistory();
+            saveHistoryToStorage();
+          }
+        });
+      }
+
+      // Solicitar el estado sincronizado de la sala de inmediato y tras 1.2 segundos
+      broadcastStateRequest();
+      setTimeout(broadcastStateRequest, 1200);
+    }
+
+    if (window.OnicordWidgetAPI) {
+      initWidget();
+    } else {
+      window.addEventListener("onicord:widget-ready", initWidget);
+      setTimeout(initWidget, 250);
+    }
+  </script>
+</body>
+</html>

@@ -47,6 +47,7 @@ export default function ThreadSidePanel({
   searchQuery = "",
   onClose,
   onSendThreadReply,
+  onToggleReaction,
 }) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
@@ -122,6 +123,11 @@ export default function ThreadSidePanel({
       return textMatches || authorMatches || fileMatches;
     });
   }, [messages, parentMessage?.id, searchQuery]);
+
+  // Compute reactive root message from messages history so reactions update live
+  const activeRootMessage = useMemo(() => {
+    return messages.find((m) => m.id === parentMessage?.id) || parentMessage;
+  }, [messages, parentMessage]);
 
   // Compute pinned message IDs dynamically from full messages history
   const pinnedMsgIds = useMemo(() => {
@@ -524,6 +530,10 @@ export default function ThreadSidePanel({
 
   const handleToggleReaction = useCallback(
     (messageId, emoji) => {
+      if (onToggleReaction) {
+        onToggleReaction(messageId, emoji);
+        return;
+      }
       const myId = profile?.id || "self";
       if (window.electronAPI?.sendChatMessage) {
         soundEngine.playCue("reaction");
@@ -534,7 +544,7 @@ export default function ThreadSidePanel({
         );
       }
     },
-    [profile?.id, server, parentMessage.channelId]
+    [onToggleReaction, profile?.id, server, parentMessage.channelId]
   );
 
   const suggestions = useMemo(() => {
@@ -687,11 +697,11 @@ export default function ThreadSidePanel({
               {t("chat.threadRootMessage", "Mensaje Principal")}
             </div>
             <ChatMessageItem
-              msg={parentMessage}
+              msg={activeRootMessage}
               profile={profile}
               peers={peers}
               server={server}
-              nameColor={getNameColor(parentMessage.authorId)}
+              nameColor={getNameColor(activeRootMessage.authorId)}
               disableThreadAction={true}
               onContextMenu={handleMessageContextMenu}
               onToggleReaction={handleToggleReaction}

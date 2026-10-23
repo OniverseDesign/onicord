@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arcade - Game Launcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0..1,0" />
+  <style>
+    :root {
+      --bg-base: #07070c;
+      --accent: #10b981;
+      --accent-light: #34d399;
+      --accent-glow: rgba(16, 185, 129, 0.45);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --pad-x: clamp(20px, 4.5vw, 64px);
+      --card-w: clamp(105px, 11vw, 150px);
+      --card-h: calc(var(--card-w) * 1.4);
+      --title-size: clamp(26px, 4vw, 50px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      height: 100dvh;
+      width: 100vw;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ==========================================
+       1. ATMOSPHERIC HERO BACKDROP (DUAL BUFFER)
+       ========================================== */
+    .hero-backdrop-container {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      background-color: var(--bg-base);
+    }
+
+    .hero-backdrop {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 22%;
+      filter: brightness(0.75) contrast(1.12) saturate(1.1);
+      opacity: 0;
+      transform: scale(1.07);
+      transition: opacity 0.65s ease, transform 5s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .hero-backdrop.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .hero-vignette-bottom {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to top,
+        var(--bg-base) 0%,
+        rgba(7, 7, 12, 0.96) 24%,
+        rgba(7, 7, 12, 0.65) 52%,
+        rgba(7, 7, 12, 0.2) 100%
+      );
+      pointer-events: none;
+    }
+
+    .hero-vignette-left {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to right,
+        var(--bg-base) 0%,
+        rgba(7, 7, 12, 0.94) 30%,
+        rgba(7, 7, 12, 0.65) 55%,
+        transparent 100%
+      );
+      pointer-events: none;
+    }
+
+    .hero-vignette-radial {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 75% 25%, transparent 0%, rgba(7, 7, 12, 0.55) 90%);
+      pointer-events: none;
+    }
+
+    /* ==========================================
+       2. LAYOUT PRINCIPAL (2 FILAS: HERO + DOCK)
+       ========================================== */
+    .launcher-shell {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      padding-top: clamp(20px, 4vh, 48px);
+      padding-bottom: clamp(10px, 2vh, 20px);
+    }
+
+    /* ==========================================
+       3. HERO CONTENT (ALTURAS RESERVADAS SIN SALTOS)
+       ========================================== */
+    .hero-stage {
+      display: flex;
+      align-items: center;
+      padding: 0 var(--pad-x);
+      min-height: 0;
+    }
+
+    .hero-content {
+      max-width: min(740px, 90vw);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: clamp(10px, 1.6vh, 16px);
+    }
+
+    .game-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-height: 28px;
+    }
+
+    .tag-item {
+      font-size: clamp(10px, 0.85vw, 12px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 4px 11px;
+      border-radius: 6px;
+      backdrop-filter: blur(4px);
+    }
+
+    .tag-platform {
+      font-size: clamp(11px, 0.9vw, 13px);
+      font-weight: 600;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* Caja de altura fija de 2 líneas para que nada de abajo se mueva */
+    .game-title-box {
+      height: calc(var(--title-size) * 1.08 * 2);
+      display: flex;
+      align-items: flex-end;
+      width: 100%;
+    }
+
+    .game-title {
+      font-size: var(--title-size);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -1px;
+      color: #ffffff;
+      text-transform: uppercase;
+      text-shadow: 0 8px 28px rgba(0, 0, 0, 0.9);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Altura fija de 3 líneas para que el botón Jugar tampoco salte */
+    .game-synopsis {
+      font-size: clamp(13px, 1.05vw, 15.5px);
+      line-height: 1.55;
+      height: calc(1.55em * 3);
+      color: #cbd5e1;
+      font-family: 'Roboto', sans-serif;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+      max-width: 62ch;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* BOTÓN JUGAR */
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .btn-play {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: linear-gradient(135deg, var(--accent) 0%, #059669 100%);
+      color: #ffffff;
+      padding: clamp(10px, 1.4vh, 14px) clamp(26px, 2.5vw, 36px);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(14px, 1.1vw, 17px);
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 0 28px var(--accent-glow), 0 8px 20px rgba(0, 0, 0, 0.4);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-play:hover, .btn-play:focus-visible {
+      background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+      transform: scale(1.04) translateY(-2px);
+      box-shadow: 0 0 38px rgba(16, 185, 129, 0.7), 0 10px 24px rgba(0, 0, 0, 0.5);
+      outline: none;
+    }
+
+    .btn-play:active {
+      transform: scale(0.98);
+    }
+
+    .btn-play .material-symbols-outlined {
+      font-size: 24px;
+    }
+
+    /* ==========================================
+       4. DOCK INFERIOR (CARRUSEL SIN CORTES)
+       ========================================== */
+    .bottom-dock {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .carousel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--pad-x);
+      margin-bottom: -8px; /* Compensa visualmente el espacio extra superior del carrusel */
+      position: relative;
+      z-index: 2;
+    }
+
+    .carousel-section-title {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .carousel-section-title::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .carousel-counter {
+      font-size: 12px;
+      font-weight: 800;
+      color: #cbd5e1;
+      letter-spacing: 1px;
+      font-variant-numeric: tabular-nums;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .carousel-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Padding superior amplio (36px) para que la tarjeta en focus + su sombra nunca se corten */
+    .carousel-container {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 36px var(--pad-x) 18px var(--pad-x);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black var(--pad-x), black calc(100% - var(--pad-x)), transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0%, black var(--pad-x), black calc(100% - var(--pad-x)), transparent 100%);
+    }
+
+    .carousel-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    .carousel-track {
+      display: flex;
+      align-items: flex-end;
+      gap: clamp(14px, 1.8vw, 24px);
+      width: max-content;
+    }
+
+    .game-card {
+      width: var(--card-w);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
+      opacity: 0.65;
+      transform-origin: center bottom;
+    }
+
+    .game-card-poster-wrapper {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      background-color: #161622;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .game-card-poster-wrapper::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, transparent 45%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      pointer-events: none;
+    }
+
+    .game-card-poster {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+
+    .game-card-title {
+      font-size: clamp(11px, 0.85vw, 13px);
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      transition: color 0.2s ease;
+    }
+
+    /* ESTADO ACTIVO / SELECCIONADO EN EL CARRUSEL */
+    .game-card.active {
+      opacity: 1;
+      transform: scale(1.09) translateY(-6px);
+      z-index: 5;
+    }
+
+    .game-card.active .game-card-poster-wrapper {
+      border-color: var(--accent-light);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.8), 0 0 20px var(--accent-glow);
+    }
+
+    .game-card.active .game-card-poster-wrapper::after {
+      opacity: 1;
+    }
+
+    .game-card.active .game-card-title {
+      color: #ffffff;
+      font-weight: 800;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    }
+
+    .game-card:hover:not(.active) {
+      opacity: 0.92;
+      transform: translateY(-4px);
+    }
+
+    .game-card:hover:not(.active) .game-card-poster-wrapper {
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    /* Flechas de navegación para ratón */
+    .carousel-nav-btn {
+      position: absolute;
+      top: 52%;
+      transform: translateY(-50%);
+      z-index: 20;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s ease;
+    }
+
+    .carousel-nav-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent-light);
+      transform: translateY(-50%) scale(1.1);
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .carousel-nav-btn.prev {
+      left: max(10px, calc(var(--pad-x) - 24px));
+    }
+
+    .carousel-nav-btn.next {
+      right: max(10px, calc(var(--pad-x) - 24px));
+    }
+
+    /* ==========================================
+       5. FOOTER CONTROLS HUD
+       ========================================== */
+    .bottom-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--pad-x);
+      font-size: 11.5px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .legend-keys {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .key-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    /* ==========================================
+       6. MEDIA QUERIES (ALTURAS BAJAS Y MÓVILES)
+       ========================================== */
+    @media (max-height: 700px) {
+      :root {
+        --card-w: clamp(86px, 9.5vw, 115px);
+        --title-size: clamp(22px, 3.4vw, 36px);
+      }
+      .game-synopsis {
+        -webkit-line-clamp: 2;
+        height: calc(1.55em * 2);
+      }
+      .carousel-container {
+        padding-top: 28px;
+        padding-bottom: 10px;
+      }
+      .bottom-hud {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      :root {
+        --card-w: 102px;
+        --title-size: 26px;
+      }
+      .hero-vignette-left {
+        background: linear-gradient(to top, var(--bg-base) 15%, rgba(7, 7, 12, 0.78) 65%, rgba(7, 7, 12, 0.4) 100%);
+      }
+      .hero-stage {
+        align-items: flex-end;
+        padding-bottom: 8px;
+      }
+      .btn-play {
+        width: 100%;
+      }
+      .hero-actions {
+        width: 100%;
+      }
+      .carousel-nav-btn {
+        display: none;
+      }
+      .bottom-hud {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. BACKDROP DE FONDO (DOBLE CAPA PARA CROSSFADE SUAVE) -->
+  <div class="hero-backdrop-container">
+    <img id="heroBackdropA" class="hero-backdrop active" src="" alt="Backdrop A" />
+    <img id="heroBackdropB" class="hero-backdrop" src="" alt="Backdrop B" />
+    <div class="hero-vignette-radial"></div>
+    <div class="hero-vignette-left"></div>
+    <div class="hero-vignette-bottom"></div>
+  </div>
+
+  <!-- 2. CONTENEDOR GRID RESPONSIVO (SIN TOP HUD) -->
+  <div class="launcher-shell">
+
+    <!-- HERO CENTRAL -->
+    <main class="hero-stage">
+      <div class="hero-content">
+        <div class="game-tags">
+          <span id="gameGenre" class="tag-item">Deportes · Multijugador P2P</span>
+          <span id="gamePlatform" class="tag-platform">Konami · PS2 / PC Web</span>
+        </div>
+
+        <div class="game-title-box">
+          <h1 id="gameTitle" class="game-title">Pro Evolution Soccer 6</h1>
+        </div>
+
+        <p id="gameSynopsis" class="game-synopsis">
+          El legendario simulador de fútbol de Konami con multijugador online P2P. Crea tu sala, compite con tus amigos en Onicord y disputa los mejores partidos con sonido y rendimiento impecable.
+        </p>
+
+        <div class="hero-actions">
+          <button id="btnPlay" class="btn-play" onclick="launchCurrentGame()">
+            <span class="material-symbols-outlined">play_arrow</span>
+            <span>Jugar</span>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- DOCK INFERIOR: CARRUSEL + FOOTER -->
+    <section class="bottom-dock">
+      <div class="carousel-header">
+        <span class="carousel-section-title">Catálogo Disponible</span>
+        <span id="carouselCounter" class="carousel-counter">01 / 06</span>
+      </div>
+
+      <div class="carousel-wrapper">
+        <button class="carousel-nav-btn prev" onclick="moveSelection(-1)" aria-label="Anterior">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button class="carousel-nav-btn next" onclick="moveSelection(1)" aria-label="Siguiente">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+
+        <div id="carouselContainer" class="carousel-container">
+          <div id="carouselTrack" class="carousel-track">
+            <!-- Renderizado dinámico vía JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <footer class="bottom-hud">
+        <div class="legend-keys">
+          <div class="legend-item">
+            <span class="key-badge">◄ ►</span>
+            <span class="key-badge">A / D</span>
+            <span class="key-badge">Stick</span>
+            <span>Explorar</span>
+          </div>
+          <div class="legend-item" onclick="launchCurrentGame()" style="cursor: pointer;" title="Jugar">
+            <span class="key-badge">Enter</span>
+            <span class="key-badge">Ⓐ</span>
+            <span>Jugar</span>
+          </div>
+          <div class="legend-item" onclick="closeStage()" style="cursor: pointer;" title="Salir">
+            <span class="key-badge">Esc</span>
+            <span class="key-badge">Ⓑ</span>
+            <span>Salir</span>
+          </div>
+        </div>
+      </footer>
+    </section>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // CDN DE LIBRETRO / RETROARCH THUMBNAILS
+    // ==========================================
+    const LibretroCDN = {
+      BASE_URL: "https://thumbnails.libretro.com",
+      INVALID_CHARS_REGEX: /[:/\\*?<>"|&]/g,
+
+      sanitize(str) {
+        if (!str) return "";
+        return String(str).replace(this.INVALID_CHARS_REGEX, "_");
+      },
+
+      getThumbnail(system, gameName, type = "Named_Boxarts") {
+        if (!system || !gameName) return null;
+        const cleanSystem = this.sanitize(system);
+        const cleanGame = this.sanitize(gameName);
+        return `${this.BASE_URL}/${encodeURIComponent(cleanSystem)}/${encodeURIComponent(type)}/${encodeURIComponent(cleanGame)}.png`;
+      },
+
+      getBoxart(system, gameName) {
+        return this.getThumbnail(system, gameName, "Named_Boxarts");
+      },
+
+      getSnap(system, gameName) {
+        return this.getThumbnail(system, gameName, "Named_Snaps");
+      }
+    };
+
+    // ==========================================
+    // CATÁLOGO OFICIAL DE JUEGOS WEB
+    // ==========================================
+    const GAMES_CATALOG = [
+      {
+        id: "pes6",
+        title: "Pro Evolution Soccer 6",
+        platform: "Konami · PS2 / PC Web · 2006",
+        genre: "Deportes · Multijugador P2P · Clásico",
+        cover: LibretroCDN.getBoxart("Sony - PlayStation 2", "Pro Evolution Soccer 6 (Europe)"),
+        fallbackCover: "../assets/pes6_cover.jpg",
+        banner: LibretroCDN.getSnap("Sony - PlayStation 2", "Pro Evolution Soccer 6 (Europe)") || "https://images.alphacoders.com/131/1316104.jpeg",
+        url: "https://pes6.optijuegos.net/",
+        synopsis: "El legendario simulador de fútbol de Konami con multijugador online P2P directo en el navegador. Crea tu sala, compite con tus amigos de Onicord y disputa los mejores partidos con respuesta inmediata y sonido fiel.",
+        shareCapture: {
+          triggerSelector: "#roomsShare",
+          windowProperty: "_onicordRoomLink",
+          queryParam: "sala"
+        },
+        frameScripts: [
+          `
+            (() => {
+              try {
+                window.PES6 = window.PES6 || {};
+                if (!window.PES6.Ads) window.PES6.Ads = { load: () => {} };
+                window.adsbygoogle = window.adsbygoogle || [];
+
+                const getNick = () => {
+                  const raw = window._onicordUserNick;
+                  if (!raw || raw === 'PLAYER' || raw === 'Jugador') return '';
+                  return String(raw).replace(/[\\u0000-\\u001f\\u007f]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 20);
+                };
+
+                const targetNick = getNick();
+
+                // 1. Interceptar prompt de JS por si el motor o player_name.js pregunta el nombre
+                if (targetNick) {
+                  const origPrompt = window.prompt;
+                  window.prompt = function(msg, def) {
+                    if (msg && typeof msg === 'string' && msg.toLowerCase().includes('player name')) {
+                      return targetNick;
+                    }
+                    return origPrompt ? origPrompt.apply(this, arguments) : (targetNick || def);
+                  };
+                }
+
+                // 2. Interceptar copiado de enlaces para capturar la sala activa
+                if (window.PES6.Core && !window.PES6.Core._onicordHooked) {
+                  const origCopy = window.PES6.Core.copyText;
+                  window.PES6.Core.copyText = function(text, button, label) {
+                    if (typeof text === 'string' && text.includes('sala=')) {
+                      window._onicordRoomLink = text.trim();
+                    }
+                    return origCopy.apply(this, arguments);
+                  };
+                  window.PES6.Core._onicordHooked = true;
+                }
+
+                if (navigator.clipboard && !navigator.clipboard._onicordHooked) {
+                  const origWrite = navigator.clipboard.writeText;
+                  navigator.clipboard.writeText = function(text) {
+                    if (typeof text === 'string' && text.includes('sala=')) {
+                      window._onicordRoomLink = text.trim();
+                    }
+                    return origWrite.apply(this, arguments);
+                  };
+                  navigator.clipboard._onicordHooked = true;
+                }
+
+                // 3. Hook al socket de salas PES6.Rooms.Link
+                const hookRoomsLink = () => {
+                  if (window.PES6?.Rooms?.Link && !window.PES6.Rooms._onicordLiveHooked) {
+                    window.PES6.Rooms._onicordLiveHooked = true;
+
+                    const updateFromGame = (game) => {
+                      if (game && game.room && game.room !== 'default' && game.room !== 'wait') {
+                        const base = (window.PES6?.Config?.roomShareBase) || window.location.href;
+                        const url = new URL(base, window.location.href);
+                        url.searchParams.set('sala', game.room);
+                        if (game.invite) url.searchParams.set('invite', game.invite);
+                        window._onicordRoomLink = url.href;
+                      } else if (game && !game.room) {
+                        window._onicordRoomLink = null;
+                      }
+                    };
+
+                    window.PES6.Rooms.Link.on('rooms', (msg) => {
+                      try {
+                        if (msg && msg.game) {
+                          updateFromGame(msg.game);
+                        }
+                      } catch (_) {}
+                    });
+
+                    window.PES6.Rooms.Link.on('room-result', (msg) => {
+                      try {
+                        if (msg && msg.ok && (msg.action === 'create' || msg.action === 'join') && msg.room) {
+                          const base = (window.PES6?.Config?.roomShareBase) || window.location.href;
+                          const url = new URL(base, window.location.href);
+                          url.searchParams.set('sala', msg.room);
+                          if (msg.invite) url.searchParams.set('invite', msg.invite);
+                          window._onicordRoomLink = url.href;
+                        } else if (msg && (msg.action === 'leave' || (msg.action === 'join' && !msg.ok))) {
+                          window._onicordRoomLink = null;
+                        }
+                      } catch (_) {}
+                    });
+
+                    window.PES6.Rooms.Link.on('open', () => {
+                      const n = getNick();
+                      if (n) {
+                        try { window.PES6.Rooms.Link.send({ type: 'room-nick', nick: n }); } catch (_) {}
+                      }
+                    });
+                  }
+                };
+
+                hookRoomsLink();
+                setInterval(hookRoomsLink, 1000);
+
+                // 4. Aplicar apodo en localStorage, inputs del DOM y PES6.Rooms.PlayerName
+                const applyNick = () => {
+                  const nick = getNick();
+                  if (!nick) return;
+
+                  try {
+                    localStorage.setItem('pes6-player-name', nick);
+                    localStorage.setItem('player-name', nick);
+                  } catch (_) {}
+
+                  if (window.PES6?.Rooms?.PlayerName) {
+                    window.PES6.Rooms.PlayerName.ask = () => nick;
+                  }
+
+                  try {
+                    const nameInputs = document.querySelectorAll('input#player-name, input#playerName, input[name="player"], input#nick');
+                    nameInputs.forEach((inp) => {
+                      if (inp && inp.value !== nick) {
+                        inp.value = nick;
+                        inp.dispatchEvent(new Event('input', { bubbles: true }));
+                        inp.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
+                    });
+                  } catch (_) {}
+
+                  if (window.PES6?.Rooms?.Link) {
+                    const Link = window.PES6.Rooms.Link;
+                    if (typeof Link.send === 'function' && typeof Link.isOpen === 'function' && Link.isOpen()) {
+                      try {
+                        Link.send({ type: 'room-nick', nick: nick });
+                      } catch (_) {}
+                    }
+                  }
+                };
+
+                applyNick();
+                const nickInterval = setInterval(applyNick, 1000);
+                setTimeout(() => clearInterval(nickInterval), 45000);
+
+                // 5. Helper ejecutable para forzar lectura o refresco de sala
+                window._onicordGetActiveRoomLink = function() {
+                  if (window._onicordRoomLink && window._onicordRoomLink.includes('sala=')) {
+                    return window._onicordRoomLink;
+                  }
+                  const shareBtn = document.getElementById('roomsShare');
+                  if (shareBtn && typeof shareBtn.onclick === 'function') {
+                    try {
+                      shareBtn.onclick();
+                      if (window._onicordRoomLink && window._onicordRoomLink.includes('sala=')) {
+                        return window._onicordRoomLink;
+                      }
+                    } catch (_) {}
+                  }
+                  if (window.PES6?.Rooms?.Link?.isOpen && window.PES6.Rooms.Link.isOpen()) {
+                    try { window.PES6.Rooms.Link.send({ type: 'room-list' }); } catch (_) {}
+                  }
+                  return window._onicordRoomLink || null;
+                };
+              } catch (e) {
+                console.error('[PES6 Hook Error]', e);
+              }
+            })()
+          `
+        ]
+      },
+      {
+        id: "dbzbt3",
+        title: "Dragon Ball Z: Budokai Tenkaichi 3",
+        platform: "Spike / Bandai Namco · PS2 Web",
+        genre: "Lucha 3D · Anime · Combate Aéreo",
+        cover: LibretroCDN.getBoxart("Sony - PlayStation 2", "Dragon Ball Z - Budokai Tenkaichi 3 (USA) (En,Ja)"),
+        fallbackCover: "../assets/dbzbt3.png",
+        banner: LibretroCDN.getSnap("Sony - PlayStation 2", "Dragon Ball Z - Budokai Tenkaichi 3 (USA) (En,Ja)") || "https://dragonballbt3.online/og-image.png",
+        url: "https://dragonballbt3.online/",
+        synopsis: "Revive los combates más épicos del universo de Akira Toriyama con más de 160 luchadores, transformaciones en tiempo real, ataques definitivos y escenarios totalmente destruibles."
+      },
+      {
+        id: "nfsu2",
+        title: "Need for Speed: Underground 2",
+        platform: "EA Black Box · 2004 · PC Web",
+        genre: "Carreras · Tuning Callejero · Mundo Abierto",
+        cover: LibretroCDN.getBoxart("Sony - PlayStation 2", "Need for Speed - Underground 2 (USA)"),
+        fallbackCover: "../assets/nfsu2.png",
+        banner: LibretroCDN.getSnap("Sony - PlayStation 2", "Need for Speed - Underground 2 (USA)") || "https://nfsunderground2.site/og-image.png?v=2",
+        url: "https://nfsunderground2.site/",
+        synopsis: "Explora la ciudad nocturna de Bayview en libertad total, personaliza hasta el último detalle óptico y mecánico de tus vehículos y domina las carreras callejeras al ritmo del soundtrack original."
+      },
+      {
+        id: "doom",
+        title: "DOOM (Silent Space Marine)",
+        platform: "id Software · MS-DOS / WebAssembly",
+        genre: "FPS · Acción Clásica · id Tech",
+        cover: LibretroCDN.getBoxart("DOS", "DOOM (1993)"),
+        fallbackCover: "../assets/doom.png",
+        banner: LibretroCDN.getSnap("DOS", "DOOM (1993)") || "https://silentspacemarine.com/share.png",
+        url: "https://silentspacemarine.com/",
+        synopsis: "El mítico shooter en primera persona que definió un género. Encarna al Marine espacial en las lunas de Fobos y Deimos y desata un arsenal demoledor contra las huestes del infierno."
+      },
+      {
+        id: "tboi",
+        title: "The Binding of Isaac: Repentance",
+        platform: "Edmund McMillen / Nicalis · Web Port",
+        genre: "Roguelike · Mazmorras · Acción RPG",
+        cover: "https://tboi.online/og.jpg",
+        fallbackCover: "../assets/tboi.jpg",
+        banner: "https://tboi.online/og.jpg",
+        url: "https://tboi.online/",
+        synopsis: "Desciende por los sótanos y catacumbas enfrentando abominaciones bizarras, combinando cientos de ítems con efectos impredecibles y desbloqueando finales secretos en cada aventura procedural."
+      },
+      {
+        id: "minecraft",
+        title: "Minecraft (Web Edition)",
+        platform: "Mojang Studios · WebAssembly / WebGL",
+        genre: "Sandbox · Aventura · Supervivencia",
+        cover: "https://mcraft.fun/loading-bg.jpg",
+        fallbackCover: "../assets/minecraft.jpg",
+        banner: "https://mcraft.fun/loading-bg.jpg",
+        url: "https://mcraft.fun/",
+        synopsis: "Construye, explora y sobrevive en mundos infinitos hechos de bloques. Miná recursos, construí fortalezas épicas o aventurate en el Nether directamente en tu navegador con soporte de teclado y mouse."
+      },
+      {
+        id: "garticphone",
+        title: "Gartic Phone",
+        platform: "Onsen · Web 2020 · Multijugador",
+        genre: "Party Game · Teléfono Descompuesto · Dibujo",
+        cover: "https://garticphone.com/images/thumb.png",
+        fallbackCover: "../assets/garticphone.png",
+        banner: "https://garticphone.com/images/thumb.png",
+        url: "https://garticphone.com/es/",
+        synopsis: "El mítico juego del teléfono descompuesto pero dibujando. Escribí una frase disparatada, un amigo la dibuja, el siguiente adivina qué es y al final se revelan las historias más delirantes. ¡Risas 100% garantizadas con amigos en tiempo real!",
+        shareCapture: {
+          triggerSelector: "button.btLobby, button[class*='invite' i], button[class*='btLobby' i], [class*='btLobby' i], [class*='invite' i], [aria-label*='invit' i]",
+          windowProperty: "_onicordRoomLink",
+          urlPattern: "garticphone\\.com/(?:[a-zA-Z]{2}/)?([a-zA-Z0-9]{6,12})|garticphone\\.com/.*[?&]c="
+        },
+        frameScripts: [
+          `
+            (() => {
+              try {
+                // 1. Prevención de excepciones por Permissions Policy en WakeLock
+                if (navigator.wakeLock && typeof navigator.wakeLock.request === 'function') {
+                  const origWake = navigator.wakeLock.request.bind(navigator.wakeLock);
+                  navigator.wakeLock.request = function(type) {
+                    return origWake(type).catch(() => ({ release: () => Promise.resolve() }));
+                  };
+                }
+
+                const isGarticRoom = (url) => {
+                  if (!url || typeof url !== 'string') return false;
+                  const t = url.trim();
+                  if (!t.includes('garticphone.com')) return false;
+                  if (t.includes('/_next') || t.includes('/images/') || t.includes('/privacy') || t.includes('/terms')) return false;
+                  if (t.endsWith('/lobby') || t.includes('/lobby/') || t.includes('/lobby?')) return false;
+                  return /garticphone\\.com\\/(?:[a-zA-Z]{2}\\/)?([-_a-zA-Z0-9]{6,16})(?:\\/|\\?|#|$)/i.test(t) ||
+                         /garticphone\\.com\\/.*[?&]c=([a-zA-Z0-9]+)/i.test(t);
+                };
+
+                const normalizeLink = (s) => {
+                  if (!s || typeof s !== 'string') return null;
+                  let t = s.trim();
+                  if (t.startsWith('garticphone.com')) t = 'https://' + t;
+                  if (!t.startsWith('http://') && !t.startsWith('https://')) {
+                    if (t.match(/^(?:\\/?[a-zA-Z]{2}\\/)?([-_a-zA-Z0-9]{6,16})$/)) {
+                      t = 'https://garticphone.com/' + t.replace(/^\\//, '');
+                    } else if (t.includes('c=')) {
+                      t = 'https://garticphone.com/?' + (t.startsWith('?') ? t.slice(1) : t);
+                    } else {
+                      return null;
+                    }
+                  }
+                  return isGarticRoom(t) ? t : null;
+                };
+
+                const getNick = () => {
+                  const raw = window._onicordUserNick;
+                  if (!raw || raw === 'PLAYER' || raw === 'Jugador') return '';
+                  return String(raw).replace(/[\\u0000-\\u001f\\u007f]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 20);
+                };
+
+                const targetNick = getNick();
+
+                // 2. Interceptar copiado de enlaces por Clipboard API, execCommand y DataTransfer
+                if (navigator.clipboard && !navigator.clipboard._onicordHooked) {
+                  const origWrite = navigator.clipboard.writeText;
+                  navigator.clipboard.writeText = function(text) {
+                    if (typeof text === 'string') {
+                      const norm = normalizeLink(text);
+                      if (norm) window._onicordRoomLink = norm;
+                    }
+                    return origWrite.apply(this, arguments);
+                  };
+                  navigator.clipboard._onicordHooked = true;
+                }
+
+                if (document.execCommand && !document._onicordExecHooked) {
+                  const origExec = document.execCommand;
+                  document.execCommand = function(cmd) {
+                    if (String(cmd).toLowerCase() === 'copy') {
+                      try {
+                        const active = document.activeElement;
+                        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active.value) {
+                          const norm = normalizeLink(active.value);
+                          if (norm) window._onicordRoomLink = norm;
+                        }
+                        const sel = window.getSelection ? window.getSelection().toString() : '';
+                        if (sel) {
+                          const norm = normalizeLink(sel);
+                          if (norm) window._onicordRoomLink = norm;
+                        }
+                      } catch (_) {}
+                    }
+                    return origExec.apply(this, arguments);
+                  };
+                  document._onicordExecHooked = true;
+                }
+
+                if (typeof DataTransfer !== 'undefined' && DataTransfer.prototype.setData && !DataTransfer.prototype._onicordHooked) {
+                  const origSetData = DataTransfer.prototype.setData;
+                  DataTransfer.prototype.setData = function(format, data) {
+                    if (typeof data === 'string') {
+                      const norm = normalizeLink(data);
+                      if (norm) window._onicordRoomLink = norm;
+                    }
+                    return origSetData.apply(this, arguments);
+                  };
+                  DataTransfer.prototype._onicordHooked = true;
+                }
+
+                if (!document._onicordCopyHooked) {
+                  document.addEventListener('copy', (e) => {
+                    try {
+                      const active = document.activeElement;
+                      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active.value) {
+                        const norm = normalizeLink(active.value);
+                        if (norm) window._onicordRoomLink = norm;
+                      }
+                      if (e.clipboardData) {
+                        const data = e.clipboardData.getData('text/plain');
+                        if (data) {
+                          const norm = normalizeLink(data);
+                          if (norm) window._onicordRoomLink = norm;
+                        }
+                      }
+                    } catch (_) {}
+                  }, true);
+                  document._onicordCopyHooked = true;
+                }
+
+                // 3. Monitoreo pasivo de la URL y navegación por history
+                const checkUrl = () => {
+                  try {
+                    if (window.location && window.location.href && isGarticRoom(window.location.href)) {
+                      window._onicordRoomLink = window.location.href;
+                    }
+                  } catch (_) {}
+                };
+                checkUrl();
+                setInterval(checkUrl, 500);
+
+                if (window.history && !window.history._onicordHooked) {
+                  const origPush = history.pushState;
+                  history.pushState = function(state, title, url) {
+                    if (url && typeof url === 'string') {
+                      const full = url.startsWith('http') ? url : new URL(url, window.location.href).href;
+                      if (isGarticRoom(full)) window._onicordRoomLink = full;
+                    }
+                    return origPush.apply(this, arguments);
+                  };
+                  const origReplace = history.replaceState;
+                  history.replaceState = function(state, title, url) {
+                    if (url && typeof url === 'string') {
+                      const full = url.startsWith('http') ? url : new URL(url, window.location.href).href;
+                      if (isGarticRoom(full)) window._onicordRoomLink = full;
+                    }
+                    return origReplace.apply(this, arguments);
+                  };
+                  window.history._onicordHooked = true;
+                }
+
+                // 4. Sniffer pasivo de WebSocket para capturar código de sala al entrar a partida
+                if (window.WebSocket && !window.WebSocket._onicordHooked) {
+                  const origWS = window.WebSocket;
+                  window.WebSocket = function(url, protocols) {
+                    const ws = new origWS(url, protocols);
+                    try {
+                      const urlStr = String(url);
+                      const match = urlStr.match(/[?&]c=([a-zA-Z0-9]+)/) || urlStr.match(/\\/([a-zA-Z0-9]{6,12})/);
+                      if (match) {
+                        const code = match[1];
+                        const lang = (window.location && window.location.pathname && window.location.pathname.match(/^\\/([a-zA-Z]{2})/)) ? window.location.pathname.match(/^\\/([a-zA-Z]{2})/)[1] : 'es';
+                        window._onicordRoomLink = `https://garticphone.com/${lang}/${code}`;
+                      }
+                    } catch (_) {}
+                    ws.addEventListener('message', function(ev) {
+                      try {
+                        if (typeof ev.data === 'string') {
+                          const m = ev.data.match(/https?:\\/\\/(?:www\\.)?garticphone\\.com\\/(?:[a-zA-Z]{2}\\/)?([a-zA-Z0-9]{6,12})/i);
+                          if (m && isGarticRoom(m[0])) {
+                            window._onicordRoomLink = m[0];
+                          }
+                        }
+                      } catch (_) {}
+                    });
+                    return ws;
+                  };
+                  window.WebSocket.prototype = origWS.prototype;
+                  window.WebSocket._onicordHooked = true;
+                }
+
+                // 5. Sincronización robusta del apodo con componentes React/Next.js
+                const setReactInputValue = (input, val) => {
+                  try {
+                    const descriptor = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+                    if (descriptor && descriptor.set) {
+                      descriptor.set.call(input, val);
+                    } else {
+                      input.value = val;
+                    }
+                    input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                    input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'a' }));
+                    input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'a' }));
+                  } catch (_) {}
+                };
+
+                const applyNick = () => {
+                  const nick = getNick();
+                  if (!nick) return;
+
+                  try {
+                    localStorage.setItem('name', nick);
+                    localStorage.setItem('nick', nick);
+                    localStorage.setItem('nickname', nick);
+                    localStorage.setItem('user', JSON.stringify({ name: nick }));
+                    sessionStorage.setItem('nick', nick);
+                    sessionStorage.setItem('name', nick);
+                  } catch (_) {}
+
+                  try {
+                    const inputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"])'));
+                    inputs.forEach((inp) => {
+                      if (!inp.type || inp.type === 'text') {
+                        if (inp.value !== nick) {
+                          setReactInputValue(inp, nick);
+                        }
+                      }
+                    });
+                  } catch (_) {}
+                };
+
+                applyNick();
+                const nickInterval = setInterval(applyNick, 600);
+                setTimeout(() => clearInterval(nickInterval), 45000);
+
+                // 6. Neutralización de motores de publicidad (AdinPlay, Google Ads, GPT)
+                try {
+                  window.aiptag = window.aiptag || {};
+                  window.aiptag.cmd = window.aiptag.cmd || [];
+                  window.aiptag.cmd.display = [];
+                  window.aiptag.cmd.player = [];
+                  window.aiptag.display = () => {};
+                  window.aiptag.player = () => {};
+                  window.aiptag.showDisplay = () => {};
+                  window.aiptag.showPlayer = (opts) => {
+                    if (opts && typeof opts.onComplete === 'function') opts.onComplete();
+                  };
+
+                  window.adsbygoogle = window.adsbygoogle || [];
+                  window.adsbygoogle.push = function() {};
+
+                  window.googletag = window.googletag || {
+                    cmd: [],
+                    display: () => {},
+                    enableServices: () => {},
+                    pubads: () => ({
+                      setTargeting: () => {},
+                      clearTargeting: () => {},
+                      enableSingleRequest: () => {},
+                      collapseEmptyDivs: () => {},
+                      refresh: () => {}
+                    })
+                  };
+                } catch (_) {}
+
+                // 7. Inyección de reglas CSS globales para eliminar al 100% todos los contenedores de anuncios
+                try {
+                  const styleId = "onicord-clean-ads-style";
+                  if (!document.getElementById(styleId)) {
+                    const style = document.createElement("style");
+                    style.id = styleId;
+                    style.textContent = [
+                      'ins.adsbygoogle,',
+                      '.adsbygoogle,',
+                      '[id*="google_ads"],',
+                      '[id^="ad-"],',
+                      '[id*="ad-"],',
+                      '[id*="adinplay"],',
+                      '[id*="nitropay"],',
+                      '[id*="playwire"],',
+                      '[id*="banner"],',
+                      '.ad-banner,',
+                      '.publi,',
+                      '.anuncio,',
+                      '.advertisement,',
+                      '.ad-container,',
+                      '.ad-wrapper,',
+                      '.lateralAd,',
+                      '.ad,',
+                      '.ads,',
+                      'aside[class*="ad"],',
+                      'iframe[src*="adinplay"],',
+                      'iframe[src*="doubleclick"],',
+                      'iframe[src*="google"],',
+                      'iframe[id*="ad"],',
+                      'div[class*="publi"],',
+                      'div[class*="bannerAd"] {',
+                      '  display: none !important;',
+                      '  visibility: hidden !important;',
+                      '  height: 0 !important;',
+                      '  width: 0 !important;',
+                      '  min-height: 0 !important;',
+                      '  min-width: 0 !important;',
+                      '  opacity: 0 !important;',
+                      '  pointer-events: none !important;',
+                      '}'
+                    ].join('\\n');
+                    (document.head || document.documentElement).appendChild(style);
+                  }
+                } catch (_) {}
+
+                const hideAds = () => {
+                  try {
+                    const ads = document.querySelectorAll(
+                      'ins.adsbygoogle, [id*="google_ads"], .ad-banner, .adsbygoogle, #ad-top, #ad-bottom, .publi, [id*="adinplay"], iframe[src*="adinplay"], iframe[id*="ad"]'
+                    );
+                    ads.forEach(ad => {
+                      ad.style.setProperty('display', 'none', 'important');
+                      if (ad.parentElement && (ad.parentElement.tagName === 'ASIDE' || ad.parentElement.className.includes('lateral'))) {
+                        ad.parentElement.style.setProperty('display', 'none', 'important');
+                      }
+                    });
+                  } catch (_) {}
+                };
+                hideAds();
+                setInterval(hideAds, 1000);
+
+                // 8. Helper asíncrono robusto para obtener el enlace activo de la sala
+                window._onicordGetActiveRoomLink = async function() {
+                  if (window._onicordRoomLink && isGarticRoom(window._onicordRoomLink)) {
+                    return window._onicordRoomLink;
+                  }
+                  if (window.location && window.location.href && isGarticRoom(window.location.href)) {
+                    window._onicordRoomLink = window.location.href;
+                    return window.location.href;
+                  }
+
+                  // Si el usuario está en la pantalla inicial de Gartic Phone (antes de iniciar la sala)
+                  try {
+                    const pathname = (window.location && window.location.pathname) || '';
+                    if (!pathname.includes('/lobby') && !isGarticRoom(window.location.href)) {
+                      const startBtns = Array.from(document.querySelectorAll('button, [role="button"], a, input[type="button"], div, span'));
+                      const startBtn = startBtns.find(b => {
+                        if (b.children.length > 3) return false;
+                        const t = (b.textContent || '').trim().toLowerCase();
+                        return t === 'iniciar' || t === 'start' || t === 'começar' || t === 'crear sala' || t === 'create room';
+                      });
+                      if (startBtn) {
+                        try {
+                          startBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                          startBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                          startBtn.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+                          startBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                        } catch (_) {}
+                        if (typeof startBtn.click === 'function') startBtn.click();
+
+                        // Esperar a entrar a la sala/lobby
+                        for (let w = 0; w < 14; w++) {
+                          await new Promise(r => setTimeout(r, 120));
+                          if ((window.location && window.location.pathname.includes('/lobby')) || isGarticRoom(window.location.href)) break;
+                        }
+                      }
+                    }
+                  } catch (_) {}
+
+                  // Buscar en storage
+                  try {
+                    for (let i = 0; i < localStorage.length; i++) {
+                      const val = localStorage.getItem(localStorage.key(i));
+                      if (val && typeof val === 'string') {
+                        const m = val.match(/https?:\\/\\/(?:www\\.)?garticphone\\.com\\/(?:[a-zA-Z]{2}\\/)?([a-zA-Z0-9]{6,12})/i);
+                        if (m && isGarticRoom(m[0])) {
+                          window._onicordRoomLink = m[0];
+                          return m[0];
+                        }
+                      }
+                    }
+                  } catch (_) {}
+
+                  // Buscar en inputs o elementos que muestren el link de invitación
+                  try {
+                    const elements = Array.from(document.querySelectorAll('input, a, div, span, textarea, [data-link], [data-url]'));
+                    for (const el of elements) {
+                      const val = el.value || el.href || el.getAttribute('data-link') || el.getAttribute('data-url') || '';
+                      if (isGarticRoom(val)) {
+                        const found = normalizeLink(val);
+                        if (found) {
+                          window._onicordRoomLink = found;
+                          return found;
+                        }
+                      }
+                      const txt = (el.textContent || '').trim();
+                      if (txt.includes('garticphone.com')) {
+                        const m = txt.match(/https?:\\/\\/(?:www\\.)?garticphone\\.com\\/(?:[a-zA-Z]{2}\\/)?([a-zA-Z0-9]{6,12})/i);
+                        if (m && isGarticRoom(m[0])) {
+                          window._onicordRoomLink = m[0];
+                          return m[0];
+                        }
+                      }
+                    }
+                  } catch (_) {}
+
+                  // Pulsar el botón de invitar del lobby para disparar el copiado o desplegar el modal
+                  const candidates = Array.from(document.querySelectorAll('button, [role="button"], a, input[type="button"], div, span'));
+                  const invBtn = candidates.find(b => {
+                    if (b.children.length > 3) return false;
+                    const txt = (b.textContent || '').trim().toLowerCase();
+                    const aria = (b.getAttribute('aria-label') || '').toLowerCase();
+                    const title = (b.getAttribute('title') || '').toLowerCase();
+                    const cls = (b.className || '').toString().toLowerCase();
+                    const id = (b.id || '').toLowerCase();
+                    return (
+                      txt === 'invitar' || txt === 'invite' || txt === 'copiar' || txt === 'convidar' ||
+                      txt.includes('invitar') || txt.includes('invite') || txt.includes('copiar enlace') || txt.includes('copy link') || txt.includes('convidar') ||
+                      aria.includes('invit') || aria.includes('share') || aria.includes('copiar') ||
+                      cls.includes('invite') || cls.includes('share') || cls.includes('btlobby') || cls.includes('btinvite') ||
+                      id.includes('invite') || id.includes('share')
+                    );
+                  });
+
+                  if (invBtn) {
+                    try {
+                      invBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                      invBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                      invBtn.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+                      invBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                    } catch (_) {}
+                    if (typeof invBtn.click === 'function') {
+                      try { invBtn.click(); } catch (_) {}
+                    }
+
+                    // Esperar un instante para que el copiado asíncrono o modal de invitación ocurra
+                    await new Promise(r => setTimeout(r, 220));
+
+                    if (window._onicordRoomLink && isGarticRoom(window._onicordRoomLink)) {
+                      return window._onicordRoomLink;
+                    }
+
+                    // Si abrió un modal de invitación, buscar input o botón secundario de "COPIAR"
+                    try {
+                      const modalInputs = Array.from(document.querySelectorAll('input, textarea'));
+                      const foundInput = modalInputs.find(i => isGarticRoom(i.value || ''));
+                      if (foundInput) {
+                        const norm = normalizeLink(foundInput.value);
+                        if (norm) {
+                          window._onicordRoomLink = norm;
+                          return norm;
+                        }
+                      }
+
+                      const copyBtn = Array.from(document.querySelectorAll('button, [role="button"], div, span')).find(b => {
+                        if (b.children.length > 2) return false;
+                        const t = (b.textContent || '').trim().toLowerCase();
+                        return t === 'copiar' || t === 'copy' || t.includes('copiar') || t.includes('copy') || t.includes('enlace');
+                      });
+                      if (copyBtn) {
+                        try {
+                          copyBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                          copyBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                        } catch (_) {}
+                        if (typeof copyBtn.click === 'function') copyBtn.click();
+                        await new Promise(r => setTimeout(r, 150));
+                      }
+                    } catch (_) {}
+                  }
+
+                  return (window._onicordRoomLink && isGarticRoom(window._onicordRoomLink)) ? window._onicordRoomLink :
+                         (window.location && window.location.href && isGarticRoom(window.location.href)) ? window.location.href : null;
+                };
+              } catch (e) {
+                console.error('[Gartic Phone Hook Error]', e);
+              }
+            })()
+          `
+        ]
+      },
+      {
+        id: "skribbl",
+        title: "Skribbl.io",
+        platform: "T燃 / Slither Style · Web 2017",
+        genre: "Pictionary · Adivinanza en Tiempo Real · Casual",
+        cover: "https://skribbl.io/img/thumbnail.png",
+        fallbackCover: "../assets/skribbl.png",
+        banner: "https://skribbl.io/img/thumbnail.png",
+        url: "https://skribbl.io/",
+        synopsis: "El clásico juego online de adivinar el dibujo. Un jugador dibuja en tiempo real mientras el resto de la sala compite por teclear la palabra secreta lo más rápido posible para ganar puntos. ¡Rápido, adictivo y multijugador!",
+        shareCapture: {
+          triggerSelector: "#copy-invite, .copy-invite, #button-lobby-create",
+          windowProperty: "_onicordRoomLink",
+          queryParam: "skribbl.io/?"
+        },
+        frameScripts: [
+          `
+            (() => {
+              try {
+                const getNick = () => {
+                  const raw = window._onicordUserNick;
+                  if (!raw || raw === 'PLAYER') return '';
+                  return String(raw).replace(/[\\u0000-\\u001f\\u007f]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 20);
+                };
+
+                const targetNick = getNick();
+
+                if (navigator.clipboard && !navigator.clipboard._onicordHooked) {
+                  const origWrite = navigator.clipboard.writeText;
+                  navigator.clipboard.writeText = function(text) {
+                    if (typeof text === 'string' && text.includes('skribbl.io/?')) {
+                      window._onicordRoomLink = text.trim();
+                    }
+                    return origWrite.apply(this, arguments);
+                  };
+                  navigator.clipboard._onicordHooked = true;
+                }
+
+                const checkRoom = () => {
+                  try {
+                    const inviteInput = document.querySelector('#input-invite');
+                    if (inviteInput && inviteInput.value && inviteInput.value.includes('skribbl.io/?')) {
+                      window._onicordRoomLink = inviteInput.value.trim();
+                    } else if (window.location && window.location.search && window.location.search.length > 2 && window.location.href.includes('skribbl.io/?')) {
+                      window._onicordRoomLink = window.location.href;
+                    }
+                  } catch (_) {}
+                };
+                checkRoom();
+                setInterval(checkRoom, 1000);
+
+                const applyNick = () => {
+                  const nick = getNick();
+                  if (!nick) return;
+                  try {
+                    localStorage.setItem('name', nick);
+                    localStorage.setItem('player-name', nick);
+                  } catch (_) {}
+
+                  try {
+                    const inputs = document.querySelectorAll('#input-name, input[name="name"], .input-name, input[placeholder*="Name" i], input[placeholder*="nombre" i]');
+                    inputs.forEach((inp) => {
+                      if (inp && inp.value !== nick) {
+                        inp.value = nick;
+                        inp.dispatchEvent(new Event('input', { bubbles: true }));
+                        inp.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
+                    });
+                  } catch (_) {}
+                };
+
+                applyNick();
+                const nickInterval = setInterval(applyNick, 1000);
+                setTimeout(() => clearInterval(nickInterval), 45000);
+
+                // 4. Neutralización de motores de publicidad (AdinPlay, Google Ads, GPT)
+                try {
+                  window.aiptag = window.aiptag || {};
+                  window.aiptag.cmd = window.aiptag.cmd || [];
+                  window.aiptag.cmd.display = [];
+                  window.aiptag.cmd.player = [];
+                  window.aiptag.display = () => {};
+                  window.aiptag.player = () => {};
+                  window.aiptag.showDisplay = () => {};
+                  window.aiptag.showPlayer = (opts) => {
+                    if (opts && typeof opts.onComplete === 'function') opts.onComplete();
+                  };
+
+                  window.adsbygoogle = window.adsbygoogle || [];
+                  window.adsbygoogle.push = function() {};
+
+                  window.googletag = window.googletag || {
+                    cmd: [],
+                    display: () => {},
+                    enableServices: () => {},
+                    pubads: () => ({
+                      setTargeting: () => {},
+                      clearTargeting: () => {},
+                      enableSingleRequest: () => {},
+                      collapseEmptyDivs: () => {},
+                      refresh: () => {}
+                    })
+                  };
+                } catch (_) {}
+
+                // 5. Inyección de reglas CSS para eliminar contenedores y banners en Skribbl
+                try {
+                  const styleId = "onicord-skribbl-ads-style";
+                  if (!document.getElementById(styleId)) {
+                    const style = document.createElement("style");
+                    style.id = styleId;
+                    style.textContent = [
+                      '.ad-2,',
+                      'ins.adsbygoogle,',
+                      '.adsbygoogle,',
+                      '[id*="ad-"],',
+                      '[id^="ad-"],',
+                      '[id*="adinplay"],',
+                      '#banner-left,',
+                      '#banner-right,',
+                      'iframe[src*="adinplay"],',
+                      'iframe[src*="doubleclick"] {',
+                      '  display: none !important;',
+                      '  visibility: hidden !important;',
+                      '  height: 0 !important;',
+                      '  width: 0 !important;',
+                      '  opacity: 0 !important;',
+                      '  pointer-events: none !important;',
+                      '}'
+                    ].join('\\n');
+                    (document.head || document.documentElement).appendChild(style);
+                  }
+                } catch (_) {}
+
+                const hideAds = () => {
+                  try {
+                    const ads = document.querySelectorAll(
+                      '.ad-2, ins.adsbygoogle, [id*="ad-"], .adsbygoogle, #banner-left, #banner-right, [id*="adinplay"], iframe[src*="adinplay"]'
+                    );
+                    ads.forEach(ad => ad.style.setProperty('display', 'none', 'important'));
+                  } catch (_) {}
+                };
+                hideAds();
+                setInterval(hideAds, 1000);
+
+                window._onicordGetActiveRoomLink = function() {
+                  const inviteInput = document.querySelector('#input-invite');
+                  if (inviteInput && inviteInput.value && inviteInput.value.includes('skribbl.io/?')) {
+                    return inviteInput.value.trim();
+                  }
+                  if (window._onicordRoomLink && window._onicordRoomLink.includes('skribbl.io/?')) {
+                    return window._onicordRoomLink;
+                  }
+                  if (window.location && window.location.search && window.location.search.length > 2 && window.location.href.includes('skribbl.io/?')) {
+                    return window.location.href;
+                  }
+                  const copyBtn = document.querySelector('#copy-invite, .copy-invite');
+                  if (copyBtn && typeof copyBtn.click === 'function') {
+                    try { copyBtn.click(); } catch (_) {}
+                  }
+                  return window._onicordRoomLink || null;
+                };
+              } catch (e) {
+                console.error('[Skribbl Hook Error]', e);
+              }
+            })()
+          `
+        ]
+      }
+    ];
+
+    let currentIndex = 0;
+    let activeBackdropLayer = 0;
+
+    // ==========================================
+    // AUDIO ENGINE PROCEDURAL (WEB AUDIO API)
+    // ==========================================
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playTick() {
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(460, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(170, ctx.currentTime + 0.025);
+        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.025);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.03);
+      } catch (_) {}
+    }
+
+    function playLaunchChime() {
+      try {
+        const ctx = getAudioContext();
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.04);
+          gain.gain.setValueAtTime(0.11, ctx.currentTime + i * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.04 + 0.28);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + i * 0.04);
+          osc.stop(ctx.currentTime + i * 0.04 + 0.3);
+        });
+      } catch (_) {}
+    }
+
+    // ==========================================
+    // RENDERIZADO DEL CARRUSEL Y CROSSFADE HERO
+    // ==========================================
+    const track = document.getElementById("carouselTrack");
+    const carouselContainer = document.getElementById("carouselContainer");
+    const backdropLayers = [
+      document.getElementById("heroBackdropA"),
+      document.getElementById("heroBackdropB")
+    ];
+    const gameGenre = document.getElementById("gameGenre");
+    const gamePlatform = document.getElementById("gamePlatform");
+    const gameTitle = document.getElementById("gameTitle");
+    const gameSynopsis = document.getElementById("gameSynopsis");
+    const carouselCounter = document.getElementById("carouselCounter");
+
+    function renderCarousel() {
+      track.innerHTML = "";
+      GAMES_CATALOG.forEach((game, idx) => {
+        const card = document.createElement("div");
+        card.className = `game-card ${idx === currentIndex ? "active" : ""}`;
+        card.id = `card-${idx}`;
+        card.onclick = () => selectGame(idx);
+        card.ondblclick = () => launchCurrentGame();
+
+        const posterWrap = document.createElement("div");
+        posterWrap.className = "game-card-poster-wrapper";
+
+        const posterImg = document.createElement("img");
+        posterImg.className = "game-card-poster";
+        posterImg.src = game.cover;
+        posterImg.alt = game.title;
+        posterImg.loading = "lazy";
+        posterImg.onerror = () => {
+          if (game.fallbackCover && posterImg.src !== game.fallbackCover) {
+            posterImg.src = game.fallbackCover;
+          } else {
+            posterWrap.style.background = "linear-gradient(135deg, #1e1e2e, #313244)";
+            posterImg.style.display = "none";
+            posterWrap.innerHTML = `<div style="display:flex;height:100%;align-items:center;justify-content:center;padding:10px;text-align:center;font-weight:700;font-size:12px;color:#cdd6f4;">${game.title}</div>`;
+          }
+        };
+
+        posterWrap.appendChild(posterImg);
+
+        const titleLabel = document.createElement("span");
+        titleLabel.className = "game-card-title";
+        titleLabel.innerText = game.title;
+
+        card.appendChild(posterWrap);
+        card.appendChild(titleLabel);
+        track.appendChild(card);
+      });
+
+      updateHeroDetails(true);
+    }
+
+    function selectGame(index, playSound = true) {
+      if (index < 0) index = GAMES_CATALOG.length - 1;
+      if (index >= GAMES_CATALOG.length) index = 0;
+      if (index === currentIndex && playSound) return;
+
+      currentIndex = index;
+
+      const cards = track.querySelectorAll(".game-card");
+      cards.forEach((c, idx) => {
+        if (idx === currentIndex) {
+          c.classList.add("active");
+          c.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        } else {
+          c.classList.remove("active");
+        }
+      });
+
+      updateHeroDetails(false);
+      if (playSound) playTick();
+    }
+
+    function setBackdropCrossfade(url, fallback1, fallback2) {
+      const nextLayerIdx = activeBackdropLayer === 0 ? 1 : 0;
+      const nextImg = backdropLayers[nextLayerIdx];
+      const currentImg = backdropLayers[activeBackdropLayer];
+
+      nextImg.onload = () => {
+        nextImg.classList.add("active");
+        currentImg.classList.remove("active");
+        activeBackdropLayer = nextLayerIdx;
+      };
+
+      nextImg.onerror = () => {
+        if (fallback1 && nextImg.src !== fallback1) {
+          nextImg.src = fallback1;
+        } else if (fallback2 && nextImg.src !== fallback2) {
+          nextImg.src = fallback2;
+        }
+      };
+
+      nextImg.src = url;
+    }
+
+    function updateHeroDetails(immediate = false) {
+      const game = GAMES_CATALOG[currentIndex];
+      if (!game) return;
+
+      const total = String(GAMES_CATALOG.length).padStart(2, "0");
+      const current = String(currentIndex + 1).padStart(2, "0");
+      carouselCounter.innerText = `${current} / ${total}`;
+
+      if (immediate) {
+        backdropLayers[0].src = game.banner || game.cover;
+        backdropLayers[0].classList.add("active");
+      } else {
+        setBackdropCrossfade(game.banner, game.cover, game.fallbackCover);
+      }
+
+      gameGenre.innerText = game.genre;
+      gamePlatform.innerText = game.platform;
+      gameTitle.innerText = game.title;
+      gameSynopsis.innerText = game.synopsis;
+    }
+
+    function moveSelection(direction) {
+      selectGame(currentIndex + direction, true);
+    }
+
+    carouselContainer.addEventListener("wheel", (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        carouselContainer.scrollLeft += e.deltaY * 1.5;
+      }
+    }, { passive: false });
+
+    // ==========================================
+    // LANZAMIENTO Y CIERRE DEL STAGE
+    // ==========================================
+    function launchCurrentGame() {
+      const game = GAMES_CATALOG[currentIndex];
+      if (!game) return;
+
+      playLaunchChime();
+
+      let effectiveCover = game.resolvedCover || game.cover;
+      if (!effectiveCover && game.fallbackCover) {
+        effectiveCover = game.fallbackCover;
+      }
+      if (effectiveCover && !effectiveCover.startsWith("http://") && !effectiveCover.startsWith("https://") && !effectiveCover.startsWith("data:") && !effectiveCover.startsWith("onicord-media://")) {
+        try {
+          effectiveCover = new URL(effectiveCover, document.baseURI).href;
+        } catch (_) {}
+      }
+
+      if (window.parent) {
+        window.parent.postMessage({
+          type: "ONICORD_STAGE_LAUNCH_GAME",
+          game: {
+            id: game.id,
+            title: game.title,
+            url: game.url,
+            cover: effectiveCover,
+            banner: game.banner || effectiveCover,
+            details: "Arcade",
+            state: "En partida",
+            genre: game.genre,
+            platform: game.platform,
+            shareCapture: game.shareCapture || null,
+            frameScripts: game.frameScripts || [],
+            userNick: window._onicordUserNick || "",
+            authorName: window._onicordUserNick || "",
+            type: "game",
+            isCatalog: false,
+            activity: {
+              name: game.title,
+              details: "Arcade",
+              state: "En partida",
+              cover: effectiveCover,
+              type: "game",
+              isCatalog: false,
+              startTime: Date.now(),
+            }
+          }
+        }, "*");
+      }
+    }
+
+    function closeStage() {
+      if (window.parent) {
+        window.parent.postMessage({ type: "ONICORD_CLOSE_STAGE" }, "*");
+      }
+    }
+
+    // ==========================================
+    // MOTOR DE CONTROLES: GAMEPAD & KEYBOARD
+    // ==========================================
+    let lastNavTime = 0;
+    let padBtnActionPressed = false;
+    let padBtnBackPressed = false;
+    const NAV_COOLDOWN = 180;
+
+    function checkGamepadState() {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      let activePad = null;
+      for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i] && gamepads[i].connected) {
+          activePad = gamepads[i];
+          break;
+        }
+      }
+
+      if (activePad) {
+        const now = Date.now();
+        if (now - lastNavTime > NAV_COOLDOWN) {
+          const axisX = activePad.axes[0] || 0;
+          const dpadLeft = activePad.buttons[14]?.pressed;
+          const dpadRight = activePad.buttons[15]?.pressed;
+
+          if (axisX < -0.45 || dpadLeft) {
+            moveSelection(-1);
+            lastNavTime = now;
+          } else if (axisX > 0.45 || dpadRight) {
+            moveSelection(1);
+            lastNavTime = now;
+          }
+        }
+
+        const btnA = activePad.buttons[0]?.pressed;
+        const btnX = activePad.buttons[2]?.pressed;
+        const btnStart = activePad.buttons[9]?.pressed;
+
+        if (btnA || btnX || btnStart) {
+          if (!padBtnActionPressed) {
+            padBtnActionPressed = true;
+            launchCurrentGame();
+          }
+        } else {
+          padBtnActionPressed = false;
+        }
+
+        if (activePad.buttons[1]?.pressed) {
+          if (!padBtnBackPressed) {
+            padBtnBackPressed = true;
+            closeStage();
+          }
+        } else {
+          padBtnBackPressed = false;
+        }
+      }
+
+      requestAnimationFrame(checkGamepadState);
+    }
+
+    // Teclado
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        e.preventDefault();
+        moveSelection(-1);
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        e.preventDefault();
+        moveSelection(1);
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        launchCurrentGame();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        closeStage();
+      }
+    });
+
+    // Iniciar
+    renderCarousel();
+    requestAnimationFrame(checkGamepadState);
+  </script>
+</body>
+</html>

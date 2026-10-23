@@ -198,8 +198,11 @@ export function createNativePeer({
   wrapper._transformSdp = (sessionDesc) => {
     if (!sessionDesc?.sdp) return sessionDesc;
     let sdp = sessionDesc.sdp;
-    const targetBitrate = isLan ? 128000 : 64000;
-    const targetLabel = isLan ? "LAN" : "WAN";
+    const isGame = Boolean(wrapper.isGameMode);
+    const targetBitrate = isGame ? 192000 : (isLan ? 128000 : 64000);
+    const targetLabel = isGame ? "GAMING STEREO" : (isLan ? "LAN" : "WAN");
+    const stereoParams = isGame ? "stereo=1;sprop-stereo=1" : "stereo=0";
+
     const opusMatch = sdp.match(/a=rtpmap:(\d+)\s+opus\/48000/i);
     if (opusMatch) {
       const pt = opusMatch[1];
@@ -207,7 +210,7 @@ export function createNativePeer({
       if (sdp.match(fmtpRegex)) {
         sdp = sdp.replace(
           fmtpRegex,
-          `a=fmtp:${pt} $1;usedtx=0;maxaveragebitrate=${targetBitrate};stereo=0`,
+          `a=fmtp:${pt} $1;usedtx=0;maxaveragebitrate=${targetBitrate};${stereoParams}`,
         );
       } else {
         const rtpmapRegex = new RegExp(
@@ -216,7 +219,7 @@ export function createNativePeer({
         );
         sdp = sdp.replace(
           rtpmapRegex,
-          `$1\r\na=fmtp:${pt} usedtx=0;maxaveragebitrate=${targetBitrate};stereo=0`,
+          `$1\r\na=fmtp:${pt} usedtx=0;maxaveragebitrate=${targetBitrate};${stereoParams}`,
         );
       }
       console.log(

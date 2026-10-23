@@ -13,6 +13,15 @@ export class VoiceAudioEngine {
     this.peerAudio = new Map();
     this.localVoiceSource = null;
     this.localVoiceAnimationFrame = null;
+    this.localPeerId = null;
+
+    // Master Audio Bus (Gain + DynamicsCompressor Anti-Clipping Limiter)
+    this.masterBus = null;
+    this.masterGain = null;
+    this.masterCompressor = null;
+
+    // Auto-Ducking state
+    this.activeSpeakers = new Set();
   }
 
   _normalizeDeviceId(id) {
@@ -31,7 +40,74 @@ export class VoiceAudioEngine {
         .then(() => console.log("[Voice AudioContext] Successfully awakened from P2P Core!"))
         .catch((err) => console.warn("[Voice AudioContext] Error al despertar:", err.message));
     }
+    this.ensureMasterBus(this.audioContext);
     return this.audioContext;
+  }
+
+  ensureMasterBus(ctx) {
+    if (!this.masterBus && ctx) {
+      this.masterGain = ctx.createGain();
+      const masterVol = (this.audioSettings?.outputVolume ?? 100) / 100;
+      this.masterGain.gain.setValueAtTime(masterVol, ctx.currentTime);
+
+      this.masterCompressor = ctx.createDynamicsCompressor();
+      // Transparent anti-clipping limiter settings
+      this.masterCompressor.threshold.setValueAtTime(-1.5, ctx.currentTime);
+      this.masterCompressor.knee.setValueAtTime(2.0, ctx.currentTime);
+      this.masterCompressor.ratio.setValueAtTime(12.0, ctx.currentTime);
+      this.masterCompressor.attack.setValueAtTime(0.002, ctx.currentTime);
+      this.masterCompressor.release.setValueAtTime(0.05, ctx.currentTime);
+
+      this.updateMasterRouting();
+      this.masterBus = this.masterGain;
+    }
+    return this.masterBus;
+  }
+
+  updateMasterRouting() {
+    if (!this.audioContext || !this.masterGain || !this.masterCompressor) return;
+    const ctx = this.audioContext;
+    try {
+      this.masterGain.disconnect();
+      this.masterCompressor.disconnect();
+    } catch {}
+
+    const useCompressor = this.audioSettings?.dynamicsCompression !== false;
+    if (useCompressor) {
+      this.masterGain.connect(this.masterCompressor);
+      this.masterCompressor.connect(ctx.destination);
+    } else {
+      this.masterGain.connect(ctx.destination);
+    }
+  }
+
+  applyAudioSettings(newSettings) {
+    this.audioSettings = { ...this.audioSettings, ...newSettings };
+    if (this.audioContext && this.masterGain) {
+      const masterVol = (this.audioSettings?.outputVolume ?? 100) / 100;
+      this.masterGain.gain.setTargetAtTime(masterVol, this.audioContext.currentTime, 0.05);
+      this.updateMasterRouting();
+    }
+    this._handleSpeakingStateChange();
+  }
+
+  _handleSpeakingStateChange() {
+    const hasSpeakers = this.activeSpeakers.size > 0;
+    const isDuckingEnabled = this.audioSettings?.autoDucking !== false;
+    const isDucking = hasSpeakers && isDuckingEnabled;
+    const duckAmount = (this.audioSettings?.autoDuckingAmount ?? 50) / 100;
+    const duckMultiplier = isDucking ? Math.max(0.05, 1 - duckAmount) : 1.0;
+
+    window.dispatchEvent(
+      new CustomEvent("voice-ducking-change", {
+        detail: {
+          isDucking,
+          duckMultiplier,
+          duckAmount: this.audioSettings?.autoDuckingAmount ?? 50,
+          activeSpeakersCount: this.activeSpeakers.size,
+        },
+      }),
+    );
   }
 
   async resumeAudioContext() {
@@ -56,6 +132,11 @@ export class VoiceAudioEngine {
       } catch {}
       this.localVoiceSource = null;
     }
+    if (this.localPeerId) {
+      this.activeSpeakers.delete(this.localPeerId);
+    }
+    this.activeSpeakers.delete("self");
+    this._handleSpeakingStateChange();
   }
 
   setupLocalVoiceAnalysis(stream, localPeerId) {
@@ -110,10 +191,17 @@ export class VoiceAudioEngine {
 
           if (isSpeaking !== isSpeakingNow) {
             isSpeaking = isSpeakingNow;
+            const localId = localPeerId || "self";
+            if (isSpeakingNow) {
+              this.activeSpeakers.add(localId);
+            } else {
+              this.activeSpeakers.delete(localId);
+            }
+            this._handleSpeakingStateChange();
             window.dispatchEvent(
               new CustomEvent("peer-speaking-change", {
                 detail: {
-                  peerId: localPeerId || "self",
+                  peerId: localId,
                   isSpeaking: isSpeakingNow,
                   volumeLevel: averageVolume,
                 },
@@ -165,6 +253,8 @@ export class VoiceAudioEngine {
     if (!entry) return;
 
     try {
+      this.activeSpeakers.delete(peerId);
+      this._handleSpeakingStateChange();
       entry.cancelRaf?.();
       this.peerAudio.delete(peerId);
 
@@ -184,6 +274,12 @@ export class VoiceAudioEngine {
         entry.keepAliveAudio.pause();
         entry.keepAliveAudio.srcObject = null;
         entry.keepAliveAudio.remove();
+      }
+
+      if (entry.analyser) {
+        try {
+          entry.analyser.disconnect();
+        } catch {}
       }
 
       if (entry.gain) entry.gain.disconnect();
@@ -290,6 +386,12 @@ export class VoiceAudioEngine {
 
         if (entry.isSpeaking !== isSpeakingNow) {
           entry.isSpeaking = isSpeakingNow;
+          if (isSpeakingNow) {
+            this.activeSpeakers.add(peerId);
+          } else {
+            this.activeSpeakers.delete(peerId);
+          }
+          this._handleSpeakingStateChange();
           window.dispatchEvent(
             new CustomEvent("peer-speaking-change", {
               detail: { peerId, isSpeaking: isSpeakingNow },
@@ -305,11 +407,9 @@ export class VoiceAudioEngine {
       rafId = requestAnimationFrame(checkSpeaking);
     }, 100);
 
-    const dest = ctx.createMediaStreamDestination();
-    gain.connect(dest);
-
-    // Direct hardware audio output via Web Audio API (immune to DOM element autoplay throttling)
-    gain.connect(ctx.destination);
+    // Direct hardware audio output via Master Bus with transparent anti-clipping limiter
+    const masterBus = this.ensureMasterBus(ctx);
+    gain.connect(masterBus);
     const targetSink = this._normalizeDeviceId(this.outputDeviceId);
     if (typeof ctx.setSinkId === "function") {
       ctx.setSinkId(targetSink).catch((err) => {
@@ -317,35 +417,9 @@ export class VoiceAudioEngine {
       });
     }
 
-    const audio = document.createElement("audio");
-    audio.autoplay = true;
-    audio.playsInline = true;
-    // Muted to prevent echo/duplicate sound since gain is already connected to ctx.destination
-    audio.muted = true;
-    audio.style.display = "none";
-    audio.srcObject = dest.stream;
-    document.body.appendChild(audio);
-    this.applySink(audio);
-
-    const playAudio = () => {
-      if (ctx.state === "suspended") ctx.resume().catch(() => {});
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          if (err.name === "AbortError" || err.message?.includes("interrupted")) {
-            return; // Normal playback abort/interruption by pause or stream swap
-          }
-          console.warn("[voice] Media auto-play demorado. Aguardando interacción:", err.message);
-          const unlock = () => {
-            if (ctx.state === "suspended") ctx.resume().catch(() => {});
-            audio.play().catch(() => {});
-          };
-          window.addEventListener("click", unlock, { once: true });
-          window.addEventListener("keydown", unlock, { once: true });
-        });
-      }
-    };
-    playAudio();
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
 
     // Chromium stream keep-alive: attaching remote stream to a muted HTMLAudioElement ensures Web Audio API receives active audio frames
     const keepAliveAudio = document.createElement("audio");
@@ -361,7 +435,7 @@ export class VoiceAudioEngine {
       source,
       sources,
       gain,
-      audio,
+      analyser,
       keepAliveAudio,
       stream,
       isSpeaking: false,
@@ -402,6 +476,19 @@ export class VoiceAudioEngine {
     for (const peerId of [...this.peerAudio.keys()]) {
       this.disposePeerAudio(peerId);
     }
+    this.activeSpeakers.clear();
+    this._handleSpeakingStateChange();
+
+    if (this.masterGain) {
+      try { this.masterGain.disconnect(); } catch {}
+      this.masterGain = null;
+    }
+    if (this.masterCompressor) {
+      try { this.masterCompressor.disconnect(); } catch {}
+      this.masterCompressor = null;
+    }
+    this.masterBus = null;
+
     if (this.audioContext && this.audioContext.state !== "closed") {
       this.audioContext.close().catch(() => {});
       this.audioContext = null;

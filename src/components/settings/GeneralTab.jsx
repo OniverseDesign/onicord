@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { DEFAULT_GENERAL } from "../../lib/generalSettings";
-import { soundEngine } from "../../lib/soundEngine";
+import { soundEngine, SFX_LEVEL } from "../../lib/soundEngine";
 import { SUPPORTED_LANGUAGES } from "../../i18n/languages";
 import Select from "../ui/Select";
+import MaterialIcon from "../icons/MaterialIcon";
 
 const STORAGE_LINE_HEIGHT_KEY = "onicord_chat_line_height";
 
@@ -12,19 +13,72 @@ export default function GeneralTab({ general, setGeneral }) {
   const [cacheStats, setCacheStats] = useState({ count: 0, sizeFormatted: "0 B" });
   const [chatLineHeight, setChatLineHeight] = useState("1.5");
 
+  const [sfxLevel, setSfxLevel] = useState(() => {
+    if (general?.sfxLevel !== undefined) return Number(general.sfxLevel);
+    return soundEngine.getLevel();
+  });
+
+  useEffect(() => {
+    if (general?.sfxLevel !== undefined) {
+      setSfxLevel(Number(general.sfxLevel));
+    }
+  }, [general?.sfxLevel]);
+
   const [sfxVolume, setSfxVolume] = useState(() =>
     Math.round(soundEngine.getVolume() * 100)
   );
   const [sfxPack, setSfxPack] = useState(() => soundEngine.getPack());
-  const [typingSfxEnabled, setTypingSfxEnabled] = useState(() =>
-    soundEngine.isTypingEnabled()
+
+  const handleSfxLevelChange = (newLevel) => {
+    const lvl = Math.max(0, Math.min(3, parseInt(newLevel, 10) || 0));
+    setSfxLevel(lvl);
+    soundEngine.setLevel(lvl, false);
+    setGeneral((prev) => ({
+      ...prev,
+      sfxLevel: lvl,
+      enableSoundEffects: lvl > 0,
+    }));
+  };
+
+  const soundLevels = useMemo(
+    () => [
+      {
+        level: 0,
+        label: t("settings.sfx.level0", "Silencioso"),
+        desc: t(
+          "settings.sfx.level0Desc",
+          "Todos los sonidos desactivados."
+        ),
+      },
+      {
+        level: 1,
+        label: t("settings.sfx.level1", "Esencial"),
+        desc: t(
+          "settings.sfx.level1Desc",
+          "Solo voz, silenciarse, ensordecerse, transmisiones y avisos."
+        ),
+      },
+      {
+        level: 2,
+        label: t("settings.sfx.level2", "Voz y Chat"),
+        desc: t(
+          "settings.sfx.level2Desc",
+          "Esencial más envío y recepción de mensajes y escritura."
+        ),
+      },
+      {
+        level: 3,
+        label: t("settings.sfx.level3", "Completo"),
+        desc: t(
+          "settings.sfx.level3Desc",
+          "Todos los sonidos de la aplicación e interfaz."
+        ),
+      },
+    ],
+    [t]
   );
-  const [widgetSfxEnabled, setWidgetSfxEnabled] = useState(() =>
-    soundEngine.isWidgetSoundsEnabled()
-  );
-  const [navSfxEnabled, setNavSfxEnabled] = useState(() =>
-    soundEngine.isNavSoundsEnabled()
-  );
+
+  const currentLevelMeta = soundLevels[sfxLevel] || soundLevels[2];
 
   const handleSfxVolumeChange = (e) => {
     const val = parseInt(e.target.value, 10);
@@ -64,6 +118,24 @@ export default function GeneralTab({ general, setGeneral }) {
 
     if (key === "enableSoundEffects") {
       soundEngine.setEnabled(value);
+    }
+
+    if (key === "sfxLevel") {
+      soundEngine.setLevel(value);
+    }
+
+    if (key === "enableOpenGraph") {
+      try {
+        const raw = localStorage.getItem("onicord_general_settings");
+        const parsed = raw ? JSON.parse(raw) : {};
+        parsed.enableOpenGraph = value;
+        localStorage.setItem("onicord_general_settings", JSON.stringify(parsed));
+        window.dispatchEvent(
+          new CustomEvent("onicord:general-settings-updated", {
+            detail: { enableOpenGraph: value },
+          })
+        );
+      } catch {}
     }
   };
 
@@ -322,30 +394,42 @@ export default function GeneralTab({ general, setGeneral }) {
             </label>
           </div>
 
-          <div className="onicord-settings-row">
-            <div className="min-w-0 pr-4">
-              <p className="onicord-settings-row-title">
-                {t("settings.general.soundEffects", "Efectos de sonido de la interfaz")}
-              </p>
-              <p className="onicord-settings-row-desc">
-                {t("settings.general.soundEffectsDesc", "Sonidos interactivos al conectar, mutear o recibir llamados.")}
-              </p>
+          {/* Nivel de Efectos de Sonido (Selector por Botones Segmentados) */}
+          <div className="onicord-settings-row flex-col items-stretch gap-2.5">
+            <div className="flex justify-between items-start">
+              <div className="min-w-0 pr-2">
+                <p className="onicord-settings-row-title">
+                  {t("settings.sfx.levelTitle", "Nivel de Efectos de Sonido")}
+                </p>
+                <p className="onicord-settings-row-desc">
+                  {currentLevelMeta.desc}
+                </p>
+              </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                checked={general.enableSoundEffects ?? true}
-                onChange={(e) =>
-                  handleChange("enableSoundEffects", e.target.checked)
-                }
-                className="sr-only peer"
-              />
-              <div className="onicord-toggle-slider" />
-            </label>
+
+            <div className="grid grid-cols-4 gap-1.5 p-1 bg-onicord-base/40 rounded-xl border border-white/5">
+              {soundLevels.map((lvl) => {
+                const isActive = lvl.level === sfxLevel;
+                return (
+                  <button
+                    key={lvl.level}
+                    type="button"
+                    onClick={() => handleSfxLevelChange(lvl.level)}
+                    className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-onicord-accent/15 border-onicord-accent/40 text-onicord-accent font-semibold text-xs shadow-sm"
+                        : "border-transparent text-onicord-muted hover:text-onicord-text hover:bg-white/5 font-medium text-xs"
+                    }`}
+                  >
+                    <span className="truncate block">{lvl.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Paquete de Sonidos (Fila con select - estilo idéntico a Idioma) */}
-          <div className={`onicord-settings-input-row transition-opacity duration-200 ${general.enableSoundEffects === false ? "opacity-40" : ""}`}>
+          {/* Paquete de Sonidos (Fila con select) */}
+          <div className={`onicord-settings-input-row transition-opacity duration-200 ${sfxLevel === 0 ? "opacity-40 pointer-events-none" : ""}`}>
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.sfx.pack", "Paquete de Sonidos")}
@@ -356,7 +440,7 @@ export default function GeneralTab({ general, setGeneral }) {
             </div>
             <Select
               value={sfxPack}
-              disabled={general.enableSoundEffects === false}
+              disabled={sfxLevel === 0}
               onChange={handleSfxPackChange}
               align="right"
               className="w-[170px] shrink-0"
@@ -377,8 +461,8 @@ export default function GeneralTab({ general, setGeneral }) {
             />
           </div>
 
-          {/* Volumen de Efectos (Fila con slider - estilo idéntico a Escala) */}
-          <div className={`onicord-settings-slider-row transition-opacity duration-200 ${general.enableSoundEffects === false ? "opacity-40" : ""}`}>
+          {/* Volumen de Efectos (Fila con slider) */}
+          <div className={`onicord-settings-slider-row transition-opacity duration-200 ${sfxLevel === 0 ? "opacity-40 pointer-events-none" : ""}`}>
             <div className="flex justify-between items-center">
               <div className="min-w-0 pr-2">
                 <p className="onicord-settings-row-title">
@@ -398,7 +482,7 @@ export default function GeneralTab({ general, setGeneral }) {
                 min="0"
                 max="100"
                 step="1"
-                disabled={general.enableSoundEffects === false}
+                disabled={sfxLevel === 0}
                 value={sfxVolume}
                 onChange={handleSfxVolumeChange}
                 className="onicord-range-input flex-1"
@@ -407,84 +491,6 @@ export default function GeneralTab({ general, setGeneral }) {
                 {sfxVolume}%
               </span>
             </div>
-          </div>
-
-          {/* Sonido de Escritura */}
-          <div className={`onicord-settings-row transition-opacity duration-200 ${general.enableSoundEffects === false ? "opacity-40" : ""}`}>
-            <div className="min-w-0 pr-4">
-              <p className="onicord-settings-row-title">
-                {t("settings.sfx.typing", "Sonido de escritura de otros usuarios")}
-              </p>
-              <p className="onicord-settings-row-desc">
-                {t("settings.sfx.typingDesc", "Reproduce un pulso sutil cuando otros usuarios escriben en el canal activo.")}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                disabled={general.enableSoundEffects === false}
-                checked={typingSfxEnabled}
-                onChange={(e) => {
-                  const val = e.target.checked;
-                  setTypingSfxEnabled(val);
-                  soundEngine.setTypingEnabled(val);
-                }}
-                className="sr-only peer"
-              />
-              <div className="onicord-toggle-slider" />
-            </label>
-          </div>
-
-          {/* Sonidos Hápticos de Widgets */}
-          <div className={`onicord-settings-row transition-opacity duration-200 ${general.enableSoundEffects === false ? "opacity-40" : ""}`}>
-            <div className="min-w-0 pr-4">
-              <p className="onicord-settings-row-title">
-                {t("settings.sfx.widgets", "Sonidos hápticos de widgets")}
-              </p>
-              <p className="onicord-settings-row-desc">
-                {t("settings.sfx.widgetsDesc", "Efectos acústicos al arrastrar, encajar y redimensionar widgets en el dashboard.")}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                disabled={general.enableSoundEffects === false}
-                checked={widgetSfxEnabled}
-                onChange={(e) => {
-                  const val = e.target.checked;
-                  setWidgetSfxEnabled(val);
-                  soundEngine.setWidgetSoundsEnabled(val);
-                }}
-                className="sr-only peer"
-              />
-              <div className="onicord-toggle-slider" />
-            </label>
-          </div>
-
-          {/* Sonidos de Navegación */}
-          <div className={`onicord-settings-row transition-opacity duration-200 ${general.enableSoundEffects === false ? "opacity-40" : ""}`}>
-            <div className="min-w-0 pr-4">
-              <p className="onicord-settings-row-title">
-                {t("settings.sfx.navigation", "Sonidos de navegación")}
-              </p>
-              <p className="onicord-settings-row-desc">
-                {t("settings.sfx.navigationDesc", "Cues acústicos al cambiar canales y desplegar o colapsar categorías.")}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                disabled={general.enableSoundEffects === false}
-                checked={navSfxEnabled}
-                onChange={(e) => {
-                  const val = e.target.checked;
-                  setNavSfxEnabled(val);
-                  soundEngine.setNavSoundsEnabled(val);
-                }}
-                className="sr-only peer"
-              />
-              <div className="onicord-toggle-slider" />
-            </label>
           </div>
         </div>
       </div>
@@ -495,7 +501,35 @@ export default function GeneralTab({ general, setGeneral }) {
           <span>{t("settings.general.performance", "Rendimiento y Hardware")}</span>
         </h3>
 
-        <div className="onicord-settings-row">
+        <div>
+          {/* Previsualización Open Graph */}
+          <div className="onicord-settings-row">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.enableOpenGraph", "Previsualización de enlaces (Open Graph)")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.general.enableOpenGraphDesc", "Genera tarjetas interactivas con miniaturas e información al compartir enlaces en el chat. Desactívalo para mejorar el rendimiento y ahorrar recursos.")}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={general.enableOpenGraph ?? true}
+                onChange={(e) =>
+                  handleChange(
+                    "enableOpenGraph",
+                    e.target.checked,
+                  )
+                }
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          {/* Desactivar aceleración por hardware */}
+          <div className="onicord-settings-row">
           <div className="min-w-0 pr-4">
             <p className="onicord-settings-row-title">
               {t("settings.general.disableHardwareAccel", "Desactivar aceleración por hardware")}
@@ -523,12 +557,16 @@ export default function GeneralTab({ general, setGeneral }) {
           </label>
         </div>
       </div>
+    </div>
 
       {/* BOTÓN RESTABLECER */}
       <div className="pt-2">
         <button
           type="button"
-          onClick={() => setGeneral({ ...DEFAULT_GENERAL })}
+          onClick={() => {
+            setGeneral({ ...DEFAULT_GENERAL });
+            soundEngine.setLevel(DEFAULT_GENERAL.sfxLevel, false);
+          }}
           className="onicord-btn-danger-soft w-full text-center"
         >
           {t("settings.general.resetGeneral", "Restablecer ajustes generales por defecto")}

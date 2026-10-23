@@ -559,8 +559,7 @@ class ChatService {
       return;
     }
 
-    const existing = await this.chatStore?.load(payload.roomCode, channelId);
-    if (existing?.some((m) => m.id === message.id)) return;
+    if (this.chatStore?._recentMessageIds?.has(message.id)) return;
     await this.persistAndEmit(message, payload.roomCode);
 
     const stickerInfo = this._extractStickerInfo(message.text, payload.roomCode);

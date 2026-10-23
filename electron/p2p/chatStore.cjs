@@ -21,6 +21,7 @@ async function writeFileAtomic(filePath, data, encoding = 'utf8') {
 class ChatStore {
   constructor(userDataPath) {
     this.dir = path.join(userDataPath, 'chats')
+    this._recentMessageIds = new Set()
   }
 
   _safeCode(roomCode) {
@@ -36,55 +37,7 @@ class ChatStore {
     return path.join(this.dir, safe, `${safeChannel}.json`)
   }
 
-  _legacyPath(roomCode) {
-    return path.join(this.dir, `${this._safeCode(roomCode)}.json`)
-  }
-
-  async _migrateLegacy(roomCode, channelId) {
-    const legacy = this._legacyPath(roomCode)
-    const target = this._channelPath(roomCode, channelId)
-    try {
-      const raw = await fs.readFile(legacy, 'utf8')
-      let messages = []
-      try {
-        const data = JSON.parse(raw)
-        if (Array.isArray(data)) {
-          messages = data
-        } else if (Array.isArray(data.messages)) {
-          messages = data.messages
-        } else if (data && typeof data === 'object') {
-          for (const val of Object.values(data)) {
-            if (Array.isArray(val) && val.length > 0) {
-              messages = val
-              break
-            }
-          }
-        }
-      } catch (err) {
-        console.error('[ChatStore] Error parsing legacy chat file:', err.message)
-      }
-
-      if (messages.length > 0) {
-        await writeFileAtomic(
-          target,
-          JSON.stringify(
-            { roomCode: this._safeCode(roomCode), channelId, messages, updatedAt: Date.now() },
-            null,
-            2
-          )
-        )
-      }
-
-      const targetStat = await fs.stat(target).catch(() => null)
-      if (targetStat && targetStat.size > 0) {
-        await fs.unlink(legacy).catch(() => {})
-      }
-    } catch {
-    }
-  }
-
   async load(roomCode, channelId = DEFAULT_CHANNEL) {
-    await this._migrateLegacy(roomCode, channelId)
     try {
       const filePath = this._channelPath(roomCode, channelId)
       const raw = await fs.readFile(filePath, 'utf8')
@@ -109,6 +62,16 @@ class ChatStore {
   }
 
   async append(roomCode, channelId, message) {
+    if (!message || !message.id) return []
+    if (this._recentMessageIds.has(message.id)) return []
+    this._recentMessageIds.add(message.id)
+    if (this._recentMessageIds.size > 20000) {
+      const iter = this._recentMessageIds.values()
+      for (let i = 0; i < 5000; i++) {
+        this._recentMessageIds.delete(iter.next().value)
+      }
+    }
+
     const messages = await this.load(roomCode, channelId)
     if (messages.some((m) => m.id === message.id)) return messages
 
@@ -131,6 +94,11 @@ class ChatStore {
         2
       )
     )
+    try {
+      const { getSearchStore } = require('./searchStore.cjs')
+      const searchStore = getSearchStore(this)
+      searchStore?.indexMessage(roomCode, { ...message, channelId })
+    } catch {}
     return trimmed
   }
 
@@ -165,6 +133,11 @@ class ChatStore {
     const safeId = String(messageId || '').trim()
     if (!safeId) return { ok: false, deleted: 0 }
     await this.addTombstone(roomCode, safeId)
+    try {
+      const { getSearchStore } = require('./searchStore.cjs')
+      const searchStore = getSearchStore(this)
+      searchStore?.removeMessage(roomCode, safeId)
+    } catch {}
     const messages = await this.load(roomCode, channelId)
     const before = messages.length
     const next = messages.filter((m) => m.id !== safeId)
@@ -189,7 +162,6 @@ class ChatStore {
   }
 
   async listChannelIds(roomCode) {
-    await this._migrateLegacy(roomCode, DEFAULT_CHANNEL)
     const dir = path.join(this.dir, this._safeCode(roomCode))
     try {
       const files = await readdir(dir)
@@ -270,6 +242,15 @@ class ChatStore {
             2
           )
         )
+        try {
+          const { getSearchStore } = require('./searchStore.cjs')
+          const searchStore = getSearchStore(this)
+          if (searchStore) {
+            for (const msg of batch) {
+              searchStore.indexMessage(roomCode, { ...msg, channelId })
+            }
+          }
+        } catch {}
       }
     }
 

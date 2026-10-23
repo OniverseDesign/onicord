@@ -1,0 +1,17 @@
+{
+  "name": "onicord-addons",
+  "version": "1.0.0",
+  "description": "Repositorio oficial de complementos y widgets para Onicord",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js",
+    "pack": "node build.js"
+  },
+  "keywords": [
+    "onicord",
+    "addons",
+    "plugins"
+  ],
+  "author": "Oniverse",
+  "license": "MIT"
+}

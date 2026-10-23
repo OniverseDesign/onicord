@@ -1,6 +1,126 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { notificationManager } from "../lib/notificationManager";
 import { soundEngine } from "../lib/soundEngine";
+function extractClientMessageMeta(msg) {
+  let text = msg.text || "";
+  if (typeof text === "string" && text.trim().startsWith("{")) {
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.body) text = parsed.body;
+      else if (parsed.text) text = parsed.text;
+    } catch {}
+  }
+
+  let isFile = Boolean(msg.filePath || msg.fileName);
+  let fileName = msg.fileName || "";
+  let cleanText = text;
+
+  if (typeof text === "string" && text.includes("[FILE_ATTACHMENT]:")) {
+    isFile = true;
+    try {
+      const parts = text.split("[FILE_ATTACHMENT]:");
+      cleanText = parts[0] ? parts[0].trim() : "";
+      const fileData = JSON.parse(parts[1]);
+      if (fileData?.name) fileName = fileData.name;
+    } catch {}
+  }
+
+  let linkUrl = msg.linkUrl || null;
+  if (typeof cleanText === "string" && cleanText.includes("[LINK]:")) {
+    const parts = cleanText.split("[LINK]:");
+    cleanText = parts[0] ? parts[0].trim() : "";
+    linkUrl = parts[1] ? parts[1].trim() : linkUrl;
+  }
+
+  const hasLink = Boolean(linkUrl || (typeof cleanText === "string" && /https?:\/\/[^\s\)]+/i.test(cleanText)));
+  const isImage = Boolean(
+    (fileName && /\.(png|jpe?g|gif|webp|svg|ico)$/i.test(fileName)) ||
+    (msg.fileType && msg.fileType.startsWith("image/"))
+  );
+
+  return { cleanText, fileName, isFile, isImage, hasLink };
+}
+
+function matchSearchQuery(msg, rawQuery) {
+  if (!rawQuery || !rawQuery.trim()) return true;
+  if (!msg) return false;
+
+  const meta = extractClientMessageMeta(msg);
+
+  const normalize = (s) =>
+    (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\p{L}\p{N}_\s]+/gu, " ")
+      .trim();
+
+  const normText = normalize(meta.cleanText);
+  const author = msg.authorNickname || msg.authorName || "";
+  const normAuthor = normalize(author);
+  const normFile = normalize(meta.fileName);
+
+  let query = rawQuery.trim();
+  const filters = { from: null, in: null, hasFile: false, hasImage: false, hasLink: false };
+  const phrases = [];
+
+  query = query.replace(/"([^"]+)"/g, (_, p) => {
+    const t = p.trim();
+    if (t) phrases.push(normalize(t));
+    return " ";
+  });
+
+  query = query.replace(/(?:^|\s)from:(\S+)/gi, (_, val) => {
+    filters.from = normalize(val);
+    return " ";
+  });
+
+  query = query.replace(/(?:^|\s)in:(\S+)/gi, (_, val) => {
+    filters.in = String(val).toLowerCase().replace(/^#/, "").trim();
+    return " ";
+  });
+
+  query = query.replace(/(?:^|\s)has:(\S+)/gi, (match, val) => {
+    const lower = val.toLowerCase();
+    if (lower === "file" || lower === "attachment" || lower === "archivo" || lower === "adjunto" || lower.startsWith("fil")) {
+      filters.hasFile = true;
+      return " ";
+    } else if (lower === "image" || lower === "img" || lower === "foto" || lower === "imagen" || lower.startsWith("imag") || lower.startsWith("fot")) {
+      filters.hasImage = true;
+      return " ";
+    } else if (lower === "link" || lower === "url" || lower === "enlace" || lower.startsWith("lin") || lower.startsWith("url")) {
+      filters.hasLink = true;
+      return " ";
+    }
+    return match;
+  });
+
+  if (filters.from && !normAuthor.includes(filters.from)) return false;
+  if (filters.in && msg.channelId && msg.channelId.toLowerCase() !== filters.in) return false;
+  if (filters.hasFile && !meta.isFile) return false;
+  if (filters.hasImage && !meta.isImage) return false;
+  if (filters.hasLink && !meta.hasLink) return false;
+
+  const combined = `${normText} ${normFile} ${normAuthor}`;
+  for (const phrase of phrases) {
+    if (!combined.includes(phrase)) return false;
+  }
+
+  const terms = query
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^\p{L}\p{N}_]+/u)
+    .filter(Boolean);
+
+  for (const term of terms) {
+    if (!normText.includes(term) && !normAuthor.includes(term) && !normFile.includes(term)) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 export function useChatMessages({
   roomCode,
@@ -20,6 +140,7 @@ export function useChatMessages({
   const [pinnedMsgIds, setPinnedMsgIds] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
   const [isNudging, setIsNudging] = useState(false);
+  const [historicalSearchResults, setHistoricalSearchResults] = useState([]);
   const focusTimeoutRef = useRef(null);
 
   const onMessagesUpdateRef = useRef(onMessagesUpdate);
@@ -528,15 +649,27 @@ export function useChatMessages({
 
       setMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev;
-        const nuevoFeed = [...prev, msg].sort(
-          (a, b) => a.timestamp - b.timestamp,
+
+        const optimisticIdx = prev.findIndex(
+          (m) =>
+            m.isOptimistic &&
+            (m.authorId === msg.authorId || m.authorId === "self" || msg.authorId === profile?.id) &&
+            m.text === msg.text
         );
 
-        setVisibleCount?.((v) => v + 1);
-
-        requestAnimationFrame(() => {
-          bottomRef?.current?.scrollIntoView({ behavior: "smooth" });
-        });
+        let nuevoFeed;
+        if (optimisticIdx !== -1) {
+          nuevoFeed = [...prev];
+          nuevoFeed[optimisticIdx] = msg;
+        } else {
+          nuevoFeed = [...prev, msg].sort(
+            (a, b) => a.timestamp - b.timestamp,
+          );
+          setVisibleCount?.((v) => v + 1);
+          requestAnimationFrame(() => {
+            bottomRef?.current?.scrollIntoView({ behavior: "smooth" });
+          });
+        }
 
         if (messagesCountRef) messagesCountRef.current = nuevoFeed.length;
         return nuevoFeed;
@@ -594,8 +727,47 @@ export function useChatMessages({
     };
   }, [roomCode, channelId, profile?.id, profile?.nickname, server, messagesCountRef, setVisibleCount, bottomRef, chatContainerRef]);
 
+  // Historical full-text search across all messages and channels
+  useEffect(() => {
+    if (!searchQuery || !searchQuery.trim() || !roomCode) {
+      setHistoricalSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        if (window.electronAPI?.searchChatMessages) {
+          const results = await window.electronAPI.searchChatMessages(
+            roomCode,
+            searchQuery,
+            { channelId, limit: 100 }
+          );
+          if (Array.isArray(results)) {
+            setHistoricalSearchResults(results);
+          }
+        }
+      } catch (err) {
+        console.error("[useChatMessages] Search error:", err);
+      }
+    }, 180);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, roomCode, channelId]);
+
+  const candidateMessages = useMemo(() => {
+    if (!searchQuery || !searchQuery.trim() || historicalSearchResults.length === 0) {
+      return messages;
+    }
+    const existingIds = new Set(messages.map((m) => m.id));
+    const newItems = historicalSearchResults.filter((m) => !existingIds.has(m.id));
+    if (newItems.length === 0) return messages;
+    const combined = [...messages, ...newItems];
+    combined.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    return combined;
+  }, [messages, historicalSearchResults, searchQuery]);
+
   const filteredMessages = useMemo(() => {
-    let result = messages;
+    let result = candidateMessages;
 
     const enabledPluginIds = new Set(
       (server?.plugins || [])
@@ -624,25 +796,9 @@ export function useChatMessages({
       return true;
     });
 
-    if (!searchQuery) return result;
-    const query = searchQuery.toLowerCase().trim();
-    return result.filter((msg) => {
-      if (!msg) return false;
-      let textContent = msg.text || "";
-      if (typeof textContent === "string" && textContent.trim().startsWith("{")) {
-        try {
-          const parsed = JSON.parse(textContent);
-          if (parsed.text) textContent = parsed.text;
-        } catch {}
-      }
-      const textMatches = String(textContent).toLowerCase().includes(query);
-      const authorMatches = msg.authorName?.toLowerCase().includes(query);
-      const fileMatches =
-        msg.fileName?.toLowerCase().includes(query) ||
-        msg.filePath?.toLowerCase().includes(query);
-      return textMatches || authorMatches || fileMatches;
-    });
-  }, [messages, searchQuery, server?.plugins]);
+    if (!searchQuery || !searchQuery.trim()) return result;
+    return result.filter((msg) => matchSearchQuery(msg, searchQuery));
+  }, [candidateMessages, searchQuery, server?.plugins]);
 
   const mainStreamMessages = useMemo(() => {
     return filteredMessages.filter((m) => {

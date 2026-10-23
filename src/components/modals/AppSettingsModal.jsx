@@ -278,6 +278,8 @@ export default function AppSettingsModal({
 
     if (currentAudio.inputDeviceId !== originalAudio.inputDeviceId) return true;
     if (currentAudio.outputDeviceId !== originalAudio.outputDeviceId) return true;
+    if (currentAudio.inputDeviceLabel !== originalAudio.inputDeviceLabel) return true;
+    if (currentAudio.outputDeviceLabel !== originalAudio.outputDeviceLabel) return true;
     if (currentAudio.inputVolume !== originalAudio.inputVolume) return true;
     if (currentAudio.outputVolume !== originalAudio.outputVolume) return true;
     if (currentAudio.autoVad !== originalAudio.autoVad) return true;
@@ -287,6 +289,9 @@ export default function AppSettingsModal({
     if (currentAudio.autoGainControl !== originalAudio.autoGainControl) return true;
     if (currentAudio.inputMode !== originalAudio.inputMode) return true;
     if (currentAudio.pttHotkey !== originalAudio.pttHotkey) return true;
+    if (currentAudio.dynamicsCompression !== originalAudio.dynamicsCompression) return true;
+    if (currentAudio.autoDucking !== originalAudio.autoDucking) return true;
+    if (currentAudio.autoDuckingAmount !== originalAudio.autoDuckingAmount) return true;
 
     const currentGeneral = normalizeGeneralSettings(general);
     const originalGeneral = normalizeGeneralSettings(profile?.general);
@@ -296,11 +301,13 @@ export default function AppSettingsModal({
     if (currentGeneral.startMinimized !== originalGeneral.startMinimized) return true;
     if (currentGeneral.enableNotifications !== originalGeneral.enableNotifications) return true;
     if (currentGeneral.enableSoundEffects !== originalGeneral.enableSoundEffects) return true;
+    if (currentGeneral.sfxLevel !== originalGeneral.sfxLevel) return true;
     if (currentGeneral.disableHardwareAcceleration !== originalGeneral.disableHardwareAcceleration) return true;
     if (currentGeneral.language !== originalGeneral.language) return true;
     if (currentGeneral.zoomLevel !== originalGeneral.zoomLevel) return true;
     if (currentGeneral.enableQuickSuggestions !== originalGeneral.enableQuickSuggestions) return true;
     if (currentGeneral.enableContinuousAnimations !== originalGeneral.enableContinuousAnimations) return true;
+    if (currentGeneral.enableOpenGraph !== originalGeneral.enableOpenGraph) return true;
 
     const originalKeybindings = Array.isArray(profile?.keybindings) ? profile.keybindings : [];
     if (keybindings.length !== originalKeybindings.length) return true;
@@ -385,6 +392,9 @@ export default function AppSettingsModal({
       onSaved(saved);
       if (saved?.general) {
         localStorage.setItem("onicord_general_settings", JSON.stringify(saved.general));
+        window.dispatchEvent(
+          new CustomEvent("onicord:general-settings-updated", { detail: saved.general })
+        );
       }
       soundEngine.playCue("success");
       onClose();

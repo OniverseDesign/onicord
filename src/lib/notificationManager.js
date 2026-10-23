@@ -15,13 +15,15 @@ class NotificationManager {
       enableNotifications: general?.enableNotifications ?? true,
       enableSoundEffects: general?.enableSoundEffects ?? true,
     };
-    if (general?.enableSoundEffects !== undefined) {
+    if (general?.sfxLevel !== undefined) {
+      soundEngine.setLevel(general.sfxLevel);
+    } else if (general?.enableSoundEffects !== undefined) {
       soundEngine.setEnabled(general.enableSoundEffects);
     }
   }
 
   playSound(soundName) {
-    if (this.settings && this.settings.enableSoundEffects === false) return;
+    if (soundEngine.getLevel() <= 0) return;
 
     const cueMap = {
       join: "connect",

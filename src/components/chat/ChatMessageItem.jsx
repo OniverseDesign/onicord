@@ -268,9 +268,11 @@ const ChatMessageItem = memo(
       linkUrlOverride = parts[1] ? parts[1].trim() : linkUrlOverride;
     }
 
+    const isOgEnabled = profile?.general?.enableOpenGraph ?? true;
     const urlRegex = /(https?:\/\/[^\s\)]+)/;
     const hasLink =
       Boolean(linkUrlOverride || (textContent && urlRegex.test(textContent))) &&
+      isOgEnabled &&
       !isStickerPayload &&
       !isPluginEmbedPayload &&
       !msg.hidePreview &&

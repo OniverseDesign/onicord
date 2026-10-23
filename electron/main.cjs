@@ -619,6 +619,8 @@ app.whenReady().then(async () => {
         "usb",
         "serial",
         "accessibility-events",
+        "screen-wake-lock",
+        "wake-lock",
       ];
       callback(allowed.includes(permission));
     }
@@ -646,6 +648,8 @@ app.whenReady().then(async () => {
         "usb",
         "serial",
         "accessibility-events",
+        "screen-wake-lock",
+        "wake-lock",
       ];
       return allowed.includes(permission);
     }

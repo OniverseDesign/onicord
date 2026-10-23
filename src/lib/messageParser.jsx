@@ -9,12 +9,32 @@ export function highlightText(text, query) {
   if (!query || !text) return text;
 
   let cleanQuery = query.toLowerCase().trim();
-  cleanQuery = cleanQuery.replace(/from:\S+/g, "").replace(/has:\S+/g, "").trim();
-  if (!cleanQuery) return text;
+  cleanQuery = cleanQuery
+    .replace(/(?:^|\s)from:\S+/gi, " ")
+    .replace(/(?:^|\s)in:\S+/gi, " ")
+    .replace(/(?:^|\s)has:\S+/gi, " ")
+    .trim();
 
-  const parts = text.split(new RegExp(`(${escapeRegExp(cleanQuery)})`, "gi"));
+  const phrases = [];
+  cleanQuery = cleanQuery.replace(/"([^"]+)"/g, (_, p) => {
+    const trimmed = p.trim();
+    if (trimmed) phrases.push(trimmed);
+    return " ";
+  });
+
+  const terms = cleanQuery.split(/\s+/).filter(Boolean);
+  const allPatterns = [...phrases, ...terms];
+  if (allPatterns.length === 0) return text;
+
+  allPatterns.sort((a, b) => b.length - a.length);
+  const regexPattern = allPatterns.map(escapeRegExp).join("|");
+  const regex = new RegExp(`(${regexPattern})`, "gi");
+
+  const parts = text.split(regex);
+  const matchSet = new Set(allPatterns.map((p) => p.toLowerCase()));
+
   return parts.map((part, i) =>
-    part.toLowerCase() === cleanQuery ? (
+    matchSet.has(part.toLowerCase()) ? (
       <mark key={i} className="bg-amber-500/35 text-white rounded px-0.5 font-bold">
         {part}
       </mark>
@@ -48,7 +68,9 @@ export function parseRegexToken(tokens, regex, factory) {
       }
 
       const newToken = factory(match);
-      if (newToken) {
+      if (Array.isArray(newToken)) {
+        result.push(...newToken);
+      } else if (newToken) {
         result.push(newToken);
       } else {
         result.push({ type: "text", content: match[0] });
@@ -65,7 +87,17 @@ export function parseRegexToken(tokens, regex, factory) {
       result.push(token);
     }
   }
-  return result;
+
+  // Normalizar fusionando tokens de texto adyacentes
+  const merged = [];
+  for (const t of result) {
+    if (t.type === "text" && merged.length > 0 && merged[merged.length - 1].type === "text") {
+      merged[merged.length - 1].content += t.content;
+    } else {
+      merged.push(t);
+    }
+  }
+  return merged;
 }
 
 const handleExternalLinkClick = (e, url) => {
@@ -87,37 +119,13 @@ export function parseInlineStyles(
 
   let tokens = [{ type: "text", content: text }];
 
-  // 1. Inline code (backticks) first
+  // 1. Bloques de código inline (`...`) primero para proteger código exacto
   tokens = parseRegexToken(tokens, /`([^`]+)`/g, (match) => ({
     type: "code",
     content: match[1],
   }));
 
-  tokens = parseRegexToken(tokens, /\*\*([^*]+)\*\*/g, (match) => ({
-    type: "bold",
-    content: match[1],
-  }));
-
-  tokens = parseRegexToken(tokens, /__([^_]+)__/g, (match) => ({
-    type: "bold",
-    content: match[1],
-  }));
-
-  tokens = parseRegexToken(tokens, /\*([^*]+)\*/g, (match) => ({
-    type: "italic",
-    content: match[1],
-  }));
-
-  tokens = parseRegexToken(tokens, /_([^_]+)_/g, (match) => ({
-    type: "italic",
-    content: match[1],
-  }));
-
-  tokens = parseRegexToken(tokens, /~~([^~]+)~~/g, (match) => ({
-    type: "strike",
-    content: match[1],
-  }));
-
+  // 2. Tarjetas de invitación Onicord
   const inviteRegex = /(?:onicord:\/\/join\/([a-zA-Z0-9]+)|https?:\/\/(?:[a-zA-Z0-9-]+\.)?onicord\.(?:app|io|com)\/join\/([a-zA-Z0-9]+))/gi;
   tokens = parseRegexToken(tokens, inviteRegex, (match) => {
     const code = (match[1] || match[2] || "").trim().toUpperCase();
@@ -129,6 +137,7 @@ export function parseInlineStyles(
     };
   });
 
+  // 3. Enlaces markdown explícitos [label](url)
   const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/gi;
   tokens = parseRegexToken(tokens, markdownLinkRegex, (match) => ({
     type: "markdownLink",
@@ -136,10 +145,78 @@ export function parseInlineStyles(
     url: match[2],
   }));
 
+  // 4. Enlaces y URLs directas (se analizan ANTES del formato markdown como cursiva/negrita
+  // para que parámetros con guiones bajos '_' o asteriscos no rompan el link)
   const urlRegex = /(https?:\/\/[^\s]+)/gi;
-  tokens = parseRegexToken(tokens, urlRegex, (match) => ({
-    type: "link",
-    content: match[0],
+  tokens = parseRegexToken(tokens, urlRegex, (match) => {
+    let rawUrl = match[0];
+    let trailing = "";
+
+    // Separar signos de puntuación de cierre o paréntesis no balanceados al final de la URL
+    while (true) {
+      if (/[.,!?;:]$/.test(rawUrl)) {
+        trailing = rawUrl.slice(-1) + trailing;
+        rawUrl = rawUrl.slice(0, -1);
+        continue;
+      }
+      if (rawUrl.endsWith(")")) {
+        const openCount = (rawUrl.match(/\(/g) || []).length;
+        const closeCount = (rawUrl.match(/\)/g) || []).length;
+        if (closeCount > openCount) {
+          trailing = ")" + trailing;
+          rawUrl = rawUrl.slice(0, -1);
+          continue;
+        }
+      }
+      if (rawUrl.endsWith("]")) {
+        const openCount = (rawUrl.match(/\[/g) || []).length;
+        const closeCount = (rawUrl.match(/\]/g) || []).length;
+        if (closeCount > openCount) {
+          trailing = "]" + trailing;
+          rawUrl = rawUrl.slice(0, -1);
+          continue;
+        }
+      }
+      break;
+    }
+
+    const linkToken = {
+      type: "link",
+      content: rawUrl,
+    };
+
+    if (trailing) {
+      return [linkToken, { type: "text", content: trailing }];
+    }
+    return linkToken;
+  });
+
+  // 5. Negrita (**...** o __...__)
+  tokens = parseRegexToken(tokens, /\*\*([^*]+)\*\*/g, (match) => ({
+    type: "bold",
+    content: match[1],
+  }));
+
+  tokens = parseRegexToken(tokens, /__([^_]+)__/g, (match) => ({
+    type: "bold",
+    content: match[1],
+  }));
+
+  // 6. Cursiva (*...* o _..._)
+  tokens = parseRegexToken(tokens, /\*([^*]+)\*/g, (match) => ({
+    type: "italic",
+    content: match[1],
+  }));
+
+  tokens = parseRegexToken(tokens, /_([^_]+)_/g, (match) => ({
+    type: "italic",
+    content: match[1],
+  }));
+
+  // 7. Tachado (~~...~~)
+  tokens = parseRegexToken(tokens, /~~([^~]+)~~/g, (match) => ({
+    type: "strike",
+    content: match[1],
   }));
 
   // 2. Match known Role names (sort longest names first for multi-word roles)

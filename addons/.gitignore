@@ -1,0 +1,8 @@
+# Ignorar archivos batch locales de automatización
+*.bat
+
+# Ignorar archivos temporales del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

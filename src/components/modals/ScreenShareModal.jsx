@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { IconClose } from "../icons/StreamIcons";
+import MaterialIcon from "../icons/MaterialIcon";
 import { soundEngine } from "../../lib/soundEngine";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { cn } from "../../lib/cn";
@@ -14,6 +15,30 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
   const [activeTab, setActiveTab] = useState("screen"); // "screen" | "window"
   const [resolution, setResolution] = useState("1080");
   const [selectedSourceId, setSelectedSourceId] = useState(null);
+  const [isGameMode, setIsGameMode] = useState(() => {
+    return localStorage.getItem("onicord_stream_game_mode") === "true";
+  });
+  const [includeAudio, setIncludeAudio] = useState(() => {
+    return localStorage.getItem("onicord_stream_include_audio") !== "false";
+  });
+
+  const handleToggleGameMode = () => {
+    soundEngine.playNav("select");
+    setIsGameMode((prev) => {
+      const next = !prev;
+      localStorage.setItem("onicord_stream_game_mode", String(next));
+      return next;
+    });
+  };
+
+  const handleToggleIncludeAudio = () => {
+    soundEngine.playNav("select");
+    setIncludeAudio((prev) => {
+      const next = !prev;
+      localStorage.setItem("onicord_stream_include_audio", String(next));
+      return next;
+    });
+  };
 
   const { shouldRender, isAnimatingOut } = useAnimatedMount(isOpen, 140);
 
@@ -92,7 +117,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
   const handleConfirm = () => {
     if (!selectedSource) return;
     soundEngine.playNav("select");
-    onSelectSource(selectedSource, resolution);
+    onSelectSource(selectedSource, resolution, { gameMode: isGameMode, includeAudio });
   };
 
   if (!shouldRender) return null;
@@ -170,20 +195,60 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
             })}
           </div>
 
-          {/* QUALITY / RESOLUTION SELECTOR */}
-          <Select
-            id="stream-res"
-            value={resolution}
-            onChange={(e) => setResolution(e.target.value)}
-            align="right"
-            size="sm"
-            options={[
-              { value: "original", label: t("screenShare.native", "Original") },
-              { value: "1080", label: "1080p" },
-              { value: "720", label: "720p" },
-              { value: "480", label: "480p" },
-            ]}
-          />
+          {/* CONTROLS RIGHT: AUDIO TOGGLE + GAMING MODE TOGGLE + QUALITY SELECTOR */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleToggleIncludeAudio}
+              title={
+                includeAudio
+                  ? t("screenShare.audioActiveTip", "Audio del sistema activado. Para evitar eco de voz, recomendamos usar auriculares.")
+                  : t("screenShare.audioInactiveTip", "Solo video: no transmite sonidos del sistema")
+              }
+              className={cn(
+                "h-8 px-2.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer select-none box-border",
+                includeAudio
+                  ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold shadow-sm"
+                  : "bg-onicord-base/40 text-onicord-muted border-white/5 hover:bg-white/10 hover:text-white"
+              )}
+            >
+              <MaterialIcon name={includeAudio ? "volume_up" : "volume_off"} size={16} />
+              <span>{t("screenShare.systemAudio", "Audio")}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleToggleGameMode}
+              title={
+                isGameMode
+                  ? t("screenShare.gameModeActiveTip", "Modo Videojuegos activo: 60 FPS estables y audio estéreo")
+                  : t("screenShare.gameModeInactiveTip", "Modo Estándar: Optimizado para texto y bajo uso de CPU")
+              }
+              className={cn(
+                "h-8 px-3 text-xs font-semibold rounded-lg border transition-all flex items-center cursor-pointer select-none box-border",
+                isGameMode
+                  ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold shadow-sm"
+                  : "bg-onicord-base/40 text-onicord-muted border-white/5 hover:bg-white/10 hover:text-white"
+              )}
+            >
+              <span>{t("screenShare.gameMode", "Modo Juegos")}</span>
+            </button>
+
+            {/* QUALITY / RESOLUTION SELECTOR */}
+            <Select
+              id="stream-res"
+              value={resolution}
+              onChange={(e) => setResolution(e.target.value)}
+              align="right"
+              size="sm"
+              options={[
+                { value: "original", label: t("screenShare.native", "Original") },
+                { value: "1080", label: "1080p" },
+                { value: "720", label: "720p" },
+                { value: "480", label: "480p" },
+              ]}
+            />
+          </div>
         </div>
 
         {/* SOURCES GRID AREA */}
@@ -217,7 +282,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
                     }}
                     onDoubleClick={() => {
                       soundEngine.playNav("select");
-                      onSelectSource(src, resolution);
+                      onSelectSource(src, resolution, { gameMode: isGameMode });
                     }}
                     className={cn(
                       "group relative flex flex-col rounded-xl overflow-hidden border transition-all duration-150 cursor-pointer select-none",

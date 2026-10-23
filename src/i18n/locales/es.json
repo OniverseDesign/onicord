@@ -152,7 +152,10 @@
     "shareBtn": "Transmitir",
     "loadingSources": "Buscando pantallas y ventanas...",
     "noSourcesFound": "No se encontraron fuentes disponibles",
-    "noSourcesDesc": "Asegúrate de que las ventanas no estén minimizadas."
+    "noSourcesDesc": "Asegúrate de que las ventanas no estén minimizadas.",
+    "gameMode": "Modo Juegos",
+    "gameModeActiveTip": "Modo Videojuegos activo: 60 FPS estables y audio estéreo",
+    "gameModeInactiveTip": "Modo Estándar: Optimizado para texto y bajo uso de CPU"
   },
   "dashboard": {
     "title": "Dashboard Principal",
@@ -581,6 +584,14 @@
     "dropFileHere": "¡Suelta tu archivo aquí!",
     "cancelSend": "Cancelar envío",
     "searchPlaceholder": "Buscar mensajes o archivos...",
+    "searchPlaceholderActive": "Prueba: from:usuario, has:file, has:image, in:canal...",
+    "searchFilterOptions": "Filtros de búsqueda disponibles",
+    "searchFilterFrom": "Filtrar por autor o apodo",
+    "searchFilterImage": "Solo fotos e imágenes",
+    "searchFilterFile": "Archivos y documentos",
+    "searchFilterLink": "Mensajes con enlaces web",
+    "searchFilterIn": "Buscar en canal específico",
+    "searchFilterPhrase": "Coincidencia de frase exacta",
     "noSearchResults": "No se encontraron resultados para la búsqueda.",
     "attachUnlimited": "Adjuntar un archivo sin límites de peso",
     "sendSticker": "Enviar un sticker de tu colección",
@@ -731,17 +742,19 @@
       "buyMeACoffee": "Cómprame un café"
     },
     "sfx": {
-      "title": "Efectos de Sonido",
-      "packDesc": "Estilo acústico para las interacciones y respuestas del sistema.",
+      "levelTitle": "Nivel de Efectos de Sonido",
+      "level0": "Silencioso",
+      "level0Desc": "Todos los sonidos desactivados.",
+      "level1": "Esencial",
+      "level1Desc": "Solo voz, silenciarse, ensordecerse, transmisiones y avisos.",
+      "level2": "Voz y Chat",
+      "level2Desc": "Esencial más envío y recepción de mensajes y escritura.",
+      "level3": "Completo",
+      "level3Desc": "Todos los sonidos de la aplicación e interfaz.",
       "pack": "Paquete de Sonidos",
+      "packDesc": "Estilo acústico para las interacciones y respuestas del sistema.",
       "volume": "Volumen de Efectos",
-      "volumeDesc": "Nivel de volumen general para los efectos y avisos acústicos.",
-      "typing": "Sonido de escritura de otros usuarios",
-      "typingDesc": "Reproduce un pulso sutil cuando otros usuarios escriben en el canal activo.",
-      "widgets": "Sonidos hápticos de widgets",
-      "widgetsDesc": "Efectos acústicos al arrastrar, encajar y redimensionar widgets en el dashboard.",
-      "navigation": "Sonidos de navegación",
-      "navigationDesc": "Cues acústicos al cambiar canales y desplegar o colapsar categorías."
+      "volumeDesc": "Nivel de volumen general para los efectos y avisos acústicos."
     },
     "sfxPacks": {
       "minimal": "Minimal",
@@ -773,6 +786,8 @@
       "enableQuickSuggestions": "Sugerencias de mensajes rápidos",
       "enableQuickSuggestionsDesc": "Muestra accesos rápidos para reescribir tus frases más frecuentes sobre el input de chat.",
       "performance": "Rendimiento",
+      "enableOpenGraph": "Previsualización de enlaces (Open Graph)",
+      "enableOpenGraphDesc": "Muestra tarjetas interactivas con miniaturas e información de enlaces en el chat. Desactívalo para mejorar el rendimiento y reducir el consumo de recursos.",
       "disableHardwareAccel": "Desactivar aceleración por hardware",
       "disableHardwareAccelDesc": "Desactiva el procesamiento por GPU. Útil si experimentas parpadeos de pantalla o problemas con streaming.",
       "restartWarning": "Requiere reiniciar la aplicación para aplicarse.",
@@ -795,6 +810,7 @@
       "outputVolume": "Volumen de salida",
       "sensitivity": "Sensibilidad de voz",
       "defaultSystem": "Predeterminado del sistema",
+      "disconnected": "Desconectado",
       "micTestHint": "Hagamos una prueba para ver si tu micrófono funciona correctamente.",
       "sensitivityLabel": "Sensibilidad de entrada",
       "sensitivityHint": "Determina si tu micrófono debe transmitir voz. Si desactivas el ajuste automático, podrás fijar un umbral manual.",
@@ -814,8 +830,12 @@
       "pushToTalk": "Apretar para Hablar (PTT)",
       "pushToTalkDesc": "Tu micrófono permanecerá silenciado hasta que presiones y mantengas tu atajo grabado.",
       "keybindingConfigHint": "Configuración de atajos de teclado y mouse",
-      "keybindingConfigDesc": "Los atajos y botones para Apretar para Hablar (PTT) se configuran en la pestaña Atajos de Teclado.",
-      "advancedProcessing": "Procesamiento Avanzado de Audio"
+      "advancedProcessing": "Procesamiento Avanzado de Audio",
+      "dynamicsCompression": "Compresión Dinámica Master",
+      "dynamicsCompressionDesc": "Evita distorsión y saturación brusca amortiguando picos de volumen cuando varios usuarios hablan o gritan a la vez.",
+      "autoDucking": "Atenuación Automática (Auto-Ducking)",
+      "autoDuckingDesc": "Atenúa suavemente el audio del juego o pantalla compartida mientras algún compañero esté hablando.",
+      "autoDuckingAmount": "Nivel de atenuación"
     },
     "appearance": {
       "theme": "Tema visual",

@@ -84,6 +84,8 @@ class ProfileService {
       audio: {
         inputDeviceId: profile.audio?.inputDeviceId ?? existing?.audio?.inputDeviceId ?? "",
         outputDeviceId: profile.audio?.outputDeviceId ?? existing?.audio?.outputDeviceId ?? "",
+        inputDeviceLabel: profile.audio?.inputDeviceLabel ?? existing?.audio?.inputDeviceLabel ?? "",
+        outputDeviceLabel: profile.audio?.outputDeviceLabel ?? existing?.audio?.outputDeviceLabel ?? "",
         inputVolume: profile.audio?.inputVolume ?? existing?.audio?.inputVolume ?? 100,
         outputVolume: profile.audio?.outputVolume ?? existing?.audio?.outputVolume ?? 100,
         autoVad: profile.audio?.autoVad ?? existing?.audio?.autoVad ?? true,
@@ -93,6 +95,9 @@ class ProfileService {
         autoGainControl: profile.audio?.autoGainControl ?? existing?.audio?.autoGainControl ?? true,
         inputMode: profile.audio?.inputMode ?? existing?.audio?.inputMode ?? "vad",
         pttHotkey: profile.audio?.pttHotkey ?? existing?.audio?.pttHotkey ?? "Control",
+        dynamicsCompression: profile.audio?.dynamicsCompression ?? existing?.audio?.dynamicsCompression ?? true,
+        autoDucking: profile.audio?.autoDucking ?? existing?.audio?.autoDucking ?? true,
+        autoDuckingAmount: profile.audio?.autoDuckingAmount ?? existing?.audio?.autoDuckingAmount ?? 50,
         peerVolumes: {
           ...(existing?.audio?.peerVolumes || {}),
           ...(profile.audio?.peerVolumes || {}),
@@ -105,11 +110,17 @@ class ProfileService {
         startMinimized: profile.general?.startMinimized ?? existing?.general?.startMinimized ?? false,
         enableNotifications: profile.general?.enableNotifications ?? existing?.general?.enableNotifications ?? true,
         enableSoundEffects: profile.general?.enableSoundEffects ?? existing?.general?.enableSoundEffects ?? true,
+        sfxLevel: profile.general?.sfxLevel !== undefined
+          ? Number(profile.general.sfxLevel)
+          : (existing?.general?.sfxLevel !== undefined
+              ? Number(existing.general.sfxLevel)
+              : (profile.general?.enableSoundEffects === false ? 0 : 2)),
         disableHardwareAcceleration: profile.general?.disableHardwareAcceleration ?? existing?.general?.disableHardwareAcceleration ?? false,
         language: profile.general?.language ?? existing?.general?.language ?? "es",
         zoomLevel: profile.general?.zoomLevel ?? existing?.general?.zoomLevel ?? 100,
         enableQuickSuggestions: profile.general?.enableQuickSuggestions ?? existing?.general?.enableQuickSuggestions ?? true,
         enableContinuousAnimations: profile.general?.enableContinuousAnimations ?? existing?.general?.enableContinuousAnimations ?? true,
+        enableOpenGraph: profile.general?.enableOpenGraph ?? existing?.general?.enableOpenGraph ?? true,
       },
 
       keybindings: Array.isArray(profile.keybindings)

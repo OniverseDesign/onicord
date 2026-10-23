@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import Select from "../ui/Select";
@@ -14,6 +14,127 @@ export default function AudioTab({
   toggleMicTest,
 }) {
   const { t } = useTranslation();
+
+  // Auto-healing: Si el deviceId cambió de hash en Chromium, re-vincular usando el label
+  useEffect(() => {
+    if (!inputs || inputs.length === 0) return;
+
+    if (audio.inputDeviceId && audio.inputDeviceId !== "default") {
+      const existsById = inputs.some((d) => d.deviceId === audio.inputDeviceId);
+      if (!existsById && audio.inputDeviceLabel) {
+        const matchByLabel = inputs.find(
+          (d) => d.label && d.label.trim() === audio.inputDeviceLabel.trim()
+        );
+        if (matchByLabel) {
+          console.log(
+            `[AudioTab] Auto-healing input deviceId from label "${audio.inputDeviceLabel}": ${audio.inputDeviceId} -> ${matchByLabel.deviceId}`
+          );
+          setAudio((a) => ({
+            ...a,
+            inputDeviceId: matchByLabel.deviceId,
+          }));
+        }
+      } else if (existsById && !audio.inputDeviceLabel) {
+        const match = inputs.find((d) => d.deviceId === audio.inputDeviceId);
+        if (match?.label) {
+          setAudio((a) => ({ ...a, inputDeviceLabel: match.label }));
+        }
+      }
+    }
+  }, [inputs, audio.inputDeviceId, audio.inputDeviceLabel, setAudio]);
+
+  useEffect(() => {
+    if (!outputs || outputs.length === 0) return;
+
+    if (audio.outputDeviceId && audio.outputDeviceId !== "default") {
+      const existsById = outputs.some((d) => d.deviceId === audio.outputDeviceId);
+      if (!existsById && audio.outputDeviceLabel) {
+        const matchByLabel = outputs.find(
+          (d) => d.label && d.label.trim() === audio.outputDeviceLabel.trim()
+        );
+        if (matchByLabel) {
+          console.log(
+            `[AudioTab] Auto-healing output deviceId from label "${audio.outputDeviceLabel}": ${audio.outputDeviceId} -> ${matchByLabel.deviceId}`
+          );
+          setAudio((a) => ({
+            ...a,
+            outputDeviceId: matchByLabel.deviceId,
+          }));
+        }
+      } else if (existsById && !audio.outputDeviceLabel) {
+        const match = outputs.find((d) => d.deviceId === audio.outputDeviceId);
+        if (match?.label) {
+          setAudio((a) => ({ ...a, outputDeviceLabel: match.label }));
+        }
+      }
+    }
+  }, [outputs, audio.outputDeviceId, audio.outputDeviceLabel, setAudio]);
+
+  // Construir opciones de entrada preservando dispositivo guardado si está desconectado
+  const inputOptions = useMemo(() => {
+    const opts = [
+      {
+        value: "",
+        label: t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema"),
+      },
+    ];
+
+    let foundSelected = !audio.inputDeviceId || audio.inputDeviceId === "default";
+
+    inputs
+      .filter((d) => d.deviceId && d.deviceId !== "default")
+      .forEach((d) => {
+        if (d.deviceId === audio.inputDeviceId) foundSelected = true;
+        opts.push({
+          value: d.deviceId,
+          label: d.label || `Mic ${d.deviceId.slice(0, 8)}`,
+        });
+      });
+
+    if (!foundSelected && audio.inputDeviceId && audio.inputDeviceId !== "default") {
+      opts.push({
+        value: audio.inputDeviceId,
+        label: audio.inputDeviceLabel
+          ? `${audio.inputDeviceLabel} (${t("settings.voiceVideo.disconnected", "Desconectado")})`
+          : `Mic (${audio.inputDeviceId.slice(0, 8)}...) [${t("settings.voiceVideo.disconnected", "Desconectado")}]`,
+      });
+    }
+
+    return opts;
+  }, [inputs, audio.inputDeviceId, audio.inputDeviceLabel, t]);
+
+  // Construir opciones de salida preservando dispositivo guardado si está desconectado
+  const outputOptions = useMemo(() => {
+    const opts = [
+      {
+        value: "",
+        label: t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema"),
+      },
+    ];
+
+    let foundSelected = !audio.outputDeviceId || audio.outputDeviceId === "default";
+
+    outputs
+      .filter((d) => d.deviceId && d.deviceId !== "default")
+      .forEach((d) => {
+        if (d.deviceId === audio.outputDeviceId) foundSelected = true;
+        opts.push({
+          value: d.deviceId,
+          label: d.label || `Speaker ${d.deviceId.slice(0, 8)}`,
+        });
+      });
+
+    if (!foundSelected && audio.outputDeviceId && audio.outputDeviceId !== "default") {
+      opts.push({
+        value: audio.outputDeviceId,
+        label: audio.outputDeviceLabel
+          ? `${audio.outputDeviceLabel} (${t("settings.voiceVideo.disconnected", "Desconectado")})`
+          : `Speaker (${audio.outputDeviceId.slice(0, 8)}...) [${t("settings.voiceVideo.disconnected", "Desconectado")}]`,
+      });
+    }
+
+    return opts;
+  }, [outputs, audio.outputDeviceId, audio.outputDeviceLabel, t]);
 
   return (
     <div className="onicord-settings-container">
@@ -32,18 +153,16 @@ export default function AudioTab({
             </label>
             <Select
               value={audio.inputDeviceId === "default" ? "" : (audio.inputDeviceId || "")}
-              onChange={(e) =>
-                setAudio((a) => ({ ...a, inputDeviceId: e.target.value }))
-              }
-              options={[
-                { value: "", label: t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema") },
-                ...inputs
-                  .filter((d) => d.deviceId && d.deviceId !== "default")
-                  .map((d) => ({
-                    value: d.deviceId,
-                    label: d.label || `Mic ${d.deviceId.slice(0, 8)}`,
-                  })),
-              ]}
+              onChange={(e) => {
+                const val = e.target.value;
+                const match = inputs.find((d) => d.deviceId === val);
+                setAudio((a) => ({
+                  ...a,
+                  inputDeviceId: val,
+                  inputDeviceLabel: match?.label || (val === "" ? "" : a.inputDeviceLabel),
+                }));
+              }}
+              options={inputOptions}
               className="w-full"
             />
 
@@ -80,18 +199,16 @@ export default function AudioTab({
             </label>
             <Select
               value={audio.outputDeviceId === "default" ? "" : (audio.outputDeviceId || "")}
-              onChange={(e) =>
-                setAudio((a) => ({ ...a, outputDeviceId: e.target.value }))
-              }
-              options={[
-                { value: "", label: t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema") },
-                ...outputs
-                  .filter((d) => d.deviceId && d.deviceId !== "default")
-                  .map((d) => ({
-                    value: d.deviceId,
-                    label: d.label || `Speaker ${d.deviceId.slice(0, 8)}`,
-                  })),
-              ]}
+              onChange={(e) => {
+                const val = e.target.value;
+                const match = outputs.find((d) => d.deviceId === val);
+                setAudio((a) => ({
+                  ...a,
+                  outputDeviceId: val,
+                  outputDeviceLabel: match?.label || (val === "" ? "" : a.outputDeviceLabel),
+                }));
+              }}
+              options={outputOptions}
               className="w-full"
             />
 
@@ -364,6 +481,77 @@ export default function AudioTab({
               <div className="onicord-toggle-slider" />
             </label>
           </div>
+
+          <div className="onicord-settings-row">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.voiceVideo.dynamicsCompression", "Compresión Dinámica Master")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.voiceVideo.dynamicsCompressionDesc", "Evita distorsión y saturación brusca amortiguando picos de volumen cuando varios usuarios hablan o gritan a la vez.")}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={audio.dynamicsCompression ?? true}
+                onChange={(e) =>
+                  setAudio({ ...audio, dynamicsCompression: e.target.checked })
+                }
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          <div className="onicord-settings-row">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.voiceVideo.autoDucking", "Atenuación Automática (Auto-Ducking)")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.voiceVideo.autoDuckingDesc", "Atenúa suavemente el audio del juego o pantalla compartida mientras algún compañero esté hablando.")}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={audio.autoDucking ?? true}
+                onChange={(e) =>
+                  setAudio({ ...audio, autoDucking: e.target.checked })
+                }
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          {(audio.autoDucking ?? true) && (
+            <div className="py-2.5 px-4 bg-onicord-base/30 rounded-lg mt-2 mb-1 border border-white/5">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[11px] font-semibold text-onicord-muted">
+                  {t("settings.voiceVideo.autoDuckingAmount", "Nivel de atenuación")}
+                </span>
+                <span className="text-[11px] font-mono font-bold text-onicord-accent">
+                  {audio.autoDuckingAmount ?? 50}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="90"
+                step="5"
+                value={audio.autoDuckingAmount ?? 50}
+                onChange={(e) =>
+                  setAudio({
+                    ...audio,
+                    autoDuckingAmount: parseInt(e.target.value, 10),
+                  })
+                }
+                className="onicord-range-input"
+              />
+            </div>
+          )}
         </div>
       </div>
 

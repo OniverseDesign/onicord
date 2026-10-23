@@ -6,6 +6,7 @@ const driveService = require("../../services/driveService.cjs");
 const updateService = require("../../services/updateService.cjs");
 const overlayService = require("../../services/overlayService.cjs");
 const profileService = require("../../services/profileService.cjs");
+const diagService = require("../../services/diagService.cjs");
 
 function registerPluginDriveHandlers() {
   // === Plugins System ===
@@ -523,46 +524,139 @@ function registerPluginDriveHandlers() {
 
   // === Generic Stage Share URL Capture ===
   const handleCaptureStageShareUrl = async (event, stageConfig) => {
-    const { clipboard } = require("electron");
+    const { clipboard, BrowserWindow } = require("electron");
     const config = stageConfig || global.activeStageDef || {};
-    const { triggerSelector, windowProperty, queryParam } = config.shareCapture || {};
+    const { triggerSelector, windowProperty, queryParam, urlPattern } = config.shareCapture || {};
+
+    let effectiveUrlPattern = urlPattern;
+    if (!effectiveUrlPattern && (config.url || "").includes("garticphone.com")) {
+      effectiveUrlPattern = "garticphone\\.com/(?:[a-zA-Z]{2}/)?([-_a-zA-Z0-9]{6,16})|garticphone\\.com/.*[?&]c=";
+    }
+
+    diagService.log("info", "StageCapture", `[StageCapture] Started. url: ${config.url}, urlPattern: ${effectiveUrlPattern}, queryParam: ${queryParam}`);
+
+    const normalizeUrl = (u) => {
+      if (!u || typeof u !== "string") return null;
+      let trimmed = u.trim();
+      if (trimmed.startsWith("garticphone.com")) {
+        trimmed = "https://" + trimmed;
+      } else if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+        if (/^(?:\/?[a-zA-Z]{2}\/)?[a-zA-Z0-9]{6,16}$/.test(trimmed)) {
+          trimmed = "https://garticphone.com/" + trimmed.replace(/^\//, "");
+        } else if (trimmed.includes(".com") || trimmed.includes(".io") || trimmed.includes("c=")) {
+          trimmed = "https://" + trimmed;
+        }
+      }
+      return trimmed.startsWith("http") ? trimmed : null;
+    };
+
+    const isMatch = (url) => {
+      if (!url || typeof url !== "string") return false;
+      const trimmed = url.trim();
+      if (trimmed.includes("garticphone.com") && (trimmed.endsWith("/lobby") || trimmed.includes("/lobby/") || trimmed.includes("/lobby?"))) {
+        return false;
+      }
+      if (effectiveUrlPattern) {
+        try {
+          return new RegExp(effectiveUrlPattern, "i").test(trimmed);
+        } catch (_) {
+          return false;
+        }
+      }
+      if (queryParam) {
+        return trimmed.includes(queryParam);
+      }
+      return Boolean(trimmed);
+    };
+
+    // 0. Pre-verificación del portapapeles: si el usuario ya copió el enlace dentro del juego
+    try {
+      const initialClip = clipboard.readText();
+      const normClip = normalizeUrl(initialClip);
+      diagService.log("info", "StageCapture", `[StageCapture] Clip: "${initialClip}" (norm: ${normClip}, match: ${isMatch(normClip)})`);
+      if (normClip && isMatch(normClip)) {
+        const stageUrl = config.url || "";
+        const stageHost = stageUrl.replace(/^https?:\/\//, "").split("/")[0].toLowerCase();
+        const clipHost = normClip.replace(/^https?:\/\//, "").split("/")[0].toLowerCase();
+        if (stageHost && (clipHost.includes(stageHost) || stageHost.includes(clipHost))) {
+          diagService.log("info", "StageCapture", `[StageCapture] Returned from initial clipboard: ${normClip}`);
+          return normClip;
+        }
+      }
+    } catch (_) {}
+
+    const collectFrames = (frame) => {
+      if (!frame) return [];
+      const list = [frame];
+      try {
+        const children = frame.frames || [];
+        for (const child of children) {
+          list.push(...collectFrames(child));
+        }
+      } catch (_) {}
+      return list;
+    };
 
     try {
-      const allFrames = collectFrames(event.sender.mainFrame);
-      const subFrames = allFrames.filter((f) => f !== event.sender.mainFrame);
+      let subFrames = [];
+      try {
+        const allFrames = collectFrames(event?.sender?.mainFrame);
+        subFrames = allFrames.filter((f) => f !== event?.sender?.mainFrame);
+      } catch (fErr) {
+        diagService.log("warn", "StageCapture", `[StageCapture] Error collecting frames: ${fErr.message}`);
+      }
+
+      if (subFrames.length === 0) {
+        try {
+          const wins = BrowserWindow.getAllWindows();
+          for (const win of wins) {
+            if (!win || win.isDestroyed()) continue;
+            const frames = collectFrames(win.webContents?.mainFrame);
+            for (const f of frames) {
+              if (f !== win.webContents?.mainFrame && !subFrames.includes(f)) {
+                subFrames.push(f);
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      diagService.log("info", "StageCapture", `[StageCapture] Subframes count: ${subFrames.length}`);
 
       for (const frame of subFrames) {
         try {
-          // 1. Invocar helper _onicordGetActiveRoomLink o verificar windowProperty
-          const qParam = queryParam || "";
+          diagService.log("info", "StageCapture", `[StageCapture] Evaluating subframe url: ${frame.url}`);
+
+          // 1. Invocar helper _onicordGetActiveRoomLink (con soporte async) o verificar windowProperty
           const initialCheck = await frame.executeJavaScript(`
-            (() => {
+            (async () => {
               try {
                 if (typeof window._onicordGetActiveRoomLink === 'function') {
-                  const link = window._onicordGetActiveRoomLink();
-                  if (link && (!${JSON.stringify(qParam)} || link.includes(${JSON.stringify(qParam)}))) return link;
+                  const link = await window._onicordGetActiveRoomLink();
+                  if (link) return link;
                 }
                 const propKey = ${JSON.stringify(windowProperty || '_onicordRoomLink')};
                 if (window[propKey]) {
                   const p = String(window[propKey]);
-                  if (p && (!${JSON.stringify(qParam)} || p.includes(${JSON.stringify(qParam)}))) return p;
+                  if (p) return p;
                 }
                 return null;
               } catch (_) { return null; }
             })()
           `).catch(() => null);
 
-          if (initialCheck && typeof initialCheck === "string" && initialCheck.startsWith("http")) {
-            return initialCheck.trim();
+          const normInitial = normalizeUrl(initialCheck);
+          diagService.log("info", "StageCapture", `[StageCapture] Step 1 initialCheck: "${initialCheck}" (match: ${isMatch(normInitial)})`);
+          if (normInitial && isMatch(normInitial)) {
+            return normInitial;
           }
 
-          // 2. Si la URL actual del iframe ya tiene el parámetro de sala
-          if (queryParam) {
+          // 2. Si la URL actual del subframe ya tiene el enlace de la sala
+          if (effectiveUrlPattern || queryParam) {
             const urlVal = await frame.executeJavaScript(`
               (() => {
                 try {
-                  const q = ${JSON.stringify(queryParam)};
-                  if (window.location && window.location.search && window.location.search.includes(q)) {
+                  if (window.location && window.location.href) {
                     return window.location.href;
                   }
                 } catch (_) {}
@@ -570,17 +664,41 @@ function registerPluginDriveHandlers() {
               })()
             `).catch(() => null);
 
-            if (urlVal && typeof urlVal === "string" && urlVal.includes(queryParam)) {
-              return urlVal.trim();
+            const normUrl = normalizeUrl(urlVal);
+            diagService.log("info", "StageCapture", `[StageCapture] Step 2 subframe href: "${urlVal}" (match: ${isMatch(normUrl)})`);
+            if (normUrl && isMatch(normUrl)) {
+              return normUrl;
             }
           }
 
-          // 3. Fallback al botón selector (ej. #roomsShare, #copy-invite o búsqueda agnóstica)
-          if (triggerSelector || queryParam) {
-            const prevClip = clipboard.readText();
+          // 3. Fallback al botón selector o búsqueda agnóstica de invitar/compartir
+          if (triggerSelector || queryParam || effectiveUrlPattern) {
             const clickInfo = await frame.executeJavaScript(`
               (() => {
                 try {
+                  const isGartic = window.location.hostname.includes('garticphone.com');
+                  const pathname = window.location.pathname || '';
+
+                  // Si está en la pantalla principal de Gartic Phone (no en el lobby ni en sala), auto-pulsar INICIAR
+                  if (isGartic && !pathname.includes('/lobby') && !/[-_a-zA-Z0-9]{6,16}/.test(pathname.replace(/^\\/[a-zA-Z]{2}\\/?/, ''))) {
+                    const startButtons = Array.from(document.querySelectorAll('button, [role="button"], a, input[type="button"], div, span'));
+                    const startBtn = startButtons.find(el => {
+                      if (el.children.length > 3) return false;
+                      const txt = (el.textContent || '').trim().toLowerCase();
+                      return txt === 'iniciar' || txt === 'start' || txt === 'começar' || txt === 'crear sala' || txt === 'create room';
+                    });
+                    if (startBtn) {
+                      try {
+                        startBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                        startBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                        startBtn.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+                        startBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                      } catch (_) {}
+                      if (typeof startBtn.click === 'function') startBtn.click();
+                      return { status: "auto_started", message: "Auto-pulsado botón INICIAR en portada" };
+                    }
+                  }
+
                   let btn = null;
                   const sel = ${JSON.stringify(triggerSelector || "")};
                   if (sel) {
@@ -588,79 +706,132 @@ function registerPluginDriveHandlers() {
                   }
 
                   if (!btn) {
-                    const candidates = Array.from(document.querySelectorAll('button, [role="button"], a, input[type="button"]'));
-                    btn = candidates.find(el => {
+                    const elements = Array.from(document.querySelectorAll('button, [role="button"], a, input[type="button"], div, span'));
+                    btn = elements.find(el => {
+                      if (el.children.length > 3) return false;
                       const txt = (el.textContent || '').trim().toLowerCase();
                       const aria = (el.getAttribute('aria-label') || '').toLowerCase();
                       const title = (el.getAttribute('title') || '').toLowerCase();
                       const id = (el.id || '').toLowerCase();
                       const cls = (el.className || '').toString().toLowerCase();
-                      return txt.includes('invit') || txt.includes('share') || txt.includes('compartir') || txt.includes('copiar') ||
-                             aria.includes('invit') || aria.includes('share') || aria.includes('copiar') ||
-                             cls.includes('invite') || cls.includes('share') ||
-                             id.includes('invite') || id.includes('share');
+                      return (
+                        txt === 'invitar' || txt === 'invite' || txt === 'copiar' || txt === 'convidar' ||
+                        txt.includes('invitar') || txt.includes('invite') || txt.includes('copiar enlace') || txt.includes('copy link') || txt.includes('convidar') ||
+                        aria.includes('invit') || aria.includes('share') || aria.includes('copiar') || aria.includes('link') ||
+                        title.includes('invit') || title.includes('share') || title.includes('copiar') || title.includes('link') ||
+                        cls.includes('invite') || cls.includes('share') || cls.includes('btlobby') || cls.includes('btinvite') ||
+                        id.includes('invite') || id.includes('share')
+                      );
                     });
                   }
 
-                  if (!btn) return { status: "not_found" };
+                  if (!btn) {
+                    const allBtnTexts = Array.from(document.querySelectorAll('button, [role="button"]')).map(b => (b.textContent || '').trim().slice(0, 30));
+                    return { status: "not_found", buttonsFound: allBtnTexts, location: window.location.href };
+                  }
+
                   const attrUrl = btn.getAttribute("data-url") || btn.getAttribute("data-link") || btn.getAttribute("data-share") || btn.dataset?.url || btn.dataset?.link;
-                  const q = ${JSON.stringify(qParam)};
-                  if (attrUrl && (!q || attrUrl.includes(q))) {
+                  if (attrUrl) {
                     return { status: "found_attr", url: attrUrl };
                   }
                   if (btn.disabled) return { status: "disabled" };
-                  btn.click();
-                  return { status: "clicked" };
+                  try {
+                    btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                    btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                    btn.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+                    btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                  } catch (_) {}
+                  if (typeof btn.click === 'function') btn.click();
+                  return { status: "clicked", tag: btn.tagName, text: (btn.textContent || '').trim().slice(0, 30) };
                 } catch (e) {
                   return { status: "error", message: e.message };
                 }
               })()
             `).catch(() => null);
 
+            diagService.log("info", "StageCapture", `[StageCapture] Step 3 clickInfo: ${JSON.stringify(clickInfo)}`);
+
             if (clickInfo && clickInfo.status === "found_attr" && clickInfo.url) {
-              return clickInfo.url.trim();
+              const normAttr = normalizeUrl(clickInfo.url);
+              if (normAttr && isMatch(normAttr)) return normAttr;
             }
 
-            if (clickInfo && clickInfo.status === "clicked") {
-              // Esperar a que la copia asíncrona o la actualización ocurra
-              for (let i = 0; i < 8; i++) {
-                await new Promise((r) => setTimeout(r, 120));
+            if (clickInfo && (clickInfo.status === "clicked" || clickInfo.status === "auto_started")) {
+              // Esperar a que la copia asíncrona o la actualización ocurra (hasta 3s)
+              for (let i = 0; i < 20; i++) {
+                await new Promise((r) => setTimeout(r, 150));
 
                 const prop = await frame.executeJavaScript(`
-                  (() => {
+                  (async () => {
                     try {
+                      // 1. Helper / propiedad
                       if (typeof window._onicordGetActiveRoomLink === 'function') {
-                        const l = window._onicordGetActiveRoomLink();
+                        const l = await window._onicordGetActiveRoomLink();
                         if (l) return l;
                       }
                       const propKey = ${JSON.stringify(windowProperty || '_onicordRoomLink')};
                       if (window[propKey]) {
                         return String(window[propKey]);
                       }
+
+                      // 2. Si entramos al lobby de Gartic Phone, buscar el botón invitar y pulsarlo
+                      const pathname = window.location.pathname || '';
+                      if (window.location.hostname.includes('garticphone.com') && pathname.includes('/lobby')) {
+                        const elements = Array.from(document.querySelectorAll('button, [role="button"], a, input[type="button"], div, span'));
+                        const invBtn = elements.find(el => {
+                          if (el.children.length > 3) return false;
+                          const txt = (el.textContent || '').trim().toLowerCase();
+                          const aria = (el.getAttribute('aria-label') || '').toLowerCase();
+                          const title = (el.getAttribute('title') || '').toLowerCase();
+                          const cls = (el.className || '').toString().toLowerCase();
+                          return (
+                            txt === 'invitar' || txt === 'invite' || txt === 'copiar' || txt === 'convidar' ||
+                            txt.includes('invitar') || txt.includes('invite') || txt.includes('copiar enlace') || txt.includes('copy link') ||
+                            aria.includes('invit') || aria.includes('share') || aria.includes('copiar') ||
+                            cls.includes('invite') || cls.includes('share') || cls.includes('btlobby') || cls.includes('btinvite')
+                          );
+                        });
+                        if (invBtn) {
+                          try {
+                            invBtn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                            invBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                            invBtn.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+                            invBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                          } catch (_) {}
+                          if (typeof invBtn.click === 'function') invBtn.click();
+                        }
+                      }
                       return null;
                     } catch (_) { return null; }
                   })()
                 `).catch(() => null);
 
-                if (prop && (!queryParam || prop.includes(queryParam)) && prop.startsWith("http")) {
-                  return prop.trim();
+                const normProp = normalizeUrl(prop);
+                if (normProp && isMatch(normProp)) {
+                  diagService.log("info", "StageCapture", `[StageCapture] Success from prop/helper: ${normProp}`);
+                  return normProp;
                 }
 
                 const currentClip = clipboard.readText();
-                if (currentClip && currentClip !== prevClip && (!queryParam || currentClip.includes(queryParam)) && currentClip.startsWith("http")) {
-                  return currentClip.trim();
+                const normClip = normalizeUrl(currentClip);
+                if (normClip && isMatch(normClip)) {
+                  diagService.log("info", "StageCapture", `[StageCapture] Success from clipboard poll: ${normClip}`);
+                  return normClip;
                 }
               }
             } else if (clickInfo && clickInfo.status === "disabled") {
-              console.debug("[Stage Link Capture] Share trigger is disabled (room not active yet).");
+              diagService.log("info", "StageCapture", `[StageCapture] Share trigger is disabled (room not active yet).`);
             }
           }
         } catch (execErr) {
-          console.debug("[Stage Link Capture] Subframe exec notice:", execErr.message);
+          diagService.log("warn", "StageCapture", `[StageCapture] Subframe exec error: ${execErr.message}`);
         }
       }
-    } catch (_) {}
+    } catch (fatalErr) {
+      diagService.log("error", "StageCapture", `[StageCapture] Fatal error in capture loop: ${fatalErr.message}`);
+    }
 
+    diagService.log("info", "StageCapture", `[StageCapture] Finished with null (no room link detected).`);
     return null;
   };
 

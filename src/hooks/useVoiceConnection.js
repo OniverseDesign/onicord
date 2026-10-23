@@ -483,14 +483,19 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
 
   const membersSignature = useMemo(() => {
     return members
-      .map((m) => `${m.peerId}:${m.channelId}:${m.muted ? 1 : 0}:${m.deafened ? 1 : 0}`)
+      .map((m) => `${m.peerId}:${m.channelId}`)
       .sort()
       .join("|");
   }, [members]);
 
   useEffect(() => {
-    if (managerRef.current && inVoice && voiceChannelId) {
+    if (managerRef.current && inVoice) {
       managerRef.current.updatePeerIdentities(members);
+    }
+  }, [members, inVoice]);
+
+  useEffect(() => {
+    if (managerRef.current && inVoice && voiceChannelId) {
       syncPeerConnections(managerRef.current, voiceChannelId).catch(
         console.error,
       );
@@ -641,13 +646,13 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     return managerRef.current?.getRemoteStream?.(peerId) || null;
   }, []);
 
-  const setLocalVideoStream = useCallback((stream) => {
+  const setLocalVideoStream = useCallback((stream, streamOptions = {}) => {
     if (stream) {
       soundEngine.playCue("start");
     } else if (managerRef.current?.localVideoStream) {
       soundEngine.playCue("stop");
     }
-    managerRef.current?.setLocalVideoStream?.(stream);
+    managerRef.current?.setLocalVideoStream?.(stream, streamOptions);
   }, []);
 
   const leaveVoice = useCallback(async () => {

@@ -1,6 +1,8 @@
 export const DEFAULT_AUDIO = {
   inputDeviceId: '',
   outputDeviceId: '',
+  inputDeviceLabel: '',
+  outputDeviceLabel: '',
   peerVolumes: {},
   inputVolume: 100,
   outputVolume: 100,
@@ -11,12 +13,17 @@ export const DEFAULT_AUDIO = {
   autoGainControl: true,
   inputMode: 'vad',
   pttHotkey: 'Control',
+  dynamicsCompression: true,
+  autoDucking: true,
+  autoDuckingAmount: 50,
 }
 
 export function normalizeAudioSettings(audio) {
   return {
     inputDeviceId: audio?.inputDeviceId || '',
     outputDeviceId: audio?.outputDeviceId || '',
+    inputDeviceLabel: audio?.inputDeviceLabel || '',
+    outputDeviceLabel: audio?.outputDeviceLabel || '',
     peerVolumes: { ...(audio?.peerVolumes || {}) },
     inputVolume: audio?.inputVolume !== undefined ? Number(audio.inputVolume) : 100,
     outputVolume: audio?.outputVolume !== undefined ? Number(audio.outputVolume) : 100,
@@ -27,6 +34,9 @@ export function normalizeAudioSettings(audio) {
     autoGainControl: audio?.autoGainControl !== undefined ? Boolean(audio.autoGainControl) : true,
     inputMode: audio?.inputMode || 'vad',
     pttHotkey: audio?.pttHotkey || 'Control',
+    dynamicsCompression: audio?.dynamicsCompression !== undefined ? Boolean(audio.dynamicsCompression) : true,
+    autoDucking: audio?.autoDucking !== undefined ? Boolean(audio.autoDucking) : true,
+    autoDuckingAmount: audio?.autoDuckingAmount !== undefined ? Math.min(90, Math.max(10, Number(audio.autoDuckingAmount))) : 50,
   }
 }
 

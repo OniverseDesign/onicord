@@ -511,7 +511,7 @@ export default function ChannelsSidebar({
         micErrorMessage={voice.micErrorMessage}
         onRetryMicrophone={voice.reclaimMicrophoneAccess}
         onProfileChange={onProfileChange}
-        onStreamStarted={async (stream) => {
+        onStreamStarted={async (stream, streamOptions = {}) => {
           await window.electronAPI?.setStreaming?.(true);
           setLocalStream(stream);
           const allowExpand =
@@ -520,7 +520,7 @@ export default function ChannelsSidebar({
             ) === "true";
           setIsStreamFloating(!allowExpand);
           voice.setIsStreaming?.(true);
-          voice.setLocalVideoStream?.(stream);
+          voice.setLocalVideoStream?.(stream, streamOptions);
         }}
         onStopStream={async () => {
           voice.setLocalVideoStream?.(null);

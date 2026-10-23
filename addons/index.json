@@ -1,0 +1,139 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-10-21T22:57:43.616Z",
+  "plugins": [
+    {
+      "id": "com.oniverse.demo_dashboard_addon",
+      "name": "Demo Widgets Addon",
+      "version": "0.1.0",
+      "scope": "hybrid",
+      "author": "Oniverse Team",
+      "description": "Demostración de widgets extensibles locales y colaborativos P2P para el Panel de Widgets.",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/demo_dashboard_addon/assets/icon.png",
+      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/com.oniverse.demo_dashboard_addon/package.onipkg"
+    },
+    {
+      "id": "onicord-google-search",
+      "name": "Google Search",
+      "version": "0.1.0",
+      "scope": "server",
+      "author": "Oniverse",
+      "description": "Search Google & AI and post formatted web results directly into chat.",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/google-search/assets/icon.png",
+      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-google-search/package.onipkg",
+      "locales": {
+        "es": {
+          "name": "Búsqueda en Google",
+          "description": "Busca información en Google e IA y publica el resultado formateado en el chat.",
+          "commands": {
+            "/g": {
+              "description": "Busca en la web o limpia el historial (/g clear)."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "onicord-arcade",
+      "name": "Arcade",
+      "version": "0.2.0",
+      "scope": "hybrid",
+      "author": "Oniverse",
+      "description": "Biblioteca de juegos web clásicos y porteados con multijugador integrado, salas cooperativas y sincronización de perfiles.",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/onicord-arcade/assets/icon.png",
+      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-arcade/package.onipkg",
+      "locales": {
+        "es": {
+          "name": "Arcade",
+          "description": "Biblioteca de juegos web clásicos y porteados con multijugador integrado, salas cooperativas y sincronización de perfiles.",
+          "commands": {
+            "/arcade": {
+              "description": "Abre la biblioteca de juegos Arcade."
+            }
+          }
+        },
+        "en": {
+          "name": "Arcade",
+          "description": "Classic and web-ported games library with integrated multiplayer, coop rooms and profile syncing.",
+          "commands": {
+            "/arcade": {
+              "description": "Open Arcade games library."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "onicord-dice",
+      "name": "Dices",
+      "version": "0.1.0",
+      "scope": "server",
+      "author": "Oniverse",
+      "description": "Real-time configurable dice roller for the room.",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/onicord-dice/assets/icon.png",
+      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-dice/package.onipkg",
+      "locales": {
+        "es": {
+          "name": "Dados",
+          "description": "Dado virtual colaborativo y configurable en tiempo real para el panel de la sala.",
+          "commands": {
+            "/roll": {
+              "description": "Lanza dados configurados directamente desde el chat (ej: /roll, /roll 2d6, /roll 1d20)."
+            }
+          }
+        },
+        "en": {
+          "name": "Dices",
+          "description": "Real-time configurable dice roller for the room.",
+          "commands": {
+            "/roll": {
+              "description": "Roll configured dice directly from chat (e.g. /roll, /roll 2d6, /roll 1d20)."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "onicord-polls",
+      "name": "Quick Polls",
+      "version": "0.1.0",
+      "scope": "server",
+      "author": "Oniverse",
+      "description": "Create real-time interactive polls in chat using the /p command.",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/onicord-polls/assets/icon.png",
+      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-polls/package.onipkg",
+      "locales": {
+        "es": {
+          "name": "Encuestas Rápidas",
+          "description": "Crea encuestas interactivas en el chat usando el comando /p.",
+          "commands": {
+            "/p": {
+              "description": "Crea una encuesta interactiva. Uso: /p Pregunta -Opción 1 -Opción 2"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "onicord-youtube-search",
+      "name": "YouTube Search",
+      "version": "0.1.0",
+      "scope": "server",
+      "author": "Oniverse",
+      "description": "Search YouTube videos directly from chat using the /y command.",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/youtube-search/assets/icon.png",
+      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-youtube-search/package.onipkg",
+      "locales": {
+        "es": {
+          "name": "Búsqueda en YouTube",
+          "description": "Busca videos de YouTube directamente desde el chat usando el comando /y.",
+          "commands": {
+            "/y": {
+              "description": "Busca un video en YouTube. Ej: /y Olivia Rodrigo Vampire"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

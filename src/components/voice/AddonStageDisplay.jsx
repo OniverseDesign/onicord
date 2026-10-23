@@ -29,7 +29,17 @@ export default function AddonStageDisplay({
   const [isMuted, setIsMuted] = useState(false);
   const [hasGamepad, setHasGamepad] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [duckMultiplier, setDuckMultiplier] = useState(1.0);
   const inactivityTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const handleDucking = (e) => {
+      const mult = e.detail?.duckMultiplier ?? 1.0;
+      setDuckMultiplier(mult);
+    };
+    window.addEventListener("voice-ducking-change", handleDucking);
+    return () => window.removeEventListener("voice-ducking-change", handleDucking);
+  }, []);
 
   // Estados dinámicos para permitir transición fluida entre el Launcher y el juego seleccionado
   const [activeUrl, setActiveUrl] = useState(stageData?.url || null);
@@ -326,22 +336,23 @@ export default function AddonStageDisplay({
     return () => window.removeEventListener("message", handleWindowMessage);
   }, [stageData, handleTerminate]);
 
-  // Manejo de volumen y silencio en elementos multimedia internos y Web Audio subframes
+  // Manejo de volumen y silencio en elementos multimedia internos y Web Audio subframes con soporte para Auto-Ducking
   useEffect(() => {
+    const effectiveVolume = isMuted ? 0 : Math.round(volume * duckMultiplier);
     if (window.electronAPI?.setStageVolume) {
-      window.electronAPI.setStageVolume(volume, isMuted);
+      window.electronAPI.setStageVolume(effectiveVolume, isMuted);
     }
     try {
       const doc = iframeRef.current?.contentDocument;
       if (doc) {
         const mediaEls = doc.querySelectorAll("audio, video");
         mediaEls.forEach((el) => {
-          el.volume = isMuted ? 0 : volume / 100;
+          el.volume = isMuted ? 0 : effectiveVolume / 100;
           el.muted = isMuted;
         });
       }
     } catch (_) {}
-  }, [volume, isMuted]);
+  }, [volume, isMuted, duckMultiplier]);
 
   // Detección dinámica de mandos, transferencia de foco y puente continuo de entrada a juegos en iframe
   useEffect(() => {
@@ -606,7 +617,7 @@ export default function AddonStageDisplay({
           srcDoc={activeHtml || undefined}
           title={stageTitle}
           sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-downloads"
-          allow="gamepad; autoplay; fullscreen; pointer-lock; clipboard-read; clipboard-write; microphone; hid; usb"
+          allow="gamepad; autoplay; fullscreen; pointer-lock; clipboard-read; clipboard-write; microphone; hid; usb; screen-wake-lock; wake-lock;"
           className="w-full h-full border-0 bg-black block outline-none"
           tabIndex={0}
         />
@@ -807,17 +818,43 @@ export default function AddonStageDisplay({
                   }
 
                   const queryParam = currentContext.shareCapture?.queryParam;
-                  if (dynamicUrl && (!queryParam || dynamicUrl.includes(queryParam))) {
+                  const urlPattern =
+                    currentContext.shareCapture?.urlPattern ||
+                    (currentContext.url?.includes("garticphone.com")
+                      ? "garticphone\\.com/(?:[a-zA-Z]{2}/)?([-_a-zA-Z0-9]{6,16})|garticphone\\.com/.*[?&]c="
+                      : null);
+                  let isValidRoom = false;
+
+                  if (dynamicUrl) {
+                    if (urlPattern) {
+                      try {
+                        isValidRoom = new RegExp(urlPattern, "i").test(dynamicUrl);
+                      } catch (_) {
+                        isValidRoom = false;
+                      }
+                    } else if (queryParam) {
+                      isValidRoom = dynamicUrl.includes(queryParam);
+                    } else {
+                      isValidRoom = true;
+                    }
+                  }
+
+                  if (isValidRoom) {
                     console.log("[AddonStage] Compartiendo enlace al chat:", dynamicUrl);
                     onShareToChat(dynamicUrl, currentContext);
-                  } else if (!queryParam && currentContext.url) {
-                    // Si el complemento no usa parámetros de sala, compartir URL base
+                  } else if (!queryParam && !urlPattern && currentContext.url) {
+                    // Si el complemento no usa parámetros ni patrones de sala, compartir URL base
                     onShareToChat(currentContext.url, currentContext);
                   } else {
                     console.warn("[AddonStage] No se detectó una sala activa.");
-                    alert(
-                      "La sala aún no está activa en el juego para compartirla.\n\nSi creaste una sala, recordá ingresar al modo online o 'Inalámbrico' dentro del juego para habilitarla."
-                    );
+                    setAddonConfirmDialog({
+                      title: "Sala aún no detectada",
+                      message: "No se detectó un enlace de sala activo para invitar.",
+                      warningMessage: "Si estás en Gartic Phone, hacé clic en 'INICIAR' dentro del juego para crear la sala. Si ya estás en la sala, podés hacer clic en 'INVITAR' dentro del juego para copiar el enlace.",
+                      confirmLabel: "Entendido",
+                      type: "alert",
+                      onConfirm: () => setAddonConfirmDialog(null),
+                    });
                   }
                 }}
                 className="onicord-media-bar-btn flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-white text-xs transition-colors"

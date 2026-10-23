@@ -1,0 +1,36 @@
+{
+  "id": "onicord-youtube-search",
+  "name": "YouTube Search",
+  "icon": "assets/icon.png",
+  "version": "0.1.0",
+  "scope": "server",
+  "author": "Oniverse",
+  "description": "Search YouTube videos directly from chat using the /y command.",
+  "locales": {
+    "es": {
+      "name": "Búsqueda en YouTube",
+      "description": "Busca videos de YouTube directamente desde el chat usando el comando /y.",
+      "commands": {
+        "/y": {
+          "description": "Busca un video en YouTube. Ej: /y Olivia Rodrigo Vampire"
+        }
+      }
+    }
+  },
+  "main": "index.js",
+  "commands": [
+    {
+      "command": "/y",
+      "description": "Search YouTube for a video. Eg: /y Olivia Rodrigo Vampire"
+    }
+  ],
+  "defaultConfig": {
+    "prefix": "/y",
+    "showInIsland": true
+  },
+  "permissions": [
+    "chat.read",
+    "chat.send",
+    "network.outbound"
+  ]
+}

@@ -152,7 +152,10 @@
     "shareBtn": "Go Live",
     "loadingSources": "Searching for screens and windows...",
     "noSourcesFound": "No available sources found",
-    "noSourcesDesc": "Make sure target windows are not minimized."
+    "noSourcesDesc": "Make sure target windows are not minimized.",
+    "gameMode": "Game Mode",
+    "gameModeActiveTip": "Game Mode active: smooth 60 FPS and stereo audio",
+    "gameModeInactiveTip": "Standard Mode: Optimized for text and low CPU usage"
   },
   "dashboard": {
     "title": "Main Dashboard",
@@ -581,6 +584,14 @@
     "dropFileHere": "Drop your file here!",
     "cancelSend": "Cancel send",
     "searchPlaceholder": "Search messages or files...",
+    "searchPlaceholderActive": "Try filters: from:user, has:file, has:image, in:channel...",
+    "searchFilterOptions": "Available search filters",
+    "searchFilterFrom": "Filter by author or nickname",
+    "searchFilterImage": "Photos and images only",
+    "searchFilterFile": "Files and documents",
+    "searchFilterLink": "Messages with web links",
+    "searchFilterIn": "Search in specific channel",
+    "searchFilterPhrase": "Exact phrase matching",
     "noSearchResults": "No matching results found.",
     "attachUnlimited": "Attach a file without size limits",
     "sendSticker": "Send a sticker from your collection",
@@ -731,17 +742,19 @@
       "buyMeACoffee": "Buy me a coffee"
     },
     "sfx": {
-      "title": "Sound Effects",
-      "packDesc": "Acoustic style for system interactions and responses.",
+      "levelTitle": "Sound Effects Level",
+      "level0": "Muted",
+      "level0Desc": "All sound effects disabled.",
+      "level1": "Essential",
+      "level1Desc": "Voice channels, mute/deafen, streams, and alerts only.",
+      "level2": "Voice & Chat",
+      "level2Desc": "Essential plus message sending, receiving, and typing.",
+      "level3": "Full",
+      "level3Desc": "All application and interface sound effects.",
       "pack": "Sound Pack",
+      "packDesc": "Acoustic theme for system responses and interactions.",
       "volume": "Effects Volume",
-      "volumeDesc": "Overall volume level for acoustic effects and notices.",
-      "typing": "Other users typing sound",
-      "typingDesc": "Plays a subtle pulse when other users type in the active channel.",
-      "widgets": "Haptic widget sounds",
-      "widgetsDesc": "Acoustic effects when dragging, docking, and resizing dashboard widgets.",
-      "navigation": "Navigation sounds",
-      "navigationDesc": "Acoustic cues when switching channels and expanding or collapsing categories."
+      "volumeDesc": "Master volume level for acoustic cues and feedback."
     },
     "sfxPacks": {
       "minimal": "Minimal",
@@ -773,6 +786,8 @@
       "enableQuickSuggestions": "Quick Message Suggestions",
       "enableQuickSuggestionsDesc": "Shows quick access pills to retype your most frequent phrases above the chat input.",
       "performance": "Performance",
+      "enableOpenGraph": "Link Previews (Open Graph)",
+      "enableOpenGraphDesc": "Displays interactive cards with thumbnails and link information in chat. Disable it to improve performance and reduce resource usage.",
       "disableHardwareAccel": "Disable Hardware Acceleration",
       "disableHardwareAccelDesc": "Disables GPU processing. Useful if experiencing screen flickering or streaming issues.",
       "restartWarning": "Requires restarting application to take effect.",
@@ -795,6 +810,7 @@
       "outputVolume": "Output Volume",
       "sensitivity": "Voice Sensitivity",
       "defaultSystem": "System Default",
+      "disconnected": "Disconnected",
       "micTestHint": "Let's perform a test to check if your microphone is working properly.",
       "sensitivityLabel": "Input Sensitivity",
       "sensitivityHint": "Determines whether your microphone should transmit voice. Disabling automatic adjustment lets you set a manual threshold.",
@@ -814,8 +830,12 @@
       "pushToTalk": "Push to Talk (PTT)",
       "pushToTalkDesc": "Your microphone will remain muted until you press and hold your recorded shortcut.",
       "keybindingConfigHint": "Keyboard and mouse shortcuts configuration",
-      "keybindingConfigDesc": "Shortcuts and buttons for Push to Talk (PTT) are configured in the Keybindings tab.",
-      "advancedProcessing": "Advanced Audio Processing"
+      "advancedProcessing": "Advanced Audio Processing",
+      "dynamicsCompression": "Master Dynamics Compression",
+      "dynamicsCompressionDesc": "Prevents digital clipping and ear-rape by limiting sudden volume spikes when multiple peers speak or shout.",
+      "autoDucking": "Stream Auto-Ducking",
+      "autoDuckingDesc": "Smoothly ducks stream and screen share audio whenever someone in the room is speaking.",
+      "autoDuckingAmount": "Ducking Level"
     },
     "appearance": {
       "theme": "Visual Theme",

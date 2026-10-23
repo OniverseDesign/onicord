@@ -32,7 +32,17 @@ export default function StreamDisplay({
   const [IsPipClosed, setIsPipClosed] = useState(false);
 
   const [showControls, setShowControls] = useState(true);
+  const [duckMultiplier, setDuckMultiplier] = useState(1.0);
   const inactivityTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const handleDucking = (e) => {
+      const mult = e.detail?.duckMultiplier ?? 1.0;
+      setDuckMultiplier(mult);
+    };
+    window.addEventListener("voice-ducking-change", handleDucking);
+    return () => window.removeEventListener("voice-ducking-change", handleDucking);
+  }, []);
 
   const [position, setPosition] = useState({
     x: window.innerWidth - 360,
@@ -117,13 +127,35 @@ export default function StreamDisplay({
     videoEl.muted = isLocal || !hasAudioTrack ? true : isMuted;
   }, [isMuted, isLocal]);
 
+  // Handle volume changes with smooth transition and auto-ducking support
   useEffect(() => {
-    if (videoRef.current) {
-      const hasAudioTrack =
-        videoRef.current.srcObject?.getAudioTracks().length > 0;
-      videoRef.current.volume = isLocal || isMuted || !hasAudioTrack ? 0 : volume / 100;
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+    const hasAudioTrack =
+      videoEl.srcObject?.getAudioTracks().length > 0;
+    if (isLocal || isMuted || !hasAudioTrack) {
+      videoEl.volume = 0;
+      return;
     }
-  }, [volume, isMuted, isLocal]);
+
+    const baseVol = volume / 100;
+    const targetVol = Math.max(0, Math.min(1, baseVol * duckMultiplier));
+
+    let frameId;
+    const step = () => {
+      if (!videoRef.current) return;
+      const curr = videoRef.current.volume;
+      const delta = (targetVol - curr) * 0.25;
+      if (Math.abs(delta) < 0.005) {
+        videoRef.current.volume = targetVol;
+      } else {
+        videoRef.current.volume = Math.max(0, Math.min(1, curr + delta));
+        frameId = requestAnimationFrame(step);
+      }
+    };
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [volume, isMuted, isLocal, duckMultiplier]);
 
   useEffect(() => {
     if (!isFullscreen) {

@@ -56,12 +56,36 @@ export default function MessageEmbedCard({ url }) {
   const [ogData, setOgData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [ogEnabled, setOgEnabled] = useState(() => {
+    try {
+      const raw = localStorage.getItem("onicord_general_settings");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.enableOpenGraph !== undefined) return Boolean(parsed.enableOpenGraph);
+      }
+    } catch {}
+    return true;
+  });
 
   const ytId = extractYouTubeId(url);
   const ttId = extractTikTokId(url);
   const igInfo = extractInstagramId(url);
 
   useEffect(() => {
+    const handleUpdate = (e) => {
+      if (e.detail?.enableOpenGraph !== undefined) {
+        setOgEnabled(Boolean(e.detail.enableOpenGraph));
+      }
+    };
+    window.addEventListener("onicord:general-settings-updated", handleUpdate);
+    return () => window.removeEventListener("onicord:general-settings-updated", handleUpdate);
+  }, []);
+
+  useEffect(() => {
+    if (!ogEnabled) {
+      setLoading(false);
+      return;
+    }
     let isMounted = true;
     if (window.electronAPI?.fetchOpenGraph) {
       window.electronAPI
@@ -83,7 +107,9 @@ export default function MessageEmbedCard({ url }) {
     return () => {
       isMounted = false;
     };
-  }, [url]);
+  }, [url, ogEnabled]);
+
+  if (!ogEnabled) return null;
 
   if (loading)
     return (
@@ -111,9 +137,108 @@ export default function MessageEmbedCard({ url }) {
 
   const isYouTube = Boolean(ytId || ogData.mediaType === "youtube");
 
+  // CASO AUDIO: Pista de audio directa
+  if (ogData.mediaType === "audio" && (ogData.audio || ogData.url)) {
+    return (
+      <div
+        onClick={handleOpenExternal}
+        className="flex flex-col max-w-[480px] mt-2 rounded-onicord-inner p-3 bg-onicord-mantle border border-onicord-island text-left gap-2 cursor-pointer hover:border-onicord-accent/40 transition-colors"
+      >
+        <div className="flex items-center gap-1.5 text-onicord-muted text-[11px] font-bold uppercase tracking-wider">
+          <MaterialIcon name="music_note" size={14} />
+          <span>{ogData.siteName || "Audio"}</span>
+        </div>
+        <span className="text-[14px] font-semibold text-onicord-text truncate">
+          {ogData.title || url}
+        </span>
+        <audio
+          controls
+          src={ogData.audio || ogData.url}
+          className="w-full mt-1"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    );
+  }
+
+  // CASO SPOTIFY: Tarjeta temática con carátula y reproductor
+  if (ogData.mediaType === "spotify") {
+    return (
+      <div
+        onClick={handleOpenExternal}
+        className="flex max-w-[500px] mt-2 rounded-onicord-inner overflow-hidden bg-onicord-mantle border border-emerald-500/25 hover:border-emerald-500/60 justify-between items-center p-3 cursor-pointer transition-all duration-200 group/spotify text-left gap-3 select-none"
+      >
+        {ogData.image && (
+          <img
+            src={ogData.image}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="w-16 h-16 rounded-lg object-cover shadow-md shrink-0"
+          />
+        )}
+        <div className="flex flex-col min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-[#1DB954] text-[11px] font-bold uppercase tracking-wider">
+            <MaterialIcon name="graphic_eq" size={14} />
+            <span>Spotify</span>
+          </div>
+          <span className="text-[14px] font-bold text-onicord-text group-hover/spotify:underline truncate mt-0.5">
+            {ogData.title || url}
+          </span>
+          <span className="text-[12px] text-onicord-muted truncate">
+            {ogData.description || "Escuchar en Spotify"}
+          </span>
+        </div>
+        <div className="w-10 h-10 rounded-full bg-[#1DB954] text-black flex items-center justify-center shrink-0 group-hover/spotify:scale-105 transition-transform shadow-lg">
+          <MaterialIcon name="play_arrow" size={24} />
+        </div>
+      </div>
+    );
+  }
+
+  // CASO PINTEREST: Tarjeta con imagen de proporción vertical/natural y estilo estándar
+  if (ogData.mediaType === "pinterest" || (ogData.siteName === "Pinterest" && ogData.image)) {
+    return (
+      <div
+        onClick={handleOpenExternal}
+        className="flex flex-col max-w-[340px] mt-2 rounded-onicord-inner bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 p-3 gap-1.5 text-left cursor-pointer transition-all duration-200 group/card select-none"
+      >
+        <span className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted truncate">
+          {ogData.siteName || "Pinterest"}
+        </span>
+
+        <span className="text-[14px] font-bold text-onicord-text group-hover/card:underline line-clamp-2 leading-snug">
+          {ogData.title || url}
+        </span>
+
+        {ogData.description && ogData.description !== "Explorar en Pinterest" && ogData.description !== "Pin en Pinterest" && (
+          <p className="text-[12px] text-onicord-subtext line-clamp-2 leading-relaxed -mt-0.5">
+            {ogData.description}
+          </p>
+        )}
+
+        {ogData.image && (
+          <div className="w-full relative bg-black/40 overflow-hidden rounded-xl border border-white/5 flex items-center justify-center max-h-[420px] mt-1">
+            <img
+              src={ogData.image}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="w-full max-h-[420px] object-contain group-hover/card:scale-[1.02] transition-transform duration-300 rounded-xl"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const isGifOrTenor = ogData.mediaType === "gif" || ogData.siteName === "Tenor" || ogData.siteName === "GIPHY";
+
   const isVideoContent =
     isYouTube ||
     ogData.mediaType === "video" ||
+    isGifOrTenor ||
     Boolean(ogData.video) ||
     Boolean(ttId) ||
     Boolean(igInfo) ||
@@ -130,20 +255,22 @@ export default function MessageEmbedCard({ url }) {
         url.includes("/reel/") ||
         url.includes("/reels/")));
 
-  // CASO 1: Previsualización de Video (Vertical 9:16 o Horizontal 16:9)
+  // CASO 1: Previsualización Multimedia (Video o GIF)
   if (isVideoContent) {
+    const ytThumb = ogData.image || (ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : null);
+
     return (
       <div
         onClick={!isYouTube ? handleOpenExternal : undefined}
         className={`flex flex-col mt-2 p-3.5 ${
-          isVertical ? "max-w-[210px]" : "max-w-[500px]"
+          isVertical ? "max-w-[230px]" : "max-w-[500px]"
         } rounded-onicord-inner bg-onicord-mantle border border-onicord-island gap-1.5 text-left select-none ${
           !isYouTube ? "cursor-pointer hover:border-onicord-accent/40 transition-colors" : ""
         }`}
       >
         {/* Site Name */}
         <span className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted truncate">
-          {ogData.siteName || (ytId ? "YouTube" : ttId ? "TikTok" : igInfo ? "Instagram" : "Video")}
+          {ogData.siteName || (ytId ? "YouTube" : ttId ? "TikTok" : igInfo ? "Instagram" : isGifOrTenor ? "GIF" : "Video")}
         </span>
 
         {/* Title */}
@@ -155,7 +282,7 @@ export default function MessageEmbedCard({ url }) {
         </span>
 
         {/* Description */}
-        {ogData.description && (
+        {ogData.description && !isGifOrTenor && (
           <p
             onClick={handleOpenExternal}
             className="text-[12px] text-onicord-subtext leading-relaxed line-clamp-2 cursor-pointer -mt-0.5"
@@ -164,11 +291,11 @@ export default function MessageEmbedCard({ url }) {
           </p>
         )}
 
-        {/* Video Box con bordes redondeados */}
+        {/* Video / Media Box con bordes redondeados */}
         <div
           className={`w-full relative bg-black/40 ${
-            isVertical ? "aspect-[9/16]" : "aspect-video"
-          } overflow-hidden rounded-xl mt-1 border border-white/5`}
+            isVertical ? "aspect-[9/16]" : isGifOrTenor && !ogData.video ? "aspect-auto max-h-[360px]" : "aspect-video"
+          } overflow-hidden rounded-xl mt-1 border border-white/5 flex items-center justify-center`}
         >
           {isYouTube ? (
             isPlaying ? (
@@ -189,9 +316,9 @@ export default function MessageEmbedCard({ url }) {
                 }}
                 className="w-full h-full relative cursor-pointer group/yt overflow-hidden flex items-center justify-center bg-black/40"
               >
-                {ogData.image && (
+                {ytThumb && (
                   <img
-                    src={ogData.image}
+                    src={ytThumb}
                     alt=""
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover/yt:scale-105 transition-transform duration-300"
@@ -208,9 +335,12 @@ export default function MessageEmbedCard({ url }) {
             <video
               src={ogData.video}
               poster={ogData.image}
-              controls
+              autoPlay={isGifOrTenor}
+              loop={isGifOrTenor}
+              muted={isGifOrTenor}
               playsInline
-              className="w-full h-full object-cover rounded-xl"
+              controls={!isGifOrTenor}
+              className="w-full h-full object-contain rounded-xl"
             />
           ) : ogData.image ? (
             <div
@@ -221,13 +351,15 @@ export default function MessageEmbedCard({ url }) {
                 src={ogData.image}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover group-hover/ext:scale-105 transition-transform duration-300 rounded-xl"
+                className="w-full h-full object-contain group-hover/ext:scale-105 transition-transform duration-300 rounded-xl"
               />
-              <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover/ext:bg-black/10 transition-colors">
-                <div className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center group-hover/ext:scale-110 transition-transform">
-                  <MaterialIcon name="open_in_new" size={22} />
+              {!isGifOrTenor && (
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/ext:opacity-100 flex items-center justify-center transition-opacity">
+                  <div className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center group-hover/ext:scale-110 transition-transform">
+                    <MaterialIcon name="open_in_new" size={22} />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : null}
         </div>

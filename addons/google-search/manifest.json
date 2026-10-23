@@ -1,0 +1,41 @@
+{
+  "id": "onicord-google-search",
+  "name": "Google Search",
+  "icon": "assets/icon.png",
+  "version": "0.1.0",
+  "scope": "server",
+  "author": "Oniverse",
+  "description": "Search Google & AI and post formatted web results directly into chat.",
+  "locales": {
+    "es": {
+      "name": "Búsqueda en Google",
+      "description": "Busca información en Google e IA y publica el resultado formateado en el chat.",
+      "commands": {
+        "/g": {
+          "description": "Busca en la web o limpia el historial (/g clear)."
+        }
+      }
+    }
+  },
+  "main": "index.js",
+  "commands": [
+    {
+      "command": "/g",
+      "description": "Search the web or clear history (/g clear)."
+    }
+  ],
+  "defaultConfig": {
+    "prefix": "/g",
+    "showInIsland": true,
+    "language": "es"
+  },
+  "configSchema": [
+    { "key": "language", "label": "Idioma preferido de búsqueda", "type": "text", "default": "es" }
+  ],
+  "permissions": [
+    "chat.read",
+    "chat.send",
+    "p2p.network",
+    "network.outbound"
+  ]
+}

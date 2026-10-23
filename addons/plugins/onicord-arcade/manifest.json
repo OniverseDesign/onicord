@@ -1,0 +1,55 @@
+{
+  "id": "onicord-arcade",
+  "name": "Arcade",
+  "version": "0.2.0",
+  "scope": "hybrid",
+  "author": "Oniverse",
+  "description": "Biblioteca de juegos web clásicos y porteados con multijugador integrado, salas cooperativas y sincronización de perfiles.",
+  "icon": "assets/icon.png",
+  "main": "index.js",
+  "locales": {
+    "es": {
+      "name": "Arcade",
+      "description": "Biblioteca de juegos web clásicos y porteados con multijugador integrado, salas cooperativas y sincronización de perfiles.",
+      "commands": {
+        "/arcade": {
+          "description": "Abre la biblioteca de juegos Arcade."
+        }
+      }
+    },
+    "en": {
+      "name": "Arcade",
+      "description": "Classic and web-ported games library with integrated multiplayer, coop rooms and profile syncing.",
+      "commands": {
+        "/arcade": {
+          "description": "Open Arcade games library."
+        }
+      }
+    }
+  },
+  "permissions": [
+    "ui.voice_control_button",
+    "ui.stage_view",
+    "p2p.network",
+    "storage",
+    "user.profile",
+    "server.info",
+    "gaming.activity",
+    "chat.read",
+    "chat.send"
+  ],
+  "voiceControlButtons": [
+    {
+      "id": "arcade_joystick",
+      "icon": "sports_esports",
+      "tooltip": "Arcade (Catálogo de Juegos)",
+      "action": "TOGGLE_ARCADE_STAGE"
+    }
+  ],
+  "commands": [
+    {
+      "command": "/arcade",
+      "description": "Abre el catálogo y biblioteca de juegos de Arcade."
+    }
+  ]
+}

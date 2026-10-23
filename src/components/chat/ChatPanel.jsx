@@ -57,6 +57,7 @@ export default function ChatPanel({
   onOpenThread,
   onMessagesUpdate,
   onSelectChannel,
+  onToggleReactionReady,
 }) {
   const { t } = useTranslation();
   const [stickersTargetRect, setStickersTargetRect] = useState(null);
@@ -112,11 +113,11 @@ export default function ChatPanel({
 
   // Solo renderizar los mensajes visibles en pantalla (evita saturar el DOM con miles de nodos)
   const visibleMainStreamMessages = useMemo(() => {
-    if (!visibleCount || mainStreamMessages.length <= visibleCount) {
+    if (searchQuery?.trim() || !visibleCount || mainStreamMessages.length <= visibleCount) {
       return mainStreamMessages;
     }
     return mainStreamMessages.slice(-visibleCount);
-  }, [mainStreamMessages, visibleCount]);
+  }, [mainStreamMessages, visibleCount, searchQuery]);
 
   const [previewMedia, setPreviewMedia] = useState({
     isOpen: false,
@@ -568,6 +569,24 @@ export default function ChatPanel({
           ? JSON.stringify({ body: text, replyTo: replyData })
           : text;
 
+        const optimisticMsg = {
+          id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          roomCode,
+          channelId,
+          authorId: profile?.id || "self",
+          authorNickname: profile?.nickname || "Yo",
+          authorAvatar: profile?.avatar || null,
+          text: payloadMensaje,
+          timestamp: Date.now(),
+          isOptimistic: true,
+        };
+
+        setMessages((prev) => [...prev, optimisticMsg]);
+        setVisibleCount?.((v) => v + 1);
+        requestAnimationFrame(() => {
+          bottomRef?.current?.scrollIntoView({ behavior: "smooth" });
+        });
+
         await window.electronAPI.sendChatMessage(
           roomCode,
           channelId,
@@ -793,7 +812,7 @@ export default function ChatPanel({
   );
 
   const handleToggleReaction = useCallback(
-    (messageId, emoji) => {
+    (messageId, emoji, targetChannelId = channelId) => {
       const myId = profile?.id || "self";
       setMessages((prev) =>
         prev.map((msg) => {
@@ -820,13 +839,17 @@ export default function ChatPanel({
       if (window.electronAPI?.sendChatMessage) {
         window.electronAPI.sendChatMessage(
           roomCode,
-          channelId,
+          targetChannelId || channelId,
           `[REACTION_ACTION]:${JSON.stringify({ messageId, emoji, userId: myId })}`
         );
       }
     },
     [profile?.id, roomCode, channelId, setMessages],
   );
+
+  useEffect(() => {
+    onToggleReactionReady?.(handleToggleReaction);
+  }, [onToggleReactionReady, handleToggleReaction]);
 
   const handlePluginAction = useCallback(
     (msgId, pluginId, action, data) => {

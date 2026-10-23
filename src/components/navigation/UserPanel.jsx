@@ -116,55 +116,62 @@ export default function UserPanel({
     setTargetRect(null);
   };
 
-  const handleSelectSource = async (source, resolution) => {
+  const handleSelectSource = async (source, resolution, streamOptions = {}) => {
     setIsModalOpen(false);
     if (!canShareVideo) return;
+    const isGameMode = Boolean(streamOptions.gameMode);
+
     let videoConstraints = {
       chromeMediaSource: "desktop",
       chromeMediaSourceId: source.id,
-      minFrameRate: 15,
+      minFrameRate: isGameMode ? 30 : 15,
     };
 
     if (resolution === "1080") {
       videoConstraints.maxWidth = 1920;
       videoConstraints.maxHeight = 1080;
-      videoConstraints.maxFrameRate = 30;
+      videoConstraints.maxFrameRate = isGameMode ? 60 : 30;
     } else if (resolution === "720") {
       videoConstraints.maxWidth = 1280;
       videoConstraints.maxHeight = 720;
-      videoConstraints.maxFrameRate = 30;
+      videoConstraints.maxFrameRate = isGameMode ? 60 : 30;
     } else if (resolution === "480") {
       videoConstraints.maxWidth = 854;
       videoConstraints.maxHeight = 480;
-      videoConstraints.maxFrameRate = 30;
+      videoConstraints.maxFrameRate = isGameMode ? 60 : 30;
     } else {
-      videoConstraints.maxFrameRate = 60;
+      videoConstraints.maxFrameRate = isGameMode ? 60 : 30;
+    }
+
+    const includeAudio = streamOptions?.includeAudio !== false;
+
+    if (includeAudio) {
+      try {
+        // Intentar primero capturar pantalla con audio de escritorio (mandatory: chromeMediaSource: "desktop")
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            mandatory: {
+              chromeMediaSource: "desktop",
+            },
+          },
+          video: { mandatory: videoConstraints },
+        });
+        if (stream && onStreamStarted) onStreamStarted(stream, streamOptions);
+        return;
+      } catch (err) {
+        console.warn("[Screen Share] Captura con audio no disponible en esta fuente, intentando sin audio:", err.message);
+        if (err.name === "NotAllowedError") return;
+      }
     }
 
     try {
-      // Intentar primero capturar pantalla con audio de escritorio (mandatory: chromeMediaSource: "desktop")
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          mandatory: {
-            chromeMediaSource: "desktop",
-          },
-        },
+      const fallbackStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
         video: { mandatory: videoConstraints },
       });
-      if (stream && onStreamStarted) onStreamStarted(stream);
-    } catch (err) {
-      console.warn("[Screen Share] Captura con audio no disponible en esta fuente, intentando sin audio:", err.message);
-      if (err.name !== "NotAllowedError") {
-        try {
-          const fallbackStream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: { mandatory: videoConstraints },
-          });
-          if (fallbackStream && onStreamStarted) onStreamStarted(fallbackStream);
-        } catch (fallbackErr) {
-          console.error("Error al capturar pantalla (fallback sin audio):", fallbackErr);
-        }
-      }
+      if (fallbackStream && onStreamStarted) onStreamStarted(fallbackStream, streamOptions);
+    } catch (fallbackErr) {
+      console.error("Error al capturar pantalla (fallback sin audio):", fallbackErr);
     }
   };
 

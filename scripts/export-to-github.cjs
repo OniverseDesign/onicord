@@ -63,6 +63,7 @@ const USEFUL_FOLDERS = [
   "docs",
   ".github",
   "mcp-server",
+  "addons",
 ];
 
 const USEFUL_FILES = [
@@ -79,6 +80,7 @@ const USEFUL_FILES = [
   "LICENSE",
   "README.md",
   "RELEASE_NOTES.md",
+  "CHANGELOG_DISCOVERIES.md",
 ];
 
 function copyDirRecursive(src, dest) {

@@ -92,6 +92,28 @@ function registerChatHandlers() {
     global.roomManager.sendSketchDraw(payload);
     return { success: true };
   });
+
+  ipcMain.handle("chat:search", async (_event, roomCode, query, options = {}) => {
+    const code = roomCode || global.roomManager?.roomCode;
+    if (!code || !query || typeof query !== "string") return [];
+
+    let chatStore = null;
+    if (global.roomManager && global.roomManager.chatService) {
+      chatStore = global.roomManager.chatService.chatStore;
+    }
+    if (!chatStore) {
+      chatStore = new ChatStore(app.getPath("userData"));
+    }
+
+    try {
+      const { getSearchStore } = require("../../p2p/searchStore.cjs");
+      const searchStore = getSearchStore(chatStore);
+      return await searchStore.search(code, query, options);
+    } catch (err) {
+      console.error("[IPC Chat Search Error]:", err);
+      return [];
+    }
+  });
 }
 
 module.exports = { registerChatHandlers };

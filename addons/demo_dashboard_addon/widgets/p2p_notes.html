@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      background: transparent;
+      color: #ffffff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 10px;
+      box-sizing: border-box;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header-info {
+      font-size: 10px;
+      opacity: 0.8;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    textarea {
+      width: 100%;
+      flex: 1;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 12px;
+      box-sizing: border-box;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+    }
+    textarea:focus {
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="header-info">
+    <span id="roomTag">Sala Onicord</span>
+    <span id="syncTag">Sincronizado P2P</span>
+  </div>
+  <textarea id="notesArea" placeholder="Escribe notas compartidas en vivo para la sala..."></textarea>
+
+  <script>
+    const area = document.getElementById("notesArea");
+
+    window.addEventListener("onicord:widget-ready", async () => {
+      // Demostración del permiso: server.info
+      const server = OnicordWidgetAPI.server.getInfo();
+      if (server && server.serverName) {
+        document.getElementById("roomTag").textContent = server.serverName;
+      }
+
+      // Demostración del permiso: storage
+      const savedNotes = await OnicordWidgetAPI.storage.get("squad_notes_data");
+      if (savedNotes) {
+        area.value = savedNotes;
+      }
+
+      // Demostración del permiso: p2p.network (recibir actualizaciones en vivo)
+      OnicordWidgetAPI.p2p.onMessage((data, senderPeerId) => {
+        if (data && data.type === "SYNC_NOTES") {
+          area.value = data.text;
+          OnicordWidgetAPI.storage.set("squad_notes_data", data.text);
+          document.getElementById("syncTag").textContent = `Editado por ${senderPeerId.slice(0, 6)}`;
+        }
+      });
+    });
+
+    area.oninput = () => {
+      const text = area.value;
+      OnicordWidgetAPI.storage.set("squad_notes_data", text);
+      document.getElementById("syncTag").textContent = "Guardado local";
+
+      // Demostración del permiso: p2p.network (transmitir cambios P2P a los peers)
+      OnicordWidgetAPI.p2p.broadcast({
+        type: "SYNC_NOTES",
+        text,
+      });
+    };
+  </script>
+</body>
+</html>

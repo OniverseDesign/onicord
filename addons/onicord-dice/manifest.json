@@ -1,0 +1,49 @@
+{
+  "id": "onicord-dice",
+  "name": "Dices",
+  "version": "0.1.0",
+  "scope": "server",
+  "author": "Oniverse",
+  "description": "Real-time configurable dice roller for the room.",
+  "icon": "assets/icon.png",
+  "main": "index.js",
+  "locales": {
+    "es": {
+      "name": "Dados",
+      "description": "Dado virtual colaborativo y configurable en tiempo real para el panel de la sala.",
+      "commands": {
+        "/roll": {
+          "description": "Lanza dados configurados directamente desde el chat (ej: /roll, /roll 2d6, /roll 1d20)."
+        }
+      }
+    },
+    "en": {
+      "name": "Dices",
+      "description": "Real-time configurable dice roller for the room.",
+      "commands": {
+        "/roll": {
+          "description": "Roll configured dice directly from chat (e.g. /roll, /roll 2d6, /roll 1d20)."
+        }
+      }
+    }
+  },
+  "permissions": [
+    "ui.plugin_island",
+    "p2p.network",
+    "storage",
+    "user.profile",
+    "server.info",
+    "chat.read",
+    "chat.send"
+  ],
+  "commands": [
+    {
+      "command": "/roll",
+      "description": "Lanza dados configurados directamente desde el chat."
+    }
+  ],
+  "defaultConfig": {
+    "showInIsland": true,
+    "prefix": "/roll"
+  }
+}

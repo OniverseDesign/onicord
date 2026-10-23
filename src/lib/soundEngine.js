@@ -1,14 +1,58 @@
 /**
  * soundEngine.js
- * Centralized sound engine for Onicord using uisfx with the Zen sound pack.
+ * Centralized sound engine for Onicord using uisfx with gradual sound levels.
  */
 
 import { createUISFX } from "uisfx";
+
+export const SFX_LEVEL = {
+  MUTED: 0,
+  ESSENTIAL: 1,
+  COMMUNICATION: 2,
+  ALL: 3,
+};
+
+const CUE_MIN_LEVEL = {
+  // Nivel 1: Esenciales (Voz, Stream, Llamadas, Alertas críticas)
+  connect: 1,
+  disconnect: 1,
+  "toggle-on": 1,
+  "toggle-off": 1,
+  lock: 1,
+  unlock: 1,
+  start: 1,
+  stop: 1,
+  notification: 1,
+  mention: 1,
+
+  // Nivel 2: Comunicación (Chat, Mensajes, Escritura, Reacciones)
+  send: 2,
+  receive: 2,
+  typing: 2,
+  reaction: 2,
+  delete: 2,
+  drop: 2,
+
+  // Nivel 3: Completo (Navegación, Widgets, Acciones y Feedback de UI)
+  open: 3,
+  close: 3,
+  select: 3,
+  expand: 3,
+  collapse: 3,
+  snap: 3,
+  "volume-change": 3,
+  copy: 3,
+  reward: 3,
+  success: 3,
+  warning: 3,
+  undo: 3,
+};
 
 class SoundEngine {
   constructor() {
     this.pack = "minimal";
     this.volume = 1.0;
+    this.level = SFX_LEVEL.COMMUNICATION;
     this.enabled = true;
     this.typingSoundsEnabled = true;
     this.widgetSoundsEnabled = false;
@@ -53,25 +97,28 @@ class SoundEngine {
         this.pack = savedPack;
       }
 
-      const savedEnabled = localStorage.getItem("onicord_sfx_enabled");
-      if (savedEnabled !== null) {
-        this.enabled = savedEnabled === "true";
+      const savedLevel = localStorage.getItem("onicord_sfx_level");
+      if (savedLevel !== null) {
+        const parsed = parseInt(savedLevel, 10);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 3) {
+          this.level = parsed;
+        }
+      } else {
+        // Migración inteligente retroactiva
+        const savedEnabled = localStorage.getItem("onicord_sfx_enabled");
+        if (savedEnabled === "false") {
+          this.level = SFX_LEVEL.MUTED;
+        } else {
+          const savedNav = localStorage.getItem("onicord_sfx_nav");
+          if (savedNav === "true") {
+            this.level = SFX_LEVEL.ALL;
+          } else {
+            this.level = SFX_LEVEL.COMMUNICATION;
+          }
+        }
       }
 
-      const savedTyping = localStorage.getItem("onicord_sfx_typing");
-      if (savedTyping !== null) {
-        this.typingSoundsEnabled = savedTyping === "true";
-      }
-
-      const savedWidget = localStorage.getItem("onicord_sfx_widgets");
-      if (savedWidget !== null) {
-        this.widgetSoundsEnabled = savedWidget === "true";
-      }
-
-      const savedNav = localStorage.getItem("onicord_sfx_nav");
-      if (savedNav !== null) {
-        this.navSoundsEnabled = savedNav === "true";
-      }
+      this.enabled = this.level > 0;
     } catch { }
   }
 
@@ -114,6 +161,37 @@ class SoundEngine {
     return true;
   }
 
+  setLevel(newLevel, playPreview = false) {
+    const clamped = Math.max(0, Math.min(3, parseInt(newLevel, 10) || 0));
+    this.level = clamped;
+    this.enabled = clamped > 0;
+
+    try {
+      localStorage.setItem("onicord_sfx_level", String(clamped));
+      localStorage.setItem("onicord_sfx_enabled", String(this.enabled));
+    } catch { }
+
+    if (this.player) {
+      this.player.setEnabled(this.enabled);
+    }
+
+    if (playPreview && this.enabled && this.player) {
+      try {
+        if (clamped === 1) {
+          this.player.play("toggle-on", { volume: this.volume });
+        } else if (clamped === 2) {
+          this.player.play("receive", { volume: this.volume });
+        } else if (clamped === 3) {
+          this.player.play("select", { volume: this.volume });
+        }
+      } catch (_) { }
+    }
+  }
+
+  getLevel() {
+    return this.level;
+  }
+
   setVolume(newVol) {
     const clamped = Math.max(0, Math.min(1, newVol));
     this.volume = clamped;
@@ -143,55 +221,48 @@ class SoundEngine {
     return this.pack;
   }
 
+  // Compatibilidad legacy
   setEnabled(enabled) {
-    this.enabled = Boolean(enabled);
-    try {
-      localStorage.setItem("onicord_sfx_enabled", String(this.enabled));
-    } catch { }
-    if (this.player) {
-      this.player.setEnabled(this.enabled);
+    if (!enabled) {
+      this.setLevel(SFX_LEVEL.MUTED);
+    } else if (this.level === SFX_LEVEL.MUTED) {
+      this.setLevel(SFX_LEVEL.COMMUNICATION);
     }
   }
 
   isEnabled() {
-    return this.enabled;
+    return this.level > 0;
   }
 
   setTypingEnabled(enabled) {
     this.typingSoundsEnabled = Boolean(enabled);
-    try {
-      localStorage.setItem("onicord_sfx_typing", String(this.typingSoundsEnabled));
-    } catch { }
   }
 
   isTypingEnabled() {
-    return this.typingSoundsEnabled;
+    return this.level >= SFX_LEVEL.COMMUNICATION;
   }
 
   setWidgetSoundsEnabled(enabled) {
     this.widgetSoundsEnabled = Boolean(enabled);
-    try {
-      localStorage.setItem("onicord_sfx_widgets", String(this.widgetSoundsEnabled));
-    } catch { }
   }
 
   isWidgetSoundsEnabled() {
-    return this.widgetSoundsEnabled;
+    return this.level >= SFX_LEVEL.ALL;
   }
 
   setNavSoundsEnabled(enabled) {
     this.navSoundsEnabled = Boolean(enabled);
-    try {
-      localStorage.setItem("onicord_sfx_nav", String(this.navSoundsEnabled));
-    } catch { }
   }
 
   isNavSoundsEnabled() {
-    return this.navSoundsEnabled;
+    return this.level >= SFX_LEVEL.ALL;
   }
 
   playCue(cueName, options = {}) {
-    if (!this.enabled || !this.player) return null;
+    if (this.level <= 0 || !this.player) return null;
+
+    const minLevel = CUE_MIN_LEVEL[cueName] ?? 3;
+    if (this.level < minLevel) return null;
 
     try {
       return this.player.play(cueName, options);
@@ -203,7 +274,7 @@ class SoundEngine {
 
   // Rate-limited typing sound for chat
   playTyping() {
-    if (!this.enabled || !this.typingSoundsEnabled) return;
+    if (this.level < SFX_LEVEL.COMMUNICATION || !this.player) return;
 
     // Suppress if window is not focused
     if (typeof document !== "undefined" && !document.hasFocus()) return;
@@ -217,7 +288,7 @@ class SoundEngine {
 
   // Rate-limited snap sound for widget grid movement
   playWidgetSnap() {
-    if (!this.enabled || !this.widgetSoundsEnabled) return;
+    if (this.level < SFX_LEVEL.ALL || !this.player) return;
 
     const now = Date.now();
     if (now - this._lastSnapPlay < 120) return;
@@ -228,7 +299,7 @@ class SoundEngine {
 
   // Rate-limited volume slider change
   playVolumeChange() {
-    if (!this.enabled) return;
+    if (this.level < SFX_LEVEL.ALL || !this.player) return;
 
     const now = Date.now();
     if (now - this._lastVolumePlay < 60) return;
@@ -238,7 +309,7 @@ class SoundEngine {
   }
 
   playNav(cueName, options = {}) {
-    if (!this.enabled || !this.navSoundsEnabled) return;
+    if (this.level < SFX_LEVEL.ALL || !this.player) return;
     this.playCue(cueName, options);
   }
 
