@@ -7,17 +7,21 @@ export function normalizeChatMessage(msg) {
 
   let text = msg.text || "";
   let threadParentId = msg.threadParentId || null;
+  let replyTo = msg.replyTo || null;
   let isNudge = false;
+  const rawText = msg.rawText || (typeof msg.text === "string" ? msg.text : "");
 
   if (typeof text === "string" && text.trim().startsWith("{")) {
     try {
       const parsed = JSON.parse(text);
       if (parsed.threadParentId) threadParentId = parsed.threadParentId;
+      if (parsed.replyTo) replyTo = parsed.replyTo;
       if (typeof parsed.body === "string") {
         if (parsed.body.trim().startsWith("{")) {
           try {
             const inner = JSON.parse(parsed.body);
             if (inner.threadParentId) threadParentId = inner.threadParentId;
+            if (inner.replyTo) replyTo = inner.replyTo;
             text = inner.body || inner.text || parsed.body;
           } catch {
             text = parsed.body;
@@ -38,6 +42,8 @@ export function normalizeChatMessage(msg) {
   return {
     ...msg,
     text,
+    rawText,
+    replyTo: replyTo || msg.replyTo || null,
     threadParentId: threadParentId || msg.threadParentId || null,
     isNudge,
     _normalized: true,
@@ -756,7 +762,13 @@ export function useChatMessages({
           (m) =>
             m.isOptimistic &&
             (m.authorId === normalizedMsg.authorId || m.authorId === "self" || m.authorId === profile?.id) &&
-            m.text === normalizedMsg.text
+            (
+              m.text === normalizedMsg.text ||
+              m.text === msg.text ||
+              (m.rawText && (m.rawText === normalizedMsg.rawText || m.rawText === msg.text)) ||
+              (normalizedMsg.rawText && m.text === normalizedMsg.rawText) ||
+              normalizeChatMessage(m).text === normalizedMsg.text
+            )
         );
 
         let nuevoFeed;

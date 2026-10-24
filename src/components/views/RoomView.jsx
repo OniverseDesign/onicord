@@ -25,6 +25,7 @@ import ChannelsSidebar from "../navigation/ChannelsSidebar";
 import RoomStreamStage from "../voice/RoomStreamStage";
 import AddonStageHost from "../voice/AddonStageHost";
 import { soundEngine } from "../../lib/soundEngine";
+import { normalizeChatMessage } from "../../hooks/useChatMessages";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { cn } from "../../lib/cn";
 
@@ -219,7 +220,7 @@ export default function RoomView({
           threadParentId: parentMsgId,
         });
 
-        const optimisticReply = {
+        const optimisticReply = normalizeChatMessage({
           id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           roomCode: server.roomCode,
           channelId: textChannelId,
@@ -227,10 +228,11 @@ export default function RoomView({
           authorNickname: profile?.nickname || "Yo",
           authorAvatar: profile?.avatar || null,
           text: threadPayload,
+          rawText: threadPayload,
           timestamp: Date.now(),
           threadParentId: parentMsgId,
           isOptimistic: true,
-        };
+        });
         roomMessagesRef.current = [...roomMessagesRef.current, optimisticReply];
         setThreadMessages((prev) => [...prev, optimisticReply]);
 

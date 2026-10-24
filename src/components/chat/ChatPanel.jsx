@@ -24,7 +24,7 @@ import { notificationManager } from "../../lib/notificationManager";
 import { soundEngine } from "../../lib/soundEngine";
 import { recordUserInteraction } from "../../lib/flameService";
 
-import { useChatMessages } from "../../hooks/useChatMessages";
+import { useChatMessages, normalizeChatMessage } from "../../hooks/useChatMessages";
 import { useChatScroll } from "../../hooks/useChatScroll";
 import ChatDropZone from "./subcomponents/ChatDropZone";
 import ChatMessageList from "./subcomponents/ChatMessageList";
@@ -586,7 +586,7 @@ export default function ChatPanel({
           ? JSON.stringify({ body: text, replyTo: replyData })
           : text;
 
-        const optimisticMsg = {
+        const optimisticMsg = normalizeChatMessage({
           id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           roomCode,
           channelId,
@@ -594,9 +594,11 @@ export default function ChatPanel({
           authorNickname: profile?.nickname || "Yo",
           authorAvatar: profile?.avatar || null,
           text: payloadMensaje,
+          rawText: payloadMensaje,
+          replyTo: replyData,
           timestamp: Date.now(),
           isOptimistic: true,
-        };
+        });
 
         setMessages((prev) => [...prev, optimisticMsg]);
         setVisibleCount?.((v) => v + 1);

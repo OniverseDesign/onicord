@@ -139,6 +139,25 @@ const ChatMessageItem = memo(
           }
         }
       } catch (e) {}
+    } else if (
+      !replyToData &&
+      msg.rawText &&
+      typeof msg.rawText === "string" &&
+      msg.rawText.trim().startsWith("{")
+    ) {
+      try {
+        const parsedReplyObj = JSON.parse(msg.rawText);
+        if (
+          parsedReplyObj &&
+          typeof parsedReplyObj === "object" &&
+          parsedReplyObj.replyTo
+        ) {
+          replyToData = parsedReplyObj.replyTo;
+          if (parsedReplyObj.threadParentId) {
+            msg.threadParentId = parsedReplyObj.threadParentId;
+          }
+        }
+      } catch (e) {}
     }
 
     if (textContent && typeof textContent === "string" && textContent.startsWith("[FORWARD_MESSAGE]:")) {
