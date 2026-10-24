@@ -44,6 +44,7 @@ export default function ThreadSidePanel({
   onSendThreadReply,
   onToggleReaction,
 }) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [replyTarget, setReplyTarget] = useState(null);
   const [stickersTargetRect, setStickersTargetRect] = useState(null);
