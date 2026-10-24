@@ -1,3 +1,42 @@
+# Onicord v0.1.9
+
+## Changes
+
+- **Interactive & Dynamic Toast Notifications**:
+  - Contextual click navigation: clicking a new message or mention toast redirects directly to the target server and text channel or direct message (DM).
+  - Clicking application update notifications opens Settings directly to the About tab to download and review updates.
+  - Dynamic Theme Accent Color: `info` toasts automatically adopt the active theme accent color (border, ambient glow, and icon color).
+  - Author Profile Avatar: Message toasts display the sender's profile picture (`SmartAnimatedImage`), or initial letter badge on accent background.
+  - Interactive styling with hover elevation, subtle animated chevron indicator, audio feedback (`soundEngine.playNav("select")`), and keyboard accessibility (`Enter` / `Space`).
+  - Isolated dismiss button (`✕`) preventing accidental navigation triggers.
+  - Intelligent per-channel notification throttling preventing spam during message bursts.
+  - Native window focus and restore via `window:focus` IPC when interacting with notifications from the background.
+- **Ultra-Fluid PiP Floating Windows**:
+  - Eliminated stuttering during PiP window dragging for screen shares (`StreamDisplay`) and addon stages (`AddonStageDisplay`).
+  - Hardware-accelerated GPU positioning using `transform: translate3d(x, y, 0)` replacing legacy `top`/`left` styling.
+  - Dynamic suppression of conflicting CSS transitions during drag (`transition: none`).
+  - V-Sync display refresh rate synchronization via `requestAnimationFrame` and secure cursor locking via `setPointerCapture`.
+- **User Profile Card Toggle & Exit Animations**:
+  - Fixed toggle behavior in `UserProfilePopout` allowing users to open and close member cards by clicking on the member item without immediate re-opening.
+  - Smooth coordinated exit animation (`onicord-animate-popup-out` / `scale-out`) prior to component unmount.
+  - Dynamic `transform-origin` based on viewport positioning (`top left` or `top right`).
+- **Centralized & Standardized Motion Engine**:
+  - Unified animation tokens and natural bezier curves (`cubic-bezier(0.16, 1, 0.3, 1)`) across `animations.css`, `cards.css`, `motion.css`, and `tailwind.config.js`.
+  - Standardized modals: `DeleteMessageModal`, `DeleteServerModal`, `DeleteStickerModal`, `InviteModal`, `JoinModal`, `MediaPreviewModal`.
+  - Standardized popovers, context menus, and dropdowns: `EmojiPickerPopover`, `StickerPopover`, `Select`, `MessageReactionsBar`.
+- **User Panel & Audio Control Ergonomics**:
+  - Always-accessible mute and deafen controls in the bottom `UserPanel`, allowing users to adjust audio states before joining voice lounges.
+  - Initial voice state persistence (`initialMuted`, `initialDeafened`, `selfMuted`, `selfDeafened`) in native `VoiceService`.
+  - Smooth animated entrance and exit transitions for screen share and voice disconnect action buttons.
+  - Animated expand/collapse for connected voice session status.
+- **Chat & Navigation UI Polish**:
+  - Animated floating "Jump to present" button with downward arrow icon when scrolling up through message history.
+  - Smooth animated entrance/exit transitions for reply bars (`replyTarget`) and pending file attachment previews (`pendingFile`) in `ChatInputArea` with cache preservation during exit fades.
+  - Upgraded channel category icon to smooth-rotating Material Symbols chevron (`expand_more` / `chevron_right`).
+  - Fluid height transitions and state caching for `PluginIsland` and `MusicIsland` collapsible widgets.
+- **Localization**:
+  - Added localized strings across Spanish, English, and Portuguese for all new notifications, mentions, and interactive actions.
+
 # Onicord v0.1.8
 
 ## Changes

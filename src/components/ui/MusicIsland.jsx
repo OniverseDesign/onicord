@@ -84,7 +84,18 @@ export default function MusicIsland({ musicState }) {
     return () => audioNode.removeEventListener("timeupdate", syncProgress);
   }, [currentTrack, audioRef]);
 
-  if (!currentTrack || hasJoinedMusic === "ignored") return null;
+  const isVisible = Boolean(currentTrack && hasJoinedMusic !== "ignored");
+  const [cachedTrack, setCachedTrack] = useState(currentTrack);
+
+  useEffect(() => {
+    if (currentTrack) {
+      setCachedTrack(currentTrack);
+    }
+  }, [currentTrack]);
+
+  if (!musicState) return null;
+
+  const displayTrack = currentTrack || cachedTrack;
 
   const togglePlayPause = () => {
     if (!canManageMusic) return;
@@ -149,87 +160,92 @@ export default function MusicIsland({ musicState }) {
     enqueueTrack?.(url);
   };
 
-  if (hasJoinedMusic !== true) {
-    return (
-      <div className="w-full shrink-0 bg-onicord-surface/30 rounded-onicord-outer-p4 border border-onicord-island flex flex-col overflow-hidden select-none relative backdrop-blur-md p-4 gap-3 z-10 text-left">
-        <div
-          className="absolute inset-0 z-0 pointer-events-none opacity-30 scale-110 blur-2xl transition-all duration-500"
-          style={{
-            backgroundImage: `url(${currentTrack?.thumbnail})`,
-            backgroundPosition: "center",
-            backgroundSize: "cover",
-          }}
-        />
-        <div className="relative z-10 flex flex-col gap-2.5">
-          <div className="flex items-center gap-2">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-              {t("music.playingInServer", "Música en la sala")}
-            </h4>
-          </div>
-          <p className="text-[11px] text-onicord-subtext font-medium leading-relaxed">
-            {t(
-              "music.joinPromptText",
-              "¿Deseas unirte a la reproducción de música en el servidor?",
-            )}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <button
-              onClick={() => setHasJoinedMusic(true)}
-              className="flex-1 py-1.5 rounded-lg bg-onicord-accent text-onicord-dark text-xs font-bold hover:brightness-110 transition-all cursor-pointer shadow-sm text-center"
-            >
-              {t("common.join", "Unirme")}
-            </button>
-            <button
-              onClick={() => {
-                setHasJoinedMusic("ignored");
-              }}
-              className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-bold transition-all cursor-pointer shadow-sm text-center"
-            >
-              {t("common.ignore", "Ignorar")}
-            </button>
+  return (
+    <div
+      className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
+        isVisible
+          ? "max-h-[500px] opacity-100 scale-100 pointer-events-auto"
+          : "max-h-0 opacity-0 scale-95 pointer-events-none -mb-[calc(var(--gap)+3px)]"
+      }`}
+    >
+      {displayTrack && (
+        hasJoinedMusic !== true ? (
+        <div className="w-full shrink-0 bg-onicord-surface/30 rounded-onicord-outer-p4 border border-onicord-island flex flex-col overflow-hidden select-none relative backdrop-blur-md p-4 gap-3 z-10 text-left">
+          <div
+            className="absolute inset-0 z-0 pointer-events-none opacity-30 scale-110 blur-2xl transition-all duration-500"
+            style={{
+              backgroundImage: `url(${displayTrack?.thumbnail})`,
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+            }}
+          />
+          <div className="relative z-10 flex flex-col gap-2.5">
+            <div className="flex items-center gap-2">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                {t("music.playingInServer", "Música en la sala")}
+              </h4>
+            </div>
+            <p className="text-[11px] text-onicord-subtext font-medium leading-relaxed">
+              {t(
+                "music.joinPromptText",
+                "¿Deseas unirte a la reproducción de música en el servidor?",
+              )}
+            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <button
+                onClick={() => setHasJoinedMusic(true)}
+                className="flex-1 py-1.5 rounded-lg bg-onicord-accent text-onicord-dark text-xs font-bold hover:brightness-110 transition-all cursor-pointer shadow-sm text-center"
+              >
+                {t("common.join", "Unirme")}
+              </button>
+              <button
+                onClick={() => {
+                  setHasJoinedMusic("ignored");
+                }}
+                className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-bold transition-all cursor-pointer shadow-sm text-center"
+              >
+                {t("common.ignore", "Ignorar")}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    );
-  }
+      ) : (
+        <div className="w-full shrink-0 bg-black/70 rounded-onicord-outer-p4 border border-onicord-island flex flex-col overflow-hidden select-none relative backdrop-blur-md">
+          <div
+            className="absolute inset-0 z-0 pointer-events-none opacity-70 scale-110 blur-lg transition-all duration-500"
+            style={{
+              backgroundImage: `url(${displayTrack?.thumbnail})`,
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+            }}
+          />
 
-  return (
-    <div className="w-full shrink-0 bg-black/70 rounded-onicord-outer-p4 border border-onicord-island flex flex-col overflow-hidden select-none relative backdrop-blur-md">
-      <div
-        className="absolute inset-0 z-0 pointer-events-none opacity-70 scale-110 blur-lg transition-all duration-500"
-        style={{
-          backgroundImage: `url(${currentTrack?.thumbnail})`,
-          backgroundPosition: "center",
-          backgroundSize: "cover",
-        }}
-      />
-
-      <div className="p-3 flex flex-col gap-3 z-10 w-full">
-        {/* Seccion superior: Miniatura a la izquierda, Info de track a la derecha */}
-        <div className="flex items-center gap-4 w-full">
-          <div className="w-24 h-24 shrink-0 rounded-onicord-button overflow-hidden bg-black/40 border border-white/5 relative shadow-md">
-            <img
-              src={currentTrack.thumbnail}
-              className="w-full h-full object-cover"
-              alt=""
-            />
-          </div>
-
-          <div className="flex-1 min-w-0 flex flex-col justify-center gap-2 h-24 py-0.5">
-            <div className="text-left">
-              <h2 className="text-base font-semibold text-white tracking-wide truncate">
-                {currentTrack.title}
-              </h2>
-              <p className="text-xs text-onicord-accent font-medium truncate mt-0.5 opacity-90">
-                {currentTrack.author}
-              </p>
-            </div>
-
-            <div className="w-full">
-              <div className="flex items-center justify-between text-[10px] font-mono text-onicord-text mb-1 px-0.5">
-                <span>{currentTime}</span>
-                <span>{currentTrack.duration}</span>
+          <div className="p-3 flex flex-col gap-3 z-10 w-full">
+            {/* Seccion superior: Miniatura a la izquierda, Info de track a la derecha */}
+            <div className="flex items-center gap-4 w-full">
+              <div className="w-24 h-24 shrink-0 rounded-onicord-button overflow-hidden bg-black/40 border border-white/5 relative shadow-md">
+                <img
+                  src={displayTrack?.thumbnail}
+                  className="w-full h-full object-cover"
+                  alt=""
+                />
               </div>
+
+              <div className="flex-1 min-w-0 flex flex-col justify-center gap-2 h-24 py-0.5">
+                <div className="text-left">
+                  <h2 className="text-base font-semibold text-white tracking-wide truncate">
+                    {displayTrack?.title}
+                  </h2>
+                  <p className="text-xs text-onicord-accent font-medium truncate mt-0.5 opacity-90">
+                    {displayTrack?.author}
+                  </p>
+                </div>
+
+                <div className="w-full">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-onicord-text mb-1 px-0.5">
+                    <span>{currentTime}</span>
+                    <span>{displayTrack?.duration}</span>
+                  </div>
               <div className="h-2 bg-white/10 rounded-full overflow-hidden w-full relative transition-all">
                 <div
                   className="h-full bg-onicord-accent transition-all duration-150 rounded-full"
@@ -443,7 +459,9 @@ export default function MusicIsland({ musicState }) {
         )}
       </div>
 
-      <div className="border-t border-white/[0.04] bg-onicord-mantle"></div>
-    </div>
-  );
+        <div className="border-t border-white/[0.04] bg-onicord-mantle"></div>
+      </div>
+    ))}
+  </div>
+);
 }

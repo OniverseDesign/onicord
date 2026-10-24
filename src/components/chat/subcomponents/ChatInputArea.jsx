@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 import { IconAttach, IconSticker } from "../../icons/StreamIcons";
@@ -66,6 +66,25 @@ export default function ChatInputArea({
   setContextMenu,
 }) {
   const { t } = useTranslation();
+
+  const [cachedReplyTarget, setCachedReplyTarget] = useState(replyTarget);
+  useEffect(() => {
+    if (replyTarget) {
+      setCachedReplyTarget(replyTarget);
+    }
+  }, [replyTarget]);
+  const displayReplyTarget = replyTarget || cachedReplyTarget;
+
+  const [cachedPendingFile, setCachedPendingFile] = useState(pendingFile);
+  const [cachedPreviewUrl, setCachedPreviewUrl] = useState(previewUrl);
+  useEffect(() => {
+    if (pendingFile) {
+      setCachedPendingFile(pendingFile);
+      setCachedPreviewUrl(previewUrl);
+    }
+  }, [pendingFile, previewUrl]);
+  const displayPendingFile = pendingFile || cachedPendingFile;
+  const displayPreviewUrl = previewUrl || cachedPreviewUrl;
 
   const renderTypingText = () => {
     const users = Object.values(typingUsers);
@@ -149,12 +168,12 @@ export default function ChatInputArea({
           opacity: replyTarget ? 1 : 0,
         }}
       >
-        {replyTarget && (() => {
+        {displayReplyTarget && (() => {
           const usuarioCitado = resolveAuthorDisplay(
-            replyTarget.authorId,
+            displayReplyTarget.authorId,
             profile,
             peers,
-            replyTarget,
+            displayReplyTarget,
           );
           return (
             <div className="onicord-reply-bar !mx-0 !mb-0">
@@ -254,50 +273,58 @@ export default function ChatInputArea({
           });
         }}
       >
-        {pendingFile && (
-          <div className="onicord-pending-file-card group/pending relative overflow-hidden bg-onicord-base border border-white/5 p-2 flex items-center gap-3">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-black/50 overflow-hidden">
-              {previewUrl ? (
-                pendingFile.type.startsWith("video/") ? (
-                  <video
-                    src={previewUrl}
-                    className="w-full h-full object-cover opacity-80"
-                  />
+        <div
+          className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
+            pendingFile
+              ? "max-h-28 opacity-100 mb-2 pointer-events-auto"
+              : "max-h-0 opacity-0 mb-0 pointer-events-none"
+          }`}
+        >
+          {displayPendingFile && (
+            <div className="onicord-pending-file-card group/pending relative overflow-hidden bg-onicord-base border border-white/5 p-2 flex items-center gap-3">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-black/50 overflow-hidden">
+                {displayPreviewUrl ? (
+                  displayPendingFile.type?.startsWith("video/") ? (
+                    <video
+                      src={displayPreviewUrl}
+                      className="w-full h-full object-cover opacity-80"
+                    />
+                  ) : (
+                    <img
+                      src={displayPreviewUrl}
+                      alt="preview"
+                      className="w-full h-full object-cover"
+                    />
+                  )
                 ) : (
-                  <img
-                    src={previewUrl}
-                    alt="preview"
-                    className="w-full h-full object-cover"
-                  />
-                )
-              ) : (
-                <IconAttach size="lg" className="text-onicord-accent" />
-              )}
-            </div>
+                  <IconAttach size="lg" className="text-onicord-accent" />
+                )}
+              </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-onicord-text">
-                {pendingFile.name}
-              </p>
-              <p className="text-xs text-onicord-muted">
-                {formatBytes(pendingFile.size)} — Ready to send
-              </p>
-            </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-onicord-text">
+                  {displayPendingFile.name}
+                </p>
+                <p className="text-xs text-onicord-muted">
+                  {formatBytes(displayPendingFile.size)} — Ready to send
+                </p>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (previewUrl) URL.revokeObjectURL(previewUrl);
-                setPreviewUrl(null);
-                setPendingFile(null);
-              }}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-2 right-2"
-              title={t("chat.cancelSend")}
-            >
-              <span className="text-sm font-bold leading-none">✕</span>
-            </button>
-          </div>
-        )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (previewUrl) URL.revokeObjectURL(previewUrl);
+                  setPreviewUrl(null);
+                  setPendingFile(null);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-2 right-2"
+                title={t("chat.cancelSend")}
+              >
+                <span className="text-sm font-bold leading-none">✕</span>
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="flex items-center gap-2 px-2">
           <input

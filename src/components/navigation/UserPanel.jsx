@@ -207,7 +207,6 @@ export default function UserPanel({
   }, [voiceButtons]);
 
   const renderVoiceControls = () => {
-    if (!inVoice) return null;
     return (
       <div className="flex shrink-0 items-center gap-1.5 ml-2">
         {/* Slots dinámicos para botones de complementos en canal de voz */}
@@ -222,114 +221,145 @@ export default function UserPanel({
           );
 
           return (
-            <button
+            <div
               key={`${btn.pluginId}-${btn.id}`}
-              type="button"
-              title={btn.tooltip || btn.pluginName || t("common.plugin", "Complemento")}
-              onClick={(e) => {
-                e.stopPropagation();
-                window.electronAPI?.triggerVoiceControlButton?.(btn.pluginId, btn.id);
-              }}
-              className="onicord-icon-btn text-onicord-text hover:text-onicord-accent transition-colors flex items-center justify-center relative group"
+              className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center justify-center shrink-0 ${
+                inVoice
+                  ? "w-8 opacity-100 scale-100 pointer-events-auto"
+                  : "w-0 opacity-0 scale-75 pointer-events-none -mr-1.5"
+              }`}
             >
-              {isImage ? (
-                <img
-                  src={btn.icon}
-                  alt={btn.tooltip || "icon"}
-                  className="w-5 h-5 object-contain"
-                />
-              ) : (
-                <MaterialIcon name={btn.icon || "extension"} size="lg" />
-              )}
-              {btn.badge && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-onicord-accent" />
-              )}
-            </button>
+              <button
+                type="button"
+                title={btn.tooltip || btn.pluginName || t("common.plugin", "Complemento")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.electronAPI?.triggerVoiceControlButton?.(btn.pluginId, btn.id);
+                }}
+                className="onicord-icon-btn text-onicord-text hover:text-onicord-accent transition-colors flex items-center justify-center relative group shrink-0"
+              >
+                {isImage ? (
+                  <img
+                    src={btn.icon}
+                    alt={btn.tooltip || "icon"}
+                    className="w-5 h-5 object-contain"
+                  />
+                ) : (
+                  <MaterialIcon name={btn.icon || "extension"} size="lg" />
+                )}
+                {btn.badge && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-onicord-accent" />
+                )}
+              </button>
+            </div>
           );
         })}
 
-        {inVoice && (
-          <>
-            <button
-              type="button"
-              disabled={!canShareVideo}
-              title={
-                canShareVideo
-                  ? t("userPanel.shareScreen")
-                  : t("userPanel.noShareVideoPermission", "Sin permisos para transmitir pantalla en este servidor")
-              }
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!canShareVideo) return;
-                setIsModalOpen(true);
-              }}
-              className={`onicord-icon-btn ${!canShareVideo ? "opacity-35 !cursor-not-allowed pointer-events-none" : ""}`}
-            >
-              <IconScreenShare size="lg" />
-            </button>
-            <button
-              type="button"
-              title={muted ? t("userPanel.unmute") : t("userPanel.mute")}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleMute();
-              }}
-              className={`onicord-icon-btn ${muted ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
-            >
-              {muted ? <IconMicOff size="lg" /> : <IconMicOn size="lg" />}
-            </button>
-            <button
-              type="button"
-              title={deafened ? t("userPanel.undeafen") : t("userPanel.deafen")}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleDeafen();
-              }}
-              className={`onicord-icon-btn ${deafened ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
-            >
-              {deafened ? <IconDeafenOff size="lg" /> : <IconDeafenOn size="lg" />}
-            </button>
-            <button
-              type="button"
-              title={t("userPanel.disconnect")}
-              onClick={(e) => {
-                e.stopPropagation();
-                onDisconnect();
-              }}
-              className="onicord-icon-btn onicord-icon-btn-danger"
-            >
-              <IconCallEnd size="lg" />
-            </button>
-          </>
-        )}
+        {/* Botón Compartir Pantalla animado */}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center justify-center shrink-0 ${
+            inVoice
+              ? "w-8 opacity-100 scale-100 pointer-events-auto"
+              : "w-0 opacity-0 scale-75 pointer-events-none -mr-1.5"
+          }`}
+        >
+          <button
+            type="button"
+            disabled={!canShareVideo}
+            title={
+              canShareVideo
+                ? t("userPanel.shareScreen")
+                : t("userPanel.noShareVideoPermission", "Sin permisos para transmitir pantalla en este servidor")
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!canShareVideo) return;
+              setIsModalOpen(true);
+            }}
+            className={`onicord-icon-btn shrink-0 ${!canShareVideo ? "opacity-35 !cursor-not-allowed pointer-events-none" : ""}`}
+          >
+            <IconScreenShare size="lg" />
+          </button>
+        </div>
+
+        {/* Botón Silenciar permanente */}
+        <button
+          type="button"
+          title={muted ? t("userPanel.unmute") : t("userPanel.mute")}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleMute?.();
+          }}
+          className={`onicord-icon-btn shrink-0 ${muted ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
+        >
+          {muted ? <IconMicOff size="lg" /> : <IconMicOn size="lg" />}
+        </button>
+
+        {/* Botón Ensordecer permanente */}
+        <button
+          type="button"
+          title={deafened ? t("userPanel.undeafen") : t("userPanel.deafen")}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleDeafen?.();
+          }}
+          className={`onicord-icon-btn shrink-0 ${deafened ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
+        >
+          {deafened ? <IconDeafenOff size="lg" /> : <IconDeafenOn size="lg" />}
+        </button>
+
+        {/* Botón Desconectar animado */}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center justify-center shrink-0 ${
+            inVoice
+              ? "w-8 opacity-100 scale-100 pointer-events-auto"
+              : "w-0 opacity-0 scale-75 pointer-events-none -ml-1.5"
+          }`}
+        >
+          <button
+            type="button"
+            title={t("userPanel.disconnect")}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDisconnect?.();
+            }}
+            className="onicord-icon-btn onicord-icon-btn-danger shrink-0"
+          >
+            <IconCallEnd size="lg" />
+          </button>
+        </div>
       </div>
     );
   };
 
   return (
     <div className="w-full shrink-0 bg-onicord-base rounded-onicord-outer-p4 p-2 border border-onicord-island box-border flex flex-col overflow-hidden select-none">
-      {inVoice && (
-        <div>
-          <div className="onicord-user-panel-profile-btn">
-            <div
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              className="onicord-btn-success cursor-help"
-            >
-              <IconPodcast size="xl" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-onicord-success">
-                {voiceServerName || t("userPanel.voiceConnected")}
-              </p>
-              <p className="truncate text-xs font-medium text-onicord-muted">
-                {voiceChannelName}
-              </p>
-            </div>
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          inVoice
+            ? "max-h-24 opacity-100 mb-0"
+            : "max-h-0 opacity-0 pointer-events-none"
+        }`}
+      >
+        <div className="onicord-user-panel-profile-btn">
+          <div
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            className="onicord-btn-success cursor-help"
+          >
+            <IconPodcast size="xl" />
           </div>
-          <hr className="my-2 border-onicord-dark-muted border-t-1" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-onicord-success">
+              {voiceServerName || t("userPanel.voiceConnected")}
+            </p>
+            <p className="truncate text-xs font-medium text-onicord-muted">
+              {voiceChannelName}
+            </p>
+          </div>
         </div>
-      )}
+        <hr className="my-2 border-onicord-dark-muted border-t-1" />
+      </div>
       <div className="flex items-center justify-between w-full min-w-0">
         <div className="flex-1 min-w-0">
           <UserListItem

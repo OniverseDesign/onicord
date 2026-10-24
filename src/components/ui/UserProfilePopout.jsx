@@ -85,6 +85,7 @@ export default function UserProfilePopout({
   volume = 100,
   onVolumeChange,
   onClose,
+  isClosing: externalIsClosing = false,
   userRolesList = [],
   disableFlameSystem = false,
   serverId = "",
@@ -94,7 +95,8 @@ export default function UserProfilePopout({
 }) {
   const { t } = useTranslation();
   const popoutRef = useRef(null);
-  const { isClosing, triggerClose } = useInternalClose(onClose, 110);
+  const { isClosing: internalIsClosing, triggerClose } = useInternalClose(onClose, 110);
+  const isClosing = Boolean(externalIsClosing || internalIsClosing);
 
   useEffect(() => {
     if (!isInlinePreview) {
@@ -103,21 +105,31 @@ export default function UserProfilePopout({
   }, [isInlinePreview]);
 
   useEffect(() => {
+    if (isClosing && !isInlinePreview) {
+      soundEngine.playNav("close");
+    }
+  }, [isClosing, isInlinePreview]);
+
+  useEffect(() => {
     if (isInlinePreview || !onClose) return;
     const handleClickOutside = (e) => {
-      if (popoutRef.current && !popoutRef.current.contains(e.target)) {
-        triggerClose();
+      if (popoutRef.current && popoutRef.current.contains(e.target)) {
+        return;
       }
+      if (e.target.closest?.("[data-user-popout-trigger]")) {
+        return;
+      }
+      triggerClose();
     };
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         triggerClose();
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handleClickOutside);
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handleClickOutside);
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [triggerClose, isInlinePreview, onClose]);
@@ -133,6 +145,7 @@ export default function UserProfilePopout({
     : {
         top: Math.max(10, Math.min(y, window.innerHeight - 440)),
         left: isRightSide ? Math.max(10, x - 300) : Math.min(window.innerWidth - 300, x + 20),
+        transformOrigin: isRightSide ? "top right" : "top left",
         backgroundColor: member.profileColor || undefined,
         position: "fixed",
         zIndex: 999999,
@@ -201,8 +214,7 @@ export default function UserProfilePopout({
       style={style}
       className={cn(
         "onicord-popover-card w-[280px] p-3.5 flex flex-col overflow-hidden",
-        !isInlinePreview && "onicord-animate-popup-in",
-        isClosing && "onicord-animate-popup-out",
+        !isInlinePreview && (isClosing ? "onicord-animate-popup-out" : "onicord-animate-popup-in"),
         !member.profileColor ? "bg-onicord-mantle" : ""
       )}
     >

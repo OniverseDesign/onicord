@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { cn } from "../../lib/cn";
+import { useInternalClose } from "../../hooks/useAnimatedMount";
 
 export default function JoinModal({ onClose, onJoin, busy }) {
   const { t } = useTranslation();
+  const { isClosing, triggerClose } = useInternalClose(onClose, 140);
   const [code, setCode] = useState("");
   const inputRef = useRef(null);
 
@@ -29,11 +32,13 @@ export default function JoinModal({ onClose, onJoin, busy }) {
   };
 
   return (
-    /* ABSTRAÍDO: Consumimos tu backdrop máster unificado */
-    <div className="onicord-modal-backdrop">
+    <div
+      className={cn("onicord-modal-backdrop", isClosing && "onicord-animate-backdrop-out")}
+      onClick={triggerClose}
+    >
       <form
         onSubmit={handleSubmit}
-        className="onicord-modal-card-action"
+        className={cn("onicord-modal-card-action", isClosing && "onicord-animate-modal-out")}
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-xl font-bold text-white">{t("serverSettings.joinModalTitle")}</h3>
@@ -57,7 +62,7 @@ export default function JoinModal({ onClose, onJoin, busy }) {
           {}
           <button
             type="button"
-            onClick={onClose}
+            onClick={triggerClose}
             className="onicord-btn-secondary-outline"
           >
             Cancelar

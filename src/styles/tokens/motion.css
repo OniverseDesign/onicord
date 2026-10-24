@@ -1,5 +1,23 @@
 :root {
-  /* Curvas y transiciones personalizadas */
-  --transition-default: all 0.15s ease-out;
+  /* ⏱️ ESCALA DE DURACIONES ESTANDARIZADA */
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-relaxed: 300ms;
+  --duration-slow: 500ms;
+
+  /* 📐 CURVAS DE ACELERACIÓN ONICORD */
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 🎛️ TRANSICIONES PREDEFINIDAS */
+  --transition-default: all var(--duration-fast) var(--ease-out);
+  --transition-slide: all var(--duration-relaxed) var(--ease-in-out);
+  --transition-bounce: transform var(--duration-fast) var(--ease-spring);
+  --transition-fade: opacity var(--duration-fast) var(--ease-out);
+
+  /* 📏 DISTANCIAS Y DESPLAZAMIENTOS */
   --hover-slide-amount: 8px;
 }

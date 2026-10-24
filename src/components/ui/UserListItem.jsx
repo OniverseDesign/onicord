@@ -186,6 +186,7 @@ export default function UserListItem({
 
   return (
     <Component
+      data-user-popout-trigger={onClick ? "true" : undefined}
       className={`onicord-list-row-interactive group flex items-center py-1 ${
         isOffline ? "opacity-40 hover:opacity-100" : ""
       } ${className}`}

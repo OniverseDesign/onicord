@@ -681,26 +681,58 @@ export function useChatMessages({
 
         const notifMode = localStorage.getItem(`channel_notif_mode_${channelId}`) || "all";
 
+        const currentChannel = server?.channels?.find((c) => c.id === channelId);
+        const channelName = currentChannel?.name || channelId;
+        const serverName = server?.name;
+
+        const senderAvatar =
+          msg.authorAvatar ||
+          msg.avatar ||
+          msg.user?.avatar ||
+          server?.savedMembers?.[msg.authorId]?.avatar ||
+          (Array.isArray(server?.members)
+            ? server.members.find((m) => m.id === msg.authorId || m.userId === msg.authorId)?.avatar
+            : null) ||
+          null;
+
         if (notifMode === "nothing") {
           // Muted, do not trigger anything
         } else if (notifMode === "mentions") {
           if (isDirectMention || isRoleMention) {
             notificationManager.trigger("MENTION", {
               nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              avatar: senderAvatar,
               text: msg.text,
+              roomCode: server?.roomCode || msg.roomCode,
+              channelId: channelId || msg.channelId || "general",
+              serverId: server?.id || msg.serverId,
+              serverName,
+              channelName,
             });
           }
         } else {
           if (isDirectMention || isRoleMention) {
             notificationManager.trigger("MENTION", {
               nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              avatar: senderAvatar,
               text: msg.text,
+              roomCode: server?.roomCode || msg.roomCode,
+              channelId: channelId || msg.channelId || "general",
+              serverId: server?.id || msg.serverId,
+              serverName,
+              channelName,
             });
           } else {
             notificationManager.trigger("RECEIVE_MESSAGE", {
               nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              avatar: senderAvatar,
               text: msg.text,
               isCurrentChannel: document.hasFocus(),
+              roomCode: server?.roomCode || msg.roomCode,
+              channelId: channelId || msg.channelId || "general",
+              serverId: server?.id || msg.serverId,
+              serverName,
+              channelName,
             });
           }
         }

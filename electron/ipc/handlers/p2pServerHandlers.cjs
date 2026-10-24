@@ -344,12 +344,12 @@ function registerP2PServerHandlers() {
     return global.roomManager.getVoiceSnapshot();
   });
 
-  ipcMain.handle("voice:join", async (_event, channelId) => {
+  ipcMain.handle("voice:join", async (_event, channelId, options = {}) => {
     if (!global.roomManager || !global.roomManager.roomCode) {
       console.warn("[Voice IPC] Cannot join voice: No active room found");
       return { error: "No active room found" };
     }
-    global.roomManager.joinVoice(channelId);
+    global.roomManager.joinVoice(channelId, options);
     return global.roomManager.getVoiceSnapshot();
   });
 

@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   maximizeWindow: () => ipcRenderer.send("window:maximize"),
   setFullscreen: (flag) => ipcRenderer.send("window:setFullscreen", flag),
   closeWindow: () => ipcRenderer.send("window:close"),
+  focusWindow: () => ipcRenderer.send("window:focus"),
   showItemInFolder: (fullPath) =>
     ipcRenderer.send("show-item-in-folder", fullPath),
   updateAppIcon: (dataUrl) => ipcRenderer.send("app:update-icon", dataUrl),
@@ -242,7 +243,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   sendSpeakingState: (isSpeaking, vol) =>
     ipcRenderer.invoke("voice:speaking", isSpeaking, vol),
-  joinVoice: (channelId) => ipcRenderer.invoke("voice:join", channelId),
+  joinVoice: (channelId, options) =>
+    ipcRenderer.invoke("voice:join", channelId, options),
   leaveVoice: () => ipcRenderer.invoke("voice:leave"),
   setVoiceMuted: (muted) => ipcRenderer.invoke("voice:setMuted", muted),
   setVoiceDeafened: (deafened) =>

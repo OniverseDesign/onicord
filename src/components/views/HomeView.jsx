@@ -39,15 +39,24 @@ export default function HomeView({
   const [appSettingsInitialSection, setAppSettingsInitialSection] = useState("general");
   const [activeChannelId, setActiveChannelId] = useState(null);
 
-  useEffect(() => {
-    const handleOpenAppSettings = (e) => {
-      const targetSection = e.detail?.section || "general";
-      setAppSettingsInitialSection(targetSection);
-      setIsAppSettingsOpen(true);
-    };
-    window.addEventListener("onicord:open-app-settings", handleOpenAppSettings);
-    return () => window.removeEventListener("onicord:open-app-settings", handleOpenAppSettings);
+  const handleOpenAppSettings = useCallback((section = "general") => {
+    const targetSection = typeof section === "string" ? section : "general";
+    setAppSettingsInitialSection(targetSection);
+    setIsAppSettingsOpen(true);
   }, []);
+
+  useEffect(() => {
+    const handleOpenAppSettingsEvent = (e) => {
+      const targetSection = e.detail?.section || "general";
+      handleOpenAppSettings(targetSection);
+    };
+    window.addEventListener("onicord:open-app-settings", handleOpenAppSettingsEvent);
+    window.addEventListener("onicord:open-settings", handleOpenAppSettingsEvent);
+    return () => {
+      window.removeEventListener("onicord:open-app-settings", handleOpenAppSettingsEvent);
+      window.removeEventListener("onicord:open-settings", handleOpenAppSettingsEvent);
+    };
+  }, [handleOpenAppSettings]);
   const [activeView, setActiveView] = useState(() =>
     activeServer ? "server" : "home",
   );
@@ -314,7 +323,7 @@ export default function HomeView({
   const sharedMusicState = useMusicSession();
 
   const { getServerUnreadCount, getChannelUnreadCount, markChannelAsRead } =
-    useUnreadTracker(activeServer?.roomCode, activeChannelId, profile?.id);
+    useUnreadTracker(activeServer?.roomCode, activeChannelId, profile, servers);
 
   const [islas, setIslas] = useState(() => {
     const baseGeometrias = getCombinedConfigs().reduce((acc, curr) => {
@@ -489,6 +498,56 @@ export default function HomeView({
     };
   }, [servers, handleSelectServer]);
 
+  useEffect(() => {
+    const handleNavigate = async (e) => {
+      const { roomCode, serverId, channelId } = e.detail || {};
+      if (!roomCode && !serverId) return;
+
+      let targetServer = servers.find(
+        (s) =>
+          (serverId && String(s.id).toUpperCase() === String(serverId).toUpperCase()) ||
+          (roomCode && String(s.roomCode).toUpperCase() === String(roomCode).toUpperCase())
+      );
+
+      if (!targetServer && window.electronAPI?.listServers) {
+        try {
+          const freshList = await window.electronAPI.listServers();
+          if (Array.isArray(freshList)) {
+            setServers(freshList);
+            targetServer = freshList.find(
+              (s) =>
+                (serverId && String(s.id).toUpperCase() === String(serverId).toUpperCase()) ||
+                (roomCode && String(s.roomCode).toUpperCase() === String(roomCode).toUpperCase())
+            );
+          }
+        } catch (_) {}
+      }
+
+      if (targetServer) {
+        const isCurrentServer =
+          activeServer?.id === targetServer.id && activeView === "server";
+
+        if (!isCurrentServer) {
+          await handleSelectServer(targetServer.id);
+        }
+
+        if (channelId) {
+          const delay = isCurrentServer ? 0 : 250;
+          setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("onicord:select-channel", {
+                detail: { channelId, roomCode: targetServer.roomCode },
+              })
+            );
+          }, delay);
+        }
+      }
+    };
+
+    window.addEventListener("onicord:navigate", handleNavigate);
+    return () => window.removeEventListener("onicord:navigate", handleNavigate);
+  }, [servers, activeServer, activeView, handleSelectServer]);
+
   const handleSelectHome = () => {
     if (
       document.activeElement &&
@@ -569,7 +628,7 @@ export default function HomeView({
           onSelectServer={handleSelectServer}
           onAdd={() => setShowAddModal(true)}
           onServerContextMenu={handleServerContextMenu}
-          onOpenAppSettings={() => setIsAppSettingsOpen(true)}
+          onOpenAppSettings={handleOpenAppSettings}
           getServerUnreadCount={getServerUnreadCount}
           mutedServers={mutedServers}
         />
@@ -593,7 +652,7 @@ export default function HomeView({
             onRefreshServers={refreshServers}
             onServerUpdated={onServerUpdated}
             onProfileChange={onProfileChange}
-            onOpenAppSettings={() => setIsAppSettingsOpen(true)}
+            onOpenAppSettings={handleOpenAppSettings}
             getChannelUnreadCount={getChannelUnreadCount}
             markChannelAsRead={markChannelAsRead}
             musicState={sharedMusicState} 

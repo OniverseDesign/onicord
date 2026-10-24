@@ -254,11 +254,15 @@ async function main() {
 
     let commitSubject = `release: v${targetVersion}`;
     if (bullets.length > 0) {
-      const topics = bullets.map((b) => {
-        const match = b.match(/^\*\*([^*]+)\*\*:\s*(.+)$/);
-        return match ? match[1].toLowerCase() : b.slice(0, 40);
-      });
-      commitSubject += ` - ${topics.slice(0, 3).join(", ")}`;
+      const topics = bullets
+        .map((b) => {
+          const match = b.match(/^\*\*([^*]+)\*\*[:\s]*/);
+          return match ? match[1].toLowerCase() : null;
+        })
+        .filter(Boolean);
+      if (topics.length > 0) {
+        commitSubject += ` - ${topics.slice(0, 4).join(", ")}`;
+      }
     }
 
     const commitMsgFile = path.join(TARGET_DIR, ".git", "COMMIT_EDITMSG_CUSTOM");

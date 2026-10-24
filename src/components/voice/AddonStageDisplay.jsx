@@ -146,10 +146,20 @@ export default function AddonStageDisplay({
       y: Math.max(10, height - 250),
     };
   });
+  const currentPos = useRef(position);
   const isDragging = useRef(false);
-  const [isDraggingState, setIsDraggingState] = useState(false);
+  const stageContainerRef = useRef(null);
+  const rafId = useRef(null);
   const lastPointerPos = useRef({ x: 0, y: 0 });
   const hasMoved = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
+    };
+  }, []);
 
   // Terminación completa del iframe y recursos al cerrar explícitamente
   const handleTerminate = useCallback(() => {
@@ -458,21 +468,23 @@ export default function AddonStageDisplay({
   useEffect(() => {
     if (!isMini) return;
     const handleResize = () => {
-      setPosition((prev) => {
-        const maxX = window.innerWidth - 355;
-        const maxY = window.innerHeight - 205;
-        const currentX = Number.isFinite(prev?.x) ? prev.x : window.innerWidth - 360;
-        const currentY = Number.isFinite(prev?.y) ? prev.y : window.innerHeight - 250;
-        return {
-          x: Math.max(10, Math.min(currentX, maxX)),
-          y: Math.max(10, Math.min(currentY, maxY)),
-        };
-      });
+      const maxX = Math.max(10, window.innerWidth - 355);
+      const maxY = window.innerHeight - 205;
+      const currentX = Number.isFinite(currentPos.current?.x) ? currentPos.current.x : window.innerWidth - 360;
+      const currentY = Number.isFinite(currentPos.current?.y) ? currentPos.current.y : window.innerHeight - 250;
+      const nextX = Math.max(10, Math.min(currentX, maxX));
+      const nextY = Math.max(10, Math.min(currentY, maxY));
+      currentPos.current = { x: nextX, y: nextY };
+      if (stageContainerRef.current) {
+        stageContainerRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`;
+      }
+      setPosition({ x: nextX, y: nextY });
     };
     handleResize();
-    const handleGlobalPointerUp = () => {
-      isDragging.current = false;
-      setIsDraggingState(false);
+    const handleGlobalPointerUp = (e) => {
+      if (isDragging.current) {
+        handlePointerUp(e);
+      }
     };
     window.addEventListener("resize", handleResize);
     window.addEventListener("pointerup", handleGlobalPointerUp);
@@ -523,12 +535,19 @@ export default function AddonStageDisplay({
   const handlePointerDown = (e) => {
     if (e.target.closest("button") || e.target.closest("input")) return;
     isDragging.current = true;
-    setIsDraggingState(true);
     hasMoved.current = false;
     lastPointerPos.current = { x: e.clientX, y: e.clientY };
-    try {
-      e.target.setPointerCapture(e.pointerId);
-    } catch (_) {}
+
+    if (stageContainerRef.current) {
+      try {
+        stageContainerRef.current.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      stageContainerRef.current.style.transition = "none";
+      stageContainerRef.current.style.willChange = "transform";
+    }
+    if (iframeRef.current) {
+      iframeRef.current.style.pointerEvents = "none";
+    }
   };
 
   const handlePointerMove = (e) => {
@@ -540,24 +559,51 @@ export default function AddonStageDisplay({
       hasMoved.current = true;
     }
 
-    setPosition((prev) => {
-      const currentX = Number.isFinite(prev?.x) ? prev.x : window.innerWidth - 360;
-      const currentY = Number.isFinite(prev?.y) ? prev.y : window.innerHeight - 250;
-      const nextX = Math.max(10, Math.min(currentX + deltaX, window.innerWidth - 355));
-      const nextY = Math.max(10, Math.min(currentY + deltaY, window.innerHeight - 205));
-      return { x: nextX, y: nextY };
-    });
     lastPointerPos.current = { x: e.clientX, y: e.clientY };
+
+    const maxX = Math.max(10, window.innerWidth - 355);
+    const maxY = Math.max(10, window.innerHeight - 205);
+    const currentX = Number.isFinite(currentPos.current?.x) ? currentPos.current.x : window.innerWidth - 360;
+    const currentY = Number.isFinite(currentPos.current?.y) ? currentPos.current.y : window.innerHeight - 250;
+    const nextX = Math.max(10, Math.min(currentX + deltaX, maxX));
+    const nextY = Math.max(10, Math.min(currentY + deltaY, maxY));
+
+    currentPos.current = { x: nextX, y: nextY };
+
+    if (!rafId.current) {
+      rafId.current = requestAnimationFrame(() => {
+        if (stageContainerRef.current) {
+          stageContainerRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
+        }
+        rafId.current = null;
+      });
+    }
   };
 
   const handlePointerUp = (e) => {
+    if (!isDragging.current) return;
     isDragging.current = false;
-    setIsDraggingState(false);
-    try {
-      if (e?.target?.hasPointerCapture?.(e.pointerId)) {
-        e.target.releasePointerCapture(e.pointerId);
-      }
-    } catch (_) {}
+
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+
+    if (stageContainerRef.current) {
+      stageContainerRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
+      stageContainerRef.current.style.transition = "";
+      stageContainerRef.current.style.willChange = "";
+      try {
+        if (e?.pointerId !== undefined && stageContainerRef.current.hasPointerCapture(e.pointerId)) {
+          stageContainerRef.current.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
+    }
+    if (iframeRef.current) {
+      iframeRef.current.style.pointerEvents = "auto";
+    }
+
+    setPosition({ ...currentPos.current });
   };
 
   const stageTitle = activeTitle || stageData?.title || "Escenario de Complemento";
@@ -575,8 +621,12 @@ export default function AddonStageDisplay({
 
   if (isMini) {
     containerClasses =
-      "fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-40 cursor-move group hover:scale-[1.01] transition-all duration-75 touch-none select-none flex flex-col";
-    containerStyles = { left: `${position.x}px`, top: `${position.y}px` };
+      "fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-40 cursor-move group hover:scale-[1.01] transition-transform duration-150 touch-none select-none flex flex-col";
+    containerStyles = {
+      top: 0,
+      left: 0,
+      transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+    };
   } else if (isFullscreen) {
     containerClasses =
       "fixed inset-0 z-40 w-screen h-screen bg-black flex flex-col select-none overflow-hidden";
@@ -588,9 +638,11 @@ export default function AddonStageDisplay({
 
   return (
     <div
+      ref={stageContainerRef}
       onPointerDown={isMini ? handlePointerDown : undefined}
       onPointerMove={isMini ? handlePointerMove : undefined}
       onPointerUp={isMini ? handlePointerUp : undefined}
+      onPointerCancel={isMini ? handlePointerUp : undefined}
       style={containerStyles}
       className={containerClasses}
     >
@@ -602,7 +654,7 @@ export default function AddonStageDisplay({
             iframeRef.current?.contentWindow?.focus();
           } catch (_) {}
         }}
-        className={`flex-1 w-full h-full relative overflow-hidden bg-black min-h-0 min-w-0 ${isDraggingState ? "pointer-events-none select-none" : "pointer-events-auto"}`}
+        className="flex-1 w-full h-full relative overflow-hidden bg-black min-h-0 min-w-0 pointer-events-auto"
       >
         <iframe
           key={

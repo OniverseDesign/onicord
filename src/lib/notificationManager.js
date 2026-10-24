@@ -8,6 +8,7 @@ class NotificationManager {
       enableSoundEffects: true,
     };
     this._lastJoinTime = 0;
+    this._lastToastTime = {};
   }
 
   setSettings(general) {
@@ -40,14 +41,34 @@ class NotificationManager {
     soundEngine.playCue(cue);
   }
 
-  showToast(title, message, type = "info", duration = 7500) {
+  showToast(title, message, type = "info", duration = 7500, action = null, avatar = null, senderName = null) {
     if (this.settings && this.settings.enableNotifications === false) return;
     this.playSound("notification");
     const safeId =
       Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+
+    let finalAction = action;
+    let finalAvatar = avatar;
+    let finalSenderName = senderName;
+
+    if (action && typeof action === "object" && (action.avatar || action.senderName) && !action.type) {
+      finalAction = action.action || null;
+      finalAvatar = action.avatar || null;
+      finalSenderName = action.senderName || null;
+    }
+
     window.dispatchEvent(
       new CustomEvent("onicord:toast", {
-        detail: { id: safeId, title, message, type, duration },
+        detail: {
+          id: safeId,
+          title,
+          message,
+          type,
+          duration,
+          action: finalAction,
+          avatar: finalAvatar,
+          senderName: finalSenderName,
+        },
       }),
     );
   }
@@ -67,10 +88,13 @@ class NotificationManager {
     const title = i18n.t("notifications.updateAvailableTitle", "Actualización disponible");
     const message = i18n.t("notifications.updateAvailableMsg", {
       version,
-      defaultValue: `Hay una nueva versión de Onicord disponible (v${version}).`,
+      defaultValue: `Hay una nueva versión de Onicord disponible (v${version}). Haz clic para ver los detalles y actualizar.`,
     });
 
-    this.showToast(title, message, "info", 12000);
+    this.showToast(title, message, "info", 15000, {
+      type: "open_settings",
+      section: "about",
+    });
 
     if (this.settings && this.settings.enableNotifications !== false) {
       try {
@@ -108,17 +132,55 @@ class NotificationManager {
       case "RECEIVE_MESSAGE":
         if (!data.isCurrentChannel) {
           soundEngine.playCue("notification");
-          if (!document.hasFocus() && (this.settings?.enableNotifications !== false)) {
+          if (this.settings?.enableNotifications !== false) {
             const sender = data.nickname || "Onicord";
             const preview = data.text
               ? data.text.length > 120
                 ? data.text.substring(0, 117) + "..."
                 : data.text
-              : i18n.t("notifications.newMessageReceived", "New message received");
-            window.electronAPI?.sendOSNotification?.(
-              `Onicord • ${sender}`,
-              preview,
-            );
+              : i18n.t("notifications.newMessageReceived", "Nuevo mensaje recibido");
+
+            const toastKey = `${data.roomCode || ""}_${data.channelId || ""}`;
+            const now = Date.now();
+            if (!this._lastToastTime[toastKey] || now - this._lastToastTime[toastKey] >= 3500) {
+              this._lastToastTime[toastKey] = now;
+
+              const contextParts = [];
+              if (data.channelName) contextParts.push(`#${data.channelName}`);
+              if (data.serverName) contextParts.push(data.serverName);
+              const context = contextParts.join(" • ");
+              const title = context ? `${sender} (${context})` : sender;
+
+              this.showToast(
+                title,
+                preview,
+                "info",
+                7000,
+                (data.roomCode || data.serverId)
+                  ? {
+                      type: "navigate_channel",
+                      roomCode: data.roomCode,
+                      channelId: data.channelId || "general",
+                      serverId: data.serverId,
+                    }
+                  : null,
+                data.avatar || null,
+                sender,
+              );
+            }
+
+            if (!document.hasFocus()) {
+              const contextParts = [];
+              if (data.channelName) contextParts.push(`#${data.channelName}`);
+              if (data.serverName) contextParts.push(data.serverName);
+              const context = contextParts.join(" • ");
+              const notifTitle = context ? `Onicord • ${sender} (${context})` : `Onicord • ${sender}`;
+
+              window.electronAPI?.sendOSNotification?.(
+                notifTitle,
+                preview,
+              );
+            }
           }
         } else {
           soundEngine.playCue("receive");
@@ -126,28 +188,49 @@ class NotificationManager {
         break;
       case "MENTION":
         soundEngine.playCue("mention");
-        this.showToast(
-          "Mention",
-          i18n.t("notifications.userMentionedYouChat", {
-            name: data.nickname || "someone",
-            defaultValue: `${data.nickname || "someone"} mentioned you in chat.`,
-          }),
-          "warning",
-        );
-        if (!document.hasFocus() && (this.settings?.enableNotifications !== false)) {
-          const sender = data.nickname || "someone";
+        {
+          const sender = data.nickname || "alguien";
           const preview = data.text
             ? data.text.length > 120
               ? data.text.substring(0, 117) + "..."
               : data.text
-            : i18n.t("notifications.userMentionedYouFallback", "You were mentioned in the Onicord chat.");
-          window.electronAPI?.sendOSNotification?.(
-            i18n.t("notifications.userMentionedYou", {
-              name: sender,
-              defaultValue: `@${sender} mentioned you`,
-            }),
+            : i18n.t("notifications.userMentionedYouFallback", "Te mencionaron en el chat.");
+
+          const contextParts = [];
+          if (data.channelName) contextParts.push(`#${data.channelName}`);
+          if (data.serverName) contextParts.push(data.serverName);
+          const context = contextParts.join(" • ");
+
+          const title = context
+            ? `@${sender} (${context})`
+            : i18n.t("notifications.userMentionedYou", {
+                name: sender,
+                defaultValue: `@${sender} te mencionó`,
+              });
+
+          this.showToast(
+            title,
             preview,
+            "warning",
+            8500,
+            (data.roomCode || data.serverId)
+              ? {
+                  type: "navigate_channel",
+                  roomCode: data.roomCode,
+                  channelId: data.channelId || "general",
+                  serverId: data.serverId,
+                }
+              : null,
+            data.avatar || null,
+            sender,
           );
+
+          if (!document.hasFocus() && (this.settings?.enableNotifications !== false)) {
+            window.electronAPI?.sendOSNotification?.(
+              `Onicord • ${title}`,
+              preview,
+            );
+          }
         }
         break;
       default:

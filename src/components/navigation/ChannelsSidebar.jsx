@@ -8,8 +8,6 @@ import UserPanel from "./UserPanel";
 import MaterialIcon from "../icons/MaterialIcon";
 import {
   IconVolumeUp,
-  IconDropdown,
-  IconDropup,
   IconTag,
 } from "../icons/StreamIcons";
 import { hasChannelAccess, checkPermission } from "../../lib/permissionsHelper";
@@ -458,24 +456,34 @@ export default function ChannelsSidebar({
                       <p className="onicord-category !mt-0 !mb-0 flex-1 group-hover:text-onicord-text truncate">
                         {cat.name}
                       </p>
-                      {isCollapsed ? (
-                        <IconDropup size="lg" />
-                      ) : (
-                        <IconDropdown size="lg" />
-                      )}
+                      <span
+                        className={`transition-transform duration-200 ease-out flex items-center justify-center text-onicord-muted group-hover:text-onicord-text ${
+                          isCollapsed ? "rotate-0" : "rotate-90"
+                        }`}
+                      >
+                        <MaterialIcon name="chevron_right" size={16} />
+                      </span>
                     </div>
 
-                    {!isCollapsed && (
-                      <div className="mt-1 space-y-[2px]">
-                        {catChannels.length === 0 ? (
-                          <p className="text-[10px] text-onicord-faded italic px-6 py-1">
-                            {t("common.offline")}
-                          </p>
-                        ) : (
-                          catChannels.map(renderChannelNode)
-                        )}
+                    <div
+                      className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                        isCollapsed
+                          ? "grid-rows-[0fr] opacity-0 pointer-events-none"
+                          : "grid-rows-[1fr] opacity-100 pointer-events-auto"
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <div className="mt-1 space-y-[2px]">
+                          {catChannels.length === 0 ? (
+                            <p className="text-[10px] text-onicord-faded italic px-6 py-1">
+                              {t("common.offline")}
+                            </p>
+                          ) : (
+                            catChannels.map(renderChannelNode)
+                          )}
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}

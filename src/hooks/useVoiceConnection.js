@@ -36,6 +36,14 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
   useEffect(() => {
     inVoiceRef.current = inVoice;
   }, [inVoice]);
+  const mutedRef = useRef(muted);
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
+  const deafenedRef = useRef(deafened);
+  useEffect(() => {
+    deafenedRef.current = deafened;
+  }, [deafened]);
   const [isStreaming, setIsStreaming] = useState(false);
 
   const iceServersRef = useRef(serverIceServers);
@@ -139,7 +147,13 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     const self = cleanMembers.find((m) => m.isSelf);
     setInVoice(Boolean(self?.channelId));
     setVoiceChannelId(self?.channelId ?? null);
-    setMuted(Boolean(self?.muted));
+    if (self) {
+      setMuted(Boolean(self.muted));
+      setDeafened(Boolean(self.deafened));
+    } else if (state.selfMuted !== undefined) {
+      setMuted(Boolean(state.selfMuted));
+      setDeafened(Boolean(state.selfDeafened));
+    }
     setIsStreaming(self ? Boolean(self.isStreaming) : false);
 
     const topology = state.networkTopology || "mesh";
@@ -230,6 +244,8 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
       peers: profileRef.current?.peers || {},
       iceServers: iceServersRef.current || [],
       lanPeerIPs: lanPeerIPsRef.current,
+      initialMuted: mutedRef.current,
+      initialDeafened: deafenedRef.current,
       onSignalOut: (toPeerId, channelId, signal) => {
         window.electronAPI.sendVoiceSignal(toPeerId, channelId, signal);
       },
@@ -666,8 +682,6 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
 
     setInVoice(false);
     setVoiceChannelId(null);
-    setMuted(false);
-    setDeafened(false);
     setIsStreaming(false);
     await refreshState();
   }, [refreshState]);
@@ -766,7 +780,10 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
         }
 
         if (!cancelled) {
-          const res = await api.joinVoice(activeVoiceChannelId);
+          const res = await api.joinVoice(activeVoiceChannelId, {
+            muted: mutedRef.current,
+            deafened: deafenedRef.current,
+          });
           if (res?.error) {
             console.warn("[Voice Connection] Could not join voice:", res.error);
             setError(res.error);

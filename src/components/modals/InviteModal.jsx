@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
+import { cn } from "../../lib/cn";
+import { useInternalClose } from "../../hooks/useAnimatedMount";
 
 /**
  * InviteModal — shown when the user opens an onicord://join/<code> deep link.
@@ -27,15 +29,22 @@ export default function InviteModal({
   onClose,
 }) {
   const { t } = useTranslation();
+  const { isClosing, triggerClose } = useInternalClose(onClose, 140);
 
   /* Derive a single letter as fallback avatar */
   const initial = serverName?.trim()?.[0]?.toUpperCase() || "?";
 
   return (
-    <div className="onicord-modal-backdrop" onClick={onClose}>
+    <div
+      className={cn("onicord-modal-backdrop", isClosing && "onicord-animate-backdrop-out")}
+      onClick={triggerClose}
+    >
       {/* Card */}
       <div
-        className="relative w-full max-w-sm rounded-2xl bg-onicord-surface border border-white/[0.06] shadow-2xl overflow-hidden animate-fade-in"
+        className={cn(
+          "relative w-full max-w-sm rounded-2xl bg-onicord-surface border border-white/[0.06] shadow-2xl overflow-hidden onicord-animate-modal-in",
+          isClosing && "onicord-animate-modal-out"
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Content */}
@@ -130,7 +139,7 @@ export default function InviteModal({
 
             <button
               disabled={busy}
-              onClick={onClose}
+              onClick={triggerClose}
               className="w-full py-2.5 rounded-xl font-semibold text-sm text-onicord-muted hover:text-onicord-subtext transition-colors duration-150 select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t("inviteModal.cancel")}

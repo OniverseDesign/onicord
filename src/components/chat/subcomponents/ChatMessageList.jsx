@@ -59,6 +59,8 @@ export default function ChatMessageList({
   bottomRef,
   handleChatScroll,
   isScrollingUpLoading,
+  showScrollBottom = false,
+  onScrollToBottom,
   onDownloadFile,
   onCancelDownload,
   onOpenDeleteModal,
@@ -203,6 +205,26 @@ export default function ChatMessageList({
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 h-[30px] bg-gradient-to-t from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
+
+        <button
+          type="button"
+          onClick={onScrollToBottom}
+          tabIndex={showScrollBottom ? 0 : -1}
+          className={`absolute bottom-4 right-6 z-30 inline-flex items-center gap-2 pl-3 pr-2.5 py-1 rounded-full bg-onicord-accent/10 hover:bg-onicord-accent/20 border border-onicord-accent/30 text-onicord-accent text-xs font-bold transition-all duration-300 ease-out cursor-pointer select-none shadow-xs ${
+            showScrollBottom
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 translate-y-2 pointer-events-none"
+          }`}
+          title={t("chat.jumpToPresent", "Volver abajo")}
+          aria-label={t("chat.jumpToPresent", "Volver abajo")}
+        >
+          <MaterialIcon
+            name="arrow_downward"
+            size={16}
+            className="text-onicord-accent shrink-0"
+          />
+          <span>{t("chat.jumpToPresent", "Volver abajo")}</span>
+        </button>
       </div>
     </div>
   );

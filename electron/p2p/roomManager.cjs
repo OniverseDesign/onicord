@@ -162,8 +162,8 @@ class RoomManager {
     this.voiceService.setStreamingState(isStreaming, this.p2pService.profile, () => this._emitVoiceState());
   }
 
-  joinVoice(channelId) {
-    this.voiceService.joinVoice(channelId, this.p2pService.profile, () => this._emitVoiceState());
+  joinVoice(channelId, options = {}) {
+    this.voiceService.joinVoice(channelId, this.p2pService.profile, () => this._emitVoiceState(), options);
   }
 
   leaveVoice() {

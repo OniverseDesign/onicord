@@ -40,10 +40,10 @@
   }
   
   .onicord-media-preview-card {
-    @apply max-w-[85%] max-h-[80%] flex flex-col items-center justify-center bg-onicord-base p-4 rounded-onicord-outer-p4 border border-onicord-island shadow-2xl relative animate-fade-in;
+    @apply max-w-[85%] max-h-[80%] flex flex-col items-center justify-center bg-onicord-base p-4 rounded-onicord-outer-p4 border border-onicord-island shadow-2xl relative onicord-animate-modal-in;
   }
   
   .onicord-popover-card {
-    @apply fixed z-[99999] bg-onicord-mantle/95 backdrop-blur-md rounded-onicord-outer-p4 border border-onicord-island animate-fade-in select-none text-onicord-text;
+    @apply fixed z-[99999] bg-onicord-mantle/95 backdrop-blur-md rounded-onicord-outer-p4 border border-onicord-island onicord-animate-popup-in select-none text-onicord-text;
   }
 }

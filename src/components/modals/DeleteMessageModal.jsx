@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { IconClose } from "../icons/StreamIcons";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
+import { cn } from "../../lib/cn";
+import { useInternalClose } from "../../hooks/useAnimatedMount";
 
 export default function DeleteMessageModal({
   message,
@@ -12,6 +14,7 @@ export default function DeleteMessageModal({
   onConfirm,
 }) {
   const { t } = useTranslation();
+  const { isClosing, triggerClose } = useInternalClose(onClose, 140);
   const timeStr =
     new Date(message.timestamp).toLocaleDateString("es", {
       day: "2-digit",
@@ -29,14 +32,20 @@ export default function DeleteMessageModal({
     : message?.text || "";
 
   return createPortal(
-    <div className="onicord-modal-backdrop" onClick={onClose}>
+    <div
+      className={cn("onicord-modal-backdrop", isClosing && "onicord-animate-backdrop-out")}
+      onClick={triggerClose}
+    >
       <div
-        className="onicord-modal-card-destructive !max-w-[480px] w-full max-h-[85vh] flex flex-col overflow-hidden"
+        className={cn(
+          "onicord-modal-card-destructive !max-w-[480px] w-full max-h-[85vh] flex flex-col overflow-hidden",
+          isClosing && "onicord-animate-modal-out"
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
-          onClick={onClose}
+          onClick={triggerClose}
           className="onicord-icon-btn absolute right-5 top-5"
           aria-label={t("common.close", "Cerrar")}
         >
@@ -99,7 +108,7 @@ export default function DeleteMessageModal({
         </div>
 
         <div className="pt-5 flex items-center justify-end gap-3 shrink-0">
-          <button type="button" onClick={onClose} className="onicord-btn-secondary">
+          <button type="button" onClick={triggerClose} className="onicord-btn-secondary">
             {t("common.cancel", "Cancelar")}
           </button>
           <button

@@ -320,7 +320,7 @@ export default function StickerPopover({
         top: `${coords.top}px`,
         left: `${coords.left}px`,
       }}
-      className="onicord-floating-menu w-80 h-96 flex flex-col !p-0 overflow-hidden z-[99999] onicord-picker-transition"
+      className="onicord-floating-menu w-80 h-96 flex flex-col !p-0 overflow-hidden z-[99999]"
     >
       {/* Search Header */}
       <div className="p-2.5 border-b border-white/10 bg-onicord-mantle/50 flex items-center gap-2">

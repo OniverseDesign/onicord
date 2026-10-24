@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import PdfViewer from "../viewers/PdfViewer";
 import { getMediaUrl } from "../../lib/media";
+import { cn } from "../../lib/cn";
+import { useInternalClose } from "../../hooks/useAnimatedMount";
 
 export default function MediaPreviewModal({
   isOpen,
@@ -20,6 +22,7 @@ export default function MediaPreviewModal({
   onNavigate = null,
 }) {
   const { t } = useTranslation();
+  const { isClosing, triggerClose } = useInternalClose(onClose, 140);
   const [textContent, setTextContent] = useState(null);
   const [audioCover, setAudioCover] = useState(null);
 
@@ -58,7 +61,7 @@ export default function MediaPreviewModal({
     if (!isOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
-        onClose();
+        triggerClose();
       } else if (e.key === "ArrowLeft" && onNavigate && currentIndex > 0) {
         onNavigate(currentIndex - 1);
       } else if (e.key === "ArrowRight" && onNavigate && currentIndex < filesList.length - 1) {
@@ -67,7 +70,7 @@ export default function MediaPreviewModal({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, onNavigate, currentIndex, filesList.length]);
+  }, [isOpen, triggerClose, onNavigate, currentIndex, filesList.length]);
 
   useEffect(() => {
     if (isOpen && isTxt && currentPath) {
@@ -85,14 +88,17 @@ export default function MediaPreviewModal({
 
   return createPortal(
     <div
-      className="onicord-modal-backdrop fixed inset-0 z-[999999] select-none pointer-events-auto bg-onicord-mantle/90 backdrop-blur-md flex items-center justify-center p-4"
-      onClick={onClose}
+      className={cn(
+        "onicord-modal-backdrop fixed inset-0 z-[999999] select-none pointer-events-auto bg-onicord-mantle/90 backdrop-blur-md flex items-center justify-center p-4",
+        isClosing && "onicord-animate-backdrop-out"
+      )}
+      onClick={triggerClose}
     >
       {/* Top right close button */}
       <button
         type="button"
         className="onicord-icon-btn absolute top-4 right-4 h-10 w-10 rounded-full border border-onicord-island text-lg font-bold onicord-icon-btn-danger z-[999999] shadow-2xl cursor-pointer"
-        onClick={onClose}
+        onClick={triggerClose}
         title={t("common.close", "Cerrar (Esc)")}
       >
         ✕
@@ -137,7 +143,10 @@ export default function MediaPreviewModal({
 
       {/* Preview Card */}
       <div
-        className="onicord-media-preview-card max-w-5xl w-full flex flex-col items-center select-none z-[999998]"
+        className={cn(
+          "onicord-media-preview-card max-w-5xl w-full flex flex-col items-center select-none z-[999998]",
+          isClosing && "onicord-animate-modal-out"
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         {isImg && (

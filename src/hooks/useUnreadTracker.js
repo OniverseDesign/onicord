@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { notificationManager } from "../lib/notificationManager";
 import { updateAppBadge } from "../lib/badgeIconGenerator";
 
-export function useUnreadTracker(activeRoomCode, activeChannelId, profileId) {
+export function useUnreadTracker(activeRoomCode, activeChannelId, profileOrId, servers = []) {
+  const profileId = typeof profileOrId === "object" ? profileOrId?.id : profileOrId;
+  const profileNickname = typeof profileOrId === "object" ? profileOrId?.nickname : null;
+
   const [unreads, setUnreads] = useState(() => {
     try {
       const stored = JSON.parse(localStorage.getItem("onicord_unreads") || "{}");
@@ -107,17 +110,66 @@ export function useUnreadTracker(activeRoomCode, activeChannelId, profileId) {
         } catch (err) {}
 
         if (!isMuted) {
-          notificationManager.trigger("RECEIVE_MESSAGE", {
-            nickname: msg.authorName || msg.user?.nickname || "Alguien",
-            text: msg.text,
-            isCurrentChannel: false,
-          });
+          const targetServer = servers?.find(
+            (s) =>
+              (msg.roomCode && s.roomCode?.toUpperCase() === msg.roomCode.toUpperCase()) ||
+              (msg.serverId && String(s.id).toUpperCase() === String(msg.serverId).toUpperCase())
+          );
+          const targetChannel = targetServer?.channels?.find(
+            (c) => c.id === (msg.channelId || "general")
+          );
+
+          const serverName = targetServer?.name;
+          const channelName = targetChannel?.name || msg.channelId || "general";
+
+          const senderAvatar =
+            msg.authorAvatar ||
+            msg.avatar ||
+            msg.user?.avatar ||
+            targetServer?.savedMembers?.[msg.authorId]?.avatar ||
+            (Array.isArray(targetServer?.members)
+              ? targetServer.members.find((m) => m.id === msg.authorId || m.userId === msg.authorId)?.avatar
+              : null) ||
+            null;
+
+          const textLower = (msg.text || "").toLowerCase();
+          const myName = (profileNickname || "").toLowerCase();
+          const isDirectMention =
+            (myName && textLower.includes(`@${myName}`)) ||
+            (profileId && (textLower.includes(`<@${profileId}>`) || textLower.includes(`@${profileId}`))) ||
+            textLower.includes("@everyone") ||
+            textLower.includes("@here");
+
+          if (isDirectMention) {
+            notificationManager.trigger("MENTION", {
+              nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              avatar: senderAvatar,
+              text: msg.text,
+              roomCode: msg.roomCode,
+              channelId: msg.channelId || "general",
+              serverId: targetServer?.id || msg.serverId,
+              serverName,
+              channelName,
+            });
+          } else {
+            notificationManager.trigger("RECEIVE_MESSAGE", {
+              nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              avatar: senderAvatar,
+              text: msg.text,
+              isCurrentChannel: false,
+              roomCode: msg.roomCode,
+              channelId: msg.channelId || "general",
+              serverId: targetServer?.id || msg.serverId,
+              serverName,
+              channelName,
+            });
+          }
         }
       }
     });
 
     return () => unsub?.();
-  }, [activeRoomCode, activeChannelId, profileId]);
+  }, [activeRoomCode, activeChannelId, profileId, profileNickname, servers]);
 
   const getServerUnreadCount = useCallback(
     (roomCode) => {

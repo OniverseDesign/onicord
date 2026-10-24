@@ -19,10 +19,12 @@ export function useChatScroll({
 
   const isAtBottomRef = useRef(true);
   const [isScrollingUpLoading, setIsScrollingUpLoading] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   const scrollToBottom = useCallback((behavior = "smooth") => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior });
+      setShowScrollBottom(false);
     }
   }, []);
 
@@ -54,6 +56,7 @@ export function useChatScroll({
           bottomRef.current.scrollIntoView({
             behavior: "smooth",
           });
+          setShowScrollBottom(false);
         }
       }, 50);
 
@@ -70,7 +73,14 @@ export function useChatScroll({
 
     // Track if user is at the bottom (within 80px threshold)
     const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    isAtBottomRef.current = distanceFromBottom <= 80;
+    const atBottom = distanceFromBottom <= 80;
+    isAtBottomRef.current = atBottom;
+
+    if (distanceFromBottom > 200) {
+      setShowScrollBottom(true);
+    } else if (atBottom) {
+      setShowScrollBottom(false);
+    }
 
     if (messages.length <= visibleCount) return;
 
@@ -99,6 +109,7 @@ export function useChatScroll({
     bottomRef,
     isAtBottomRef,
     isScrollingUpLoading,
+    showScrollBottom,
     scrollToBottom,
     handleChatScroll,
     messagesCountRef,

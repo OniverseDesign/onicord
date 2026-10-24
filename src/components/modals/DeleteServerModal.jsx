@@ -2,15 +2,24 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
+import { cn } from "../../lib/cn";
+import { useInternalClose } from "../../hooks/useAnimatedMount";
 
 export default function DeleteServerModal({ server, onClose, onConfirm }) {
   const { t } = useTranslation();
+  const { isClosing, triggerClose } = useInternalClose(onClose, 140);
   if (!server) return null;
 
   return createPortal(
-    <div className="onicord-modal-backdrop" onClick={onClose}>
+    <div
+      className={cn("onicord-modal-backdrop", isClosing && "onicord-animate-backdrop-out")}
+      onClick={triggerClose}
+    >
       <div
-        className="onicord-modal-card-destructive !max-w-[440px] w-full"
+        className={cn(
+          "onicord-modal-card-destructive !max-w-[440px] w-full",
+          isClosing && "onicord-animate-modal-out"
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4">
@@ -55,7 +64,7 @@ export default function DeleteServerModal({ server, onClose, onConfirm }) {
         </div>
 
         <div className="pt-6 flex items-center justify-end gap-3">
-          <button type="button" onClick={onClose} className="onicord-btn-secondary">
+          <button type="button" onClick={triggerClose} className="onicord-btn-secondary">
             {t("common.cancel", "Cancelar")}
           </button>
           <button

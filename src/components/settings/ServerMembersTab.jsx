@@ -252,7 +252,7 @@ export default function ServerMembersTab({
                         {activeMemberMenuId === m.id && (
                           <div
                             ref={menuRef}
-                            className="onicord-floating-menu w-52 right-0 top-8 z-[100] shadow-2xl p-2 space-y-1 text-left bg-onicord-base border border-white/10 rounded-xl animate-fade-in"
+                            className="onicord-floating-menu w-52 right-0 top-8 z-[100] shadow-2xl p-2 space-y-1 text-left bg-onicord-base border border-white/10 rounded-xl"
                           >
                             <p className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted px-2 py-1 border-b border-white/5">
                               {t("serverSettings.members.assignRoleTitle", "Asignar Rol al Miembro")}

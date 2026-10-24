@@ -45,14 +45,14 @@ export default function MessageReactionsBar({
             key={emoji}
             type="button"
             onClick={() => onToggleReaction?.(msgId, emoji)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all duration-150 cursor-pointer active:scale-95 ${
+            className={`onicord-reaction-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all duration-150 cursor-pointer active:scale-95 hover:scale-105 ${
               hasMyReaction
                 ? "bg-onicord-accent/20 text-onicord-accent border-onicord-accent/40"
                 : "bg-white/5 text-onicord-subtext border-white/10 hover:bg-white/10 hover:text-white"
             }`}
             title={tooltipText}
           >
-            <span className="text-sm leading-none">{emoji}</span>
+            <span className="text-sm leading-none transition-transform duration-150">{emoji}</span>
             <span className="text-[11px] font-mono leading-none">
               {users.length}
             </span>

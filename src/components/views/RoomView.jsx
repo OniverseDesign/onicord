@@ -255,12 +255,57 @@ export default function RoomView({
 
   const [volumeMenu, setVolumeMenu] = useState(null);
   const [userPopout, setUserPopout] = useState(null);
+  const closingPopoutTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (closingPopoutTimerRef.current) {
+        clearTimeout(closingPopoutTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCloseUserPopout = useCallback(() => {
+    if (closingPopoutTimerRef.current) {
+      clearTimeout(closingPopoutTimerRef.current);
+    }
+    setUserPopout(null);
+  }, []);
+
+  const handleUserClick = useCallback((e, member) => {
+    const getMemberId = (m) => (m ? (m.id || m.userId || m.peerId) : null);
+    const clickedId = getMemberId(member);
+
+    setUserPopout((prev) => {
+      const prevId = getMemberId(prev?.member);
+      // Si ya está abierto para este usuario y no está en proceso de salida: cerrar con animación
+      if (prev && prevId === clickedId && !prev.isClosing) {
+        if (closingPopoutTimerRef.current) clearTimeout(closingPopoutTimerRef.current);
+        closingPopoutTimerRef.current = setTimeout(() => {
+          setUserPopout(null);
+        }, 110);
+        return { ...prev, isClosing: true };
+      }
+      // Si estaba cerrándose o es un usuario distinto: abrirlo fresco
+      if (closingPopoutTimerRef.current) clearTimeout(closingPopoutTimerRef.current);
+      return { x: e.clientX, y: e.clientY, member, isClosing: false };
+    });
+  }, []);
 
   const [activeGame, setActiveGame] = useState({
     name: null,
     startTime: null,
     cover: null,
   });
+
+  const [cachedActiveGame, setCachedActiveGame] = useState(activeGame);
+  useEffect(() => {
+    if (activeGame?.name) {
+      setCachedActiveGame(activeGame);
+    }
+  }, [activeGame]);
+  const hasActiveGame = Boolean(activeGame && activeGame.name);
+  const displayGame = activeGame?.name ? activeGame : cachedActiveGame;
 
   const [collapsedCategories, setCollapsedCategories] = useState(() => {
     try {
@@ -875,6 +920,26 @@ export default function RoomView({
     await window.electronAPI?.setServerChannel?.(server.id, channelId);
   };
 
+  useEffect(() => {
+    const handleSelectChannel = (e) => {
+      const targetChannelId = e.detail?.channelId || e.detail;
+      const targetRoom = e.detail?.roomCode;
+      if (
+        targetRoom &&
+        server?.roomCode &&
+        String(targetRoom).toUpperCase() !== String(server.roomCode).toUpperCase()
+      ) {
+        return;
+      }
+      if (targetChannelId && typeof targetChannelId === "string") {
+        selectTextChannel(targetChannelId);
+      }
+    };
+
+    window.addEventListener("onicord:select-channel", handleSelectChannel);
+    return () => window.removeEventListener("onicord:select-channel", handleSelectChannel);
+  }, [selectTextChannel, server?.roomCode]);
+
   const prevVoiceChannelRef = useRef(selectedVoiceChannelId);
   useEffect(() => {
     if (prevVoiceChannelRef.current !== selectedVoiceChannelId) {
@@ -1166,7 +1231,7 @@ export default function RoomView({
             {isSearchFocused && !inputValue && (
               <div
                 onMouseDown={(e) => e.preventDefault()}
-                className="absolute top-full left-0 right-0 mt-2 p-3 bg-onicord-base/95 backdrop-blur-md rounded-2xl border border-onicord-island shadow-2xl z-50 animate-fade-in"
+                className="absolute top-full left-0 right-0 mt-2 p-3 bg-onicord-base/95 backdrop-blur-md rounded-2xl border border-onicord-island shadow-2xl z-50 onicord-animate-popup-in origin-top"
               >
                 <div className="text-[11px] font-semibold text-onicord-muted uppercase tracking-wider px-2 mb-2">
                   {t("chat.searchFilterOptions", "Filtros de búsqueda disponibles")}
@@ -1433,27 +1498,36 @@ export default function RoomView({
         }}
         className="h-full shrink-0 flex-shrink-0 flex flex-col"
       >
-        {activeGame && activeGame.name && (
-          <RichPresenceCard
-            gameName={activeGame.name}
-            cover={activeGame.cover}
-            smallCover={activeGame.smallCover}
-            startTime={activeGame.startTime}
-            type={activeGame.type || "game"}
-            state={activeGame.state}
-            party={activeGame.party}
-            details={
-              activeGame.details ||
-              (activeGame.type === "music"
-                ? t("userPanel.listeningTo", "Escuchando a")
-                : activeGame.type === "app"
-                  ? t("gamesTab.usingNow", "Usando ahora")
-                  : activeGame.type === "client"
-                    ? t("userPopout.inMenus", "En los menús")
-                    : t("userPanel.playing", "Jugando a"))
-            }
-          />
-        )}
+        {/* Isla de Rich Presence con animación de arrastre */}
+        <div
+          className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
+            hasActiveGame
+              ? "max-h-48 opacity-100 scale-100 pointer-events-auto"
+              : "max-h-0 opacity-0 scale-95 pointer-events-none -mb-[calc(var(--gap)+3px)]"
+          }`}
+        >
+          {displayGame && displayGame.name && (
+            <RichPresenceCard
+              gameName={displayGame.name}
+              cover={displayGame.cover}
+              smallCover={displayGame.smallCover}
+              startTime={displayGame.startTime}
+              type={displayGame.type || "game"}
+              state={displayGame.state}
+              party={displayGame.party}
+              details={
+                displayGame.details ||
+                (displayGame.type === "music"
+                  ? t("userPanel.listeningTo", "Escuchando a")
+                  : displayGame.type === "app"
+                    ? t("gamesTab.usingNow", "Usando ahora")
+                    : displayGame.type === "client"
+                      ? t("userPopout.inMenus", "En los menús")
+                      : t("userPanel.playing", "Jugando a"))
+              }
+            />
+          )}
+        </div>
 
         <PluginIsland
           roomCode={server?.roomCode}
@@ -1467,9 +1541,7 @@ export default function RoomView({
           onVoiceUserContextMenu={
             voice.inVoice ? handleVoiceUserContextMenu : undefined
           }
-          onUserClick={(e, member) => {
-            setUserPopout({ x: e.clientX, y: e.clientY, member });
-          }}
+          onUserClick={handleUserClick}
           profile={profile}
           roomCode={server.roomCode}
           serverId={server.roomCode || server.id}
@@ -1498,10 +1570,16 @@ export default function RoomView({
 
       {userPopout && (
         <UserProfilePopout
+          key={
+            userPopout.member.id ||
+            userPopout.member.userId ||
+            userPopout.member.peerId
+          }
           x={userPopout.x}
           y={userPopout.y}
           member={userPopout.member}
-          onClose={() => setUserPopout(null)}
+          isClosing={userPopout.isClosing}
+          onClose={handleCloseUserPopout}
           disableFlameSystem={server?.disableFlameSystem}
           serverId={server.roomCode || server.id}
           userRolesList={(() => {

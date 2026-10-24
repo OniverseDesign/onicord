@@ -1,14 +1,19 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import { cn } from "../../lib/cn";
+import { useInternalClose } from "../../hooks/useAnimatedMount";
 
 export default function DeleteStickerModal({ sticker, onClose, onConfirm }) {
+  const { isClosing, triggerClose } = useInternalClose(onClose, 140);
   if (!sticker) return null;
 
   return createPortal(
-    <div className="onicord-modal-backdrop" onClick={onClose}>
-      {}
+    <div
+      className={cn("onicord-modal-backdrop", isClosing && "onicord-animate-backdrop-out")}
+      onClick={triggerClose}
+    >
       <div
-        className="onicord-modal-card-destructive"
+        className={cn("onicord-modal-card-destructive", isClosing && "onicord-animate-modal-out")}
         onClick={(e) => e.stopPropagation()}
       >
         {}
@@ -60,7 +65,7 @@ export default function DeleteStickerModal({ sticker, onClose, onConfirm }) {
 
         {/* PIE DE PÁGINA */}
         <div className="pt-6 flex items-center justify-end gap-6">
-          <button type="button" onClick={onClose} className="onicord-btn-text">
+          <button type="button" onClick={triggerClose} className="onicord-btn-text">
             Cancelar
           </button>
           <button

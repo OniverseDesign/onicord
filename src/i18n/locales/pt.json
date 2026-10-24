@@ -581,6 +581,7 @@
     "deleteModalTitle": "Excluir mensagem",
     "deleteModalConfirm": "Tem certeza de que deseja excluir esta mensagem? Esta ação não pode ser desfeita.",
     "jumpToOriginal": "Ir para a mensagem original",
+    "jumpToPresent": "Voltar para o fim",
     "dropFileHere": "Solte seu arquivo aqui!",
     "cancelSend": "Cancelar envio",
     "searchPlaceholder": "Pesquisar mensagens ou arquivos...",

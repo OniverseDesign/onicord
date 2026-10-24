@@ -267,14 +267,27 @@ export default function PluginIsland({ roomCode, profile, server }) {
   }, [widgets.length, currentIndex]);
 
   const activeWidget = widgets[currentIndex] || widgets[0];
+  const hasWidgets = Boolean(widgets.length > 0 && activeWidget);
+  const [cachedActiveWidget, setCachedActiveWidget] = useState(activeWidget);
+  const [cachedWidgets, setCachedWidgets] = useState(widgets);
 
   useEffect(() => {
-    if (activeWidget && !latestDescription) {
+    if (hasWidgets) {
+      setCachedActiveWidget(activeWidget);
+      setCachedWidgets(widgets);
+    }
+  }, [hasWidgets, activeWidget, widgets]);
+
+  const displayWidget = activeWidget || cachedActiveWidget;
+  const displayWidgets = widgets.length > 0 ? widgets : cachedWidgets;
+
+  useEffect(() => {
+    if (displayWidget && !latestDescription) {
       setLatestDescription(
-        activeWidget.description || activeWidget.title || "Complemento activo"
+        displayWidget.description || displayWidget.title || "Complemento activo"
       );
     }
-  }, [activeWidget, latestDescription]);
+  }, [displayWidget, latestDescription]);
 
 
   const handleSummaryChange = useCallback((text, widgetIndex) => {
@@ -356,90 +369,97 @@ export default function PluginIsland({ roomCode, profile, server }) {
     resetIdleTimer();
   };
 
-  const hasMultipleWidgets = widgets.length > 1;
-  const widgetHeight = activeWidget?.height || (hasMultipleWidgets ? 255 : 280);
+  const hasMultipleWidgets = displayWidgets.length > 1;
+  const widgetHeight = displayWidget?.height || (hasMultipleWidgets ? 255 : 280);
 
-  if (widgets.length === 0 || !activeWidget) {
+  if (!displayWidget || displayWidgets.length === 0) {
     return null;
   }
 
   return (
     <div
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        height: isExpanded
-          ? `${widgetHeight + (hasMultipleWidgets ? 30 : 0)}px`
-          : "56px",
-      }}
-      className="shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island overflow-hidden relative flex flex-col justify-between select-none shadow-sm transition-all duration-300 ease-out"
+      className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
+        hasWidgets
+          ? "max-h-[600px] opacity-100 scale-100 pointer-events-auto"
+          : "max-h-0 opacity-0 scale-95 pointer-events-none -mb-[calc(var(--gap)+3px)]"
+      }`}
     >
-      {/* 1. MODO CÁPSULA (Visible cuando la isla está colapsada a 56px) */}
-      {!isExpanded && (
-        <div
-          onClick={handleCapsuleClick}
-          className="w-full h-[56px] px-3 py-2 flex items-center gap-2.5 cursor-pointer select-none transition-colors hover:bg-white/[0.04]"
-        >
-          {/* Avatar / Imagen de perfil del Addon */}
-          <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
-            {activeWidget.icon ? (
-              <img
-                src={activeWidget.icon}
-                alt={activeWidget.title || activeWidget.pluginName || "Addon"}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <MaterialIcon
-                name={activeWidget.materialIcon || "extension"}
-                size={20}
-                className="text-onicord-text opacity-90"
-              />
-            )}
-          </div>
-
-          {/* Información: Nombre + Badge + Hora / Descripción de la última actividad */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="font-bold text-xs text-onicord-text truncate leading-tight">
-                {activeWidget.title || activeWidget.pluginName || t("plugins.islandPlugin", "Complemento")}
-              </span>
-              <MaterialIcon
-                name="smart_toy"
-                size={14}
-                fill={true}
-                weight={400}
-                className="text-indigo-400 shrink-0"
-                title={t("plugins.islandPlugin", "Complemento")}
-              />
-              {lastUpdateTime && (
-                <span className="text-[10px] text-onicord-muted shrink-0 ml-auto tabular-nums">
-                  {lastUpdateTime}
-                </span>
+      <div
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          height: isExpanded
+            ? `${widgetHeight + (hasMultipleWidgets ? 30 : 0)}px`
+            : "56px",
+        }}
+        className="w-full shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island overflow-hidden relative flex flex-col justify-between select-none shadow-sm transition-all duration-300 ease-out"
+      >
+        {/* 1. MODO CÁPSULA (Visible cuando la isla está colapsada a 56px) */}
+        {!isExpanded && (
+          <div
+            onClick={handleCapsuleClick}
+            className="w-full h-[56px] px-3 py-2 flex items-center gap-2.5 cursor-pointer select-none transition-colors hover:bg-white/[0.04]"
+          >
+            {/* Avatar / Imagen de perfil del Addon */}
+            <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
+              {displayWidget.icon ? (
+                <img
+                  src={displayWidget.icon}
+                  alt={displayWidget.title || displayWidget.pluginName || "Addon"}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <MaterialIcon
+                  name={displayWidget.materialIcon || "extension"}
+                  size={20}
+                  className="text-onicord-text opacity-90"
+                />
               )}
             </div>
 
-            {/* Descripción de la última actualización (SIN EMOJIS) */}
-            <p className="text-[11px] text-onicord-subtext truncate mt-0.5 leading-tight">
-              {latestDescription ||
-                activeWidget.description ||
-                activeWidget.title ||
-                t("plugins.activePlugin", "Complemento activo")}
-            </p>
-          </div>
-
-          {/* Indicador de carrusel en cápsula si hay más de 1 addon */}
-          {hasMultipleWidgets && (
-            <div className="flex items-center gap-1 shrink-0 ml-1">
-              {widgets.map((_, idx) => (
-                <span
-                  key={idx}
-                  className={`rounded-full transition-all duration-200 ${
-                    idx === currentIndex
-                      ? "bg-onicord-text w-1.5 h-1.5 opacity-90"
-                      : "bg-white/20 w-1 h-1"
-                  }`}
+            {/* Información: Nombre + Badge + Hora / Descripción de la última actividad */}
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-bold text-xs text-onicord-text truncate leading-tight">
+                  {displayWidget.title || displayWidget.pluginName || t("plugins.islandPlugin", "Complemento")}
+                </span>
+                <MaterialIcon
+                  name="smart_toy"
+                  size={14}
+                  fill={true}
+                  weight={400}
+                  className="text-indigo-400 shrink-0"
+                  title={t("plugins.islandPlugin", "Complemento")}
                 />
-              ))}
+                {lastUpdateTime && (
+                  <span className="text-[10px] text-onicord-muted shrink-0 ml-auto tabular-nums">
+                    {lastUpdateTime}
+                  </span>
+                )}
+              </div>
+
+              {/* Descripción de la última actualización (SIN EMOJIS) */}
+              <p className="text-[11px] text-onicord-subtext truncate mt-0.5 leading-tight">
+                {latestDescription ||
+                  displayWidget.description ||
+                  displayWidget.title ||
+                  t("plugins.activePlugin", "Complemento activo")}
+              </p>
+            </div>
+
+            {/* Indicador de carrusel en cápsula si hay más de 1 addon */}
+            {hasMultipleWidgets && (
+              <div className="flex items-center gap-1 shrink-0 ml-1">
+                {displayWidgets.map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`rounded-full transition-all duration-200 ${
+                      idx === currentIndex
+                        ? "bg-onicord-text w-1.5 h-1.5 opacity-90"
+                        : "bg-white/20 w-1 h-1"
+                    }`}
+                  />
+                ))}
             </div>
           )}
         </div>
@@ -451,7 +471,7 @@ export default function PluginIsland({ roomCode, profile, server }) {
           isExpanded ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none hidden"
         }`}
       >
-        {widgets.map((widget, idx) => (
+        {displayWidgets.map((widget, idx) => (
           <div
             key={widget.id || widget.pluginId || idx}
             style={{ display: idx === currentIndex ? "block" : "none" }}
@@ -501,12 +521,12 @@ export default function PluginIsland({ roomCode, profile, server }) {
           </button>
 
           <div className="flex items-center gap-1.5 px-0.5">
-            {widgets.map((_, idx) => (
+            {displayWidgets.map((_, idx) => (
               <span
                 key={idx}
                 onClick={() => {
                   setCurrentIndex(idx);
-                  setLatestDescription(widgets[idx]?.description || "");
+                  setLatestDescription(displayWidgets[idx]?.description || "");
                   resetIdleTimer();
                 }}
                 className={`rounded-full transition-all duration-200 cursor-pointer ${
@@ -527,6 +547,7 @@ export default function PluginIsland({ roomCode, profile, server }) {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

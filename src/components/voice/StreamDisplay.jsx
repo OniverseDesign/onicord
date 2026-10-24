@@ -44,25 +44,39 @@ export default function StreamDisplay({
     return () => window.removeEventListener("voice-ducking-change", handleDucking);
   }, []);
 
-  const [position, setPosition] = useState({
-    x: window.innerWidth - 360,
-    y: window.innerHeight - 250,
-  });
+  const [position, setPosition] = useState(() => ({
+    x: Math.max(10, (typeof window !== "undefined" ? window.innerWidth : 1280) - 360),
+    y: Math.max(10, (typeof window !== "undefined" ? window.innerHeight : 720) - 250),
+  }));
+  const currentPos = useRef(position);
   const isDragging = useRef(false);
   const lastPointerPos = useRef({ x: 0, y: 0 });
   const hasMoved = useRef(false);
+  const rafId = useRef(null);
+  const pipContainerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isMini) return;
     const handleResize = () => {
-      setPosition((prev) => {
-        const maxX = window.innerWidth - 355;
-        const maxY = window.innerHeight - 205;
-        return {
-          x: Math.max(10, Math.min(prev.x, maxX)),
-          y: Math.max(10, Math.min(prev.y, maxY)),
-        };
-      });
+      const maxX = Math.max(10, window.innerWidth - 355);
+      const maxY = Math.max(10, window.innerHeight - 205);
+      const currentX = Number.isFinite(currentPos.current?.x) ? currentPos.current.x : window.innerWidth - 360;
+      const currentY = Number.isFinite(currentPos.current?.y) ? currentPos.current.y : window.innerHeight - 250;
+      const nextX = Math.max(10, Math.min(currentX, maxX));
+      const nextY = Math.max(10, Math.min(currentY, maxY));
+      currentPos.current = { x: nextX, y: nextY };
+      if (pipContainerRef.current) {
+        pipContainerRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`;
+      }
+      setPosition({ x: nextX, y: nextY });
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -207,7 +221,14 @@ export default function StreamDisplay({
     isDragging.current = true;
     hasMoved.current = false;
     lastPointerPos.current = { x: e.clientX, y: e.clientY };
-    e.target.setPointerCapture(e.pointerId);
+
+    if (pipContainerRef.current) {
+      try {
+        pipContainerRef.current.setPointerCapture(e.pointerId);
+      } catch (_) {}
+      pipContainerRef.current.style.transition = "none";
+      pipContainerRef.current.style.willChange = "transform";
+    }
   };
 
   const handlePointerMove = (e) => {
@@ -219,22 +240,46 @@ export default function StreamDisplay({
       hasMoved.current = true;
     }
 
-    setPosition((prev) => {
-      const nextX = Math.max(
-        10,
-        Math.min(prev.x + deltaX, window.innerWidth - 350),
-      );
-      const shadowY = Math.max(
-        10,
-        Math.min(prev.y + deltaY, window.innerHeight - 200),
-      );
-      return { x: nextX, y: shadowY };
-    });
     lastPointerPos.current = { x: e.clientX, y: e.clientY };
+
+    const maxX = Math.max(10, window.innerWidth - 350);
+    const maxY = Math.max(10, window.innerHeight - 200);
+    const nextX = Math.max(10, Math.min(currentPos.current.x + deltaX, maxX));
+    const nextY = Math.max(10, Math.min(currentPos.current.y + deltaY, maxY));
+
+    currentPos.current = { x: nextX, y: nextY };
+
+    if (!rafId.current) {
+      rafId.current = requestAnimationFrame(() => {
+        if (pipContainerRef.current) {
+          pipContainerRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
+        }
+        rafId.current = null;
+      });
+    }
   };
 
   const handlePointerUp = (e) => {
+    if (!isDragging.current) return;
     isDragging.current = false;
+
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+
+    if (pipContainerRef.current) {
+      pipContainerRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
+      pipContainerRef.current.style.transition = "";
+      pipContainerRef.current.style.willChange = "";
+      try {
+        if (e?.pointerId !== undefined && pipContainerRef.current.hasPointerCapture(e.pointerId)) {
+          pipContainerRef.current.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
+    }
+
+    setPosition({ ...currentPos.current });
   };
 
   if (isMini) {
@@ -242,11 +287,17 @@ export default function StreamDisplay({
 
     return (
       <div
+        ref={pipContainerRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        style={{ left: `${position.x}px`, top: `${position.y}px` }}
-        className="fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-all duration-75 touch-none select-none"
+        onPointerCancel={handlePointerUp}
+        style={{
+          top: 0,
+          left: 0,
+          transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+        }}
+        className="fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-transform duration-150 touch-none select-none"
       >
         <video
           ref={videoRef}

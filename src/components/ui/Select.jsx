@@ -202,7 +202,7 @@ export default function Select({
             "bg-onicord-mantle",
             "border border-onicord-island rounded-onicord-button",
             "max-h-64 overflow-y-auto minimal-scrollbar [scrollbar-gutter:auto]",
-            "animate-fade-in origin-top",
+            "onicord-animate-popup-in origin-top",
             align === "right" ? "right-0" : "left-0",
             menuClassName
           )}

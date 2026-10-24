@@ -24,6 +24,8 @@ export class VoicePeerManager {
     peers = {},
     iceServers = [],
     lanPeerIPs = new Map(),
+    initialMuted = false,
+    initialDeafened = false,
   }) {
     this.options = { iceServers };
     this.audioSettings = audioSettings;
@@ -41,7 +43,8 @@ export class VoicePeerManager {
     this.localStream = null;
     this.localVideoStream = null;
     this.peers = new Map();
-    this.deafened = false;
+    this.muted = Boolean(initialMuted);
+    this.deafened = Boolean(initialDeafened);
     this.speakingTimeouts = new Map();
     this.reconnectAttempts = new Map();
     this._lastBitrateUpdatePeerCount = -1;
@@ -464,13 +467,20 @@ export class VoicePeerManager {
     this._flushPendingSignals();
 
     if (this.localStream) {
+      if (this.muted) {
+        for (const track of this.localStream.getAudioTracks()) {
+          track.enabled = false;
+        }
+      }
       const audioTrack = this.localStream.getAudioTracks()[0];
       if (audioTrack) {
-        if (audioTrack.readyState === "live" && audioTrack.enabled) {
+        if (audioTrack.readyState === "live" && audioTrack.enabled && !this.muted) {
           this.audioEngine.setupLocalVoiceAnalysis(this.localStream, this.localPeerId);
         } else {
           audioTrack.onunmute = () => {
-            this.audioEngine.setupLocalVoiceAnalysis(this.localStream, this.localPeerId);
+            if (!this.muted) {
+              this.audioEngine.setupLocalVoiceAnalysis(this.localStream, this.localPeerId);
+            }
             audioTrack.onunmute = null;
           };
         }
@@ -589,6 +599,7 @@ export class VoicePeerManager {
   }
 
   setMuted(muted) {
+    this.muted = Boolean(muted);
     if (!this.localStream) return;
     for (const track of this.localStream.getAudioTracks()) {
       track.enabled = !muted;

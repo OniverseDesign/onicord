@@ -99,6 +99,7 @@ export default function ChatPanel({
   // Hook for scrolling logic with incremental reverse pagination
   const {
     isScrollingUpLoading,
+    showScrollBottom,
     scrollToBottom,
     handleChatScroll,
   } = useChatScroll({
@@ -1073,6 +1074,8 @@ export default function ChatPanel({
         bottomRef={bottomRef}
         handleChatScroll={handleChatScroll}
         isScrollingUpLoading={isScrollingUpLoading}
+        showScrollBottom={showScrollBottom}
+        onScrollToBottom={() => scrollToBottom("smooth")}
         onDownloadFile={handleDownloadFile}
         onCancelDownload={handleCancelDownload}
         onOpenDeleteModal={handleOpenDeleteModal}
@@ -1235,16 +1238,22 @@ export default function ChatPanel({
       )}
 
       {editingMsg && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-onicord-mantle p-5 rounded-xl border border-white/10 w-full max-w-md space-y-4 shadow-xl">
-            <h3 className="text-base font-bold text-onicord-text flex items-center gap-2">
+        <div
+          className="onicord-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setEditingMsg(null)}
+        >
+          <div
+            className="onicord-modal-card w-full max-w-md space-y-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="onicord-modal-title flex items-center gap-2">
               <MaterialIcon name="edit" size={18} className="text-onicord-accent" />
               <span>{t("chat.editMessageTitle", "Editar Mensaje")}</span>
             </h3>
             <textarea
               value={editInputText}
               onChange={(e) => setEditInputText(e.target.value)}
-              className="w-full bg-onicord-base border border-white/10 rounded-lg p-3 text-sm text-onicord-text focus:outline-none focus:border-onicord-accent min-h-[100px] resize-none"
+              className="w-full bg-onicord-base border border-onicord-island rounded-lg p-3 text-sm text-onicord-text focus:outline-none focus:border-onicord-accent min-h-[100px] resize-none"
               autoFocus
             />
             <div className="flex justify-end gap-2">

@@ -5,6 +5,8 @@ class VoiceService {
   constructor(p2pService) {
     this.p2p = p2pService;
     this.localVoice = null;
+    this.initialMuted = false;
+    this.initialDeafened = false;
     this.networkTopology = "mesh";
     this.currentSfuHostId = null;
     this._pendingSignals = new Map();
@@ -59,6 +61,8 @@ class VoiceService {
       members,
       networkTopology: this.networkTopology || "mesh",
       sfuHostId: this.currentSfuHostId || null,
+      selfMuted: this.localVoice ? Boolean(this.localVoice.muted) : Boolean(this.initialMuted),
+      selfDeafened: this.localVoice ? Boolean(this.localVoice.deafened) : Boolean(this.initialDeafened),
     };
   }
 
@@ -81,16 +85,29 @@ class VoiceService {
     });
   }
 
-  joinVoice(channelId, profile, emitVoiceState) {
+  joinVoice(channelId, profile, emitVoiceState, options = {}) {
     if (!channelId) throw new Error("Invalid voice channel");
     console.log(`\n[Voice Service] 🟢 ENTRANDO A CANAL DE VOZ: ${channelId}`);
-    this.localVoice = { channelId, muted: false, deafened: false, joinedAt: Date.now() };
+    const isMuted = options.muted !== undefined ? Boolean(options.muted) : Boolean(this.initialMuted);
+    const isDeafened = options.deafened !== undefined ? Boolean(options.deafened) : Boolean(this.initialDeafened);
+    this.localVoice = {
+      channelId,
+      muted: isDeafened || isMuted,
+      deafened: isDeafened,
+      joinedAt: Date.now(),
+    };
+    this.initialMuted = this.localVoice.muted;
+    this.initialDeafened = this.localVoice.deafened;
     this._broadcastLocalVoiceState(profile);
     emitVoiceState();
   }
 
   leaveVoice(profile, emitVoiceState) {
     console.log(`\n[Voice Service] 🔴 SALIENDO DEL CANAL DE VOZ`);
+    if (this.localVoice) {
+      this.initialMuted = Boolean(this.localVoice.muted);
+      this.initialDeafened = Boolean(this.localVoice.deafened);
+    }
     this.localVoice = null;
     this._pendingSignals.clear();
     this._broadcastLocalVoiceState(profile);
@@ -98,14 +115,23 @@ class VoiceService {
   }
 
   setVoiceMuted(muted, profile, emitVoiceState) {
-    if (!this.localVoice) return;
+    this.initialMuted = Boolean(muted);
+    if (!this.localVoice) {
+      emitVoiceState();
+      return;
+    }
     this.localVoice.muted = Boolean(muted);
     this._broadcastLocalVoiceState(profile);
     emitVoiceState();
   }
 
   setVoiceDeafened(deafened, profile, emitVoiceState) {
-    if (!this.localVoice) return;
+    this.initialDeafened = Boolean(deafened);
+    if (deafened) this.initialMuted = true;
+    if (!this.localVoice) {
+      emitVoiceState();
+      return;
+    }
     this.localVoice.deafened = Boolean(deafened);
     if (deafened) this.localVoice.muted = true;
     this._broadcastLocalVoiceState(profile);

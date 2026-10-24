@@ -43,6 +43,14 @@ function registerSystemDiagHandlers() {
     global.mainWindow?.close();
   });
 
+  ipcMain.on("window:focus", () => {
+    if (global.mainWindow && !global.mainWindow.isDestroyed()) {
+      if (global.mainWindow.isMinimized()) global.mainWindow.restore();
+      if (!global.mainWindow.isVisible()) global.mainWindow.show();
+      global.mainWindow.focus();
+    }
+  });
+
   ipcMain.on("app:update-icon", (_event, dataUrl) => {
     try {
       if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) return;
