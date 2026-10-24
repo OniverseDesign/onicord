@@ -11,7 +11,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
       <button
         type="button"
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => applyFormatting("**")}
+        onClick={() => applyFormatting("**", "**")}
         className="p-1 px-2.5 rounded-full text-xs font-bold text-onicord-text hover:bg-white/10 transition-colors cursor-pointer"
         title={t("chat.formatBold")}
       >
@@ -20,7 +20,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
       <button
         type="button"
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => applyFormatting("*")}
+        onClick={() => applyFormatting("*", "*")}
         className="p-1 px-2.5 rounded-full text-xs italic text-onicord-text hover:bg-white/10 transition-colors cursor-pointer"
         title={t("chat.formatItalic")}
       >
@@ -29,7 +29,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
       <button
         type="button"
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => applyFormatting("~~")}
+        onClick={() => applyFormatting("~~", "~~")}
         className="p-1 px-2.5 rounded-full text-xs line-through text-onicord-text hover:bg-white/10 transition-colors cursor-pointer"
         title={t("chat.formatStrike")}
       >
@@ -38,7 +38,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
       <button
         type="button"
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => applyFormatting("`")}
+        onClick={() => applyFormatting("`", "`")}
         className="p-1 px-2.5 rounded-full text-xs font-mono text-onicord-text hover:bg-white/10 transition-colors cursor-pointer"
         title={t("chat.formatCode")}
       >

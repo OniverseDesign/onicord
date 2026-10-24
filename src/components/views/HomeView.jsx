@@ -13,7 +13,7 @@ import MaterialIcon from "../icons/MaterialIcon";
 import { CONFIG_ISLAS, STORAGE_KEY, getCombinedConfigs } from "../dashboard/dashboardConfig";
 import { useUnreadTracker } from "../../hooks/useUnreadTracker";
 import { useAfkTracker } from "../../hooks/useAfkTracker";
-import { useGlobalVoice } from "../../context/VoiceContext";
+import { useVoiceChannelInfo } from "../../context/VoiceContext";
 import { useMusicSession } from "../../context/MusicContext";
 import { isTypingInInput, isSingleKeyShortcut } from "../../lib/inputUtils";
 
@@ -29,7 +29,7 @@ export default function HomeView({
   onDeleteAccount,
 }) {
   const { t } = useTranslation();
-  const globalVoice = useGlobalVoice();
+  const { currentVoiceServerId } = useVoiceChannelInfo();
   const [showAddModal, setShowAddModal] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -564,7 +564,7 @@ export default function HomeView({
           folders={profile?.serverFolders || []}
           onUpdateFolders={handleUpdateFolders}
           activeServerId={activeView === "server" && activeServer ? activeServer.id : null}
-          currentVoiceServerId={globalVoice.currentVoiceServerId}
+          currentVoiceServerId={currentVoiceServerId}
           onSelectHome={handleSelectHome}
           onSelectServer={handleSelectServer}
           onAdd={() => setShowAddModal(true)}

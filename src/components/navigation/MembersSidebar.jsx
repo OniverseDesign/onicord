@@ -18,74 +18,82 @@ export default function MembersSidebar({
   server = null,
 }) {
   const { t } = useTranslation();
-  const inVoice = voiceMembers.filter((m) => m.channelId);
-  const online = members.filter(
-    (m) => m.isSelf || m.online === true || m.online === undefined,
-  );
-  const offline = members.filter(
-    (m) =>
-      !(m.isSelf || m.online === true || m.online === undefined) && !m.isSelf,
-  );
+  const { inVoice, online, offline, playingTogetherList, justOnline } = useMemo(() => {
+    const inVoice = (voiceMembers || []).filter((m) => m.channelId);
+    const online = (members || []).filter(
+      (m) => m.isSelf || m.online === true || m.online === undefined,
+    );
+    const offline = (members || []).filter(
+      (m) =>
+        !(m.isSelf || m.online === true || m.online === undefined) && !m.isSelf,
+    );
 
-  const activityCounts = {};
-  const seenUserIds = new Set();
+    const activityCounts = {};
+    const seenUserIds = new Set();
 
-  const isGameActivity = (act) =>
-    Boolean(act?.name && (!act.type || act.type === "game"));
+    const isGameActivity = (act) =>
+      Boolean(act?.name && (!act.type || act.type === "game"));
 
-  const registerUserActivity = (m) => {
-    const userId = m.id || m.userId || m.peerId;
-    if (!userId || seenUserIds.has(userId)) return;
-    seenUserIds.add(userId);
+    const registerUserActivity = (m) => {
+      const userId = m.id || m.userId || m.peerId;
+      if (!userId || seenUserIds.has(userId)) return;
+      seenUserIds.add(userId);
 
-    if (isGameActivity(m?.activity)) {
-      const name = m.activity.name.trim().toLowerCase();
-      activityCounts[name] = (activityCounts[name] || 0) + 1;
-    }
-  };
-
-  voiceMembers.forEach(registerUserActivity);
-  members.forEach((m) => {
-    if (m.isSelf || m.online === true || m.online === undefined) {
-      registerUserActivity(m);
-    }
-  });
-
-  const playingTogetherList = [];
-  const justOnline = [];
-
-  online.forEach((m) => {
-    if (isGameActivity(m?.activity)) {
-      const name = m.activity.name.trim().toLowerCase();
-      if (activityCounts[name] > 1) {
-        playingTogetherList.push(m);
-        return;
+      if (isGameActivity(m?.activity)) {
+        const name = m.activity.name.trim().toLowerCase();
+        activityCounts[name] = (activityCounts[name] || 0) + 1;
       }
-    }
-    justOnline.push(m);
-  });
+    };
+
+    (voiceMembers || []).forEach(registerUserActivity);
+    (members || []).forEach((m) => {
+      if (m.isSelf || m.online === true || m.online === undefined) {
+        registerUserActivity(m);
+      }
+    });
+
+    const playingTogetherList = [];
+    const justOnline = [];
+
+    online.forEach((m) => {
+      if (isGameActivity(m?.activity)) {
+        const name = m.activity.name.trim().toLowerCase();
+        if (activityCounts[name] > 1) {
+          playingTogetherList.push(m);
+          return;
+        }
+      }
+      justOnline.push(m);
+    });
+
+    return { inVoice, online, offline, playingTogetherList, justOnline };
+  }, [members, voiceMembers]);
 
   const groupedByRoles = useMemo(() => {
     if (!server?.groupByRoles || !server?.roles || server.roles.length === 0) {
       return null;
     }
 
-    const groups = [];
-    const remaining = [...justOnline];
-
-    // Loop through server.roles
+    const roleMap = new Map();
     server.roles.forEach((role) => {
-      const usersInRole = remaining.filter((u) => u.role && String(u.role.id) === String(role.id));
-      if (usersInRole.length > 0) {
-        groups.push({
-          role,
-          members: usersInRole,
-        });
-        // Remove these users from remaining
-        usersInRole.forEach((u) => {
-          const idx = remaining.findIndex((r) => (r.id || r.peerId) === (u.id || u.peerId));
-          if (idx !== -1) remaining.splice(idx, 1);
-        });
+      roleMap.set(String(role.id), { role, members: [] });
+    });
+
+    const remaining = [];
+    justOnline.forEach((u) => {
+      const roleId = u.role ? String(u.role.id) : null;
+      if (roleId && roleMap.has(roleId)) {
+        roleMap.get(roleId).members.push(u);
+      } else {
+        remaining.push(u);
+      }
+    });
+
+    const groups = [];
+    server.roles.forEach((role) => {
+      const entry = roleMap.get(String(role.id));
+      if (entry && entry.members.length > 0) {
+        groups.push(entry);
       }
     });
 

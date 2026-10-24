@@ -877,7 +877,9 @@
       "localStreamExpandTitle": "Ver Transmissão Própria em Tela Cheia",
       "localStreamExpandDesc": "Permite expandir e maximizar sua própria transmissão de tela em visualização completa em vez de ficar restrita à janela flutuante PiP.",
       "localStreamEnabledToast": "Transmissão própria em tela cheia ativada",
-      "localStreamDisabledToast": "Transmissão própria limitada à janela PiP"
+      "localStreamDisabledToast": "Transmissão própria limitada à janela PiP",
+      "badgeTestTitle": "Distintivo de Notificação na Barra de Tarefas (Overlay Badge)",
+      "badgeTestDesc": "Teste o contador de mensagens não lidas no ícone do app no Windows (setOverlayIcon), macOS Dock e título da aba."
     },
     "plugins": {
       "installedPlugins": "Complementos Instalados",
@@ -1016,7 +1018,7 @@
       "modeDarkSub": "Fundo escuro equilibrado",
       "modeLight": "Modo Claro",
       "modeLightSub": "Fundo claro adaptativo",
-      "controlsTitle": "Controles de Interface e Estado",
+      "controlsTitle": "Controles e Estado",
       "buttonStyles": "Estilos de Botões",
       "dynamicIconTitle": "Ícone Dinâmico do App",
       "dynamicIconDesc": "Sincronizado com a barra de tarefas e a bandeja do sistema.",

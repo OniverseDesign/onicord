@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 import ChatMessageItem from "../ChatMessageItem";
@@ -74,6 +74,23 @@ export default function ChatMessageList({
   searchQuery,
 }) {
   const { t } = useTranslation();
+
+  const userRoleColorMap = useMemo(() => {
+    if (!server?.roles || !server?.userRoles) return new Map();
+    const roleOrderMap = new Map(server.roles.map((r, i) => [r.id, { role: r, order: i }]));
+    const colorMap = new Map();
+    for (const [userId, uRoles] of Object.entries(server.userRoles)) {
+      const roleIds = Array.isArray(uRoles) ? uRoles : [uRoles];
+      const matched = roleIds
+        .map((id) => roleOrderMap.get(id))
+        .filter(Boolean)
+        .sort((a, b) => a.order - b.order);
+      if (matched.length > 0 && matched[0].role?.color) {
+        colorMap.set(userId, matched[0].role.color);
+      }
+    }
+    return colorMap;
+  }, [server?.roles, server?.userRoles]);
 
   return (
     <div className="flex-1 min-h-0 relative flex w-full overflow-hidden">
@@ -162,24 +179,7 @@ export default function ChatMessageList({
                       peers={peers}
                       server={server}
                       fileProgress={fileProgress}
-                      nameColor={(() => {
-                        if (!server || !server.roles || !server.userRoles)
-                          return null;
-                        const uRoles = server.userRoles[msg.authorId];
-                        if (!uRoles) return null;
-                        const roleIds = Array.isArray(uRoles) ? uRoles : [uRoles];
-                        const activeRoles = roleIds
-                          .map((id) => server.roles.find((r) => r.id === id))
-                          .filter(Boolean)
-                          .sort(
-                            (a, b) =>
-                              server.roles.findIndex((r) => r.id === a.id) -
-                              server.roles.findIndex((r) => r.id === b.id),
-                          );
-                        return activeRoles.length > 0
-                          ? activeRoles[0].color
-                          : null;
-                      })()}
+                      nameColor={userRoleColorMap.get(msg.authorId) || null}
                       onDownloadFile={onDownloadFile}
                       onCancelDownload={onCancelDownload}
                       onOpenDeleteModal={onOpenDeleteModal}

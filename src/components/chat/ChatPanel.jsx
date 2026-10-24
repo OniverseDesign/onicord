@@ -15,7 +15,7 @@ import {
 } from "../icons/StreamIcons";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import { ONICORD_COMMANDS } from "../../lib/commands";
-import { getSelectionCharacterOffsets, setSelectionOffsets, renderHTMLForInput } from "../../lib/inputFormatter";
+import { getSelectionCharacterOffsets, setSelectionOffsets, renderHTMLForInput, applyMarkdownFormat } from "../../lib/inputFormatter";
 import { checkPermission } from "../../lib/permissionsHelper";
 import { copyTextToClipboard, readTextFromClipboard } from "../../lib/clipboard";
 import MediaPreviewModal from "../modals/MediaPreviewModal";
@@ -232,7 +232,7 @@ export default function ChatPanel({
 
       const relativeLeft = inputEl.offsetLeft + xPos;
 
-      const chatPanelEl = document.querySelector(".onicord-chat-input-bar") || inputEl.parentElement;
+      const chatPanelEl = inputEl.closest(".onicord-chat-input-bar") || inputEl.parentElement;
       const containerWidth = chatPanelEl?.getBoundingClientRect().width || 400;
       const constrainedLeft = Math.max(130, Math.min(relativeLeft, containerWidth - 130));
 
@@ -296,45 +296,43 @@ export default function ChatPanel({
     const inputEl = tyrannyInputRef.current;
     if (!inputEl) return;
 
-    const { start, end } = getSelectionCharacterOffsets(inputEl);
-    if (start === end) return;
-
-    const text = inputEl.textContent || "";
-    const selected = text.substring(start, end);
-    
-    let replacement;
-    if (prefix === "> ") {
-      const lines = selected.split("\n");
-      const allHaveQuote = lines.every((l) => l.startsWith("> ") || l.startsWith(">"));
-      if (allHaveQuote) {
-        replacement = lines.map((l) => l.startsWith("> ") ? l.substring(2) : l.substring(1)).join("\n");
-      } else {
-        replacement = lines.map((l) => l.startsWith("> ") ? l : (l.startsWith(">") ? `> ${l.substring(1)}` : `> ${l}`)).join("\n");
-      }
-    } else if (prefix === "### ") {
-      const lines = selected.split("\n");
-      const allHaveHeading = lines.every((l) => l.startsWith("### "));
-      if (allHaveHeading) {
-        replacement = lines.map((l) => l.substring(4)).join("\n");
-      } else {
-        replacement = lines.map((l) => l.startsWith("### ") ? l : `### ${l}`).join("\n");
-      }
+    let start = 0;
+    let end = 0;
+    const offsets = getSelectionCharacterOffsets(inputEl);
+    if (offsets.start !== offsets.end) {
+      start = offsets.start;
+      end = offsets.end;
+    } else if (selection && selection.start !== selection.end) {
+      start = selection.start;
+      end = selection.end;
     } else {
-      if (selected.startsWith(prefix) && selected.endsWith(suffix)) {
-        replacement = selected.substring(prefix.length, selected.length - suffix.length);
-      } else {
-        replacement = prefix + selected + suffix;
-      }
+      start = offsets.start;
+      end = offsets.end;
     }
 
-    const newValue = text.substring(0, start) + replacement + text.substring(end);
-    setInput(newValue);
+    const text = inputEl.textContent || input || "";
+    const { newText, newStart, newEnd } = applyMarkdownFormat(
+      text,
+      { start, end },
+      prefix,
+      suffix
+    );
+
+    setInput(newText);
     setSelection(null);
+
+    const allUsers = [
+      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
+      ...Object.values(peers || {}).map((p) => ({
+        id: p.id,
+        nickname: p.nickname,
+      })),
+    ];
+    inputEl.innerHTML = renderHTMLForInput(newText, allUsers);
 
     requestAnimationFrame(() => {
       inputEl.focus();
-      const newEnd = start + replacement.length;
-      setSelectionOffsets(inputEl, start, newEnd);
+      setSelectionOffsets(inputEl, newStart, newEnd);
     });
   };
 
@@ -417,6 +415,24 @@ export default function ChatPanel({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend(e);
+      return;
+    }
+
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key === "b") {
+        e.preventDefault();
+        applyFormatting("**", "**");
+      } else if (key === "i") {
+        e.preventDefault();
+        applyFormatting("*", "*");
+      } else if (key === "s" && e.shiftKey) {
+        e.preventDefault();
+        applyFormatting("~~", "~~");
+      } else if (key === "e") {
+        e.preventDefault();
+        applyFormatting("`", "`");
+      }
     }
   };
 

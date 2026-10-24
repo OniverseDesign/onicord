@@ -877,7 +877,9 @@
       "localStreamExpandTitle": "View Own Stream in Large Screen",
       "localStreamExpandDesc": "Allows expanding and maximizing your own screen share to full view instead of restricting it to PiP floating mode.",
       "localStreamEnabledToast": "Own stream large screen view enabled",
-      "localStreamDisabledToast": "Own stream restricted to PiP floating window"
+      "localStreamDisabledToast": "Own stream restricted to PiP floating window",
+      "badgeTestTitle": "Taskbar Notification Overlay Badge",
+      "badgeTestDesc": "Test unread message counter badge on Windows taskbar (setOverlayIcon), macOS Dock, and window title."
     },
     "plugins": {
       "installedPlugins": "Installed Addons",
@@ -1016,7 +1018,7 @@
       "modeDarkSub": "Balanced dark background",
       "modeLight": "Light Mode",
       "modeLightSub": "Adaptive light background",
-      "controlsTitle": "Interface & State Controls",
+      "controlsTitle": "Controls & State",
       "buttonStyles": "Button Styles",
       "dynamicIconTitle": "Dynamic App Icon",
       "dynamicIconDesc": "Synchronized with taskbar and system tray.",

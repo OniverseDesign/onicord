@@ -1,17 +1,36 @@
 import { useState, useEffect, useCallback } from "react";
 import { notificationManager } from "../lib/notificationManager";
+import { updateAppBadge } from "../lib/badgeIconGenerator";
 
 export function useUnreadTracker(activeRoomCode, activeChannelId, profileId) {
   const [unreads, setUnreads] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("onicord_unreads") || "{}");
+      const stored = JSON.parse(localStorage.getItem("onicord_unreads") || "{}");
+      delete stored.test_channel;
+      return stored;
     } catch {
       return {};
     }
   });
 
   useEffect(() => {
-    localStorage.setItem("onicord_unreads", JSON.stringify(unreads));
+    const toPersist = { ...unreads };
+    delete toPersist.test_channel;
+    localStorage.setItem("onicord_unreads", JSON.stringify(toPersist));
+
+    // Calcular el total de mensajes no leídos respetando servidores silenciados
+    let muted = [];
+    try {
+      muted = JSON.parse(localStorage.getItem("onicord_muted_servers") || "[]");
+    } catch {}
+
+    const total = Object.entries(unreads).reduce((acc, [key, count]) => {
+      const roomCode = key.split("_")[0];
+      if (Array.isArray(muted) && muted.includes(roomCode)) return acc;
+      return acc + (Number(count) || 0);
+    }, 0);
+
+    updateAppBadge(total);
   }, [unreads]);
 
   useEffect(() => {
@@ -29,12 +48,26 @@ export function useUnreadTracker(activeRoomCode, activeChannelId, profileId) {
 
   useEffect(() => {
     const handleTestUnread = (e) => {
-      const { roomCode, channelId, count } = e.detail || {};
+      const { roomCode, channelId, count, reset } = e.detail || {};
+      if (reset) {
+        try {
+          localStorage.removeItem("onicord_unreads");
+          localStorage.setItem("onicord_unreads", "{}");
+        } catch (_) {}
+        setUnreads({});
+        updateAppBadge(0);
+        return;
+      }
       if (roomCode && channelId) {
         const key = `${roomCode}_${channelId}`;
         setUnreads((prev) => ({
           ...prev,
           [key]: count !== undefined ? count : (prev[key] || 0) + 1,
+        }));
+      } else if (count !== undefined) {
+        setUnreads((prev) => ({
+          ...prev,
+          test_channel: count,
         }));
       }
     };

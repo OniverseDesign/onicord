@@ -33,6 +33,14 @@ export default function MusicIsland({ musicState }) {
     canManageMusic = true,
     removeFromQueue,
     reorderQueue,
+    pauseTrack,
+    resumeTrack,
+    skipTrack,
+    stopTrack,
+    playTrackNow,
+    enqueueTrack,
+    toggleRepeat: contextToggleRepeat,
+    setRepeatMode,
   } = musicState;
 
   const [showQueue, setShowQueue] = useState(false);
@@ -80,31 +88,30 @@ export default function MusicIsland({ musicState }) {
 
   const togglePlayPause = () => {
     if (!canManageMusic) return;
-    window.dispatchEvent(
-      new CustomEvent("onicord:broadcast-music", {
-        detail: isPlaying ? "PAUSE" : "RESUME",
-      }),
-    );
+    if (isPlaying) {
+      pauseTrack?.();
+    } else {
+      resumeTrack?.();
+    }
   };
+
   const handleSkipTrack = () => {
     if (!canManageMusic) return;
-    window.dispatchEvent(
-      new CustomEvent("onicord:broadcast-music", { detail: "SKIP" }),
-    );
+    skipTrack?.();
   };
+
   const forceStopMedia = () => {
     if (!canManageMusic) return;
-    window.dispatchEvent(
-      new CustomEvent("onicord:broadcast-music", { detail: "STOP_ALL" }),
-    );
+    stopTrack?.();
   };
+
   const toggleRepeat = () => {
     if (!canManageMusic) return;
-    window.dispatchEvent(
-      new CustomEvent("onicord:broadcast-music", {
-        detail: `REPEAT:${(repeatMode + 1) % 3}`,
-      }),
-    );
+    if (contextToggleRepeat) {
+      contextToggleRepeat();
+    } else if (setRepeatMode) {
+      setRepeatMode((repeatMode + 1) % 3);
+    }
   };
 
   const handlePlayTrack = (track) => {
@@ -115,17 +122,9 @@ export default function MusicIsland({ musicState }) {
         : `https://youtube.com/watch?v=${track.trackId}`);
 
     if (canManageMusic) {
-      window.dispatchEvent(
-        new CustomEvent("onicord:broadcast-music", {
-          detail: `PLAY_SHORTCUT:${url}`,
-        }),
-      );
+      playTrackNow?.(url);
     } else {
-      window.dispatchEvent(
-        new CustomEvent("onicord:broadcast-music", {
-          detail: `QUEUE_ADD:${url}`,
-        }),
-      );
+      enqueueTrack?.(url);
     }
   };
 
@@ -135,7 +134,7 @@ export default function MusicIsland({ musicState }) {
     if (removeFromQueue) {
       removeFromQueue(id);
     } else {
-      setPlaylist((prev) => prev.filter((t) => t.trackId !== id));
+      setPlaylist?.((prev) => prev.filter((t) => t.trackId !== id));
     }
   };
 
@@ -147,11 +146,7 @@ export default function MusicIsland({ musicState }) {
         ? `https://soundcloud.com/tracks/${track.trackId}`
         : `https://youtube.com/watch?v=${track.trackId}`);
 
-    window.dispatchEvent(
-      new CustomEvent("onicord:broadcast-music", {
-        detail: `QUEUE_ADD:${url}`,
-      }),
-    );
+    enqueueTrack?.(url);
   };
 
   if (hasJoinedMusic !== true) {

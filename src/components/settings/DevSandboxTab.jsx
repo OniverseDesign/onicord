@@ -4,6 +4,7 @@ import { notificationManager } from "../../lib/notificationManager";
 import FlameBadge from "../ui/FlameBadge";
 import MaterialIcon from "../icons/MaterialIcon";
 import Select from "../ui/Select";
+import { updateAppBadge } from "../../lib/badgeIconGenerator";
 
 export default function DevSandboxTab({ profile, onProfileChange, servers = [], activeServerId = null }) {
   const { t } = useTranslation();
@@ -326,6 +327,87 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
             }}
             className="toggle toggle-primary shrink-0"
           />
+        </div>
+      </div>
+
+      {/* TARJETA 6: PRUEBA DE INSIGNIA / BADGE EN BARRA DE TAREAS */}
+      <div className="onicord-settings-card">
+        <h3 className="onicord-settings-section-title">
+          <span>{t("settings.devSandbox.badgeTestTitle", "Insignia de Notificación en Barra de Tareas (Overlay Badge)")}</span>
+        </h3>
+        <p className="onicord-settings-row-desc -mt-2">
+          {t("settings.devSandbox.badgeTestDesc", "Prueba el contador de mensajes sin leer sobre el icono de la app en Windows (setOverlayIcon), macOS Dock y título de pestaña.")}
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              updateAppBadge(1);
+              window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 1 } }));
+              notificationManager.showToast("Badge", "Insignia establecida en 1", "info");
+            }}
+            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-white/10 text-white border border-white/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+          >
+            <span className="w-2 h-2 rounded-full bg-onicord-danger" />
+            <span>Badge: 1</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              updateAppBadge(5);
+              window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 5 } }));
+              notificationManager.showToast("Badge", "Insignia establecida en 5", "info");
+            }}
+            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-white/10 text-white border border-white/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+          >
+            <span className="w-2 h-2 rounded-full bg-onicord-danger" />
+            <span>Badge: 5</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              updateAppBadge(9);
+              window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 9 } }));
+              notificationManager.showToast("Badge", "Insignia establecida en 9", "info");
+            }}
+            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-white/10 text-white border border-white/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+          >
+            <span className="w-2 h-2 rounded-full bg-onicord-danger" />
+            <span>Badge: 9</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              updateAppBadge(15);
+              window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 15 } }));
+              notificationManager.showToast("Badge", "Insignia establecida en +9", "info");
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-onicord-danger/20 hover:bg-onicord-danger/30 text-onicord-danger border border-onicord-danger/40 text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+          >
+            <span className="w-2 h-2 rounded-full bg-onicord-danger" />
+            <span>Badge: +9</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                localStorage.removeItem("onicord_unreads");
+                localStorage.setItem("onicord_unreads", "{}");
+              } catch (_) {}
+              updateAppBadge(0);
+              window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { reset: true } }));
+              notificationManager.showToast("Badge", "Insignia limpiada (0)", "success");
+            }}
+            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-onicord-muted hover:text-white border border-white/5 text-xs font-medium cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+          >
+            <MaterialIcon name="cleaning_services" size={14} />
+            <span>Limpiar (0)</span>
+          </button>
         </div>
       </div>
     </div>

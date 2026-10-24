@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { resolveAuthorDisplay } from "../../lib/profileUtils";
+import { resolveAuthorDisplay, buildPeerLookup } from "../../lib/profileUtils";
 import EmojiPickerPopover from "../ui/EmojiPickerPopover";
 import MaterialIcon from "../icons/MaterialIcon";
 import IconEstrella from "../icons/Estrella.svg?react";
@@ -53,10 +53,12 @@ const ChatMessageItem = memo(
 
     const prevMsg = Array.isArray(messages) && index > 0 ? messages[index - 1] : null;
 
+    const peersLookup = useMemo(() => buildPeerLookup(peers), [peers]);
+
     let { nickname, avatar } = resolveAuthorDisplay(
       msg.authorId,
       profile,
-      peers,
+      peersLookup,
       msg,
     );
 
@@ -94,7 +96,7 @@ const ChatMessageItem = memo(
             const bothHaveIds = Boolean(prevId && currentId && prevId !== "self" && currentId !== "self");
             const sameId = bothHaveIds && prevId === currentId;
 
-            const prevDisplay = resolveAuthorDisplay(prevMsg.authorId, profile, peers, prevMsg);
+            const prevDisplay = resolveAuthorDisplay(prevMsg.authorId, profile, peersLookup, prevMsg);
             const prevNick = prevDisplay.nickname;
             const currentNick = nickname;
             const sameNick = Boolean(prevNick && currentNick && prevNick === currentNick);
@@ -244,12 +246,12 @@ const ChatMessageItem = memo(
       const userMap = new Map();
       replies.forEach((r) => {
         if (!userMap.has(r.authorId)) {
-          userMap.set(r.authorId, resolveAuthorDisplay(r.authorId, profile, peers, r));
+          userMap.set(r.authorId, resolveAuthorDisplay(r.authorId, profile, peersLookup, r));
         }
       });
 
       return Array.from(userMap.values());
-    }, [fullChannelMessages, checkIsThreadReply, isReplyPreview, disableThreadAction, profile, peers, msg?.id]);
+    }, [fullChannelMessages, checkIsThreadReply, isReplyPreview, disableThreadAction, profile, peersLookup, msg?.id]);
 
     if (isFilePayload && textContent) {
       try {
@@ -327,7 +329,7 @@ const ChatMessageItem = memo(
       ? resolveAuthorDisplay(
           replyToData.authorId,
           profile,
-          peers,
+          peersLookup,
           fallbackForReply,
         )
       : { nickname: "Usuario", avatar: null };

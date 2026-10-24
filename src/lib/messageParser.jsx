@@ -191,7 +191,18 @@ export function parseInlineStyles(
     return linkToken;
   });
 
-  // 5. Negrita (**...** o __...__)
+  // 5. Negrita + Cursiva (***...*** o ___...___)
+  tokens = parseRegexToken(tokens, /\*\*\*([^*]+)\*\*\*/g, (match) => ({
+    type: "bold",
+    content: `*${match[1]}*`,
+  }));
+
+  tokens = parseRegexToken(tokens, /___([^_]+)___/g, (match) => ({
+    type: "bold",
+    content: `_${match[1]}_`,
+  }));
+
+  // 6. Negrita (**...** o __...__)
   tokens = parseRegexToken(tokens, /\*\*([^*]+)\*\*/g, (match) => ({
     type: "bold",
     content: match[1],

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { VoicePeerManager } from "../lib/voicePeerManager";
+import { VoicePeerManager } from "../lib/voice/VoicePeerManager";
 import {
   normalizeAudioSettings,
   getPeerVolumePercent,
@@ -51,11 +51,6 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
   const [isLocalHost, setIsLocalHost] = useState(false);
   // Map of peerId -> string[] of LAN IPs, used for WebRTC LAN audio optimization
   const lanPeerIPsRef = useRef(new Map());
-
-  // Auto-SFU desactivado temporalmente para garantizar estabilidad en malla directa P2P (Full-Mesh)
-  useEffect(() => {
-    // Mantener todas las conexiones directas punto a punto sin desconexiones por migración
-  }, [members, networkTopology, inVoice, localPeerId]);
 
 
   useEffect(() => {
@@ -275,16 +270,17 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     const unsubState = api.onVoiceState?.(debouncedRefresh);
 
     const unsubSpeaking = api.onSpeakingUpdated?.(
-      ({ peerId, isSpeaking, volumeLevel }) => {
+      ({ peerId, isSpeaking }) => {
+        const boolSpeaking = Boolean(isSpeaking);
+        window.dispatchEvent(
+          new CustomEvent("peer-speaking-change", {
+            detail: { peerId, isSpeaking: boolSpeaking },
+          }),
+        );
+
         setMembers((prevMembers) => {
           const target = prevMembers.find((m) => m.peerId === peerId || m.id === peerId);
-          if (!target) return prevMembers;
-          const boolSpeaking = Boolean(isSpeaking);
-          const roundedVol = Math.round(volumeLevel || 0);
-          if (
-            target.isSpeaking === boolSpeaking &&
-            Math.abs((target.volumeLevel || 0) - roundedVol) < 5
-          ) {
+          if (!target || Boolean(target.isSpeaking) === boolSpeaking) {
             return prevMembers;
           }
           return prevMembers.map((member) =>
@@ -292,7 +288,6 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
               ? {
                   ...member,
                   isSpeaking: boolSpeaking,
-                  volumeLevel: roundedVol,
                 }
               : member,
           );
@@ -807,19 +802,14 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
           Math.round(volumeLevel || 0),
         );
 
+        const boolSpeaking = Boolean(isSpeaking);
         setMembers((prev) => {
           const selfMember = prev.find((m) => m.isSelf);
-          if (!selfMember) return prev;
-          const boolSpeaking = Boolean(isSpeaking);
-          const roundedVol = Math.round(volumeLevel || 0);
-          if (
-            selfMember.isSpeaking === boolSpeaking &&
-            Math.abs((selfMember.volumeLevel || 0) - roundedVol) < 5
-          ) {
+          if (!selfMember || Boolean(selfMember.isSpeaking) === boolSpeaking) {
             return prev;
           }
           return prev.map((m) =>
-            m.isSelf ? { ...m, isSpeaking: boolSpeaking, volumeLevel: roundedVol } : m,
+            m.isSelf ? { ...m, isSpeaking: boolSpeaking } : m,
           );
         });
       }
@@ -883,28 +873,53 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     }
   }, [inVoice, t]);
 
-  return {
-    inVoice,
-    voiceChannelId,
-    muted,
-    deafened,
-    isStreaming,
-    members,
-    error,
-    micHardwareError,
-    micErrorMessage,
-    leaveVoice,
-    toggleMute,
-    toggleDeafen,
-    getPeerVolume,
-    setPeerVolume,
-    getRemoteStream,
-    setLocalVideoStream,
-    setIsStreaming,
-    reclaimMicrophoneAccess,
-    managerRef,
-    networkTopology,
-    sfuHostId,
-    localPeerId,
-  };
+  return useMemo(
+    () => ({
+      inVoice,
+      voiceChannelId,
+      muted,
+      deafened,
+      isStreaming,
+      members,
+      error,
+      micHardwareError,
+      micErrorMessage,
+      leaveVoice,
+      toggleMute,
+      toggleDeafen,
+      getPeerVolume,
+      setPeerVolume,
+      getRemoteStream,
+      setLocalVideoStream,
+      setIsStreaming,
+      reclaimMicrophoneAccess,
+      managerRef,
+      networkTopology,
+      sfuHostId,
+      localPeerId,
+    }),
+    [
+      inVoice,
+      voiceChannelId,
+      muted,
+      deafened,
+      isStreaming,
+      members,
+      error,
+      micHardwareError,
+      micErrorMessage,
+      leaveVoice,
+      toggleMute,
+      toggleDeafen,
+      getPeerVolume,
+      setPeerVolume,
+      getRemoteStream,
+      setLocalVideoStream,
+      setIsStreaming,
+      reclaimMicrophoneAccess,
+      networkTopology,
+      sfuHostId,
+      localPeerId,
+    ]
+  );
 }

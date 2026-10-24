@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   showItemInFolder: (fullPath) =>
     ipcRenderer.send("show-item-in-folder", fullPath),
   updateAppIcon: (dataUrl) => ipcRenderer.send("app:update-icon", dataUrl),
+  updateBadgeCount: (payload) => ipcRenderer.send("app:update-badge", payload),
 
   getProfile: () => ipcRenderer.invoke("profile:get"),
   saveProfile: (profile) => ipcRenderer.invoke("profile:save", profile),

@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useVoiceConnection } from "../hooks/useVoiceConnection";
 import { checkPermission } from "../lib/permissionsHelper";
 
 const VoiceContext = createContext(null);
+const VoiceChannelContext = createContext(null);
 
 export function VoiceProvider({ profile, children }) {
   const [currentVoiceServer, setCurrentVoiceServer] = useState(null);
@@ -15,6 +16,18 @@ export function VoiceProvider({ profile, children }) {
     currentVoiceServer?.roomCode || currentVoiceServer?.id || ""
   );
 
+  const leaveVoiceRef = useRef(voice.leaveVoice);
+  useEffect(() => {
+    leaveVoiceRef.current = voice.leaveVoice;
+  }, [voice.leaveVoice]);
+
+  const toggleMuteRef = useRef(voice.toggleMute);
+  const toggleDeafenRef = useRef(voice.toggleDeafen);
+  useEffect(() => {
+    toggleMuteRef.current = voice.toggleMute;
+    toggleDeafenRef.current = voice.toggleDeafen;
+  }, [voice.toggleMute, voice.toggleDeafen]);
+
   const joinVoiceChannel = useCallback((server, channelId) => {
     if (!server || !channelId) return;
     if (profile?.id && !checkPermission(server, profile.id, "connect_voice")) {
@@ -26,20 +39,20 @@ export function VoiceProvider({ profile, children }) {
   }, [profile?.id]);
 
   const leaveVoiceChannel = useCallback(() => {
-    voice.leaveVoice?.();
+    leaveVoiceRef.current?.();
     setCurrentVoiceServer(null);
     setCurrentVoiceChannelId(null);
-  }, [voice]);
+  }, []);
 
   useEffect(() => {
     const handleToggleMute = () => {
       console.log("[VoiceContext 🎙️] Ejecutando atajo: Alternar Silencio");
-      voice.toggleMute?.();
+      toggleMuteRef.current?.();
     };
 
     const handleToggleDeafen = () => {
       console.log("[VoiceContext 🎧] Ejecutando atajo: Alternar Ensordecer");
-      voice.toggleDeafen?.();
+      toggleDeafenRef.current?.();
     };
 
     const handleDisconnectVoice = () => {
@@ -56,7 +69,7 @@ export function VoiceProvider({ profile, children }) {
       window.removeEventListener("onicord:keybind:toggle_deafen", handleToggleDeafen);
       window.removeEventListener("onicord:keybind:disconnect_voice", handleDisconnectVoice);
     };
-  }, [voice.toggleMute, voice.toggleDeafen, leaveVoiceChannel]);
+  }, [leaveVoiceChannel]);
 
   // Keep Voice Overlay synced globally even if RoomView is unmounted
   useEffect(() => {
@@ -77,20 +90,33 @@ export function VoiceProvider({ profile, children }) {
     }
   }, [currentVoiceChannelId, voice.inVoice, voice.members, profile?.nickname, profile?.avatar]);
 
-  const value = useMemo(
+  // Decoupled voice channel connection context (stable across speaking & volume events)
+  const channelInfoValue = useMemo(
     () => ({
-      ...voice,
       currentVoiceServer,
       currentVoiceChannelId,
       currentVoiceServerId: currentVoiceServer?.id || null,
       currentVoiceRoomCode: currentVoiceServer?.roomCode || null,
       joinVoiceChannel,
       leaveVoiceChannel,
+      inVoice: Boolean(voice.inVoice),
     }),
-    [voice, currentVoiceServer, currentVoiceChannelId, joinVoiceChannel, leaveVoiceChannel]
+    [currentVoiceServer, currentVoiceChannelId, joinVoiceChannel, leaveVoiceChannel, voice.inVoice]
   );
 
-  return <VoiceContext.Provider value={value}>{children}</VoiceContext.Provider>;
+  const value = useMemo(
+    () => ({
+      ...voice,
+      ...channelInfoValue,
+    }),
+    [voice, channelInfoValue]
+  );
+
+  return (
+    <VoiceChannelContext.Provider value={channelInfoValue}>
+      <VoiceContext.Provider value={value}>{children}</VoiceContext.Provider>
+    </VoiceChannelContext.Provider>
+  );
 }
 
 export function useGlobalVoice() {
@@ -100,3 +126,12 @@ export function useGlobalVoice() {
   }
   return context;
 }
+
+export function useVoiceChannelInfo() {
+  const context = useContext(VoiceChannelContext);
+  if (!context) {
+    throw new Error("useVoiceChannelInfo must be used within a VoiceProvider");
+  }
+  return context;
+}
+

@@ -18,6 +18,7 @@ import { evaluateServerFlame } from "../../lib/flameService";
 import { checkPermission, hasChannelAccess } from "../../lib/permissionsHelper";
 import UserProfilePopout from "../ui/UserProfilePopout";
 import { IconSearch, IconClose, IconTag } from "../icons/StreamIcons";
+import { buildPeerLookup } from "../../lib/profileUtils";
 
 import { useRoomResizers } from "../../hooks/useRoomResizers";
 import ChannelsSidebar from "../navigation/ChannelsSidebar";
@@ -44,6 +45,7 @@ export default function RoomView({
 }) {
   const { t } = useTranslation();
   const [peers, setPeers] = useState([]);
+  const peersLookup = useMemo(() => buildPeerLookup(peers), [peers]);
   const [showAdd, setShowAdd] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
@@ -89,11 +91,29 @@ export default function RoomView({
   }
   const { shouldRender: shouldRenderThread, isAnimatingOut: isThreadClosing } = useAnimatedMount(Boolean(activeThreadMessage), 160);
   const displayedThreadMsg = activeThreadMessage || activeThreadRef.current;
-  const [roomMessages, setRoomMessages] = useState([]);
+  const roomMessagesRef = useRef([]);
+  const [threadMessages, setThreadMessages] = useState([]);
   const toggleReactionRef = useRef(null);
+  const centralContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (!shouldRenderThread) {
+      activeThreadRef.current = null;
+      setThreadMessages([]);
+    }
+  }, [shouldRenderThread]);
+
+  useEffect(() => {
+    if (centralContainerRef.current) {
+      centralContainerRef.current.scrollLeft = 0;
+    }
+  }, [shouldRenderThread]);
 
   const handleMessagesUpdate = useCallback((msgs) => {
-    setRoomMessages(msgs);
+    roomMessagesRef.current = msgs;
+    if (activeThreadRef.current) {
+      setThreadMessages(msgs);
+    }
   }, []);
 
   const handleToggleReactionFromAnywhere = useCallback((messageId, emoji, targetChannelId) => {
@@ -104,6 +124,8 @@ export default function RoomView({
 
   const handleOpenThread = useCallback((msg) => {
     soundEngine.playNav("open");
+    activeThreadRef.current = msg;
+    setThreadMessages(roomMessagesRef.current);
     setActiveThreadMessage(msg);
   }, []);
 
@@ -209,7 +231,8 @@ export default function RoomView({
           threadParentId: parentMsgId,
           isOptimistic: true,
         };
-        setRoomMessages((prev) => [...prev, optimisticReply]);
+        roomMessagesRef.current = [...roomMessagesRef.current, optimisticReply];
+        setThreadMessages((prev) => [...prev, optimisticReply]);
 
         await window.electronAPI.sendChatMessage(
           server.roomCode,
@@ -593,14 +616,11 @@ export default function RoomView({
         }
 
         const remoteUserId = m.id || m.userId;
-        const peerProfile = (peers || []).find(
-          (p) =>
-            (p.peerId && p.peerId === m.peerId) ||
-            (remoteUserId &&
-              (p.id === remoteUserId || p.userId === remoteUserId)) ||
-            (m.id && (p.id === m.id || p.userId === m.id)) ||
-            (m.userId && (p.id === m.userId || p.userId === m.userId)),
-        );
+        const peerProfile =
+          (m.peerId && peersLookup.get(m.peerId)) ||
+          (remoteUserId && peersLookup.get(remoteUserId)) ||
+          (m.id && peersLookup.get(m.id)) ||
+          null;
         const finalUserId = peerProfile?.id || remoteUserId || m.peerId;
         const isPeerSpeaking =
           Boolean(m.isSpeaking) ||
@@ -628,7 +648,7 @@ export default function RoomView({
       });
   }, [
     voice.members,
-    peers,
+    peersLookup,
     profile,
     localPeerId,
     speakingPeers,
@@ -1239,7 +1259,7 @@ export default function RoomView({
         </div>
 
         {/* Contenedor Central: ChatPanel + StreamStage + ThreadSidePanel */}
-        <div className="flex-1 min-h-0 flex gap-1 overflow-hidden">
+        <div ref={centralContainerRef} className="flex-1 min-h-0 flex gap-1 overflow-x-clip overflow-y-hidden">
           <div className="flex-1 min-w-0 h-full flex flex-col relative overflow-hidden bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island">
             <div
               className={`flex-1 h-full min-h-0 flex flex-col ${((localStream || remoteStream) && !isStreamFloating) || (activeAddonStage && !isStageFloating) ? "hidden" : "flex"}`}
@@ -1377,7 +1397,7 @@ export default function RoomView({
             >
               <ThreadSidePanel
                 parentMessage={displayedThreadMsg}
-                messages={roomMessages}
+                messages={threadMessages}
                 currentUserId={profile?.id}
                 profile={profile}
                 peers={peers}

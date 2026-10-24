@@ -877,7 +877,9 @@
       "localStreamExpandTitle": "Ver Transmisión Propia en Pantalla Grande",
       "localStreamExpandDesc": "Permite expandir y maximizar tu propia transmisión de pantalla a vista completa en lugar de restringirse solo a la ventana flotante PiP.",
       "localStreamEnabledToast": "Transmisión propia en pantalla grande activada",
-      "localStreamDisabledToast": "Transmisión propia limitada a ventana PiP"
+      "localStreamDisabledToast": "Transmisión propia limitada a ventana PiP",
+      "badgeTestTitle": "Insignia de Notificación en Barra de Tareas (Overlay Badge)",
+      "badgeTestDesc": "Prueba el contador de mensajes sin leer sobre el icono de la app en Windows (setOverlayIcon), macOS Dock y título de pestaña."
     },
     "plugins": {
       "installedPlugins": "Complementos Instalados",
@@ -1016,7 +1018,7 @@
       "modeDarkSub": "Fondo oscuro equilibrado",
       "modeLight": "Modo Claro",
       "modeLightSub": "Fondo claro adaptativo",
-      "controlsTitle": "Controles de Interfaz y Estado",
+      "controlsTitle": "Controles y Estado",
       "buttonStyles": "Estilos de Botones",
       "dynamicIconTitle": "Icono Dinámico de la App",
       "dynamicIconDesc": "Sincronizado con la barra de tareas y el tray del sistema.",

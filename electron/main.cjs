@@ -553,6 +553,14 @@ function createWindow() {
   }
 
   global.mainWindow.once("ready-to-show", () => {
+    // Asegurar que en Windows no quede ninguna insignia ni overlay previo retenido por la barra de tareas
+    if (process.platform === "win32") {
+      try {
+        if (typeof app.setBadgeCount === "function") app.setBadgeCount(0);
+        global.mainWindow.setOverlayIcon(null, "");
+      } catch (_) {}
+    }
+
     const isHidden = process.argv.includes("--hidden");
     const startMinimized =
       profileService.activeProfile?.general?.startMinimized;

@@ -47,7 +47,12 @@ export function resolveAuthorDisplay(
     return { nickname: profile.nickname, avatar: profile.avatar ?? null };
   }
 
-  if (Array.isArray(peers)) {
+  if (peers instanceof Map) {
+    const peer = peers.get(authorId);
+    if (peer) {
+      return { nickname: peer.nickname, avatar: peer.avatar ?? null };
+    }
+  } else if (Array.isArray(peers)) {
     for (const peer of peers) {
       if (peer.id === authorId) {
         return { nickname: peer.nickname, avatar: peer.avatar ?? null };
@@ -66,10 +71,13 @@ export function resolveAuthorDisplay(
 }
 
 export function buildPeerLookup(peers) {
+  if (peers instanceof Map) return peers;
   const byKey = new Map();
-  for (const peer of peers) {
-    byKey.set(peer.id, peer);
-    if (peer.userId) byKey.set(peer.userId, peer);
+  if (Array.isArray(peers)) {
+    for (const peer of peers) {
+      if (peer && peer.id) byKey.set(peer.id, peer);
+      if (peer && peer.userId) byKey.set(peer.userId, peer);
+    }
   }
   return byKey;
 }

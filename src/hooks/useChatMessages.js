@@ -1,18 +1,55 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { notificationManager } from "../lib/notificationManager";
 import { soundEngine } from "../lib/soundEngine";
-function extractClientMessageMeta(msg) {
+export function normalizeChatMessage(msg) {
+  if (!msg || typeof msg !== "object") return msg;
+  if (msg._normalized) return msg;
+
   let text = msg.text || "";
+  let threadParentId = msg.threadParentId || null;
+  let isNudge = false;
+
   if (typeof text === "string" && text.trim().startsWith("{")) {
     try {
       const parsed = JSON.parse(text);
-      if (parsed.body) text = parsed.body;
-      else if (parsed.text) text = parsed.text;
+      if (parsed.threadParentId) threadParentId = parsed.threadParentId;
+      if (typeof parsed.body === "string") {
+        if (parsed.body.trim().startsWith("{")) {
+          try {
+            const inner = JSON.parse(parsed.body);
+            if (inner.threadParentId) threadParentId = inner.threadParentId;
+            text = inner.body || inner.text || parsed.body;
+          } catch {
+            text = parsed.body;
+          }
+        } else {
+          text = parsed.body;
+        }
+      } else if (parsed.text) {
+        text = parsed.text;
+      }
     } catch {}
   }
 
-  let isFile = Boolean(msg.filePath || msg.fileName);
-  let fileName = msg.fileName || "";
+  if (typeof text === "string" && text.includes("[NUDGE_MESSAGE]")) {
+    isNudge = true;
+  }
+
+  return {
+    ...msg,
+    text,
+    threadParentId: threadParentId || msg.threadParentId || null,
+    isNudge,
+    _normalized: true,
+  };
+}
+
+function extractClientMessageMeta(msg) {
+  const norm = normalizeChatMessage(msg);
+  let text = norm.text || "";
+
+  let isFile = Boolean(norm.filePath || norm.fileName);
+  let fileName = norm.fileName || "";
   let cleanText = text;
 
   if (typeof text === "string" && text.includes("[FILE_ATTACHMENT]:")) {
@@ -25,7 +62,7 @@ function extractClientMessageMeta(msg) {
     } catch {}
   }
 
-  let linkUrl = msg.linkUrl || null;
+  let linkUrl = norm.linkUrl || null;
   if (typeof cleanText === "string" && cleanText.includes("[LINK]:")) {
     const parts = cleanText.split("[LINK]:");
     cleanText = parts[0] ? parts[0].trim() : "";
@@ -35,17 +72,14 @@ function extractClientMessageMeta(msg) {
   const hasLink = Boolean(linkUrl || (typeof cleanText === "string" && /https?:\/\/[^\s\)]+/i.test(cleanText)));
   const isImage = Boolean(
     (fileName && /\.(png|jpe?g|gif|webp|svg|ico)$/i.test(fileName)) ||
-    (msg.fileType && msg.fileType.startsWith("image/"))
+    (norm.fileType && norm.fileType.startsWith("image/"))
   );
 
   return { cleanText, fileName, isFile, isImage, hasLink };
 }
 
-function matchSearchQuery(msg, rawQuery) {
-  if (!rawQuery || !rawQuery.trim()) return true;
-  if (!msg) return false;
-
-  const meta = extractClientMessageMeta(msg);
+export function parseClientSearchQuery(rawQuery) {
+  if (!rawQuery || !rawQuery.trim()) return null;
 
   const normalize = (s) =>
     (s || "")
@@ -54,11 +88,6 @@ function matchSearchQuery(msg, rawQuery) {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^\p{L}\p{N}_\s]+/gu, " ")
       .trim();
-
-  const normText = normalize(meta.cleanText);
-  const author = msg.authorNickname || msg.authorName || "";
-  const normAuthor = normalize(author);
-  const normFile = normalize(meta.fileName);
 
   let query = rawQuery.trim();
   const filters = { from: null, in: null, hasFile: false, hasImage: false, hasLink: false };
@@ -95,6 +124,37 @@ function matchSearchQuery(msg, rawQuery) {
     return match;
   });
 
+  const terms = query
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^\p{L}\p{N}_]+/u)
+    .filter(Boolean);
+
+  return { filters, phrases, terms };
+}
+
+export function matchParsedSearchQuery(msg, parsedQuery) {
+  if (!parsedQuery) return true;
+  if (!msg) return false;
+
+  const meta = extractClientMessageMeta(msg);
+
+  const normalize = (s) =>
+    (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\p{L}\p{N}_\s]+/gu, " ")
+      .trim();
+
+  const normText = normalize(meta.cleanText);
+  const author = msg.authorNickname || msg.authorName || "";
+  const normAuthor = normalize(author);
+  const normFile = normalize(meta.fileName);
+
+  const { filters, phrases, terms } = parsedQuery;
+
   if (filters.from && !normAuthor.includes(filters.from)) return false;
   if (filters.in && msg.channelId && msg.channelId.toLowerCase() !== filters.in) return false;
   if (filters.hasFile && !meta.isFile) return false;
@@ -105,13 +165,6 @@ function matchSearchQuery(msg, rawQuery) {
   for (const phrase of phrases) {
     if (!combined.includes(phrase)) return false;
   }
-
-  const terms = query
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .split(/[^\p{L}\p{N}_]+/u)
-    .filter(Boolean);
 
   for (const term of terms) {
     if (!normText.includes(term) && !normAuthor.includes(term) && !normFile.includes(term)) {
@@ -142,6 +195,11 @@ export function useChatMessages({
   const [isNudging, setIsNudging] = useState(false);
   const [historicalSearchResults, setHistoricalSearchResults] = useState([]);
   const focusTimeoutRef = useRef(null);
+  const checkedAttachmentIdsRef = useRef(new Set());
+
+  useEffect(() => {
+    checkedAttachmentIdsRef.current.clear();
+  }, [channelId, roomCode]);
 
   const onMessagesUpdateRef = useRef(onMessagesUpdate);
   useEffect(() => {
@@ -195,14 +253,14 @@ export function useChatMessages({
     return () => {
       unsubProgress?.();
     };
-  }, [messages]);
+  }, []);
 
   // Plugin outbound messages
   useEffect(() => {
     if (window.electronAPI?.onPluginChatMessageOutbound) {
       const cleanup = window.electronAPI.onPluginChatMessageOutbound(({ pluginId, message }) => {
         const msgData = message || {};
-        const msgObj = {
+        const msgObj = normalizeChatMessage({
           id: `plugin-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           isComplement: true,
           complementName: msgData.complementName || "Complemento",
@@ -213,7 +271,7 @@ export function useChatMessages({
             nickname: msgData.complementName || "Complemento",
             avatar: msgData.avatar || null,
           },
-        };
+        });
         setMessages((prev) => [...prev, msgObj]);
       });
       return cleanup;
@@ -236,6 +294,7 @@ export function useChatMessages({
 
     const checkHistoricalDownloads = async () => {
       const updatedProgressUpdates = {};
+      const newAttachmentsToCheck = [];
 
       for (const msg of messages) {
         if (msg.text?.includes("[FILE_ATTACHMENT]:")) {
@@ -243,21 +302,30 @@ export function useChatMessages({
             const parts = msg.text.split("[FILE_ATTACHMENT]:");
             const fileData = JSON.parse(parts[1]);
 
-            if (fileData && fileData.id) {
-              const savedPath = await window.electronAPI.fetchMediaLocalPath(
-                fileData.id,
-              );
-              if (savedPath) {
-                updatedProgressUpdates[fileData.id] = {
-                  progress: 100,
-                  done: true,
-                  localPath: savedPath,
-                };
-              }
+            if (fileData && fileData.id && !checkedAttachmentIdsRef.current.has(fileData.id)) {
+              checkedAttachmentIdsRef.current.add(fileData.id);
+              newAttachmentsToCheck.push(fileData.id);
             }
           } catch (e) {
             console.error("Error procesando meta histórico:", e);
           }
+        }
+      }
+
+      if (newAttachmentsToCheck.length === 0) return;
+
+      for (const fileId of newAttachmentsToCheck) {
+        try {
+          const savedPath = await window.electronAPI.fetchMediaLocalPath(fileId);
+          if (savedPath) {
+            updatedProgressUpdates[fileId] = {
+              progress: 100,
+              done: true,
+              localPath: savedPath,
+            };
+          }
+        } catch (e) {
+          console.error("Error consultando ruta local de adjunto:", e);
         }
       }
 
@@ -342,7 +410,7 @@ export function useChatMessages({
             console.error("Error procesando EDIT_MESSAGE en historial:", e);
           }
         } else {
-          cleanMessages.push(msg);
+          cleanMessages.push(normalizeChatMessage(msg));
         }
       }
 
@@ -647,22 +715,24 @@ export function useChatMessages({
         return next;
       });
 
+      const normalizedMsg = normalizeChatMessage(msg);
+
       setMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev;
+        if (prev.some((m) => m.id === normalizedMsg.id)) return prev;
 
         const optimisticIdx = prev.findIndex(
           (m) =>
             m.isOptimistic &&
-            (m.authorId === msg.authorId || m.authorId === "self" || msg.authorId === profile?.id) &&
-            m.text === msg.text
+            (m.authorId === normalizedMsg.authorId || m.authorId === "self" || m.authorId === profile?.id) &&
+            m.text === normalizedMsg.text
         );
 
         let nuevoFeed;
         if (optimisticIdx !== -1) {
           nuevoFeed = [...prev];
-          nuevoFeed[optimisticIdx] = msg;
+          nuevoFeed[optimisticIdx] = normalizedMsg;
         } else {
-          nuevoFeed = [...prev, msg].sort(
+          nuevoFeed = [...prev, normalizedMsg].sort(
             (a, b) => a.timestamp - b.timestamp,
           );
           setVisibleCount?.((v) => v + 1);
@@ -766,6 +836,11 @@ export function useChatMessages({
     return combined;
   }, [messages, historicalSearchResults, searchQuery]);
 
+  const parsedSearchQuery = useMemo(
+    () => parseClientSearchQuery(searchQuery),
+    [searchQuery]
+  );
+
   const filteredMessages = useMemo(() => {
     let result = candidateMessages;
 
@@ -777,18 +852,10 @@ export function useChatMessages({
 
     result = result.filter((msg) => {
       if (!msg) return false;
-      let checkText = msg.text || "";
-      if (typeof checkText === "string" && checkText.trim().startsWith("{")) {
-        try {
-          const parsed = JSON.parse(checkText);
-          if (parsed.body) checkText = parsed.body;
-        } catch {}
-      }
-      if (typeof checkText === "string" && (checkText.includes("[NUDGE_MESSAGE]") || checkText.startsWith("[NUDGE_MESSAGE]"))) {
-        return false;
-      }
-      if (msg.isComplement) {
-        const pluginId = msg.complementId || (msg.authorId && msg.authorId.startsWith("bot_") ? msg.authorId.slice(4) : null);
+      const normalized = normalizeChatMessage(msg);
+      if (normalized.isNudge) return false;
+      if (normalized.isComplement) {
+        const pluginId = normalized.complementId || (normalized.authorId && normalized.authorId.startsWith("bot_") ? normalized.authorId.slice(4) : null);
         if (pluginId && !enabledPluginIds.has(pluginId)) {
           return false;
         }
@@ -796,25 +863,15 @@ export function useChatMessages({
       return true;
     });
 
-    if (!searchQuery || !searchQuery.trim()) return result;
-    return result.filter((msg) => matchSearchQuery(msg, searchQuery));
-  }, [candidateMessages, searchQuery, server?.plugins]);
+    if (!parsedSearchQuery) return result;
+    return result.filter((msg) => matchParsedSearchQuery(msg, parsedSearchQuery));
+  }, [candidateMessages, parsedSearchQuery, server?.plugins]);
 
   const mainStreamMessages = useMemo(() => {
     return filteredMessages.filter((m) => {
       if (!m) return false;
-      if (m.threadParentId) return false;
-      if (typeof m.text === "string" && m.text.includes('"threadParentId"')) {
-        try {
-          const parsed = JSON.parse(m.text);
-          if (parsed?.threadParentId) return false;
-          if (typeof parsed?.body === "string" && parsed.body.includes('"threadParentId"')) {
-            const inner = JSON.parse(parsed.body);
-            if (inner?.threadParentId) return false;
-          }
-        } catch {}
-      }
-      return true;
+      const normalized = normalizeChatMessage(m);
+      return !normalized.threadParentId;
     });
   }, [filteredMessages]);
 

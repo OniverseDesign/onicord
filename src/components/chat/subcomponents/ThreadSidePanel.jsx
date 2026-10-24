@@ -3,32 +3,27 @@ import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 import ChatMessageItem from "../ChatMessageItem";
 import {
-  IconSticker,
-  IconAttach,
   IconSave,
   IconCopyFile,
   IconPasteFile,
   IconReply,
   Delete,
 } from "../../icons/StreamIcons";
-import StickerPopover from "../StickerPopover";
-import EmojiPickerPopover from "../../ui/EmojiPickerPopover";
-import QuickSuggestions from "../QuickSuggestions";
-import MentionsPopover from "../MentionsPopover";
-import CommandsPopover from "../CommandsPopover";
-import FloatingFormattingBar from "../FloatingFormattingBar";
+import ChatInputArea from "./ChatInputArea";
 import ContextMenu from "../../ui/ContextMenu";
 import DeleteMessageModal from "../../modals/DeleteMessageModal";
 import ForwardMessageModal from "../../modals/ForwardMessageModal";
 import ConfirmDialogModal from "../../modals/ConfirmDialogModal";
 import { ONICORD_COMMANDS } from "../../../lib/commands";
-import { copyTextToClipboard } from "../../../lib/clipboard";
+import { copyTextToClipboard, readTextFromClipboard } from "../../../lib/clipboard";
 import {
   getSelectionCharacterOffsets,
   setSelectionOffsets,
   renderHTMLForInput,
+  applyMarkdownFormat,
 } from "../../../lib/inputFormatter";
 import { soundEngine } from "../../../lib/soundEngine";
+import { normalizeChatMessage } from "../../../hooks/useChatMessages";
 
 const measureTextWidth = (text, font) => {
   const canvas = measureTextWidth.canvas || (measureTextWidth.canvas = document.createElement("canvas"));
@@ -75,47 +70,20 @@ export default function ThreadSidePanel({
 
   // Filter thread replies linked to this parentMessage
   const threadReplies = useMemo(() => {
+    if (!parentMessage?.id || !Array.isArray(messages)) return [];
     const list = messages.filter((m) => {
-      if (!parentMessage?.id || !m) return false;
-      let checkText = m.text || "";
-      if (typeof checkText === "string" && checkText.trim().startsWith("{")) {
-        try {
-          const parsed = JSON.parse(checkText);
-          if (parsed.body) checkText = parsed.body;
-        } catch {}
-      }
-      if (typeof checkText === "string" && (checkText.includes("[NUDGE_MESSAGE]") || checkText.startsWith("[NUDGE_MESSAGE]"))) {
-        return false;
-      }
-      if (m.threadParentId === parentMessage.id) return true;
-      if (typeof m.text === "string" && m.text.includes(parentMessage.id)) {
-        if (m.text.includes(`"threadParentId":"${parentMessage.id}"`) || m.text.includes(`"threadParentId": "${parentMessage.id}"`)) {
-          return true;
-        }
-        try {
-          const parsed = JSON.parse(m.text);
-          if (parsed?.threadParentId === parentMessage.id) return true;
-          if (typeof parsed?.body === "string" && parsed.body.includes(parentMessage.id)) {
-            const inner = JSON.parse(parsed.body);
-            if (inner?.threadParentId === parentMessage.id) return true;
-          }
-        } catch {}
-      }
-      return false;
+      if (!m) return false;
+      const norm = normalizeChatMessage(m);
+      if (norm.isNudge) return false;
+      return norm.threadParentId === parentMessage.id;
     });
 
     if (!searchQuery) return list;
     const query = searchQuery.toLowerCase().trim();
     return list.filter((msg) => {
       if (!msg) return false;
-      let textContent = msg.text || "";
-      if (typeof textContent === "string" && textContent.trim().startsWith("{")) {
-        try {
-          const parsed = JSON.parse(textContent);
-          if (parsed.text) textContent = parsed.text;
-        } catch {}
-      }
-      const textMatches = String(textContent).toLowerCase().includes(query);
+      const norm = normalizeChatMessage(msg);
+      const textMatches = String(norm.text || "").toLowerCase().includes(query);
       const authorMatches = msg.authorName?.toLowerCase().includes(query);
       const fileMatches =
         msg.fileName?.toLowerCase().includes(query) ||
@@ -183,7 +151,7 @@ export default function ThreadSidePanel({
 
       const relativeLeft = inputEl.offsetLeft + xPos;
 
-      const chatPanelEl = document.querySelector(".onicord-chat-input-bar") || inputEl.parentElement;
+      const chatPanelEl = inputEl.closest(".onicord-chat-input-bar") || inputEl.parentElement;
       const containerWidth = chatPanelEl?.getBoundingClientRect().width || 400;
       const constrainedLeft = Math.max(130, Math.min(relativeLeft, containerWidth - 130));
 
@@ -217,44 +185,47 @@ export default function ThreadSidePanel({
     }
   }, [input, profile, peers]);
 
-  const applyFormatting = (prefix, suffix) => {
+  const applyFormatting = (prefix, suffix = prefix) => {
     const inputEl = tyrannyInputRef.current;
     if (!inputEl) return;
 
     let start = 0;
     let end = 0;
-
-    if (selection) {
+    const offsets = getSelectionCharacterOffsets(inputEl);
+    if (offsets.start !== offsets.end) {
+      start = offsets.start;
+      end = offsets.end;
+    } else if (selection && selection.start !== selection.end) {
       start = selection.start;
       end = selection.end;
     } else {
-      const offsets = getSelectionCharacterOffsets(inputEl);
       start = offsets.start;
       end = offsets.end;
     }
 
-    const text = input;
-    const selected = text.substring(start, end);
-    let replacement = "";
+    const text = inputEl.textContent || input || "";
+    const { newText, newStart, newEnd } = applyMarkdownFormat(
+      text,
+      { start, end },
+      prefix,
+      suffix
+    );
 
-    if (!selected) {
-      replacement = prefix + suffix;
-    } else {
-      if (selected.startsWith(prefix) && selected.endsWith(suffix)) {
-        replacement = selected.substring(prefix.length, selected.length - suffix.length);
-      } else {
-        replacement = prefix + selected + suffix;
-      }
-    }
-
-    const newValue = text.substring(0, start) + replacement + text.substring(end);
-    setInput(newValue);
+    setInput(newText);
     setSelection(null);
+
+    const allUsers = [
+      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
+      ...Object.values(peers || {}).map((p) => ({
+        id: p.id,
+        nickname: p.nickname,
+      })),
+    ];
+    inputEl.innerHTML = renderHTMLForInput(newText, allUsers);
 
     requestAnimationFrame(() => {
       inputEl.focus();
-      const newEnd = start + replacement.length;
-      setSelectionOffsets(inputEl, start, newEnd);
+      setSelectionOffsets(inputEl, newStart, newEnd);
     });
   };
 
@@ -275,6 +246,24 @@ export default function ThreadSidePanel({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend(e);
+      return;
+    }
+
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key === "b") {
+        e.preventDefault();
+        applyFormatting("**", "**");
+      } else if (key === "i") {
+        e.preventDefault();
+        applyFormatting("*", "*");
+      } else if (key === "s" && e.shiftKey) {
+        e.preventDefault();
+        applyFormatting("~~", "~~");
+      } else if (key === "e") {
+        e.preventDefault();
+        applyFormatting("`", "`");
+      }
     }
   };
 
@@ -754,152 +743,49 @@ export default function ThreadSidePanel({
         <div className="absolute bottom-0 left-0 right-0 h-[24px] bg-gradient-to-t from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
       </div>
 
-      {/* Hidden File Input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        onChange={handleFileChange}
-        className="hidden"
+      <ChatInputArea
+        channelName={parentMessage.authorName || "thread"}
+        placeholderOverride={t("chat.replyInThreadPlaceholder", "Responder en el hilo...")}
+        hasSendMessages={true}
+        input={input}
+        setInput={setInput}
+        pendingFile={null}
+        setPendingFile={() => {}}
+        previewUrl={null}
+        setPreviewUrl={() => {}}
+        replyTarget={null}
+        setReplyTarget={() => {}}
+        typingUsers={{}}
+        visibleSuggestions={visibleSuggestions}
+        selection={selection}
+        isInputFocused={isInputFocused}
+        setIsInputFocused={setIsInputFocused}
+        applyFormatting={applyFormatting}
+        showCommandsPopup={showCommandsPopup}
+        setShowCommandsPopup={setShowCommandsPopup}
+        showMentionsPopup={showMentionsPopup}
+        setShowMentionsPopup={setShowMentionsPopup}
+        emojisTargetRect={emojisTargetRect}
+        setEmojisTargetRect={setEmojisTargetRect}
+        stickersTargetRect={stickersTargetRect}
+        setStickersTargetRect={setStickersTargetRect}
+        profile={profile}
+        peers={peers}
+        server={server}
+        tyrannyInputRef={tyrannyInputRef}
+        fileInputRef={fileInputRef}
+        emojiButtonRef={emojisBtnRef}
+        stickerButtonRef={stickersBtnRef}
+        handleSend={handleSend}
+        handleInputChange={handleInputChange}
+        handleKeyDown={handleKeyDown}
+        handlePaste={handlePaste}
+        handleInputSelection={handleInputSelection}
+        handleFileInputChange={handleFileChange}
+        handleAttachFileClick={() => fileInputRef.current?.click()}
+        handleSelectEmoji={handleSelectEmoji}
+        onSelectSticker={handleSendSticker}
       />
-
-      {/* Rich Input Popovers and Formatting bar */}
-      <div className="w-full relative shrink-0 px-2 pb-2 pt-0 z-30">
-        <QuickSuggestions
-          visibleSuggestions={visibleSuggestions}
-          selection={selection}
-          setInput={setInput}
-          tyrannyInputRef={tyrannyInputRef}
-        />
-
-        <FloatingFormattingBar
-          selection={selection}
-          applyFormatting={applyFormatting}
-          t={t}
-        />
-
-        <CommandsPopover
-          showCommandsPopup={showCommandsPopup}
-          input={input}
-          setInput={setInput}
-          setShowCommandsPopup={setShowCommandsPopup}
-          tyrannyInputRef={tyrannyInputRef}
-          serverPlugins={server?.plugins}
-          t={t}
-        />
-
-        <MentionsPopover
-          showMentionsPopup={showMentionsPopup}
-          input={input}
-          setInput={setInput}
-          peers={peers}
-          profile={profile}
-          roles={server?.roles || []}
-          setShowMentionsPopup={setShowMentionsPopup}
-          tyrannyInputRef={tyrannyInputRef}
-          t={t}
-        />
-
-        {emojisTargetRect && (
-          <EmojiPickerPopover
-            targetRect={emojisTargetRect}
-            triggerRef={emojisBtnRef}
-            onClose={() => setEmojisTargetRect(null)}
-            onSelectEmoji={(emoji) => {
-              handleSelectEmoji(emoji);
-              setEmojisTargetRect(null);
-            }}
-          />
-        )}
-
-        {stickersTargetRect && (
-          <StickerPopover
-            targetRect={stickersTargetRect}
-            onClose={() => setStickersTargetRect(null)}
-            onSelectSticker={handleSendSticker}
-          />
-        )}
-
-        {/* Input Form Wrapper */}
-        <form
-          onSubmit={handleSend}
-          className="onicord-chat-input-bar relative"
-        >
-          <div className="flex items-center gap-2 px-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="onicord-chat-toolbar-btn group"
-              title={t("chat.attachUnlimited")}
-            >
-              <IconAttach size="xl" />
-            </button>
-
-            <div className="relative flex-1 min-w-0 flex items-center h-full">
-              <div
-                contentEditable={true}
-                ref={tyrannyInputRef}
-                onInput={handleInputChange}
-                onKeyDown={handleKeyDown}
-                onPaste={handlePaste}
-                onSelect={handleInputSelection}
-                onKeyUp={handleInputSelection}
-                onMouseUp={handleInputSelection}
-                onFocus={() => setIsInputFocused(true)}
-                onBlur={() => setIsInputFocused(false)}
-                placeholder={t("chat.replyInThreadPlaceholder", "Responder en el hilo...")}
-                className="onicord-chat-input select-text outline-none overflow-x-hidden whitespace-pre-wrap pr-10 focus:outline-none"
-                style={{
-                  fontFamily: 'var(--font)',
-                  fontSize: '15px',
-                  lineHeight: '20px',
-                  minHeight: '20px',
-                  maxHeight: '120px',
-                  overflowY: 'auto',
-                  wordBreak: 'break-all',
-                }}
-              />
-            </div>
-
-            <button
-              ref={emojisBtnRef}
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (emojisTargetRect) {
-                  setEmojisTargetRect(null);
-                } else {
-                  setStickersTargetRect(null);
-                  setEmojisTargetRect(e.currentTarget.getBoundingClientRect());
-                }
-              }}
-              className="onicord-chat-toolbar-btn group"
-              title={t("chat.emoji", "Emoji")}
-            >
-              <MaterialIcon name="sentiment_satisfied" size="xl" />
-            </button>
-
-            <button
-              ref={stickersBtnRef}
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (stickersTargetRect) {
-                  setStickersTargetRect(null);
-                } else {
-                  setEmojisTargetRect(null);
-                  setStickersTargetRect(e.currentTarget.getBoundingClientRect());
-                }
-              }}
-              className="onicord-chat-toolbar-btn group"
-              title={t("chat.sendSticker")}
-            >
-              <IconSticker size="xl" />
-            </button>
-          </div>
-        </form>
-      </div>
 
       {/* ContextMenu popover in Thread panel */}
       {contextMenu &&
@@ -1042,6 +928,18 @@ export default function ThreadSidePanel({
                 },
               });
             }
+          }
+
+          if (contextMenu.type === "input") {
+            menuItems.push({
+              label: t("contextMenu.pasteText", "Pegar texto"),
+              icon: <IconPasteFile size="base" />,
+              onClick: async () => {
+                const text = await readTextFromClipboard();
+                if (text) setInput((prev) => prev + text);
+                tyrannyInputRef.current?.focus();
+              },
+            });
           }
 
           return (

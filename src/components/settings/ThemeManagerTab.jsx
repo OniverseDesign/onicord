@@ -243,160 +243,137 @@ export default function ThemeManagerTab({ profile }) {
           />
         </div>
 
-        {/* PREVISUALIZACIÓN REALISTA 1:1 CON CHATMESSAGEITEM */}
-        <div className="pt-3 border-t border-white/5 space-y-4">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted flex items-center gap-1.5">
-            <MaterialIcon name="visibility" size={14} />
-            <span>{t("settings.theme.preview", "Previsualización del Chat en Tiempo Real")}</span>
+        {/* PREVISUALIZACIÓN REALISTA EN TIEMPO REAL */}
+        <div className="pt-4 border-t border-white/5 space-y-3.5">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted flex items-center gap-2">
+            <MaterialIcon name="visibility" size={16} />
+            <span>{t("settings.theme.preview", "Vista previa en tiempo real")}</span>
           </div>
 
-          {/* VISTA PREVIA DEL CHAT REPRODUCIENDO CHATMESSAGEITEM */}
-          <div className="bg-onicord-base/80 border border-white/5 rounded-2xl py-3 font-sans select-text shadow-inner">
-            {/* Mensaje 1: ChatMessageItem estándar */}
-            <div className="onicord-message-row py-1 mt-1 group">
-              <div className="onicord-message-avatar shadow-sm">
-                {profile?.avatar ? (
-                  <img src={profile.avatar} className="w-full h-full object-cover" alt="" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-onicord-dark font-bold text-base">
-                    {(profile?.nickname || "O").charAt(0).toUpperCase()}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch pt-0.5">
+            {/* COLUMNA IZQUIERDA: VISTA PREVIA DEL CHAT (# GENERAL) */}
+            <div className="lg:col-span-7 bg-onicord-base/70 border border-white/5 rounded-2xl overflow-hidden flex flex-col shadow-inner min-h-[250px]">
+              {/* Encabezado del canal */}
+              <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/5 select-none bg-onicord-base/30">
+                <span className="text-onicord-muted font-bold text-base leading-none">#</span>
+                <span className="text-onicord-text font-bold text-sm tracking-normal">general</span>
+              </div>
+
+              {/* Mensajes del chat */}
+              <div className="p-4 space-y-4 text-left flex-1 font-sans">
+                {/* Mensaje 1 (Autor principal + segundo mensaje agrupado) */}
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-onicord-accent shadow-sm flex items-center justify-center">
+                    {profile?.avatar ? (
+                      <img src={profile.avatar} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <span className="text-onicord-dark font-bold text-base">
+                        {(profile?.nickname || "O").charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
-                )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-sm text-onicord-text leading-tight cursor-default">
+                      {profile?.nickname || "Oniverse"}
+                    </div>
+                    <div
+                      className="whitespace-pre-wrap break-words text-[13px] text-onicord-subtext select-text mt-1"
+                      style={{ lineHeight: "var(--onicord-chat-line-height, 1.45)" }}
+                    >
+                      ¡Hola a todos! Este es un mensaje de prueba con una mención a{" "}
+                      <span className="inline-flex items-center font-semibold text-onicord-accent bg-onicord-accent/15 px-1.5 py-0.5 rounded-md cursor-pointer hover:underline">
+                        @Admin
+                      </span>{" "}
+                      usando la nueva paleta.
+                    </div>
+                    <div
+                      className="whitespace-pre-wrap break-words text-[13px] text-onicord-subtext select-text mt-3"
+                      style={{ lineHeight: "var(--onicord-chat-line-height, 1.45)" }}
+                    >
+                      Este segundo mensaje está agrupado sin repetir la foto ni el nombre de usuario.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mensaje 2 (Segundo autor: Alex) */}
+                <div className="flex items-start gap-3 pt-1">
+                  <div className="w-10 h-10 rounded-full shrink-0 bg-[#8c74bd] text-white shadow-sm flex items-center justify-center font-bold text-base">
+                    A
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-sm text-purple-300 leading-tight cursor-default">
+                      Alex (Moderador)
+                    </div>
+                    <div
+                      className="whitespace-pre-wrap break-words text-[13px] text-onicord-subtext select-text mt-1 min-h-[38px]"
+                      style={{ lineHeight: "var(--onicord-chat-line-height, 1.45)" }}
+                    >
+                      ¡Quedó excelente el acento de color{" "}
+                      <span className="inline-flex items-center font-medium text-onicord-accent bg-onicord-accent/15 px-1.5 py-0.5 rounded-md cursor-pointer hover:underline">
+                        @{activeAccent.startsWith("#") ? t("settings.theme.customColor", "Personalizado") : (APP_COLORS[activeAccent]?.name || "Lavender")}
+                      </span>!
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* COLUMNA DERECHA: CONTROLES Y ESTADO */}
+            <div className="lg:col-span-5 bg-onicord-base/70 border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-inner min-h-[250px]">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted text-left">
+                {t("settings.theme.controlsTitle", "Controles y Estado")}
               </div>
 
-              <div className="min-w-0 flex-1 mt-0.5 text-left">
-                <div className="flex items-baseline gap-2">
-                  <span className="cursor-default text-[15px] font-semibold text-onicord-text hover:underline">
-                    {profile?.nickname || "Onicord User"}
-                  </span>
-                  <time className="text-[11px] text-onicord-muted opacity-60 font-medium">
-                    Hoy a la(s) 14:20
-                  </time>
-                </div>
-                <div
-                  className="whitespace-pre-wrap break-words text-[15px] text-onicord-subtext select-text cursor-text mt-0.5"
-                  style={{ lineHeight: "var(--onicord-chat-line-height, 1.5)" }}
+              {/* Fila de 2 Botones */}
+              <div className="grid grid-cols-2 gap-2.5 w-full">
+                <button
+                  type="button"
+                  className="h-10 px-3 rounded-xl bg-onicord-accent text-onicord-dark font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer truncate"
                 >
-                  ¡Hola a todos! Este es un mensaje de prueba con una mención a{" "}
-                  <span className="font-semibold text-onicord-accent bg-onicord-accent/15 px-1.5 py-0.5 rounded-md cursor-pointer hover:underline">
-                    @Admin
-                  </span>{" "}
-                  usando la nueva paleta.
-                </div>
-              </div>
-            </div>
-
-            {/* Mensaje 2: ChatMessageItem agrupado (isGrouped = true) */}
-            <div className="onicord-message-row py-0.5 group">
-              <div className="w-11 shrink-0 flex items-center justify-end select-none text-[10px] text-onicord-muted opacity-40 font-mono pr-1">
-                14:21
-              </div>
-              <div className="min-w-0 flex-1 mt-0.5 text-left">
-                <div
-                  className="whitespace-pre-wrap break-words text-[15px] text-onicord-subtext select-text cursor-text"
-                  style={{ lineHeight: "var(--onicord-chat-line-height, 1.5)" }}
+                  <MaterialIcon name="check" size={16} />
+                  <span>{t("common.save", "Guardar")}</span>
+                </button>
+                <button
+                  type="button"
+                  className="h-10 px-3 rounded-xl bg-onicord-danger/15 hover:bg-onicord-danger/25 text-onicord-danger font-medium text-xs border border-onicord-danger/30 flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer truncate"
                 >
-                  Este segundo mensaje está agrupado sin repetir la foto ni el nombre de usuario.
-                </div>
-              </div>
-            </div>
-
-            {/* Mensaje 3: ChatMessageItem de segundo autor */}
-            <div className="onicord-message-row py-1 mt-2 group">
-              <div className="onicord-message-avatar !bg-purple-500/20 border border-purple-500/30 text-purple-300 flex items-center justify-center font-bold text-base shadow-sm">
-                A
+                  <MaterialIcon name="delete" size={16} />
+                  <span>{t("common.delete", "Eliminar")}</span>
+                </button>
               </div>
 
-              <div className="min-w-0 flex-1 mt-0.5 text-left">
-                <div className="flex items-baseline gap-2">
-                  <span className="cursor-default text-[15px] font-semibold text-purple-300 hover:underline">
-                    Alex (Moderador)
-                  </span>
-                  <time className="text-[11px] text-onicord-muted opacity-60 font-medium">
-                    Hoy a la(s) 14:22
-                  </time>
-                </div>
-                <div
-                  className="whitespace-pre-wrap break-words text-[15px] text-onicord-subtext select-text cursor-text mt-0.5"
-                  style={{ lineHeight: "var(--onicord-chat-line-height, 1.5)" }}
-                >
-                  ¡Quedó excelente el acento de color{" "}
-                  <span className="font-mono text-onicord-accent">
-                    @{activeAccent.startsWith("#") ? t("settings.theme.customColor", "Personalizado") : (APP_COLORS[activeAccent]?.name || "Lavender")}
-                  </span>!
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* SECCIÓN DE COMPONENTES INTERACTIVOS DE TAMAÑO REALISTA */}
-          <div className="space-y-3 pt-2">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted">
-              {t("settings.theme.controlsTitle", "Controles de Interfaz y Estado")}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Botones Realistas */}
-              <div className="bg-onicord-base/40 p-3.5 rounded-xl border border-white/5 space-y-2.5">
-                <span className="text-[11px] font-semibold text-onicord-muted block text-left">
-                  {t("settings.theme.buttonStyles", "Estilos de Botones")}
+              {/* Fila: Interruptor de Estado */}
+              <div className="bg-onicord-surface/40 border border-white/5 rounded-xl px-4 py-3.5 flex items-center justify-between">
+                <span className="text-[13px] font-medium text-onicord-text select-none">
+                  {t("settings.theme.previewToggle", "Interruptor de Estado")}
                 </span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    className="onicord-btn-primary px-3.5 py-1.5 text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5"
-                  >
-                    <MaterialIcon name="check" size={14} />
-                    <span>{t("common.save", "Guardar")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-onicord-base hover:bg-white/10 text-white border border-white/10 transition cursor-pointer flex items-center gap-1.5"
-                  >
-                    <MaterialIcon name="tune" size={14} />
-                    <span>{t("settings.theme.settings", "Ajustes")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-onicord-danger/20 hover:bg-onicord-danger/30 text-onicord-danger border border-onicord-danger/30 transition cursor-pointer flex items-center gap-1.5"
-                  >
-                    <MaterialIcon name="delete" size={14} />
-                    <span>{t("common.delete", "Borrar")}</span>
-                  </button>
-                </div>
+                <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={previewToggle}
+                    onChange={(e) => setPreviewToggle(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="onicord-toggle-slider" />
+                </label>
               </div>
 
-              {/* Switches y Slider Realista */}
-              <div className="bg-onicord-base/40 p-3.5 rounded-xl border border-white/5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-onicord-muted">
-                    {t("settings.theme.previewToggle", "Interruptor de Estado")}
-                  </span>
-                  <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={previewToggle}
-                      onChange={(e) => setPreviewToggle(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="onicord-toggle-slider" />
-                  </label>
+              {/* Fila: Nivel de Desplazamiento */}
+              <div className="bg-onicord-surface/40 border border-white/5 rounded-xl px-4 py-3.5 space-y-2.5">
+                <div className="flex items-center justify-between text-[13px] font-medium select-none">
+                  <span className="text-onicord-text">{t("settings.theme.scrollLevel", "Nivel de Desplazamiento")}</span>
+                  <span className="font-mono text-xs font-bold text-onicord-muted">{previewSliderVal}%</span>
                 </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center text-[11px] font-semibold text-onicord-muted">
-                    <span>{t("settings.theme.scrollLevel", "Nivel de Desplazamiento")}</span>
-                    <span className="font-mono text-onicord-accent font-bold">{previewSliderVal}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={previewSliderVal}
-                    onChange={(e) => setPreviewSliderVal(Number(e.target.value))}
-                    className="onicord-range-input"
-                  />
-                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={previewSliderVal}
+                  onChange={(e) => setPreviewSliderVal(Number(e.target.value))}
+                  className="onicord-range-input"
+                />
               </div>
             </div>
           </div>

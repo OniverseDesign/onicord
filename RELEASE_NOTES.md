@@ -1,3 +1,42 @@
+# Onicord v0.1.8
+
+## Changes
+
+- **Taskbar Unread Notification Badges**:
+  - Native Windows taskbar overlay badges via `win.setOverlayIcon` and macOS Dock badge support.
+  - Dynamic 32x32px Canvas generator with official `onicord-danger` background (`#f38ba8`) and bold white typography (`22px` for 1–9, `19px` for +9).
+  - Real-time unread calculation via `useUnreadTracker` respecting muted servers; automatic startup cleanup eliminating ghost badges.
+  - Disabled Chromium default Windows Badging API to prevent generic black circles from overriding custom icons.
+  - Developer Sandbox test card in Settings for instant badge testing and cache clearing.
+- **Packaging & Bundle Size Optimization**:
+  - Moved `uisfx` and frontend UI runtime libraries to `devDependencies`, preventing `electron-builder` from packing `node_modules/uisfx/sounds/` into `app.asar`.
+  - Direct elimination of 936 redundant static audio files (`.mp3` & `.ogg`), stripping ~8.8 MB of dead weight from installers and portable builds.
+  - Purged obsolete dependencies (`react-icons`, `find-process`) in favor of native SVG icons and optimized OS process scanners.
+- **Real-Time Theme Preview Redesign**:
+  - Modern two-column layout in Appearance Settings: `# general` realistic chat mockup on the left, and interactive Controls & Status on the right.
+  - Locked container heights (`min-h-[250px]`) preventing UI layout shifts and jumps when switching accent colors with variable length names.
+- **Voice Architecture & WebRTC State Isolation**:
+  - Decoupled `VoiceChannelContext` from `VoiceContext`, isolating speaking and volume state updates to eliminate unnecessary application-wide re-renders.
+  - Mutable reference hooks for global voice shortcuts (`toggle_mute`, `toggle_deafen`, `disconnect_voice`), removing volatile window listener re-subscriptions.
+  - Modularized `VoicePeerManager` architecture into dedicated submodules.
+- **Rich Text & Markdown Formatting Engine**:
+  - Centralized `applyMarkdownFormat` engine supporting smart wrapping and toggle-unwrapping of inline and block markdown styles (bold, italic, strikethrough, inline code, quotes, headings, and multi-line code blocks).
+  - Native support for combined bold + italic markdown syntax (`***...***` and `___...___`) across messages and real-time input preview.
+  - Keyboard formatting shortcuts in chat input: `Ctrl+B` / `Cmd+B` (bold), `Ctrl+I` / `Cmd+I` (italic), `Ctrl+Shift+S` (strikethrough), and `Ctrl+E` (inline code).
+  - Synchronized selection restoration and syntax highlighting in the chat input bar.
+- **Chat, Threads & Client Search Improvements**:
+  - Unified `ThreadSidePanel` with standard `ChatInputArea` for consistent emoji, sticker, attachment, and markdown handling.
+  - Centralized message normalization (`normalizeChatMessage`) across threads, nudges, optimistic feeds, and complement bots.
+  - Indexed caching for local media attachment paths (`checkedAttachmentIdsRef`), preventing redundant IPC file path resolutions.
+  - Enhanced client-side search query parser supporting operators (`from:`, `in:`, `has:file`, `has:image`, `has:link`) and exact phrases.
+- **Music Player & Island Direct Dispatch**:
+  - Migrated `MusicPlayerWidget` and `MusicIsland` from global DOM event dispatchers to direct context methods, improving responsiveness and reducing event overhead.
+- **UI & Modal Polish**:
+  - Fixed toast notification stacking context with explicit `zIndex: 999999999`, ensuring toast alerts always render above modal backdrops.
+  - Optimized role grouping in `MembersSidebar` with O(1) Map lookups for large member lists.
+  - Full i18n dictionary updates across English, Spanish, and Portuguese.
+  - Updated bundled `yt-dlp` executable to the latest stable release.
+
 # Onicord v0.1.7
 
 ## Changes

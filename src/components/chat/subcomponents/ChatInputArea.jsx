@@ -22,7 +22,8 @@ function formatBytes(bytes) {
 
 export default function ChatInputArea({
   channelName,
-  hasSendMessages,
+  placeholderOverride = null,
+  hasSendMessages = true,
   input,
   setInput,
   pendingFile,
@@ -331,9 +332,11 @@ export default function ChatInputArea({
               placeholder={
                 !hasSendMessages
                   ? t("chat.noPermissionPlaceholder", "No tienes permisos para enviar mensajes en este canal")
-                  : pendingFile
-                    ? `Comment on ${pendingFile.name}...`
-                    : `${t("chat.placeholder").replace("#general...", `#${channelName || "general"}`)}`
+                  : placeholderOverride
+                    ? placeholderOverride
+                    : pendingFile
+                      ? `Comment on ${pendingFile.name}...`
+                      : `${t("chat.placeholder").replace("#general...", `#${channelName || "general"}`)}`
               }
               className={`onicord-chat-input select-text outline-none overflow-x-hidden whitespace-pre-wrap pr-10 focus:outline-none ${
                 !hasSendMessages ? "opacity-50 cursor-not-allowed select-none" : ""

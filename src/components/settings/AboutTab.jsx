@@ -90,14 +90,13 @@ export default function AboutTab() {
     { name: "electron", license: "MIT", purpose: "Desktop Runtime Framework" },
     { name: "react & react-dom", license: "MIT", purpose: "User Interface Library" },
     { name: "react-resizable-panels", license: "MIT", purpose: "Flexible Layout Resizing" },
-    { name: "react-icons", license: "MIT", purpose: "Vector Icon System" },
+    { name: "Material Symbols", license: "Apache-2.0", purpose: "Typography & Icon System" },
     { name: "tailwindcss & daisyui", license: "MIT", purpose: "Styling & Design System" },
     { name: "i18next & react-i18next", license: "MIT", purpose: "Localization & Multi-Language" },
     { name: "pdfjs-dist", license: "Apache-2.0", purpose: "In-App PDF Document Viewer" },
     { name: "adm-zip", license: "MIT", purpose: "ZIP Archive & Addon Compression" },
     { name: "uiohook-napi", license: "GPL-3.0", purpose: "Global Shortcuts & Overlay Hooks" },
     { name: "clsx & tailwind-merge", license: "MIT", purpose: "Dynamic Class Merging" },
-    { name: "find-process", license: "MIT", purpose: "Rich Presence Process Discovery" },
     { name: "electron-updater", license: "MIT", purpose: "Differential Desktop Updates" },
   ];
 
