@@ -207,7 +207,7 @@ export default function RoomView({
   }, [server.roomCode, textChannelId]);
 
   const handleSendThreadReply = useCallback(
-    async (parentMsgId, replyText) => {
+    async (parentMsgId, replyText, replyData = null) => {
       if (
         !parentMsgId ||
         !replyText.trim() ||
@@ -215,10 +215,32 @@ export default function RoomView({
       )
         return;
       try {
-        const threadPayload = JSON.stringify({
-          body: replyText.trim(),
-          threadParentId: parentMsgId,
-        });
+        let payloadObj;
+        if (replyText.trim().startsWith("{")) {
+          try {
+            const parsed = JSON.parse(replyText.trim());
+            payloadObj = {
+              ...parsed,
+              threadParentId: parentMsgId,
+            };
+          } catch {
+            payloadObj = {
+              body: replyText.trim(),
+              threadParentId: parentMsgId,
+            };
+          }
+        } else {
+          payloadObj = {
+            body: replyText.trim(),
+            threadParentId: parentMsgId,
+          };
+        }
+
+        if (replyData) {
+          payloadObj.replyTo = replyData;
+        }
+
+        const threadPayload = JSON.stringify(payloadObj);
 
         const optimisticReply = normalizeChatMessage({
           id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -229,6 +251,7 @@ export default function RoomView({
           authorAvatar: profile?.avatar || null,
           text: threadPayload,
           rawText: threadPayload,
+          replyTo: replyData,
           timestamp: Date.now(),
           threadParentId: parentMsgId,
           isOptimistic: true,

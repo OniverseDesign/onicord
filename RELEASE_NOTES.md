@@ -9,7 +9,7 @@
 - **Centralized & Standardized Motion System**: Unified animation tokens, natural bezier curves, and exit transitions across all modal dialogs, popovers, context menus, and select dropdowns.
 - **User Panel & Audio Control Ergonomics**: Persistent mute and deafen toggles in the bottom user panel, allowing microphone and headphone adjustments before connecting to voice lounges.
 - **Chat & Navigation UI Polish**: Added an animated floating "Jump to present" button when scrolling message history, smooth slide transitions for reply bars and pending attachments, and rotating category chevrons.
-- **Chat Reply & Feed Deduplication**: Resolved an issue where replying to a message caused optimistic replies to render twice, while guaranteeing quoted reply previews and metadata are preserved.
+- **Chat & Thread Reply System**: Resolved duplicate reply rendering and enabled full quoted reply previews in the thread panel instead of inserting plain text mentions.
 
 # Onicord v0.1.8
 

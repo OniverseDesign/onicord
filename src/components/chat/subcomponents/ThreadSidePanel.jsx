@@ -44,8 +44,8 @@ export default function ThreadSidePanel({
   onSendThreadReply,
   onToggleReaction,
 }) {
-  const { t } = useTranslation();
   const [input, setInput] = useState("");
+  const [replyTarget, setReplyTarget] = useState(null);
   const [stickersTargetRect, setStickersTargetRect] = useState(null);
   const [emojisTargetRect, setEmojisTargetRect] = useState(null);
   const [showCommandsPopup, setShowCommandsPopup] = useState(false);
@@ -115,7 +115,11 @@ export default function ThreadSidePanel({
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [threadReplies.length]);
+  }, [threadReplies.length, replyTarget]);
+
+  useEffect(() => {
+    setReplyTarget(null);
+  }, [parentMessage?.id]);
 
   useEffect(() => {
     if (!input) {
@@ -232,9 +236,39 @@ export default function ThreadSidePanel({
   const handleSend = (e) => {
     if (e) e.preventDefault();
     if (!input.trim() || !parentMessage) return;
-    onSendThreadReply(parentMessage.id, input.trim());
+
+    let replyData = null;
+    if (replyTarget) {
+      let cleanReplyText = replyTarget.text || "";
+      if (typeof cleanReplyText === "string" && cleanReplyText.trim().startsWith("{")) {
+        try {
+          const parsed = JSON.parse(cleanReplyText);
+          if (parsed && parsed.body !== undefined) {
+            cleanReplyText = parsed.body;
+          }
+        } catch (e) {}
+      }
+      if (cleanReplyText.length > 200) {
+        cleanReplyText = cleanReplyText.substring(0, 200) + "...";
+      }
+      const avatar = replyTarget.authorAvatar || replyTarget.avatar;
+      const safeAvatar = (avatar && typeof avatar === "string" && avatar.startsWith("data:")) ? null : avatar;
+
+      replyData = {
+        id: replyTarget.id,
+        authorId: replyTarget.authorId,
+        text: cleanReplyText,
+        authorNickname: replyTarget.authorNickname,
+        authorAvatar: safeAvatar,
+        isComplement: replyTarget.isComplement,
+        complementName: replyTarget.complementName,
+      };
+    }
+
+    onSendThreadReply(parentMessage.id, input.trim(), replyData);
     soundEngine.playCue("send");
     setInput("");
+    setReplyTarget(null);
     setShowCommandsPopup(false);
     setShowMentionsPopup(false);
     if (tyrannyInputRef.current) {
@@ -696,7 +730,7 @@ export default function ThreadSidePanel({
               onToggleReaction={handleToggleReaction}
               onJumpToMessage={handleJumpToMessage}
               onReplyClick={(target) => {
-                setInput((prev) => prev + ` @${peers[target.authorId]?.nickname || "Usuario"} `);
+                setReplyTarget(target);
                 tyrannyInputRef.current?.focus();
               }}
             />
@@ -730,7 +764,7 @@ export default function ThreadSidePanel({
               onToggleReaction={handleToggleReaction}
               onJumpToMessage={handleJumpToMessage}
               onReplyClick={(target) => {
-                setInput((prev) => prev + ` @${peers[target.authorId]?.nickname || "Usuario"} `);
+                setReplyTarget(target);
                 tyrannyInputRef.current?.focus();
               }}
             />
@@ -753,8 +787,8 @@ export default function ThreadSidePanel({
         setPendingFile={() => {}}
         previewUrl={null}
         setPreviewUrl={() => {}}
-        replyTarget={null}
-        setReplyTarget={() => {}}
+        replyTarget={replyTarget}
+        setReplyTarget={setReplyTarget}
         typingUsers={{}}
         visibleSuggestions={visibleSuggestions}
         selection={selection}
@@ -859,7 +893,21 @@ export default function ThreadSidePanel({
               label: t("chat.reply", "Responder"),
               icon: <IconReply size="lg" />,
               onClick: () => {
-                setInput((prev) => prev + ` @${nickname} `);
+                setReplyTarget({
+                  id: msg.id,
+                  authorId: msg.authorId,
+                  authorNickname:
+                    msg.authorNickname ||
+                    msg.user?.nickname ||
+                    msg.author ||
+                    nickname,
+                  authorAvatar:
+                    msg.authorAvatar ||
+                    msg.user?.avatar,
+                  text: msg.text,
+                  isComplement: msg.isComplement,
+                  complementName: msg.complementName,
+                });
                 tyrannyInputRef.current?.focus();
               },
             });
