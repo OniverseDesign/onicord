@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import MaterialIcon from "../icons/MaterialIcon";
+import FloatingMediaBar from "../ui/FloatingMediaBar";
 
 import {
   IconClose,
@@ -325,7 +326,7 @@ export default function StreamDisplay({
                     e.preventDefault();
                     if (!hasMoved.current && onToggleSize) onToggleSize();
                   }}
-                  className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 shadow-md"
+                  className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-white/5 text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 cursor-pointer"
                   title={t("voice.fullScreen")}
                 >
                   <IconFullscreen size="lg" />
@@ -348,7 +349,7 @@ export default function StreamDisplay({
                   if (onToggleSize) onToggleSize();
                 }
               }}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 shadow-md cursor-pointer"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-onicord-danger/30 text-onicord-danger hover:bg-onicord-danger hover:text-white transition duration-150 cursor-pointer"
               title={isLocal ? t("voice.stopStream") : t("voice.closePiP", "Cerrar PiP")}
             >
               {isLocal ? (
@@ -367,10 +368,10 @@ export default function StreamDisplay({
     <div
       ref={containerRef}
       style={{ isolation: "isolate" }}
-      className={`w-full h-full overflow-hidden relative flex items-center justify-center transition-all duration-200 select-none bg-black ${
+      className={`relative flex-1 w-full h-full min-h-0 min-w-0 flex flex-col select-none overflow-hidden bg-black ${
         isFullscreen
-          ? "w-screen h-screen max-w-none max-h-none rounded-none border-none"
-          : "aspect-video max-w-[90vw] max-h-[80vh] rounded-onicord-inner border border-white/5 shadow-2xl"
+          ? "fixed inset-0 z-50 w-screen h-screen rounded-none border-none"
+          : "rounded-onicord-inner border border-onicord-island group/stage"
       } ${isFullscreen && !showControls ? "cursor-none" : "cursor-default"}`}
     >
       <video
@@ -386,7 +387,7 @@ export default function StreamDisplay({
       {/* Top left overlay badge - Se oculta tras 3s de inactividad en fullscreen */}
       <div
         style={{ zIndex: 999999, transform: "translate3d(0, 0, 50px)" }}
-        className={`absolute top-4 left-4 flex items-center gap-2 bg-black/80 border border-white/10 px-3.5 py-1.5 rounded-full text-xs shadow-2xl backdrop-blur-md select-none transition-all duration-300 pointer-events-auto ${
+        className={`absolute top-4 left-4 flex items-center gap-2 bg-black/80 border border-white/10 px-3.5 py-1.5 rounded-full text-xs backdrop-blur-md select-none transition-all duration-300 pointer-events-auto ${
           isFullscreen && !showControls
             ? "opacity-0 -translate-y-4 pointer-events-none"
             : "opacity-100 translate-y-0 pointer-events-auto"
@@ -401,102 +402,55 @@ export default function StreamDisplay({
       </div>
 
       {/* Media control bar overlay - Se oculta tras 3s de inactividad en fullscreen */}
-      <div
-        style={{ zIndex: 999999, transform: "translate3d(0, 0, 50px)" }}
-        className={`absolute bottom-6 left-0 right-0 flex justify-center select-none px-4 transition-all duration-300 ${
-          isFullscreen && !showControls
-            ? "opacity-0 translate-y-6 pointer-events-none"
-            : "opacity-100 translate-y-0 pointer-events-auto"
-        }`}
-      >
-        <div className="onicord-media-control-bar max-w-[90%] mx-auto shadow-2xl border border-white/20 bg-onicord-surface/90">
-          {/* Audio Volume */}
-          <div className="flex items-center gap-2 border-r border-white/10 pr-2">
-            <button
-              type="button"
-              onClick={() => setIsMuted(!isMuted)}
-              className={`onicord-icon-btn-round ${
-                isMuted ? "bg-onicord-danger/20 text-onicord-danger border-onicord-danger/40" : "text-white"
-              }`}
-              title={isMuted ? t("voice.unmuteAudio") : t("voice.muteAudio")}
-            >
-              {isMuted ? (
-                <IconVolumeOff size="base" />
-              ) : (
-                <IconVolumeUp size="base" />
-              )}
-            </button>
+      <FloatingMediaBar visible={!isFullscreen || showControls}>
+        {/* Audio Volume */}
+        <FloatingMediaBar.Volume
+          volume={volume}
+          max={100}
+          step={1}
+          isMuted={isMuted}
+          onToggleMute={() => setIsMuted(!isMuted)}
+          onVolumeChange={(val) => {
+            setVolume(val);
+            if (isMuted && val > 0) setIsMuted(false);
+          }}
+          titleMute={t("voice.muteAudio")}
+          titleUnmute={t("voice.unmuteAudio")}
+          customMuteIcon={<IconVolumeOff size="base" />}
+          customUnmuteIcon={<IconVolumeUp size="base" />}
+          showDividers={false}
+          sliderClassName="w-18"
+        />
 
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={volume}
-              onChange={(e) => {
-                setVolume(Number(e.target.value));
-                if (isMuted) setIsMuted(false);
-              }}
-              className="w-18 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-onicord-accent"
-              style={{
-                backgroundImage: `linear-gradient(to right, rgb(var(--onicord-lavender)) ${volume}%, rgba(255,255,255,0.2) ${volume}%)`,
-              }}
-            />
-          </div>
+        {/* Switch to Floating PiP view button */}
+        {onToggleSize && (
+          <FloatingMediaBar.PillButton
+            icon={<IconFullscreenExit size="base" />}
+            label={t("voice.viewChat")}
+            title={t("voice.viewChat")}
+            onClick={onToggleSize}
+          />
+        )}
 
-          {/* Switch to Floating PiP view button */}
-          {onToggleSize && (
-            <button
-              type="button"
-              onClick={onToggleSize}
-              className="onicord-media-bar-btn"
-              title={t("voice.viewChat")}
-            >
-              <IconFullscreenExit size="base" />
-              <span>{t("voice.viewChat")}</span>
-            </button>
-          )}
+        {/* Toggle Fullscreen button */}
+        {onToggleFullscreen && (
+          <FloatingMediaBar.IconButton
+            icon={isFullscreen ? <IconFullscreenExit size="base" /> : <IconFullscreen size="base" />}
+            title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
+            active={isFullscreen}
+            onClick={onToggleFullscreen}
+          />
+        )}
 
-          {/* Toggle Fullscreen button */}
-          {onToggleFullscreen && (
-            <button
-              type="button"
-              onClick={onToggleFullscreen}
-              className={`onicord-icon-btn-round ${isFullscreen ? "bg-sky-500/20 text-sky-400 border-sky-500/40" : "text-white"}`}
-              title={
-                isFullscreen
-                  ? t("voice.exitFullScreen")
-                  : t("voice.fullScreen")
-              }
-            >
-              {isFullscreen ? (
-                <IconFullscreenExit size="base" />
-              ) : (
-                <IconFullscreen size="base" />
-              )}
-            </button>
-          )}
-
-          {/* Stop Stream / Close View button */}
-          <button
-            type="button"
-            onClick={onStopStream}
-            className="onicord-icon-btn-round-stop"
-            title={t("voice.stopStream")}
-          >
-            <IconStopStream size="base" />
-          </button>
-        </div>
-      </div>
+        {/* Stop Stream / Close View button */}
+        <FloatingMediaBar.StopButton
+          icon={<IconStopStream size="base" />}
+          title={t("voice.stopStream")}
+          onClick={onStopStream}
+        />
+      </FloatingMediaBar>
     </div>
   );
 
-  if (isFullscreen) {
-    return renderPlayer();
-  }
-
-  return (
-    <div className="flex-1 flex flex-col p-4 min-h-0 min-w-0 relative select-none items-center justify-center bg-onicord-surface">
-      {renderPlayer()}
-    </div>
-  );
+  return renderPlayer();
 }

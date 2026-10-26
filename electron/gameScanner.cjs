@@ -4,6 +4,20 @@ const gamesDB = require("./games.json");
 const gamesMap = new Map();
 let customGamesList = [];
 
+// Lista de ejecutables de streaming para detección automática
+const STREAMING_APPS = new Map([
+  ["obs64.exe", "OBS Studio"],
+  ["obs32.exe", "OBS Studio"],
+  ["obs.exe", "OBS Studio"],
+  ["streamlabs obs.exe", "Streamlabs Desktop"],
+  ["xsplit.core.exe", "XSplit Broadcaster"],
+  ["prismlivestudio.exe", "PRISM Live Studio"],
+  ["twitchstudio.exe", "Twitch Studio"],
+]);
+
+let lastStreamerDetected = false;
+let lastStreamerApp = null;
+
 function rebuildGamesMap() {
   gamesMap.clear();
 
@@ -156,22 +170,56 @@ function updateState(bestGame, customTitle) {
   console.log(`[Rich Presence] Actividad (${currentState.type}): ${currentState.name || "Nada"}`);
 }
 
+function checkStreamerProcesses(runningProcesses, mainWindow) {
+  let streamerFound = false;
+  let streamerAppName = null;
+  for (const [exeName, prettyName] of STREAMING_APPS) {
+    if (runningProcesses.has(exeName)) {
+      streamerFound = true;
+      streamerAppName = prettyName;
+      break;
+    }
+  }
+
+  if (streamerFound !== lastStreamerDetected || streamerAppName !== lastStreamerApp) {
+    lastStreamerDetected = streamerFound;
+    lastStreamerApp = streamerAppName;
+    console.log(`[Streamer Mode] Estado detectado: ${streamerFound ? `ACTIVO (${streamerAppName})` : "INACTIVO"}`);
+    const targetWin = mainWindow || globalMainWindow;
+    if (targetWin && !targetWin.isDestroyed()) {
+      targetWin.webContents.send("streamer-mode-detected", {
+        active: streamerFound,
+        app: streamerAppName,
+      });
+    }
+  }
+}
+
+function getStreamerStatus() {
+  return {
+    active: lastStreamerDetected,
+    app: lastStreamerApp,
+  };
+}
+
 async function runScan(mainWindow, sessionId) {
   if (scanInProgress || sessionId !== currentSessionId) return;
-
-  // Si hay una actividad de RPC activa, tiene prioridad absoluta sobre el escáner
-  if (rpcActivity) {
-    broadcast(mainWindow);
-    return;
-  }
 
   scanInProgress = true;
 
   try {
     const runningProcesses = await getActiveProcesses();
 
+    // Detección continua de software de captura/streaming
+    checkStreamerProcesses(runningProcesses, mainWindow);
+
     if (sessionId !== currentSessionId) return;
-    if (rpcActivity) return;
+
+    // Si hay una actividad de RPC activa, tiene prioridad sobre la detección de juegos
+    if (rpcActivity) {
+      broadcast(mainWindow);
+      return;
+    }
 
     if (lockedGame && runningProcesses.has(lockedGame.exe.toLowerCase())) {
       if (lockedGame.type === "music") {
@@ -314,6 +362,7 @@ module.exports = {
   startGameScanner,
   stopGameScanner,
   getCurrentState,
+  getStreamerStatus,
   setBackgroundMode,
   setCustomGames,
   setRpcActivity,

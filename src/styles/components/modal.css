@@ -7,7 +7,7 @@
     @apply text-[13px] leading-[1.3] text-onicord-muted mt-4 select-none;
   }
   .onicord-modal-nav-item {
-    @apply w-full rounded-onicord-button px-3 py-2 text-left text-[14px] font-medium select-none cursor-pointer text-onicord-muted hover:bg-white/[0.02] hover:text-onicord-subtext;
+    @apply w-full h-10 flex items-center rounded-onicord-button px-3 text-left text-[14px] font-medium select-none cursor-pointer text-onicord-muted hover:bg-white/[0.02] hover:text-onicord-subtext;
     transition: transform 0.15s ease-out, width 0.15s ease-out, background-color 0.15s ease-out, color 0.15s ease-out;
   }
   .onicord-modal-nav-item:hover {
@@ -52,5 +52,33 @@
   }
   .onicord-context-menu-item-danger {
     @apply text-onicord-danger hover:bg-onicord-danger hover:text-onicord-surface font-semibold;
+  }
+
+  /* MODAL SETTINGS SEARCH & HIGHLIGHT */
+  .onicord-highlight-target {
+    animation: onicord-setting-flash 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes onicord-setting-flash {
+    0% {
+      outline: 2px solid var(--onicord-accent, #89b4fa);
+      outline-offset: 3px;
+      box-shadow: 0 0 15px rgba(137, 180, 250, 0.35);
+      border-radius: 12px;
+    }
+    40% {
+      outline: 2px solid var(--onicord-accent, #89b4fa);
+      outline-offset: 3px;
+      box-shadow: 0 0 20px rgba(137, 180, 250, 0.25);
+    }
+    100% {
+      outline: 2px solid transparent;
+      outline-offset: 3px;
+      box-shadow: none;
+    }
+  }
+
+  .onicord-modal-subnav-item {
+    @apply w-full text-left px-2.5 py-1.5 text-[11px] rounded-lg text-onicord-muted hover:text-onicord-accent hover:bg-white/[0.04] transition-all flex items-center gap-1.5 select-none;
   }
 }

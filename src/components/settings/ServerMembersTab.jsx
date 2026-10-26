@@ -132,7 +132,7 @@ export default function ServerMembersTab({
               value={filtroText}
               onChange={(e) => setFiltroText(e.target.value)}
               placeholder={t("common.search", "Buscar miembro...")}
-              className="h-8 text-xs px-3"
+              className="h-10 text-xs px-3"
             />
           </div>
         </div>

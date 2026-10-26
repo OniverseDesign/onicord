@@ -56,7 +56,7 @@ export default function MaterialIcon({
       }}
       {...props}
     >
-      {name}
+      {name || props.icon || props.children}
     </span>
   )
 }

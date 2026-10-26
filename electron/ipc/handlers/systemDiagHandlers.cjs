@@ -432,6 +432,11 @@ function registerSystemDiagHandlers() {
     return getCurrentState();
   });
 
+  ipcMain.handle("streamer:get-status", () => {
+    const { getStreamerStatus } = require("../../gameScanner.cjs");
+    return getStreamerStatus ? getStreamerStatus() : { active: false, app: null };
+  });
+
   async function autoClassifyProgram(filePath, targetPath) {
     const parsedTarget = path.parse(targetPath);
     const parsedFile = path.parse(filePath);

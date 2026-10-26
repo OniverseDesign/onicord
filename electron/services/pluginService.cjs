@@ -257,6 +257,7 @@ class PluginService {
     const REPO_BASE = "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main";
     const packageUrl = `${REPO_BASE}/plugins/${cleanId}/package.onipkg`;
 
+    let buffer = null;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -265,13 +266,36 @@ class PluginService {
       const resp = await fetch(packageUrl, { signal: controller.signal });
       clearTimeout(timer);
 
-      if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status}: El complemento '${cleanId}' no está disponible en GitHub.`);
+      if (resp.ok) {
+        const arrayBuffer = await resp.arrayBuffer();
+        buffer = Buffer.from(arrayBuffer);
+      } else {
+        throw new Error(`HTTP ${resp.status}`);
       }
+    } catch (err) {
+      clearTimeout(timer);
+      const localPackagePath = path.join(app.getAppPath(), "addons", "plugins", cleanId, "package.onipkg");
+      if (fs.existsSync(localPackagePath)) {
+        console.log(`[PLUGIN SERVICE] Fallback: cargando paquete local .onipkg para '${cleanId}'`);
+        buffer = fs.readFileSync(localPackagePath);
+      } else {
+        const workspaceAddonDir = path.join(app.getAppPath(), "addons", cleanId);
+        if (fs.existsSync(workspaceAddonDir) && fs.existsSync(path.join(workspaceAddonDir, "manifest.json"))) {
+          console.log(`[PLUGIN SERVICE] Fallback: cargando directorio de complemento local '${cleanId}'`);
+          const targetDir = this.getPluginPath(cleanId);
+          if (fs.existsSync(targetDir)) fs.rmSync(targetDir, { recursive: true, force: true });
+          fs.cpSync(workspaceAddonDir, targetDir, { recursive: true });
+          const manifest = JSON.parse(fs.readFileSync(path.join(targetDir, "manifest.json"), "utf-8"));
+          return { success: true, manifest };
+        }
+        if (err.name === "AbortError") {
+          throw new Error(`Timeout de ${timeoutMs / 1000}s alcanzado al intentar descargar '${cleanId}' desde GitHub.`);
+        }
+        throw new Error(`El complemento '${cleanId}' no está disponible en GitHub ni localmente: ${err.message}`);
+      }
+    }
 
-      const arrayBuffer = await resp.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
+    try {
       let decompressed;
       try {
         decompressed = zlib.gunzipSync(buffer).toString("utf-8");
@@ -437,6 +461,14 @@ class PluginService {
         }
       }
     } catch (e) {}
+
+    // 3. Fallback to local workspace addons directory if present
+    try {
+      const workspaceAddonDir = path.join(app.getAppPath(), "addons", pluginIdOrDirName);
+      if (fs.existsSync(workspaceAddonDir) && fs.existsSync(path.join(workspaceAddonDir, "manifest.json"))) {
+        return workspaceAddonDir;
+      }
+    } catch (_) {}
 
     return null;
   }

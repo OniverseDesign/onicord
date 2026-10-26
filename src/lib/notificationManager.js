@@ -25,6 +25,9 @@ class NotificationManager {
 
   playSound(soundName) {
     if (soundEngine.getLevel() <= 0) return;
+    if (window.__ONICORD_STREAMER_MODE__ && (soundName === "message" || soundName === "notification")) {
+      return;
+    }
 
     const cueMap = {
       join: "connect",
@@ -43,6 +46,10 @@ class NotificationManager {
 
   showToast(title, message, type = "info", duration = 7500, action = null, avatar = null, senderName = null) {
     if (this.settings && this.settings.enableNotifications === false) return;
+    // En Modo Streamer, suprimir toasts de mensajes para proteger la privacidad en pantalla compartida
+    if (window.__ONICORD_STREAMER_MODE__ && (type === "message" || action?.type === "message")) {
+      return;
+    }
     this.playSound("notification");
     const safeId =
       Math.random().toString(36).substring(2, 10) + Date.now().toString(36);

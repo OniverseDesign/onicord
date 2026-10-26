@@ -65,7 +65,7 @@
 
 **Onicord** is a sovereign, serverless communication suite built for users who value privacy, audio clarity, and independence. Unlike traditional platforms (such as Discord, Teams, or Slack), Onicord requires **no central accounts, no cloud servers, and no phone numbers**. 
 
-All voice, chat, file sharing, screen streaming, and synchronized music flow directly between room participants over encrypted P2P swarms.
+All voice, chat, file sharing, screen streaming, and synchronized music flow directly between room participants over encrypted P2P swarms. **There are no paywalls, artificial tier limits, or paid subscriptions**: transfer files of any size without limits, use animated avatars and server banners, install community sticker packs, and broadcast at 60 FPS completely free.
 
 ---
 
@@ -98,21 +98,31 @@ Onicord replaces centralized client-server relays with an **autonomous, federate
 ## Core Features
 
 ### Privacy & Networking
+* **Unlimited P2P File Sharing (No Size Caps)**: Send files, high-definition videos, and project archives directly peer-to-peer with **zero artificial file size limits** (bypassing traditional 10 MB / 25 MB cloud paywalls). Files stream directly between peers over encrypted channels.
 * **Adaptive Connection Engine**: Automatically negotiates the optimal route: **Direct LAN**, **DHT Hole Punching (Hyperswarm)**, direct mapped ports, or custom user-provided **STUN/TURN relays**.
 * **End-to-End Encryption (E2EE)**: AES-256-GCM ciphers protect all chat messages, file indices, and room metadata.
-* **Privacy-First Game & Activity Scanner**: Detects active games locally against an offline dictionary (`games.json`). No process telemetry, window titles, or private paths leave your computer.
+* **Streamer Mode & Broadcast Privacy**: Automatic detection of active streaming software (OBS Studio, Twitch Studio, Streamlabs) alongside manual toggle. Hides room invite links, room keys, and sensitive tokens with click-to-reveal obfuscation, mutes incoming message toasts, and displays a dedicated purple streaming status badge.
+* **Privacy-First Game & Activity Scanner**: Detects active games and desktop software locally against an offline dictionary (`games.json`). No process telemetry, window titles, or private paths leave your computer.
 * **1-on-1 Direct Messages & Streaks**: Private encrypted DMs with daily interaction streaks and activity counters.
 
 ### Audio, Video & Collaboration
 * **Crystal-Clear WebRTC Voice**: Ultra-low latency voice mesh with Opus audio, noise reduction, and smart bandwidth throttling (decoding pauses when peers mute/deafen).
-* **60 FPS Screen Sharing & Video**: Smooth multi-stream window/desktop broadcasting with Picture-in-Picture (PiP) support.
+* **Synchronized P2P Watch Party**: Watch synchronized YouTube and web video streams directly with friends in voice lounges. Features dual Theatre and GPU-accelerated PiP floating mini-player modes, drift compensation, subtitle track selection, and intelligent audio ducking when peers speak.
+* **Standardized Floating Media Bar**: Unified, distraction-free floating controls shared across Watch Party, Screen Sharing, and Arcade stages with volume sliders, audio ducking, and theatre toggle.
+* **60 FPS Screen Sharing & Video**: Smooth multi-stream window/desktop broadcasting with Picture-in-Picture (PiP) support and full-area stage views—with zero resolution or framerate paywalls.
 * **Synchronized Jukebox & Music Island**: Embedded `yt-dlp` audio streaming from YouTube and SoundCloud, synchronized in real time across the room with dedicated media controls.
 
-### Modern Chat Experience
+### Modern Chat & Expressive Freedom
+* **100% Free Customization (No Subscriptions or Paywalls)**: Full visual personalization included by default:
+  * **Animated Avatars & Banners**: Native support for animated GIFs and WebP in user profiles, user popouts, and server banners without tier restrictions.
+  * **Custom Sticker Packs (`.onipkg`) & Emojis**: Support for animated WebP/APNG stickers and community packs. Discover and contribute collections in the [Official Sticker Packs Repository](https://github.com/OniverseDesign/onicord-stickers).
+* **Autonomous Server Webhooks & Feed Ingress**: Push alerts directly into channels with Discord-compatible JSON payloads via a local HTTP server, or configure autonomous RSS/Atom/JSON feed polling over the P2P swarm with zero cloud infrastructure.
 * **Floating WYSIWYG Formatting Bar**: Contextual styling toolbar on text selection for instant bold, italic, spoilers, quotes, and inline code.
 * **Interactive Slash Commands (`/commands`)**: Built-in utilities for server administration, polls, dice rolls (`/roll`), and custom commands.
 * **Rich P2P Invite Cards**: Cryptographically signed invite cards with member count previews and 1-click joining.
-* **Custom Sticker Packs (`.onipkg`) & Emojis**: Support for animated WebP/APNG stickers and community packs. Discover and contribute collections in the [Official Sticker Packs Repository](https://github.com/OniverseDesign/onicord-stickers).
+
+### Settings & Navigation
+* **Universal Settings Search & Flash Navigation**: Instant real-time keyword search across all application and server settings with automatic smooth scrolling and visual flash highlight on target options.
 
 ---
 
@@ -139,7 +149,7 @@ Extend Onicord with community mini-apps, automated bots, and custom user interfa
 * **Standardized Package Format (`.onipkg`)**: Easy drag-and-drop installation via the Addon Manager.
 * **Isolated V8 Sandbox**: Plugins execute inside a guarded Node.js V8 sandbox (`pluginSandboxService.cjs`) with fine-grained permission prompts.
 * **Developer SDK**: Full access to register custom slash commands, floating panels, theme overlays, and automated responses.
-* **Official Registry**: View source code for official addons and Dashboard widgets in [OniverseDesign/onicord-addons](https://github.com/OniverseDesign/onicord-addons).
+* **Official Registry & Pre-built Addons**: Access community plugins and official additions including classic multiplayer **Arcade**, collaborative **Soundboard**, interactive **Polls**, **Dice Roller**, and web search in [OniverseDesign/onicord-addons](https://github.com/OniverseDesign/onicord-addons).
 
 ---
 

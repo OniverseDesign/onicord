@@ -55,6 +55,8 @@ const profileService = require("./services/profileService.cjs");
 const ytdlpService = require("./services/ytdlpService.cjs");
 const updateService = require("./services/updateService.cjs");
 const mcpBridgeService = require("./services/mcpBridgeService.cjs");
+const webhookService = require("./services/webhookService.cjs");
+const feedPollerService = require("./services/feedPollerService.cjs");
 const overlayService = require("./services/overlayService.cjs");
 const globalKeybindService = require("./services/globalKeybindService.cjs");
 const rpcServerService = require("./services/rpcServerService.cjs");
@@ -674,6 +676,8 @@ app.whenReady().then(async () => {
 
   registerIPCHandlers();
   mcpBridgeService.start();
+  webhookService.start();
+  feedPollerService.start();
 
   const startupUrl = process.argv.find((arg) => arg.startsWith("onicord://"));
   if (startupUrl) {
@@ -779,9 +783,7 @@ app.whenReady().then(async () => {
       responseHeaders["Access-Control-Allow-Origin"] = ["*"];
     }
 
-    // Only apply Content-Security-Policy to local app files and dev server, never to 3rd-party websites
     const isAppResource =
-      details.resourceType === "mainFrame" ||
       url.startsWith("file:") ||
       url.includes("127.0.0.1") ||
       url.includes("localhost");
@@ -792,10 +794,10 @@ app.whenReady().then(async () => {
 
     const csp = isDev
       ? [
-          "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://www.tiktok.com https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: onicord-media: http://127.0.0.1:*; media-src 'self' blob: mediastream: https: onicord-media: http://127.0.0.1:* http://localhost:*; object-src 'self' file: blob:; frame-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; child-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* ws: wss: stun: turn: https:;",
+          "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://s.ytimg.com https://*.ytimg.com https://*.google.com https://*.doubleclick.net https://static.doubleclick.net https://*.googlevideo.com https://*.googleapis.com https://www.tiktok.com https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: onicord-media: http://127.0.0.1:*; media-src 'self' data: blob: mediastream: https: onicord-media: http://127.0.0.1:* http://localhost:*; object-src 'self' file: blob:; frame-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; child-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://*.google.com https://*.doubleclick.net https://www.tiktok.com https://www.instagram.com https:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* ws: wss: stun: turn: https:;",
         ]
       : [
-          "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://www.tiktok.com https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: onicord-media: http://127.0.0.1:*; media-src 'self' blob: mediastream: https: onicord-media: http://127.0.0.1:* http://localhost:*; object-src 'self' file: blob:; frame-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; child-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* ws: wss: stun: turn: https:;",
+          "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://s.ytimg.com https://*.ytimg.com https://*.google.com https://*.doubleclick.net https://static.doubleclick.net https://*.googlevideo.com https://*.googleapis.com https://www.tiktok.com https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: onicord-media: http://127.0.0.1:*; media-src 'self' data: blob: mediastream: https: onicord-media: http://127.0.0.1:* http://localhost:*; object-src 'self' file: blob:; frame-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; child-src 'self' file: blob: onicord-media: https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://*.google.com https://*.doubleclick.net https://www.tiktok.com https://www.instagram.com https:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* ws: wss: stun: turn: https:;",
         ];
     responseHeaders["Content-Security-Policy"] = csp;
     callback({ responseHeaders });
@@ -863,6 +865,8 @@ app.on("will-quit", () => {
 app.on("before-quit", () => {
   global.isQuitting = true;
   globalKeybindService.stop();
+  webhookService.stop();
+  feedPollerService.stop();
   rpcServerService.stopRpcServer();
   overlayService.destroyOverlay();
 });

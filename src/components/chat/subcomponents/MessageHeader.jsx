@@ -65,6 +65,7 @@ export default function MessageHeader({
   nickname,
   nameColor,
   isComplement,
+  isWebhook,
   timestamp,
   edited,
   isForwarded,
@@ -88,6 +89,15 @@ export default function MessageHeader({
           className="text-indigo-400 shrink-0"
           title={t("chat.complementBadge", "Complemento")}
         />
+      )}
+      {isWebhook && (
+        <span
+          className="inline-flex items-center gap-0.5 px-1.5 py-[1px] rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-400 border border-indigo-500/25 shrink-0 select-none"
+          title="Webhook P2P"
+        >
+          <MaterialIcon name="hub" size={11} className="inline mr-0.5" />
+          Webhook
+        </span>
       )}
       <time className="text-[11px] text-onicord-muted opacity-60 font-medium ml-1">
         {formatFriendlyDate(timestamp, t, i18n.language || "es")}

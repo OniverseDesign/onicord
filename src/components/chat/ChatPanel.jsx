@@ -29,6 +29,7 @@ import { useChatScroll } from "../../hooks/useChatScroll";
 import ChatDropZone from "./subcomponents/ChatDropZone";
 import ChatMessageList from "./subcomponents/ChatMessageList";
 import ChatInputArea from "./subcomponents/ChatInputArea";
+import { useVoiceChannelInfo } from "../../context/VoiceContext";
 
 const measureTextWidth = (text, font) => {
   const canvas = measureTextWidth.canvas || (measureTextWidth.canvas = document.createElement("canvas"));
@@ -60,6 +61,7 @@ export default function ChatPanel({
   onToggleReactionReady,
 }) {
   const { t } = useTranslation();
+  const { inVoice } = useVoiceChannelInfo();
   const [stickersTargetRect, setStickersTargetRect] = useState(null);
   const [emojisTargetRect, setEmojisTargetRect] = useState(null);
   const [input, setInput] = useState("");
@@ -1348,9 +1350,9 @@ export default function ChatPanel({
             }
 
             if (clickedUrl && !esUnSticker) {
-              const isPlayable = /youtube\.com|youtu\.be|soundcloud\.com/i.test(
-                clickedUrl,
-              );
+              const isPlayable =
+                Boolean(inVoice) &&
+                /youtube\.com|youtu\.be|soundcloud\.com/i.test(clickedUrl);
 
               if (isPlayable) {
                 menuItems.push({
@@ -1364,6 +1366,20 @@ export default function ChatPanel({
                     );
                   },
                 });
+
+                if (/youtube\.com|youtu\.be/i.test(clickedUrl)) {
+                  menuItems.push({
+                    label: t("contextMenu.startWatchParty"),
+                    icon: <MaterialIcon icon="smart_display" size={18} />,
+                    onClick: () => {
+                      window.dispatchEvent(
+                        new CustomEvent("onicord:start-watch-party", {
+                          detail: { url: clickedUrl },
+                        }),
+                      );
+                    },
+                  });
+                }
 
                 menuItems.push({
                   label: t("contextMenu.addToQueue"),

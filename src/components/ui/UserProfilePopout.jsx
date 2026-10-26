@@ -151,8 +151,16 @@ export default function UserProfilePopout({
         zIndex: 999999,
       };
 
-  const isOffline = member.online === false;
-  const dotColor = isOffline ? "bg-onicord-overlay" : "bg-onicord-success";
+  const isOffline = member.online === false || member.status === "offline" || member.status === "invisible";
+  const dotColor = isOffline
+    ? "bg-onicord-overlay"
+    : (member.status === "streamer" || member.status === "streaming")
+      ? "bg-purple-500"
+      : member.status === "idle"
+        ? "bg-amber-500"
+        : (member.status === "dnd" || member.status === "muted" || member.status === "deafened")
+          ? "bg-onicord-danger"
+          : "bg-onicord-success";
   const initial = (member.nickname || "Usuario").charAt(0).toUpperCase();
   const flameData = evaluateUserFlame(member.flame || {}, serverId);
   const displayHighest = Math.max(

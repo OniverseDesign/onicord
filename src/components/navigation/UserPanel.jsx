@@ -15,6 +15,7 @@ import UserListItem from "../ui/UserListItem";
 import NetworkPopover from "../ui/NetworkPopover";
 import ContextMenu from "../ui/ContextMenu";
 import MaterialIcon from "../icons/MaterialIcon";
+import { useStreamerMode } from "../../context/StreamerModeContext";
 
 export default function UserPanel({
   profile,
@@ -44,6 +45,7 @@ export default function UserPanel({
   canShareVideo = true,
 }) {
   const { t } = useTranslation();
+  const { isStreamerMode, detectedApp } = useStreamerMode();
   const [targetRect, setTargetRect] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
@@ -177,11 +179,15 @@ export default function UserPanel({
 
   const avatarStatus = !connected
     ? "offline"
-    : inVoice
-      ? muted || deafened
+    : isStreamerMode
+      ? inVoice && (muted || deafened)
         ? "muted"
-        : "voice"
-      : (profile?.status || "online");
+        : "streamer"
+      : inVoice
+        ? muted || deafened
+          ? "muted"
+          : "voice"
+        : (profile?.status || "online");
 
   let subtitleText = null;
   if (customStatus) {
@@ -192,6 +198,10 @@ export default function UserPanel({
     subtitleText = t("userPanel.muted");
   } else if (inVoice) {
     subtitleText = t("userPanel.inVoiceChannel");
+  } else if (isStreamerMode) {
+    subtitleText = detectedApp
+      ? t("settings.general.streamerModeStreaming", "Transmitiendo ({{app}})", { app: detectedApp })
+      : t("settings.general.streamerMode", "Modo Streamer");
   } else if (!activeGame?.name) {
     subtitleText = t("userPanel.online");
   }
@@ -360,6 +370,7 @@ export default function UserPanel({
         </div>
         <hr className="my-2 border-onicord-dark-muted border-t-1" />
       </div>
+
       <div className="flex items-center justify-between w-full min-w-0">
         <div className="flex-1 min-w-0">
           <UserListItem

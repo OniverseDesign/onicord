@@ -1,0 +1,32 @@
+{
+  "id": "onicord-soundboard",
+  "name": "Soundboard",
+  "version": "0.1.0",
+  "scope": "hybrid",
+  "description": "Soundboard colaborativo P2P para la Isla de Complementos. Carga tus propios audios (.mp3, .wav, .ogg), sincronízalos en tiempo real y reprodúcelos con la sala.",
+  "author": "Oniverse",
+  "icon": "assets/icon.png",
+  "main": "index.js",
+  "permissions": [
+    "ui.plugin_island",
+    "p2p.network",
+    "storage",
+    "user.profile",
+    "server.info",
+    "chat.send"
+  ],
+  "locales": {
+    "es": {
+      "name": "Soundboard",
+      "description": "Soundboard colaborativo P2P para la Isla de Complementos. Carga tus propios audios (.mp3, .wav, .ogg), sincronízalos en tiempo real y reprodúcelos con la sala."
+    },
+    "en": {
+      "name": "Soundboard",
+      "description": "Collaborative P2P Soundboard for the Plugin Island. Drop custom audio (.mp3, .wav, .ogg), sync in real-time, and play with the room."
+    },
+    "pt": {
+      "name": "Soundboard",
+      "description": "Soundboard colaborativo P2P para a Ilha de Complementos. Adicione seus áudios (.mp3, .wav, .ogg), sincronize em tempo real e toque com a sala."
+    }
+  }
+}

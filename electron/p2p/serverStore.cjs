@@ -341,6 +341,7 @@ class ServerStore {
       directConnectionEnabled: metaBackup?.directConnectionEnabled || false,
       directIP: metaBackup?.directIP || "",
       directPort: metaBackup?.directPort || 7777,
+      webhooks: metaBackup?.webhooks || [],
     };
 
     data.servers.push(server);
@@ -438,6 +439,7 @@ class ServerStore {
     if (Array.isArray(settings.bannedUsers)) server.bannedUsers = settings.bannedUsers;
     if (settings.kickedUsers !== undefined) server.kickedUsers = settings.kickedUsers;
     if (Array.isArray(settings.plugins)) server.plugins = settings.plugins;
+    if (Array.isArray(settings.webhooks)) server.webhooks = settings.webhooks;
 
     if (Array.isArray(settings.channels)) {
       server.channels = settings.channels.map((c) => {
@@ -491,6 +493,7 @@ class ServerStore {
     if (Array.isArray(meta.bannedUsers)) server.bannedUsers = meta.bannedUsers;
     if (meta.kickedUsers) server.kickedUsers = meta.kickedUsers;
     if (Array.isArray(meta.auditLog)) server.auditLog = meta.auditLog;
+    if (Array.isArray(meta.webhooks)) server.webhooks = meta.webhooks;
 
     server.metaVersion = meta.version;
     server.metaUpdatedAt = meta.updatedAt;

@@ -121,17 +121,11 @@ export function VoiceProvider({ profile, children }) {
 
 export function useGlobalVoice() {
   const context = useContext(VoiceContext);
-  if (!context) {
-    throw new Error("useGlobalVoice must be used within a VoiceProvider");
-  }
-  return context;
+  return context || {};
 }
 
 export function useVoiceChannelInfo() {
   const context = useContext(VoiceChannelContext);
-  if (!context) {
-    throw new Error("useVoiceChannelInfo must be used within a VoiceProvider");
-  }
-  return context;
+  return context || {};
 }
 

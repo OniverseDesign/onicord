@@ -24,6 +24,8 @@ import { useRoomResizers } from "../../hooks/useRoomResizers";
 import ChannelsSidebar from "../navigation/ChannelsSidebar";
 import RoomStreamStage from "../voice/RoomStreamStage";
 import AddonStageHost from "../voice/AddonStageHost";
+import WatchPartyStage from "../voice/WatchPartyStage";
+import { useWatchParty } from "../../context/WatchPartyContext";
 import { soundEngine } from "../../lib/soundEngine";
 import { normalizeChatMessage } from "../../hooks/useChatMessages";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
@@ -129,6 +131,11 @@ export default function RoomView({
     setThreadMessages(roomMessagesRef.current);
     setActiveThreadMessage(msg);
   }, []);
+
+  const watchParty = useWatchParty();
+  const hasActiveWatchParty = Boolean(watchParty?.session?.videoId && watchParty?.hasJoined);
+  const isWatchPartyFloating = Boolean(watchParty?.isFloating);
+  const isWatchPartyFullscreen = Boolean(watchParty?.isFullscreen);
 
   const [activeAddonStage, setActiveAddonStage] = useState(null);
   const [isStageFloating, setIsStageFloating] = useState(false);
@@ -1352,7 +1359,13 @@ export default function RoomView({
         <div ref={centralContainerRef} className="flex-1 min-h-0 flex gap-1 overflow-x-clip overflow-y-hidden">
           <div className="flex-1 min-w-0 h-full flex flex-col relative overflow-hidden bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island">
             <div
-              className={`flex-1 h-full min-h-0 flex flex-col ${((localStream || remoteStream) && !isStreamFloating) || (activeAddonStage && !isStageFloating) ? "hidden" : "flex"}`}
+              className={`flex-1 h-full min-h-0 flex flex-col ${
+                ((localStream || remoteStream) && !isStreamFloating) ||
+                (activeAddonStage && !isStageFloating) ||
+                (hasActiveWatchParty && !isWatchPartyFloating)
+                  ? "hidden"
+                  : "flex"
+              }`}
             >
               <PluginBannerNotice serverPlugins={server?.plugins} />
               <ChatPanel
@@ -1460,6 +1473,8 @@ export default function RoomView({
                 );
               }}
             />
+
+            <WatchPartyStage />
           </div>
 
           {/* Isla del Panel de Hilos */}
@@ -1558,6 +1573,7 @@ export default function RoomView({
           roomCode={server?.roomCode}
           profile={profile}
           server={server}
+          voice={voice}
         />
 
         <MembersSidebar

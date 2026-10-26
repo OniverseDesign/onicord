@@ -73,6 +73,9 @@ export function UserAvatarWithStatus({
       case "muted":
       case "deafened":
         return "bg-onicord-danger";
+      case "streamer":
+      case "streaming":
+        return "bg-purple-500";
       case "online":
       case "voice":
       default:
@@ -99,7 +102,7 @@ export function UserAvatarWithStatus({
 export default function UserListItem({
   nickname,
   avatar,
-  status = "online", // 'online' | 'offline' | 'voice' | 'muted' | 'deafened'
+  status = "online", // 'online' | 'offline' | 'voice' | 'muted' | 'deafened' | 'streamer'
   isSpeaking = false,
   isSelf = false,
   activity = null,
@@ -136,6 +139,10 @@ export default function UserListItem({
   } else if (voiceChannelName) {
     subtitle = (
       <span className="text-onicord-accent">🎙️ {voiceChannelName}</span>
+    );
+  } else if ((status === "streamer" || status === "streaming") && showStatusDot) {
+    subtitle = (
+      <span className="text-purple-400 font-medium">{t("settings.general.streamerMode", "Modo Streamer")}</span>
     );
   } else if (status === "voice" && showStatusDot) {
     subtitle = (

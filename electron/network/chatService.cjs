@@ -455,6 +455,33 @@ class ChatService {
     return message;
   }
 
+  async sendWebhookMessage({ roomCode, channelId, webhook, content = "", embeds = [], username = null, avatar_url = null }) {
+    const code = this._resolveRoomCode(roomCode);
+    if (!code) throw new Error("You are not in a room");
+
+    const plainText = String(content || "").trim();
+    const cryptoService = require("../services/cryptoService.cjs");
+    const encryptedText = plainText ? cryptoService.encrypt(code, plainText) : "";
+
+    const message = {
+      id: "wh_" + crypto.randomUUID(),
+      roomCode: code,
+      channelId: channelId || webhook.channelId || "general",
+      authorId: `webhook:${webhook.id}`,
+      authorNickname: username || webhook.name || "Webhook",
+      authorAvatar: avatar_url || webhook.avatar || null,
+      text: encryptedText,
+      embeds: Array.isArray(embeds) ? embeds.slice(0, 10) : [],
+      isWebhook: true,
+      webhookId: webhook.id,
+      timestamp: Date.now(),
+    };
+
+    await this.persistAndEmit(message, code);
+    this.p2p._broadcast("chat", message);
+    return message;
+  }
+
   async deleteChatMessage(channelId, messageId, roomCode) {
     const code = this._resolveRoomCode(roomCode);
     if (!code) throw new Error("You are not in a room");
@@ -544,6 +571,9 @@ class ChatService {
       text: payload.text,
       timestamp: Math.min(payload.timestamp || Date.now(), Date.now()),
       isHidden: Boolean(payload.isHidden),
+      isWebhook: Boolean(payload.isWebhook),
+      webhookId: payload.webhookId || null,
+      embeds: Array.isArray(payload.embeds) ? payload.embeds : [],
     };
 
     if (message.isHidden) {

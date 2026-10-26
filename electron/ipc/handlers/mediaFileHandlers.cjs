@@ -299,6 +299,17 @@ function registerMediaFileHandlers() {
     global.roomManager?.sendMusicCommand(channelId, command, roomCode);
     return { success: true };
   });
+
+  // === Watch Party Sincronizada P2P ===
+  ipcMain.handle("watch-party:broadcast-state", async (_event, channelId, state, roomCode) => {
+    global.roomManager?.broadcastWatchPartyState(channelId, state, roomCode);
+    return { success: true };
+  });
+
+  ipcMain.handle("watch-party:send-command", async (_event, channelId, command, roomCode) => {
+    global.roomManager?.sendWatchPartyCommand(channelId, command, roomCode);
+    return { success: true };
+  });
 }
 
 module.exports = { registerMediaFileHandlers };

@@ -18,7 +18,7 @@
   }
   
   .onicord-modal-card-settings {
-    @apply flex h-[min(740px,92vh)] w-full max-w-[1020px] overflow-hidden rounded-onicord-outer-p4 bg-onicord-surface shadow-onicord-elevated border border-white/5 onicord-animate-modal-in;
+    @apply flex h-[min(800px,94vh)] w-full max-w-[1040px] overflow-hidden rounded-onicord-outer-p4 bg-onicord-surface shadow-onicord-elevated border border-white/5 onicord-animate-modal-in;
   }
   
   .onicord-modal-card-wide {

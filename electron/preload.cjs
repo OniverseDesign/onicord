@@ -48,6 +48,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("game-activity-changed", handler);
   },
   getCurrentGame: () => ipcRenderer.invoke("game:get-current"),
+  onStreamerModeDetected: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on("streamer-mode-detected", handler);
+    return () => ipcRenderer.removeListener("streamer-mode-detected", handler);
+  },
+  getStreamerStatus: () => ipcRenderer.invoke("streamer:get-status"),
   openExecutableDialog: () => ipcRenderer.invoke("dialog:openExecutable"),
   extractFileIcon: (filePath) => ipcRenderer.invoke("system:extractFileIcon", filePath),
 
@@ -79,6 +85,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getLastServer: () => ipcRenderer.invoke("servers:getLastActive"),
   writeClipboard: (text) => ipcRenderer.invoke("clipboard:writeText", text),
   readClipboard: () => ipcRenderer.invoke("clipboard:readText"),
+
+  // Webhooks P2P
+  getWebhookInfo: () => ipcRenderer.invoke("webhook:getInfo"),
+  listWebhooks: (roomCode) => ipcRenderer.invoke("webhook:list", roomCode),
+  createWebhook: (roomCode, webhookData) => ipcRenderer.invoke("webhook:create", roomCode, webhookData),
+  updateWebhook: (roomCode, webhookId, patch) => ipcRenderer.invoke("webhook:update", roomCode, webhookId, patch),
+  deleteWebhook: (roomCode, webhookId) => ipcRenderer.invoke("webhook:delete", roomCode, webhookId),
+  regenerateWebhookToken: (roomCode, webhookId) => ipcRenderer.invoke("webhook:regenerateToken", roomCode, webhookId),
+  testWebhook: (roomCode, webhookId, payload) => ipcRenderer.invoke("webhook:test", roomCode, webhookId, payload),
+  pollWebhookNow: (roomCode, webhookId) => ipcRenderer.invoke("webhook:pollNow", roomCode, webhookId),
+  getFeedStatus: (webhookId) => ipcRenderer.invoke("webhook:getFeedStatus", webhookId),
 
   createRoom: (profile) => ipcRenderer.invoke("room:create", profile),
   joinRoom: (code, profile) => ipcRenderer.invoke("room:join", code, profile),
@@ -183,6 +200,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("music:channel-cmd", handler);
     return () => ipcRenderer.removeListener("music:channel-cmd", handler);
+  },
+
+  broadcastWatchPartyState: (channelId, state, roomCode) =>
+    ipcRenderer.invoke("watch-party:broadcast-state", channelId, state, roomCode),
+  sendWatchPartyCommand: (channelId, command, roomCode) =>
+    ipcRenderer.invoke("watch-party:send-command", channelId, command, roomCode),
+  onWatchPartyState: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("watch-party:state", handler);
+    return () => ipcRenderer.removeListener("watch-party:state", handler);
+  },
+  onWatchPartyCommand: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("watch-party:cmd", handler);
+    return () => ipcRenderer.removeListener("watch-party:cmd", handler);
   },
 
   onMusicQueue: (callback) => {

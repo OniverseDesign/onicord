@@ -198,6 +198,10 @@ class RoomManager {
     return this.chatService.sendChatMessage(channelId, text, roomCode || this.roomCode);
   }
 
+  async sendWebhookMessage(params) {
+    return this.chatService.sendWebhookMessage(params);
+  }
+
   async deleteChatMessage(channelId, messageId, roomCode) {
     return this.chatService.deleteChatMessage(channelId, messageId, roomCode || this.roomCode);
   }
@@ -248,6 +252,36 @@ class RoomManager {
     if (!this.p2pService || !targetRoom || !channelId) return;
     this.p2pService._broadcast(
       "music-channel-cmd",
+      {
+        channelId,
+        command,
+        roomCode: targetRoom,
+        senderPeerId: this.p2pService._resolveLocalPeerId(),
+      },
+      targetRoom
+    );
+  }
+
+  broadcastWatchPartyState(channelId, state, roomCode = null) {
+    const targetRoom = roomCode || this.roomCode;
+    if (!this.p2pService || !targetRoom || !channelId) return;
+    this.p2pService._broadcast(
+      "watch-party-state",
+      {
+        channelId,
+        state,
+        roomCode: targetRoom,
+        senderPeerId: this.p2pService._resolveLocalPeerId(),
+      },
+      targetRoom
+    );
+  }
+
+  sendWatchPartyCommand(channelId, command, roomCode = null) {
+    const targetRoom = roomCode || this.roomCode;
+    if (!this.p2pService || !targetRoom || !channelId) return;
+    this.p2pService._broadcast(
+      "watch-party-cmd",
       {
         channelId,
         command,
@@ -791,6 +825,16 @@ class RoomManager {
       });
     } else if (type === "music-channel-cmd" && payload) {
       global.mainWindow?.webContents.send("music:channel-cmd", {
+        ...payload,
+        peerId,
+      });
+    } else if (type === "watch-party-state" && payload) {
+      global.mainWindow?.webContents.send("watch-party:state", {
+        ...payload,
+        peerId,
+      });
+    } else if (type === "watch-party-cmd" && payload) {
+      global.mainWindow?.webContents.send("watch-party:cmd", {
         ...payload,
         peerId,
       });

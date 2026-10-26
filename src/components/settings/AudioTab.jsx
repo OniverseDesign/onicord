@@ -146,7 +146,7 @@ export default function AudioTab({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
           {/* Entradas (Micrófono) */}
-          <div className="space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-white/5">
+          <div data-setting-id="inputDevice" className="space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-white/5 transition-all">
             <label className="text-xs font-semibold text-onicord-text flex items-center justify-between">
               <span>{t("settings.voiceVideo.inputDevice", "Dispositivo de Entrada")}</span>
               <MaterialIcon name="mic" size={16} className="text-onicord-muted" />
@@ -166,7 +166,7 @@ export default function AudioTab({
               className="w-full"
             />
 
-            <div className="pt-2">
+            <div data-setting-id="inputVolume" className="pt-2">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-[11px] font-semibold text-onicord-muted">
                   {t("settings.voiceVideo.inputVolume", "Volumen de Entrada")}
@@ -192,7 +192,7 @@ export default function AudioTab({
           </div>
 
           {/* Salidas (Altavoces) */}
-          <div className="space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-white/5">
+          <div data-setting-id="outputDevice" className="space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-white/5 transition-all">
             <label className="text-xs font-semibold text-onicord-text flex items-center justify-between">
               <span>{t("settings.voiceVideo.outputDevice", "Dispositivo de Salida")}</span>
               <MaterialIcon name="volume_up" size={16} className="text-onicord-muted" />
@@ -212,7 +212,7 @@ export default function AudioTab({
               className="w-full"
             />
 
-            <div className="pt-2">
+            <div data-setting-id="outputVolume" className="pt-2">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-[11px] font-semibold text-onicord-muted">
                   {t("settings.voiceVideo.outputVolume", "Volumen de Salida")}
@@ -324,7 +324,7 @@ export default function AudioTab({
 
         <div>
           {/* Prueba de Micrófono */}
-          <div className="pb-3 border-b border-white/5 space-y-2">
+          <div data-setting-id="micTest" className="pb-3 border-b border-white/5 space-y-2 transition-all">
             <p className="onicord-settings-row-desc">
               {t("settings.voiceVideo.micTestHint", "¿Tienes problemas? Prueba hablar en tu micrófono para verificar la señal.")}
             </p>
@@ -350,7 +350,7 @@ export default function AudioTab({
           </div>
 
           {/* Sensibilidad Automática & VAD Slider */}
-          <div className="onicord-settings-row">
+          <div data-setting-id="vadSensitivity" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.voiceVideo.determineAutoSensitivity", "Determinar sensibilidad de entrada automáticamente")}
@@ -416,7 +416,7 @@ export default function AudioTab({
         </h3>
 
         <div>
-          <div className="onicord-settings-row">
+          <div data-setting-id="noiseSuppression" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.voiceVideo.noiseSuppression", "Supresión de Ruido")}
@@ -438,7 +438,7 @@ export default function AudioTab({
             </label>
           </div>
 
-          <div className="onicord-settings-row">
+          <div data-setting-id="echoCancellation" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.voiceVideo.echoCancellation", "Cancelación de Eco")}
@@ -460,7 +460,7 @@ export default function AudioTab({
             </label>
           </div>
 
-          <div className="onicord-settings-row">
+          <div data-setting-id="autoGainControl" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.voiceVideo.autoGainControl", "Control Automático de Ganancia")}
@@ -482,7 +482,7 @@ export default function AudioTab({
             </label>
           </div>
 
-          <div className="onicord-settings-row">
+          <div data-setting-id="dynamicsCompression" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.voiceVideo.dynamicsCompression", "Compresión Dinámica Master")}
@@ -504,7 +504,7 @@ export default function AudioTab({
             </label>
           </div>
 
-          <div className="onicord-settings-row">
+          <div data-setting-id="autoDucking" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.voiceVideo.autoDucking", "Atenuación Automática (Auto-Ducking)")}

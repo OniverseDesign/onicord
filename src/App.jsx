@@ -10,6 +10,8 @@ import { soundEngine } from "./lib/soundEngine";
 import { ACCENT_PALETTE, applyDynamicTheme } from "./lib/colors";
 import { VoiceProvider } from "./context/VoiceContext";
 import { MusicProvider } from "./context/MusicContext";
+import { WatchPartyProvider } from "./context/WatchPartyContext";
+import { StreamerModeProvider } from "./context/StreamerModeContext";
 import { useAppUpdater } from "./hooks/useAppUpdater";
 import { initGlobalPlaytimeTracker } from "./lib/playtimeTracker";
 import IconOnicord from "./components/icons/Onicord.svg?react";
@@ -518,59 +520,63 @@ export default function App() {
   }, []);
 
   return (
-    <VoiceProvider profile={profile}>
-      <MusicProvider profile={profile} activeServer={activeServer}>
-        {loading || screen === "loading" ? (
-          <LoadingScreen />
-        ) : (
-          <div className="flex h-full w-full flex-col overflow-hidden bg-onicord-base text-onicord-text">
-            <TitleBar />
-            <div className="flex-1 min-h-0 w-full relative">
-              {screen === "profile" ? (
-                <ProfileSetup
-                  initialProfile={profile}
-                  onComplete={handleProfileComplete}
-                  onRestoreComplete={handleRestoreComplete}
-                />
-              ) : (
-                <HomeView
-                  profile={profile}
-                  servers={servers}
-                  activeServer={activeServer}
-                  setActiveServer={setActiveServer}
-                  enterServerProcess={enterServerProcess}
-                  refreshServers={refreshServers}
-                  onProfileChange={setProfile}
-                  onServerUpdated={handleServerUpdated}
-                  onDeleteAccount={handleDeleteAccount}
-                />
-              )}
-            </div>
-          </div>
-        )}
-        <ToastContainer />
-        {/* Invite modal — shown when a deep link is received */}
-        {inviteData && (
-          <InviteModal
-            serverName={inviteData.serverName}
-            serverAvatar={inviteData.serverAvatar}
-            memberCount={inviteData.memberCount}
-            onlineCount={inviteData.onlineCount}
-            roomCode={inviteData.code}
-            isAlreadyMember={inviteData.isAlreadyMember}
-            busy={inviteBusy}
-            onAccept={handleAcceptInvite}
-            onClose={() => {
-              if (!inviteBusy) {
-                if (window.electronAPI.cancelInviteResolve) {
-                  window.electronAPI.cancelInviteResolve(inviteData.code);
-                }
-                setInviteData(null);
-              }
-            }}
-          />
-        )}
-      </MusicProvider>
-    </VoiceProvider>
+    <StreamerModeProvider>
+      <VoiceProvider profile={profile}>
+        <MusicProvider profile={profile} activeServer={activeServer}>
+          <WatchPartyProvider profile={profile} activeServer={activeServer}>
+            {loading || screen === "loading" ? (
+              <LoadingScreen />
+            ) : (
+              <div className="flex h-full w-full flex-col overflow-hidden bg-onicord-base text-onicord-text">
+                <TitleBar />
+                <div className="flex-1 min-h-0 w-full relative">
+                  {screen === "profile" ? (
+                    <ProfileSetup
+                      initialProfile={profile}
+                      onComplete={handleProfileComplete}
+                      onRestoreComplete={handleRestoreComplete}
+                    />
+                  ) : (
+                    <HomeView
+                      profile={profile}
+                      servers={servers}
+                      activeServer={activeServer}
+                      setActiveServer={setActiveServer}
+                      enterServerProcess={enterServerProcess}
+                      refreshServers={refreshServers}
+                      onProfileChange={setProfile}
+                      onServerUpdated={handleServerUpdated}
+                      onDeleteAccount={handleDeleteAccount}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+            <ToastContainer />
+            {/* Invite modal — shown when a deep link is received */}
+            {inviteData && (
+              <InviteModal
+                serverName={inviteData.serverName}
+                serverAvatar={inviteData.serverAvatar}
+                memberCount={inviteData.memberCount}
+                onlineCount={inviteData.onlineCount}
+                roomCode={inviteData.code}
+                isAlreadyMember={inviteData.isAlreadyMember}
+                busy={inviteBusy}
+                onAccept={handleAcceptInvite}
+                onClose={() => {
+                  if (!inviteBusy) {
+                    if (window.electronAPI.cancelInviteResolve) {
+                      window.electronAPI.cancelInviteResolve(inviteData.code);
+                    }
+                    setInviteData(null);
+                  }
+                }}
+              />
+            )}
+          </WatchPartyProvider>
+        </MusicProvider>
+      </VoiceProvider>
+    </StreamerModeProvider>
   );
 }

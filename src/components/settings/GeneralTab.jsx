@@ -5,6 +5,7 @@ import { soundEngine, SFX_LEVEL } from "../../lib/soundEngine";
 import { SUPPORTED_LANGUAGES } from "../../i18n/languages";
 import Select from "../ui/Select";
 import MaterialIcon from "../icons/MaterialIcon";
+import { useStreamerMode } from "../../context/StreamerModeContext";
 
 const STORAGE_LINE_HEIGHT_KEY = "onicord_chat_line_height";
 
@@ -12,6 +13,15 @@ export default function GeneralTab({ general, setGeneral }) {
   const { t, i18n } = useTranslation();
   const [cacheStats, setCacheStats] = useState({ count: 0, sizeFormatted: "0 B" });
   const [chatLineHeight, setChatLineHeight] = useState("1.5");
+
+  const {
+    isStreamerMode,
+    detectedApp,
+    autoEnabled,
+    manualActive,
+    setAutoEnabled,
+    toggleManual,
+  } = useStreamerMode();
 
   const [sfxLevel, setSfxLevel] = useState(() => {
     if (general?.sfxLevel !== undefined) return Number(general.sfxLevel);
@@ -156,7 +166,7 @@ export default function GeneralTab({ general, setGeneral }) {
 
         <div>
           {/* Idioma (Fila con select) */}
-          <div className="onicord-settings-input-row">
+          <div data-setting-id="language" className="onicord-settings-input-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.general.language", "Idioma de la Aplicación")}
@@ -178,7 +188,7 @@ export default function GeneralTab({ general, setGeneral }) {
           </div>
 
           {/* Zoom Level (Fila con slider) */}
-          <div className="onicord-settings-slider-row">
+          <div data-setting-id="zoomLevel" className="onicord-settings-slider-row transition-all">
             <div className="flex justify-between items-center">
               <div className="min-w-0 pr-2">
                 <p className="onicord-settings-row-title">
@@ -211,7 +221,7 @@ export default function GeneralTab({ general, setGeneral }) {
           </div>
 
           {/* Interlineado del Chat (Fila con slider) */}
-          <div className="onicord-settings-slider-row">
+          <div data-setting-id="lineSpacing" className="onicord-settings-slider-row transition-all">
             <div className="flex justify-between items-center">
               <div className="min-w-0 pr-2">
                 <p className="onicord-settings-row-title">
@@ -296,7 +306,7 @@ export default function GeneralTab({ general, setGeneral }) {
         </h3>
 
         <div>
-          <div className="onicord-settings-row">
+          <div data-setting-id="startup" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.general.openAtLogin", "Abrir Onicord al iniciar el sistema")}
@@ -318,7 +328,7 @@ export default function GeneralTab({ general, setGeneral }) {
             </label>
           </div>
 
-          <div className="onicord-settings-row">
+          <div data-setting-id="minimizeTray" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.general.minimizeToTray", "Minimizar a la bandeja del sistema")}
@@ -395,7 +405,7 @@ export default function GeneralTab({ general, setGeneral }) {
           </div>
 
           {/* Nivel de Efectos de Sonido (Selector por Botones Segmentados) */}
-          <div className="onicord-settings-row flex-col items-stretch gap-2.5">
+          <div data-setting-id="sfxSettings" className="onicord-settings-row flex-col items-stretch gap-2.5 transition-all">
             <div className="flex justify-between items-start">
               <div className="min-w-0 pr-2">
                 <p className="onicord-settings-row-title">
@@ -503,7 +513,7 @@ export default function GeneralTab({ general, setGeneral }) {
 
         <div>
           {/* Previsualización Open Graph */}
-          <div className="onicord-settings-row">
+          <div data-setting-id="openGraph" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.general.enableOpenGraph", "Previsualización de enlaces (Open Graph)")}
@@ -558,6 +568,78 @@ export default function GeneralTab({ general, setGeneral }) {
         </div>
       </div>
     </div>
+
+      {/* TARJETA 5: MODO STREAMER Y PRIVACIDAD */}
+      <div data-setting-id="streamerMode" className="onicord-settings-card transition-all">
+        <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-3">
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+              isStreamerMode
+                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                : "bg-onicord-base/40 text-onicord-muted border border-white/5"
+            }`}>
+              <MaterialIcon name="podcasts" size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-onicord-text">
+                {t("settings.general.streamerModeTitle", "Modo Streamer y Privacidad")}
+              </h3>
+              <p className="text-[11px] text-onicord-muted">
+                {t("settings.general.streamerModeSubtitle", "Oculta datos sensibles y enlaces de invitación durante tus transmisiones.")}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleManual}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer border ${
+              manualActive
+                ? "bg-purple-600 text-white border-purple-500"
+                : "bg-onicord-base/60 text-onicord-muted hover:text-onicord-text hover:bg-white/5 border-white/5"
+            }`}
+          >
+            {manualActive
+              ? t("settings.general.streamerModeManualDeactivate", "Desactivar manual")
+              : t("settings.general.streamerModeManualActivate", "Activar manualmente")}
+          </button>
+        </div>
+
+        <div>
+          {/* Activar automáticamente */}
+          <div className="onicord-settings-row">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.streamerModeAuto", "Activar automáticamente al detectar OBS / Streaming")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.general.streamerModeAutoDesc", "Detecta en segundo plano software como OBS Studio, Streamlabs o XSplit y activa la protección de forma silenciosa sin preguntar.")}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={autoEnabled}
+                onChange={(e) => setAutoEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          <div className="mt-3 p-3 rounded-xl bg-onicord-base/30 border border-white/5 text-[11px] text-onicord-muted space-y-1.5">
+            <p className="font-semibold text-onicord-text flex items-center gap-1.5">
+              <MaterialIcon name="shield" size={15} className="text-purple-400" />
+              {t("settings.general.streamerModeProtectionsTitle", "Protecciones activadas durante transmisiones y directos:")}
+            </p>
+            <ul className="list-disc list-inside space-y-0.5 pl-1 opacity-85">
+              <li>{t("settings.general.streamerModeProtection1", "Ocultamiento de códigos de sala (roomCode) e IPs en ajustes e invitaciones.")}</li>
+              <li>{t("settings.general.streamerModeProtection2", "Supresión de alertas y toasts emergentes de mensajes privados.")}</li>
+              <li>{t("settings.general.streamerModeProtection3", "Atenuación de sonidos de la interfaz para no contaminar el audio del stream.")}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
 
       {/* BOTÓN RESTABLECER */}
       <div className="pt-2">

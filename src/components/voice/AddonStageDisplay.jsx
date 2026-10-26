@@ -13,6 +13,7 @@ import {
 } from "../icons/StreamIcons";
 import { soundEngine } from "../../lib/soundEngine";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
+import FloatingMediaBar from "../ui/FloatingMediaBar";
 
 export default function AddonStageDisplay({
   stageData, // { pluginId, title, url, htmlContent, authorName, inviteData }
@@ -801,158 +802,131 @@ export default function AddonStageDisplay({
 
       {/* 4. Bottom Media Control Bar (solo visible cuando se está dentro de un juego, no en el launcher) */}
       {!isMini && !isCatalogLauncher && (
-        <div
-          className={`absolute bottom-6 left-0 right-0 z-30 flex justify-center select-none px-4 transition-all duration-300 ${
-            isFullscreen && !showControls
-              ? "opacity-0 translate-y-6 pointer-events-none"
-              : "opacity-100 translate-y-0 pointer-events-auto"
-          }`}
-        >
-          <div className="onicord-media-control-bar max-w-[90%] mx-auto shadow-2xl border border-white/20 bg-onicord-surface/90 flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md">
-            {/* Botón Volver al Catálogo (visible cuando se está dentro de un juego) */}
-            {activeGame && (
-              <button
-                type="button"
-                onClick={handleReturnToCatalog}
-                className="onicord-media-bar-btn flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-400 text-xs font-semibold border border-emerald-500/40 transition-colors shadow-sm"
-                title="Volver al catálogo de juegos"
-              >
-                <MaterialIcon name="apps" size={16} />
-                <span>Catálogo</span>
-              </button>
-            )}
+        <FloatingMediaBar visible={!isFullscreen || showControls}>
+          {/* Botón Volver al Catálogo (visible cuando se está dentro de un juego) */}
+          {activeGame && (
+            <FloatingMediaBar.PillButton
+              icon="apps"
+              label="Catálogo"
+              variant="success"
+              title="Volver al catálogo de juegos"
+              onClick={handleReturnToCatalog}
+            />
+          )}
 
-            {/* Audio volume */}
-            <div className="flex items-center gap-2 border-r border-white/10 pr-2">
-              <button
-                type="button"
-                onClick={() => setIsMuted(!isMuted)}
-                className={`onicord-icon-btn-round ${
-                  isMuted ? "bg-onicord-danger/20 text-onicord-danger border-onicord-danger/40" : "text-white"
-                }`}
-                title={isMuted ? "Reactivar sonido" : "Silenciar juego"}
-              >
-                {isMuted ? <IconVolumeOff size="base" /> : <IconVolumeUp size="base" />}
-              </button>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={volume}
-                onChange={(e) => {
-                  setVolume(Number(e.target.value));
-                  if (isMuted) setIsMuted(false);
-                }}
-                className="w-16 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer accent-onicord-accent"
-              />
-            </div>
+          {/* Audio volume */}
+          <FloatingMediaBar.Volume
+            volume={volume}
+            max={100}
+            step={1}
+            isMuted={isMuted}
+            onToggleMute={() => setIsMuted(!isMuted)}
+            onVolumeChange={(val) => {
+              setVolume(val);
+              if (isMuted && val > 0) setIsMuted(false);
+            }}
+            titleMute="Silenciar juego"
+            titleUnmute="Reactivar sonido"
+            customMuteIcon={<IconVolumeOff size="base" />}
+            customUnmuteIcon={<IconVolumeUp size="base" />}
+            showDividers={false}
+          />
 
-            {/* Share to Chat button */}
-            {onShareToChat && (
-              <button
-                type="button"
-                onClick={async () => {
-                  let dynamicUrl = null;
-                  const currentContext = {
-                    ...stageData,
-                    ...activeGame,
-                    url: activeUrl || activeGame?.url || stageData?.url,
-                    shareCapture: activeGame?.shareCapture || stageData?.shareCapture,
-                  };
+          {/* Share to Chat button */}
+          {onShareToChat && (
+            <FloatingMediaBar.PillButton
+              icon="share"
+              label="Invitar al chat"
+              title="Invitar al canal de texto con el link de la partida"
+              onClick={async () => {
+                let dynamicUrl = null;
+                const currentContext = {
+                  ...stageData,
+                  ...activeGame,
+                  url: activeUrl || activeGame?.url || stageData?.url,
+                  shareCapture: activeGame?.shareCapture || stageData?.shareCapture,
+                };
 
-                  // 1. Intentar capturar el enlace de la sala por IPC en Electron de forma agnóstica
-                  if (window.electronAPI?.captureStageShareUrl) {
+                // 1. Intentar capturar el enlace de la sala por IPC en Electron de forma agnóstica
+                if (window.electronAPI?.captureStageShareUrl) {
+                  try {
+                    dynamicUrl = await window.electronAPI.captureStageShareUrl(currentContext);
+                  } catch (e) {
+                    console.debug("[AddonStage] captureStageShareUrl error:", e);
+                  }
+                }
+
+                const queryParam = currentContext.shareCapture?.queryParam;
+                const urlPattern =
+                  currentContext.shareCapture?.urlPattern ||
+                  (currentContext.url?.includes("garticphone.com")
+                    ? "garticphone\\.com/(?:[a-zA-Z]{2}/)?([-_a-zA-Z0-9]{6,16})|garticphone\\.com/.*[?&]c="
+                    : null);
+                let isValidRoom = false;
+
+                if (dynamicUrl) {
+                  if (urlPattern) {
                     try {
-                      dynamicUrl = await window.electronAPI.captureStageShareUrl(currentContext);
-                    } catch (e) {
-                      console.debug("[AddonStage] captureStageShareUrl error:", e);
+                      isValidRoom = new RegExp(urlPattern, "i").test(dynamicUrl);
+                    } catch (_) {
+                      isValidRoom = false;
                     }
-                  }
-
-                  const queryParam = currentContext.shareCapture?.queryParam;
-                  const urlPattern =
-                    currentContext.shareCapture?.urlPattern ||
-                    (currentContext.url?.includes("garticphone.com")
-                      ? "garticphone\\.com/(?:[a-zA-Z]{2}/)?([-_a-zA-Z0-9]{6,16})|garticphone\\.com/.*[?&]c="
-                      : null);
-                  let isValidRoom = false;
-
-                  if (dynamicUrl) {
-                    if (urlPattern) {
-                      try {
-                        isValidRoom = new RegExp(urlPattern, "i").test(dynamicUrl);
-                      } catch (_) {
-                        isValidRoom = false;
-                      }
-                    } else if (queryParam) {
-                      isValidRoom = dynamicUrl.includes(queryParam);
-                    } else {
-                      isValidRoom = true;
-                    }
-                  }
-
-                  if (isValidRoom) {
-                    console.log("[AddonStage] Compartiendo enlace al chat:", dynamicUrl);
-                    onShareToChat(dynamicUrl, currentContext);
-                  } else if (!queryParam && !urlPattern && currentContext.url) {
-                    // Si el complemento no usa parámetros ni patrones de sala, compartir URL base
-                    onShareToChat(currentContext.url, currentContext);
+                  } else if (queryParam) {
+                    isValidRoom = dynamicUrl.includes(queryParam);
                   } else {
-                    console.warn("[AddonStage] No se detectó una sala activa.");
-                    setAddonConfirmDialog({
-                      title: "Sala aún no detectada",
-                      message: "No se detectó un enlace de sala activo para invitar.",
-                      warningMessage: "Si estás en Gartic Phone, hacé clic en 'INICIAR' dentro del juego para crear la sala. Si ya estás en la sala, podés hacer clic en 'INVITAR' dentro del juego para copiar el enlace.",
-                      confirmLabel: "Entendido",
-                      type: "alert",
-                      onConfirm: () => setAddonConfirmDialog(null),
-                    });
+                    isValidRoom = true;
                   }
-                }}
-                className="onicord-media-bar-btn flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-white text-xs transition-colors"
-                title="Invitar al canal de texto con el link de la partida"
-              >
-                <MaterialIcon name="share" size={16} />
-                <span>Invitar al chat</span>
-              </button>
-            )}
+                }
 
-            {/* PiP Mode toggle button */}
-            {onToggleSize && (
-              <button
-                type="button"
-                onClick={onToggleSize}
-                className="onicord-media-bar-btn flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-white text-xs transition-colors"
-                title="Modo PiP (Ver chat mientras juegas)"
-              >
-                <IconFullscreenExit size="base" />
-                <span>Modo PiP</span>
-              </button>
-            )}
+                if (isValidRoom) {
+                  console.log("[AddonStage] Compartiendo enlace al chat:", dynamicUrl);
+                  onShareToChat(dynamicUrl, currentContext);
+                } else if (!queryParam && !urlPattern && currentContext.url) {
+                  // Si el complemento no usa parámetros ni patrones de sala, compartir URL base
+                  onShareToChat(currentContext.url, currentContext);
+                } else {
+                  console.warn("[AddonStage] No se detectó una sala activa.");
+                  setAddonConfirmDialog({
+                    title: "Sala aún no detectada",
+                    message: "No se detectó un enlace de sala activo para invitar.",
+                    warningMessage:
+                      "Si estás en Gartic Phone, hacé clic en 'INICIAR' dentro del juego para crear la sala. Si ya estás en la sala, podés hacer clic en 'INVITAR' dentro del juego para copiar el enlace.",
+                    confirmLabel: "Entendido",
+                    type: "alert",
+                    onConfirm: () => setAddonConfirmDialog(null),
+                  });
+                }
+              }}
+            />
+          )}
 
-            {/* Fullscreen toggle button */}
-            {onToggleFullscreen && (
-              <button
-                type="button"
-                onClick={onToggleFullscreen}
-                className={`onicord-icon-btn-round ${isFullscreen ? "bg-sky-500/20 text-sky-400 border-sky-500/40" : "text-white"}`}
-                title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
-              >
-                {isFullscreen ? <IconFullscreenExit size="base" /> : <IconFullscreen size="base" />}
-              </button>
-            )}
+          {/* PiP Mode toggle button */}
+          {onToggleSize && (
+            <FloatingMediaBar.PillButton
+              icon={<IconFullscreenExit size="base" />}
+              label="Modo PiP"
+              title="Modo PiP (Ver chat mientras juegas)"
+              onClick={onToggleSize}
+            />
+          )}
 
-            {/* Stop / Close Stage button */}
-            <button
-              type="button"
-              onClick={handleTerminate}
-              className="onicord-icon-btn-round-stop bg-red-500/20 hover:bg-red-500/40 text-red-400 p-1.5 rounded-full border border-red-500/40 transition-colors"
-              title="Cerrar juego"
-            >
-              <IconStopStream size="base" />
-            </button>
-          </div>
-        </div>
+          {/* Fullscreen toggle button */}
+          {onToggleFullscreen && (
+            <FloatingMediaBar.IconButton
+              icon={isFullscreen ? <IconFullscreenExit size="base" /> : <IconFullscreen size="base" />}
+              title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
+              active={isFullscreen}
+              onClick={onToggleFullscreen}
+            />
+          )}
+
+          {/* Stop / Close Stage button */}
+          <FloatingMediaBar.StopButton
+            icon={<IconStopStream size="base" />}
+            title="Cerrar juego"
+            onClick={handleTerminate}
+          />
+        </FloatingMediaBar>
       )}
 
       {/* 5. Modal de Confirmación Estándar de Onicord para Addons y Escenario */}

@@ -8,6 +8,7 @@ const { registerChatHandlers } = require("./handlers/chatHandlers.cjs");
 const { registerMediaFileHandlers } = require("./handlers/mediaFileHandlers.cjs");
 const { registerSystemDiagHandlers } = require("./handlers/systemDiagHandlers.cjs");
 const { registerPluginDriveHandlers } = require("./handlers/pluginDriveHandlers.cjs");
+const { registerWebhookHandlers } = require("./handlers/webhookHandlers.cjs");
 
 /**
  * Registers all Inter-Process Communication (IPC) invocation handlers and event listeners.
@@ -23,6 +24,7 @@ function registerIPCHandlers() {
   registerMediaFileHandlers();
   registerSystemDiagHandlers();
   registerPluginDriveHandlers();
+  registerWebhookHandlers();
 }
 
 module.exports = { registerIPCHandlers };

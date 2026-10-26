@@ -7,6 +7,7 @@ function IslandIframeWidget({
   roomCode,
   profile,
   server,
+  voice,
   height,
   onActivity,
   onIframeClick,
@@ -15,9 +16,13 @@ function IslandIframeWidget({
   const iframeRef = useRef(null);
   const p2pListenersRef = useRef(new Set());
   const onActivityRef = useRef(onActivity);
+  const voiceRef = useRef(voice);
   useEffect(() => {
     onActivityRef.current = onActivity;
   }, [onActivity]);
+  useEffect(() => {
+    voiceRef.current = voice;
+  }, [voice]);
   const widgetId = widget.id || "island-widget";
   const pluginId = widget.pluginId || "unknown-plugin";
   const permissions = new Set(
@@ -168,10 +173,31 @@ function IslandIframeWidget({
           localStorage.setItem(storeKey, value);
         },
       },
+
+      voice: {
+        isInVoice: () => Boolean(voiceRef.current?.inVoice),
+        getChannelId: () => voiceRef.current?.currentVoiceChannelId || null,
+        getChannelName: () => voiceRef.current?.resolvedVoiceChannelName || null,
+      },
     };
 
     iframeWin.dispatchEvent(new CustomEvent("onicord:widget-ready"));
   };
+
+  useEffect(() => {
+    if (iframeRef.current?.contentWindow) {
+      try {
+        iframeRef.current.contentWindow.postMessage(
+          {
+            type: "ONICORD_VOICE_STATE",
+            inVoice: Boolean(voice?.inVoice),
+            channelId: voice?.currentVoiceChannelId || null,
+          },
+          "*"
+        );
+      } catch (_) {}
+    }
+  }, [voice?.inVoice, voice?.currentVoiceChannelId]);
 
   const widgetHeight = height || widget.height || 275;
 
@@ -192,7 +218,7 @@ function IslandIframeWidget({
   );
 }
 
-export default function PluginIsland({ roomCode, profile, server }) {
+export default function PluginIsland({ roomCode, profile, server, voice }) {
   const { t } = useTranslation();
   const [installedWidgets, setInstalledWidgets] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -200,8 +226,8 @@ export default function PluginIsland({ roomCode, profile, server }) {
   // Estados de visibilidad dinámica: Inicia en modo cápsula (56px) por defecto
   const [isPinned, setIsPinned] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [latestDescription, setLatestDescription] = useState("");
-  const [lastUpdateTime, setLastUpdateTime] = useState("");
+  // Diccionario de resúmenes aislados por addon/widget ({ [widgetKey]: { text, updatedAt } })
+  const [widgetSummaries, setWidgetSummaries] = useState({});
 
   const idleTimerRef = useRef(null);
   const isExpanded = isPinned || isHovered;
@@ -281,26 +307,17 @@ export default function PluginIsland({ roomCode, profile, server }) {
   const displayWidget = activeWidget || cachedActiveWidget;
   const displayWidgets = widgets.length > 0 ? widgets : cachedWidgets;
 
-  useEffect(() => {
-    if (displayWidget && !latestDescription) {
-      setLatestDescription(
-        displayWidget.description || displayWidget.title || "Complemento activo"
-      );
-    }
-  }, [displayWidget, latestDescription]);
-
-
   const handleSummaryChange = useCallback((text, widgetIndex) => {
-    if (widgetIndex !== undefined && widgetIndex !== currentIndex) {
-      setCurrentIndex(widgetIndex);
-    }
-    if (typeof text === "string" && text.trim()) {
-      setLatestDescription(text.trim());
-      setLastUpdateTime(
-        new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      );
-    }
-  }, [currentIndex]);
+    if (typeof text !== "string" || !text.trim()) return;
+    const target = (widgets && widgetIndex !== undefined ? widgets[widgetIndex] : null) || activeWidget;
+    if (!target) return;
+    const key = target.id || target.pluginId;
+    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setWidgetSummaries((prev) => ({
+      ...prev,
+      [key]: { text: text.trim(), updatedAt: now },
+    }));
+  }, [widgets, activeWidget]);
 
   const handleWidgetActivity = useCallback((data, senderPeerId, widgetIndex) => {
     if (widgetIndex !== undefined && widgetIndex !== currentIndex) {
@@ -320,12 +337,16 @@ export default function PluginIsland({ roomCode, profile, server }) {
       data.title;
 
     if (typeof genericText === "string" && genericText.trim()) {
-      setLatestDescription(genericText.trim());
-      setLastUpdateTime(
-        new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      );
+      const target = (widgets && widgetIndex !== undefined ? widgets[widgetIndex] : null) || activeWidget;
+      if (!target) return;
+      const key = target.id || target.pluginId;
+      const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      setWidgetSummaries((prev) => ({
+        ...prev,
+        [key]: { text: genericText.trim(), updatedAt: now },
+      }));
     }
-  }, [currentIndex, resetIdleTimer]);
+  }, [widgets, activeWidget, currentIndex, resetIdleTimer]);
 
   const handleIframeClick = () => {
     setIsPinned(true);
@@ -356,7 +377,6 @@ export default function PluginIsland({ roomCode, profile, server }) {
     if (widgets.length <= 1) return;
     const nextIdx = currentIndex > 0 ? currentIndex - 1 : widgets.length - 1;
     setCurrentIndex(nextIdx);
-    setLatestDescription(widgets[nextIdx]?.description || "");
     resetIdleTimer();
   };
 
@@ -365,12 +385,20 @@ export default function PluginIsland({ roomCode, profile, server }) {
     if (widgets.length <= 1) return;
     const nextIdx = currentIndex < widgets.length - 1 ? currentIndex + 1 : 0;
     setCurrentIndex(nextIdx);
-    setLatestDescription(widgets[nextIdx]?.description || "");
     resetIdleTimer();
   };
 
   const hasMultipleWidgets = displayWidgets.length > 1;
   const widgetHeight = displayWidget?.height || (hasMultipleWidgets ? 255 : 280);
+
+  const activeKey = displayWidget?.id || displayWidget?.pluginId;
+  const activeSummaryData = activeKey ? widgetSummaries[activeKey] : null;
+  const currentSummaryText =
+    activeSummaryData?.text ||
+    displayWidget?.description ||
+    displayWidget?.title ||
+    t("plugins.activePlugin", "Complemento activo");
+  const currentUpdateTime = activeSummaryData?.updatedAt || "";
 
   if (!displayWidget || displayWidgets.length === 0) {
     return null;
@@ -431,19 +459,16 @@ export default function PluginIsland({ roomCode, profile, server }) {
                   className="text-indigo-400 shrink-0"
                   title={t("plugins.islandPlugin", "Complemento")}
                 />
-                {lastUpdateTime && (
+                {currentUpdateTime && (
                   <span className="text-[10px] text-onicord-muted shrink-0 ml-auto tabular-nums">
-                    {lastUpdateTime}
+                    {currentUpdateTime}
                   </span>
                 )}
               </div>
 
               {/* Descripción de la última actualización (SIN EMOJIS) */}
               <p className="text-[11px] text-onicord-subtext truncate mt-0.5 leading-tight">
-                {latestDescription ||
-                  displayWidget.description ||
-                  displayWidget.title ||
-                  t("plugins.activePlugin", "Complemento activo")}
+                {currentSummaryText}
               </p>
             </div>
 
@@ -483,6 +508,7 @@ export default function PluginIsland({ roomCode, profile, server }) {
                 roomCode={roomCode}
                 profile={profile}
                 server={server}
+                voice={voice}
                 height={widgetHeight}
                 onActivity={(data, senderPeerId) =>
                   handleWidgetActivity(data, senderPeerId, idx)

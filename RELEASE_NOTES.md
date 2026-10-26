@@ -1,3 +1,17 @@
+# Onicord v0.2.0
+
+## Changes
+
+- **Synchronized P2P Watch Party**: Watch synchronized YouTube and web videos directly in voice lounges with dual Theatre and GPU-accelerated PiP floating mini-player modes, drift compensation, subtitle selection, and contextual right-click chat integration.
+- **Streamer Mode & Broadcast Privacy**: Automatic detection of active streaming software (OBS, Twitch Studio, Streamlabs) or manual toggle, with instant masking of room codes, invite links, and server keys, suppression of message popups, and a purple avatar streaming status.
+- **Autonomous Server Webhooks & Feed Ingress**: Push alerts directly into channels with Discord-compatible JSON payloads via a built-in local HTTP ingress server, or configure autonomous RSS/Atom/JSON feed polling over the P2P swarm without cloud dependencies.
+- **Universal Settings Search & Flash Navigation**: Instant real-time search across all application and server settings tabs with automated tab switching, smooth scrolling, and visual pulse highlight (flash navigation) on target preference cards.
+- **Standardized Floating Media Bar**: Unified, distraction-free floating media controls shared across Watch Party, Screen Sharing, and Arcade stages with volume sliders, audio ducking, and theatre toggle adhering to the Catppuccin Mocha palette.
+- **Intelligent Media Audio Ducking**: Integrated audio ducking for Watch Party video streams, automatically attenuating playback volume whenever a peer speaks in the voice lounge for crystal-clear conversations.
+- **Screen Share Full-Area Stage**: Expanded video streaming display to occupy 100% full-area stage layout, matching the dimensions of the Arcade and Watch Party interfaces.
+- **Modular P2P Soundboard Addon**: Official `.onipkg` Soundboard addon for the Plugin Island, enabling participants to drop custom audio clips (`.mp3`, `.wav`, `.ogg`), sync them in real time across peers, and play soundboard effects in voice calls.
+- **Multi-Language Localization Parity**: Complete translations across Spanish (`es`), English (`en`), and Portuguese (`pt`) for all new settings, search, streamer mode, and watch party features.
+
 # Onicord v0.1.9
 
 ## Changes

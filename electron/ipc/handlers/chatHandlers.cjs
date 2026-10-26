@@ -51,6 +51,9 @@ function registerChatHandlers() {
         isSystemMessage: r.isSystemMessage,
         isComplement: r.isComplement,
         complementName: r.complementName,
+        isWebhook: r.isWebhook,
+        webhookId: r.webhookId,
+        embeds: r.embeds,
       }));
     }
 

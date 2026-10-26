@@ -317,7 +317,7 @@ export default function PluginsTab() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("common.search", "Buscar...")}
-              className="w-full h-9 pl-9 pr-8 text-xs bg-onicord-base/60 border border-white/5 rounded-xl text-onicord-text placeholder:text-onicord-muted/60 focus:outline-none focus:border-onicord-accent transition"
+              className="onicord-input h-10 pl-9 pr-8 text-xs placeholder:text-onicord-muted/60"
             />
             {searchQuery && (
               <button

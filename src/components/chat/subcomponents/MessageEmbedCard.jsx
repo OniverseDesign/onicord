@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
+import { useVoiceChannelInfo } from "../../../context/VoiceContext";
 
 export function extractYouTubeId(urlStr) {
   if (!urlStr || typeof urlStr !== "string") return null;
@@ -53,6 +54,7 @@ export function extractInstagramId(urlStr) {
 
 export default function MessageEmbedCard({ url }) {
   const { t } = useTranslation();
+  const { inVoice } = useVoiceChannelInfo();
   const [ogData, setOgData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -329,6 +331,25 @@ export default function MessageEmbedCard({ url }) {
                     <MaterialIcon name="play_arrow" size={28} />
                   </div>
                 </div>
+                {Boolean(inVoice) && (
+                  <button
+                    type="button"
+                    title="Ver en Watch Party con la sala"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      window.dispatchEvent(
+                        new CustomEvent("onicord:start-watch-party", {
+                          detail: { url, title: ogData.title },
+                        }),
+                      );
+                    }}
+                    className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 hover:bg-onicord-accent text-white text-[11px] font-semibold tracking-wide backdrop-blur-md shadow-lg border border-white/10 opacity-0 group-hover/yt:opacity-100 transition-all duration-200"
+                  >
+                    <MaterialIcon name="smart_display" size={14} />
+                    <span>Watch Party</span>
+                  </button>
+                )}
               </div>
             )
           ) : ogData.video ? (

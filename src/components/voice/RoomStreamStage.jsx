@@ -37,20 +37,18 @@ export default function RoomStreamStage({
     <>
       {/* 1. Inline Stage: rendered inside RoomView main central column */}
       {!isStreamFloating && !isStreamFullscreen && (
-        <div className="flex-1 h-full min-h-0 flex flex-col bg-onicord-surface">
-          <StreamDisplay
-            localStream={currentStream}
-            isLocal={!activeStreamUserId}
-            streamAuthorName={streamAuthorName}
-            onStopStream={handleStopStream}
-            isFullscreen={false}
-            onToggleFullscreen={() => {
-              setIsStreamFullscreen(true);
-              window.electronAPI?.setFullscreen?.(true);
-            }}
-            onToggleSize={() => setIsStreamFloating(true)}
-          />
-        </div>
+        <StreamDisplay
+          localStream={currentStream}
+          isLocal={!activeStreamUserId}
+          streamAuthorName={streamAuthorName}
+          onStopStream={handleStopStream}
+          isFullscreen={false}
+          onToggleFullscreen={() => {
+            setIsStreamFullscreen(true);
+            window.electronAPI?.setFullscreen?.(true);
+          }}
+          onToggleSize={() => setIsStreamFloating(true)}
+        />
       )}
 
       {/* 2. Floating Stage (PiP) */}

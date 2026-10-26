@@ -14,6 +14,7 @@ import MessageEmbedCard from "./subcomponents/MessageEmbedCard";
 import MessageMediaAttachment from "./subcomponents/MessageMediaAttachment";
 import MessageStickerContent from "./subcomponents/MessageStickerContent";
 import MessagePluginEmbed from "./subcomponents/MessagePluginEmbed";
+import MessageWebhookEmbed from "./subcomponents/MessageWebhookEmbed";
 import MessageTextContent, { parseMessageText } from "./subcomponents/MessageTextContent";
 
 const ChatMessageItem = memo(
@@ -71,6 +72,11 @@ const ChatMessageItem = memo(
       nickname = msg.complementName || msg.user?.nickname || "Complemento";
       avatar = msg.authorAvatar || msg.avatar || msg.user?.avatar || null;
     }
+
+    if (msg.isWebhook) {
+      nickname = msg.authorNickname || "Webhook";
+      avatar = msg.authorAvatar || null;
+    }
     const isMyMessage = Boolean(profile?.id && (msg.authorId === profile.id || msg.authorId === "self")) || msg.authorId === "self";
 
     let isSameAuthor = false;
@@ -80,8 +86,8 @@ const ChatMessageItem = memo(
 
       // 1. Nunca agrupar mensajes propios con mensajes de otros usuarios
       if (prevIsMe === currentIsMe) {
-        const prevIsComp = Boolean(prevMsg.isComplement || prevMsg.authorId === "onicord-bot");
-        const currentIsComp = Boolean(msg.isComplement || msg.authorId === "onicord-bot");
+        const prevIsComp = Boolean(prevMsg.isComplement || prevMsg.authorId === "onicord-bot" || prevMsg.isWebhook);
+        const currentIsComp = Boolean(msg.isComplement || msg.authorId === "onicord-bot" || msg.isWebhook);
 
         // 2. Nunca agrupar complementos/bots con mensajes de usuario regular
         if (prevIsComp === currentIsComp) {
@@ -496,6 +502,7 @@ const ChatMessageItem = memo(
                 nickname={nickname}
                 nameColor={nameColor}
                 isComplement={msg.isComplement}
+                isWebhook={msg.isWebhook}
                 timestamp={msg.timestamp}
                 edited={msg.edited}
                 isForwarded={msg.isForwarded}
@@ -526,6 +533,10 @@ const ChatMessageItem = memo(
             )}
 
             {hasLink && detectedUrl && <MessageEmbedCard url={detectedUrl} />}
+
+            {Array.isArray(msg.embeds) && msg.embeds.length > 0 && (
+              <MessageWebhookEmbed embeds={msg.embeds} />
+            )}
 
             {isFilePayload && fileData && (
               <MessageMediaAttachment

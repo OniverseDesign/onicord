@@ -4,9 +4,12 @@ import MaterialIcon from "../icons/MaterialIcon";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
 import { copyTextToClipboard } from "../../lib/clipboard";
 import { getWebInviteUrl, getNativeDeepLink } from "../../lib/inviteUtils";
+import { useStreamerMode } from "../../context/StreamerModeContext";
 
 export default function ServerInviteTab({ server, copyCode, copied }) {
   const { t } = useTranslation();
+  const { isStreamerMode } = useStreamerMode();
+  const [revealedInStream, setRevealedInStream] = useState(false);
   const [copiedCodeState, setCopiedCodeState] = useState(false);
   const [copiedLinkState, setCopiedLinkState] = useState(false);
   const [copiedRawLinkState, setCopiedRawLinkState] = useState(false);
@@ -17,6 +20,11 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
   const deepLink = getNativeDeepLink(roomCode);
   const serverAvatar = server?.icon || null;
   const initial = serverName.trim()?.[0]?.toUpperCase() || "?";
+
+  const shouldMask = isStreamerMode && !revealedInStream;
+  const displayedRoomCode = shouldMask ? "••••••••" : roomCode;
+  const displayedWebLink = shouldMask ? "https://onicord.com/join/••••••••" : webLink;
+  const displayedDeepLink = shouldMask ? "onicord://join/••••••••" : deepLink;
 
   // Calculate member count and simulated online count
   const memberCount = server?.savedMembers
@@ -88,8 +96,20 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
             </p>
 
             <div className="space-y-3 pt-1">
-              <div className="w-full bg-onicord-base/80 border border-white/10 rounded-xl p-3 flex items-center justify-center font-mono text-lg font-bold tracking-widest text-onicord-accent shadow-inner select-all">
-                <span>{roomCode}</span>
+              <div className="relative w-full bg-onicord-base/80 border border-white/10 rounded-xl p-3 flex items-center justify-center font-mono text-lg font-bold tracking-widest text-onicord-accent shadow-inner select-all">
+                <span>{displayedRoomCode}</span>
+                {isStreamerMode && (
+                  <button
+                    type="button"
+                    onClick={() => setRevealedInStream((r) => !r)}
+                    className="absolute right-3 text-onicord-muted hover:text-onicord-text p-1 text-xs transition-colors cursor-pointer"
+                    title={revealedInStream
+                      ? t("serverSettings.invites.hideCode", "Ocultar código")
+                      : t("serverSettings.invites.revealCode", "Revelar código temporalmente")}
+                  >
+                    <MaterialIcon name={revealedInStream ? "visibility_off" : "visibility"} size={16} />
+                  </button>
+                )}
               </div>
 
               <button
@@ -130,7 +150,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
 
             <div className="space-y-3 pt-1">
               <div className="w-full bg-onicord-base/80 border border-white/10 rounded-xl p-3 flex items-center justify-center font-mono text-xs font-semibold text-onicord-accent shadow-inner truncate select-all">
-                {webLink}
+                {displayedWebLink}
               </div>
 
               <button

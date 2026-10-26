@@ -1,5 +1,6 @@
 const fs = require("fs/promises");
 const path = require("path");
+const crypto = require("crypto");
 const { DEFAULT_CHANNELS } = require("./serverStore.cjs");
 
 class RoomMetaStore {
@@ -75,6 +76,7 @@ class RoomMetaStore {
         bannedUsers: [],
         kickedUsers: {},
         auditLog: [],
+        webhooks: [],
       };
       this._cache.set(safeCode, defaultMeta);
       return defaultMeta;
@@ -233,6 +235,7 @@ class RoomMetaStore {
         bannedUsers: remote.bannedUsers ?? local.bannedUsers ?? [],
         kickedUsers: remote.kickedUsers ?? local.kickedUsers ?? {},
         auditLog: mergedAuditLog,
+        webhooks: Array.isArray(remote.webhooks) ? remote.webhooks : (local.webhooks ?? []),
       };
       await this.save(roomCode, merged);
       return { applied: true, meta: merged };
@@ -267,6 +270,90 @@ class RoomMetaStore {
     local.savedMembers = mergedSavedMembers;
     await this.save(roomCode, local);
     return local;
+  }
+
+  async getWebhooks(roomCode, includeHash = false) {
+    const meta = await this.load(roomCode);
+    const list = Array.isArray(meta.webhooks) ? meta.webhooks : [];
+    if (includeHash) return list;
+    return list.map(({ tokenHash, ...safe }) => safe);
+  }
+
+  async addWebhook(roomCode, { name, channelId, avatar, type = "incoming", targetUrl = null, intervalSeconds = 300 }, createdByUserId) {
+    const meta = await this.load(roomCode);
+    const webhooks = Array.isArray(meta.webhooks) ? [...meta.webhooks] : [];
+    
+    const id = "wh_" + crypto.randomBytes(8).toString("hex");
+    const rawToken = crypto.randomBytes(24).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    const newWebhook = {
+      id,
+      name: String(name || "Webhook").trim().slice(0, 48),
+      channelId: channelId || "general",
+      avatar: avatar || null,
+      tokenHash,
+      type: type === "pull_poller" ? "pull_poller" : "incoming",
+      targetUrl: targetUrl || null,
+      intervalSeconds: Math.max(30, parseInt(intervalSeconds, 10) || 300),
+      createdAt: Date.now(),
+      createdBy: createdByUserId || null,
+    };
+
+    webhooks.push(newWebhook);
+    const updatedMeta = await this.bump(roomCode, { webhooks }, createdByUserId);
+    const { tokenHash: _, ...safeWebhook } = newWebhook;
+    return { webhook: safeWebhook, rawToken, meta: updatedMeta };
+  }
+
+  async updateWebhook(roomCode, webhookId, patch = {}, updatedByUserId) {
+    const meta = await this.load(roomCode);
+    const webhooks = Array.isArray(meta.webhooks) ? [...meta.webhooks] : [];
+    const idx = webhooks.findIndex((w) => w.id === webhookId);
+    if (idx === -1) throw new Error("Webhook not found");
+
+    const existing = webhooks[idx];
+    const updated = {
+      ...existing,
+      name: patch.name !== undefined ? String(patch.name).trim().slice(0, 48) : existing.name,
+      channelId: patch.channelId !== undefined ? patch.channelId : existing.channelId,
+      avatar: patch.avatar !== undefined ? patch.avatar : existing.avatar,
+      targetUrl: patch.targetUrl !== undefined ? patch.targetUrl : existing.targetUrl,
+      intervalSeconds: patch.intervalSeconds !== undefined ? Math.max(30, parseInt(patch.intervalSeconds, 10) || 300) : existing.intervalSeconds,
+      updatedAt: Date.now(),
+    };
+
+    webhooks[idx] = updated;
+    const updatedMeta = await this.bump(roomCode, { webhooks }, updatedByUserId);
+    const { tokenHash: _, ...safeWebhook } = updated;
+    return { webhook: safeWebhook, meta: updatedMeta };
+  }
+
+  async deleteWebhook(roomCode, webhookId, updatedByUserId) {
+    const meta = await this.load(roomCode);
+    const webhooks = (Array.isArray(meta.webhooks) ? meta.webhooks : []).filter((w) => w.id !== webhookId);
+    const updatedMeta = await this.bump(roomCode, { webhooks }, updatedByUserId);
+    return { success: true, meta: updatedMeta };
+  }
+
+  async regenerateWebhookToken(roomCode, webhookId, updatedByUserId) {
+    const meta = await this.load(roomCode);
+    const webhooks = Array.isArray(meta.webhooks) ? [...meta.webhooks] : [];
+    const idx = webhooks.findIndex((w) => w.id === webhookId);
+    if (idx === -1) throw new Error("Webhook not found");
+
+    const rawToken = crypto.randomBytes(24).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+    webhooks[idx] = {
+      ...webhooks[idx],
+      tokenHash,
+      tokenRegeneratedAt: Date.now(),
+    };
+
+    const updatedMeta = await this.bump(roomCode, { webhooks }, updatedByUserId);
+    const { tokenHash: _, ...safeWebhook } = webhooks[idx];
+    return { webhook: safeWebhook, rawToken, meta: updatedMeta };
   }
 }
 

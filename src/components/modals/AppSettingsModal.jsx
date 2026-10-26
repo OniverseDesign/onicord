@@ -43,21 +43,158 @@ export default function AppSettingsModal({
 
   const sections = useMemo(() => {
     const list = [
-      { id: "general", label: t("settings.tabs.general"), icon: "settings" },
-      { id: "profile", label: t("settings.tabs.profile"), icon: "person" },
-      { id: "audio", label: t("settings.tabs.voiceVideo"), icon: "mic" },
-      { id: "keybindings", label: t("settings.tabs.keybindings", "Atajos de Teclado"), icon: "keyboard" },
-      { id: "overlay", label: t("settings.tabs.overlay", "Overlay"), icon: "layers" },
-      { id: "games", label: t("settings.tabs.games", "Actividad"), icon: "sports_esports" },
-      { id: "appearance", label: t("settings.tabs.appearance"), icon: "palette" },
-      { id: "widgets", label: t("settings.tabs.widgets", "Dashboard"), icon: "dashboard" },
-      { id: "stickers", label: t("settings.tabs.stickers", "Stickers"), icon: "sticky_note_2" },
-      { id: "plugins", label: t("settings.tabs.plugins", "Complementos"), icon: "extension" },
-      // { id: "cloud", label: t("settings.tabs.cloud", "Copia en la Nube"), icon: "cloud_upload" },
-      { id: "about", label: t("settings.tabs.about", "Acerca de"), icon: "info" },
+      {
+        id: "general",
+        label: t("settings.tabs.general"),
+        icon: "settings",
+        keywords: ["general", "opciones", "sistema", "configuracion"],
+        features: [
+          { id: "language", label: t("settings.general.language", "Idioma de la Aplicación"), keywords: ["idioma", "lenguaje", "language", "español", "ingles", "portugues"] },
+          { id: "zoomLevel", label: t("settings.general.zoom", "Escala de la Interfaz (Zoom)"), keywords: ["zoom", "tamaño", "fuente", "escala", "interfaz"] },
+          { id: "lineSpacing", label: t("settings.theme.lineSpacing", "Interlineado del Chat"), keywords: ["espacio", "lineas", "chat", "interlineado", "texto"] },
+          { id: "startup", label: t("settings.general.openAtLogin", "Iniciar al encender el sistema"), keywords: ["inicio", "arrancar", "windows", "sistema", "autostart", "login"] },
+          { id: "minimizeTray", label: t("settings.general.minimizeToTray", "Minimizar a la bandeja del sistema"), keywords: ["tray", "bandeja", "segundo plano", "cerrar", "minimizar"] },
+          { id: "confirmExit", label: t("settings.general.confirmOnExit", "Confirmar antes de salir"), keywords: ["confirmar", "salir", "cerrar", "pregunta"] },
+          { id: "openGraph", label: t("settings.general.enableOpenGraph", "Vistas previas de enlaces (OpenGraph)"), keywords: ["og", "embeds", "enlaces", "links", "videos", "spotify", "tarjetas"] },
+          { id: "clearCache", label: t("settings.general.clearCache", "Limpiar caché de medios y archivos"), keywords: ["cache", "espacio", "limpiar", "disco", "memoria"] },
+          { id: "streamerMode", label: t("settings.general.streamerMode", "Modo Streamer (Protección OBS)"), keywords: ["stream", "streamer", "obs", "ocultar", "directo", "twitch", "privacidad"] },
+        ],
+      },
+      {
+        id: "profile",
+        label: t("settings.tabs.profile"),
+        icon: "person",
+        keywords: ["perfil", "usuario", "cuenta", "avatar", "apodo"],
+        features: [
+          { id: "nickname", label: t("settings.profile.nickname", "Nombre de usuario y apodo"), keywords: ["apodo", "nombre", "nickname", "usuario", "identidad"] },
+          { id: "avatar", label: t("settings.profile.avatar", "Foto de perfil / Avatar"), keywords: ["avatar", "foto", "imagen", "icono", "perfil"] },
+          { id: "customStatus", label: t("settings.profile.customStatus", "Mensaje de estado personalizado"), keywords: ["estado", "status", "frase", "custom status"] },
+          { id: "profileColor", label: t("settings.profile.profileColor", "Color de acento del perfil"), keywords: ["color", "tarjeta", "banner", "perfil", "acento"] },
+          { id: "customLink", label: t("settings.profile.customLink", "Red social o enlace personalizado"), keywords: ["link", "web", "twitter", "enlace", "redes"] },
+          { id: "accountDanger", label: t("settings.profile.deleteAccount", "Eliminar o resetear cuenta local"), keywords: ["cuenta", "borrar", "eliminar", "resetear", "cerrar"] },
+        ],
+      },
+      {
+        id: "audio",
+        label: t("settings.tabs.voiceVideo"),
+        icon: "mic",
+        keywords: ["audio", "voz", "video", "microfono", "sonido", "ducking", "sfx"],
+        features: [
+          { id: "inputDevice", label: t("settings.voiceVideo.inputDevice", "Dispositivo de entrada (Micrófono)"), keywords: ["micro", "microfono", "input", "grabar", "dispositivo"] },
+          { id: "outputDevice", label: t("settings.voiceVideo.outputDevice", "Dispositivo de salida (Altavoces)"), keywords: ["auriculares", "altavoz", "auricular", "parlante", "sonido", "output"] },
+          { id: "inputVolume", label: t("settings.voiceVideo.inputVolume", "Volumen del micrófono"), keywords: ["volumen", "ganancia", "nivel", "micro"] },
+          { id: "outputVolume", label: t("settings.voiceVideo.outputVolume", "Volumen de salida"), keywords: ["volumen", "master", "altavoces", "auriculares"] },
+          { id: "micTest", label: t("settings.voiceVideo.micTest", "Prueba de micrófono"), keywords: ["test", "probar", "barra", "onda", "microfono", "escuchar"] },
+          { id: "vadSensitivity", label: t("settings.voiceVideo.vadSensitivity", "Sensibilidad de entrada y VAD"), keywords: ["sensibilidad", "umbral", "ruido ambiental", "activacion", "vad"] },
+          { id: "noiseSuppression", label: t("settings.voiceVideo.noiseSuppression", "Supresión de Ruido"), keywords: ["ruido", "filtrar", "teclado", "fondo", "noise"] },
+          { id: "echoCancellation", label: t("settings.voiceVideo.echoCancellation", "Cancelación de Eco"), keywords: ["eco", "acople", "altavoces", "retroalimentacion"] },
+          { id: "autoGainControl", label: t("settings.voiceVideo.autoGainControl", "Control Automático de Ganancia"), keywords: ["ganancia", "nivelar", "volumen automatico", "gain"] },
+          { id: "dynamicsCompression", label: t("settings.voiceVideo.dynamicsCompression", "Limitador Master Anti-Clipping"), keywords: ["limitador", "compresor", "clipping", "distorsion", "master", "gritos"] },
+          { id: "autoDucking", label: t("settings.voiceVideo.autoDucking", "Atenuación inteligente (Auto-Ducking)"), keywords: ["ducking", "atenuacion", "bajar volumen al hablar", "pantalla compartida", "juego"] },
+          { id: "sfxSettings", label: t("settings.voiceVideo.sfxSettings", "Efectos de sonido de la interfaz (SFX)"), keywords: ["sfx", "sonidos", "clicks", "notificaciones", "tonos", "uisfx", "pack"] },
+        ],
+      },
+      {
+        id: "keybindings",
+        label: t("settings.tabs.keybindings", "Atajos de Teclado"),
+        icon: "keyboard",
+        keywords: ["teclado", "atajos", "shortcuts", "hotkeys", "teclas"],
+        features: [
+          { id: "toggleMute", label: t("settings.keybindings.mute", "Atajo: Silenciar micrófono (Toggle Mute)"), keywords: ["mute", "silenciar", "micro", "tecla", "shortcut"] },
+          { id: "toggleDeafen", label: t("settings.keybindings.deafen", "Atajo: Ensordecer audio (Toggle Deafen)"), keywords: ["deafen", "ensordecer", "auriculares", "callar", "tecla"] },
+          { id: "disconnectVoice", label: t("settings.keybindings.disconnect", "Atajo: Desconectar de la llamada"), keywords: ["desconectar", "salir", "colgar", "llamada"] },
+          { id: "toggleOverlay", label: t("settings.keybindings.overlay", "Atajo: Abrir / Cerrar In-Game Overlay"), keywords: ["overlay", "juego", "hud", "abrir"] },
+        ],
+      },
+      {
+        id: "overlay",
+        label: t("settings.tabs.overlay", "Overlay"),
+        icon: "layers",
+        keywords: ["overlay", "juegos", "pantalla", "hud", "en juego", "gaming"],
+        features: [
+          { id: "overlayEnable", label: t("settings.overlay.enable", "Activar Overlay en juegos"), keywords: ["overlay", "juegos", "pantalla", "hud", "en juego"] },
+          { id: "overlayPosition", label: t("settings.overlay.position", "Posición del Overlay en pantalla"), keywords: ["posicion", "esquina", "arriba", "abajo", "derecha", "izquierda"] },
+          { id: "overlayOpacity", label: t("settings.overlay.opacity", "Opacidad del Overlay"), keywords: ["opacidad", "transparencia", "fondo", "alfa"] },
+          { id: "overlayAutoHide", label: t("settings.overlay.autoHide", "Ocultar automáticamente si no hablan"), keywords: ["ocultar", "auto", "hablar", "silencio", "avatares"] },
+          { id: "overlayAvatarOnly", label: t("settings.overlay.avatarOnly", "Mostrar solo avatares sin apodos"), keywords: ["solo avatares", "nombres", "compacto"] },
+        ],
+      },
+      {
+        id: "games",
+        label: t("settings.tabs.games", "Actividad"),
+        icon: "sports_esports",
+        keywords: ["juegos", "actividad", "rpc", "discord", "ejecutables", "jugando"],
+        features: [
+          { id: "gameDetection", label: t("settings.games.detection", "Detección de videojuegos y programas"), keywords: ["juegos", "programas", "actividad", "jugando", "detectar", "exe"] },
+          { id: "richPresence", label: t("settings.games.rpc", "Servidor local Discord RPC"), keywords: ["rpc", "discord", "rich presence", "emuladores", "port"] },
+          { id: "customGames", label: t("settings.games.custom", "Añadir programa o juego personalizado"), keywords: ["añadir juego", "personalizado", "ejecutable", "whitelist"] },
+          { id: "playtime", label: t("settings.games.playtime", "Horas y estadísticas de juego"), keywords: ["tiempo", "horas", "playtime", "tracker", "estadisticas"] },
+        ],
+      },
+      {
+        id: "appearance",
+        label: t("settings.tabs.appearance"),
+        icon: "palette",
+        keywords: ["temas", "apariencia", "diseño", "colores", "dark", "interfaz"],
+        features: [
+          { id: "themeSelect", label: t("settings.theme.select", "Temas visuales instalados (.onipkg)"), keywords: ["temas", "skins", "apariencia", "diseño", "onipkg"] },
+          { id: "accentColor", label: t("settings.theme.accent", "Color de acento de la aplicación"), keywords: ["color", "acento", "cyan", "magenta", "azul", "verde", "paleta"] },
+          { id: "themePreview", label: t("settings.theme.preview", "Previsualización interactiva en vivo"), keywords: ["preview", "vista previa", "mockup", "chat"] },
+        ],
+      },
+      {
+        id: "widgets",
+        label: t("settings.tabs.widgets", "Dashboard"),
+        icon: "dashboard",
+        keywords: ["dashboard", "widgets", "inicio", "panel", "cuadricula"],
+        features: [
+          { id: "widgetLayout", label: t("settings.widgets.layout", "Organización de la cuadrícula del Dashboard"), keywords: ["grid", "cuadricula", "dashboard", "widgets", "inicio"] },
+          { id: "musicWidget", label: t("settings.widgets.music", "Widget de Música P2P"), keywords: ["musica", "reproductor", "cancion", "yt-dlp", "dj"] },
+          { id: "sketchpadWidget", label: t("settings.widgets.sketchpad", "Widget de Pizarra / Sketchpad"), keywords: ["dibujo", "pizarra", "sketchpad", "notas", "lienzo"] },
+        ],
+      },
+      {
+        id: "stickers",
+        label: t("settings.tabs.stickers", "Stickers"),
+        icon: "sticky_note_2",
+        keywords: ["stickers", "emojis", "pegatinas", "paquetes"],
+        features: [
+          { id: "stickerPacks", label: t("settings.stickers.packs", "Colección de packs de stickers"), keywords: ["stickers", "packs", "emojis", "pegatinas", "onipkg"] },
+          { id: "importStickers", label: t("settings.stickers.import", "Importar paquete de stickers (.onipkg)"), keywords: ["importar", "cargar", "instalar", "subir"] },
+        ],
+      },
+      {
+        id: "plugins",
+        label: t("settings.tabs.plugins", "Complementos"),
+        icon: "extension",
+        keywords: ["plugins", "complementos", "addons", "comunidad", "extensiones"],
+        features: [
+          { id: "installedPlugins", label: t("settings.plugins.installed", "Complementos y Addons instalados"), keywords: ["addons", "complementos", "plugins", "extensiones"] },
+          { id: "pluginCommunity", label: t("settings.plugins.community", "Explorar catálogo de la comunidad"), keywords: ["catalogo", "descargar", "comunidad", "buscar"] },
+        ],
+      },
+      {
+        id: "about",
+        label: t("settings.tabs.about", "Acerca de"),
+        icon: "info",
+        keywords: ["acerca de", "version", "actualizaciones", "diagnostico", "info"],
+        features: [
+          { id: "appVersion", label: t("settings.about.version", "Versión de Onicord y Actualizaciones"), keywords: ["version", "actualizar", "update", "github", "releases"] },
+          { id: "oniDiag", label: t("settings.about.diag", "Diagnósticos de red P2P y WebRTC"), keywords: ["diagnostico", "onidiag", "red", "hyperswarm", "webrtc"] },
+          { id: "credits", label: t("settings.about.credits", "Créditos y licencias de código abierto"), keywords: ["creditos", "licencias", "github", "autores"] },
+        ],
+      },
     ];
     if (import.meta.env.DEV) {
-      list.push({ id: "dev", label: t("settings.tabs.developer"), icon: "developer_mode" });
+      list.push({
+        id: "dev",
+        label: t("settings.tabs.developer"),
+        icon: "developer_mode",
+        keywords: ["dev", "desarrollo", "sandbox", "debug"],
+        features: [
+          { id: "sandboxDev", label: "Sandbox de desarrollo de complementos", keywords: ["sandbox", "devtools", "test"] },
+        ],
+      });
     }
     return list;
   }, [t]);
