@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { resolveAuthorDisplay } from "../../../lib/profileUtils";
 import MaterialIcon from "../../icons/MaterialIcon";
 
@@ -9,7 +10,9 @@ export default function MessagePluginEmbed({
   peers,
   onPluginAction,
 }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const embedPayload = useMemo(() => {
     try {
@@ -55,8 +58,6 @@ export default function MessagePluginEmbed({
       );
     };
 
-    const [imgError, setImgError] = useState(false);
-
     return (
       <div className="w-full max-w-sm my-2 p-3.5 rounded-onicord-inner bg-onicord-mantle border border-onicord-island select-none text-onicord-text font-sans transition-all duration-200">
         <div className="flex items-center gap-3 mb-2.5">
@@ -90,7 +91,7 @@ export default function MessagePluginEmbed({
 
         {roomCode && (
           <div className="flex items-center justify-between bg-onicord-base/70 px-3 py-1.5 rounded-lg border border-white/5 mb-3">
-            <span className="text-[11px] text-onicord-muted">Código de Sala</span>
+            <span className="text-[11px] text-onicord-muted">{t("stage.roomCode", "Código de Sala")}</span>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold text-onicord-accent tracking-wider">
                 #{roomCode}
@@ -117,10 +118,113 @@ export default function MessagePluginEmbed({
         <button
           type="button"
           onClick={handleJoinLobby}
-          className="w-full py-2 px-3 bg-onicord-accent hover:bg-onicord-accent/90 text-white rounded-lg font-semibold text-xs transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
+          className="w-full py-2 px-3 bg-onicord-accent hover:bg-onicord-accent/90 text-onicord-dark rounded-lg font-bold text-xs transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer shadow-sm"
         >
           <MaterialIcon name="play_arrow" size={16} />
-          Unirse a la partida
+          {t("stage.joinGame", "Unirse a la partida")}
+        </button>
+      </div>
+    );
+  }
+
+  if (embedPayload.type === "cinema_watch_party" && embedPayload.data) {
+    const {
+      title,
+      details,
+      cover,
+      coverUrl,
+      logo,
+      banner,
+      streamUrl,
+      joinUrl,
+      infoHash,
+      fileIdx,
+      trackers,
+      authorName,
+      duration,
+      subtitles,
+    } = embedPayload.data;
+    const finalCover = cover || coverUrl || null;
+    const effectiveStream = streamUrl || joinUrl || "";
+
+    const handleJoinCinema = () => {
+      const userNick = profile?.nickname || profile?.username || "Espectador";
+      window.dispatchEvent(
+        new CustomEvent("onicord:open-stage", {
+          detail: {
+            pluginId: embedPayload.pluginId || "onicord-cinema",
+            title: typeof title === "string" ? title.trim().slice(0, 100) : "Cinema",
+            icon: "movie",
+            url: effectiveStream,
+            streamUrl: effectiveStream,
+            infoHash: infoHash || null,
+            fileIdx: fileIdx ?? 0,
+            trackers: trackers || [],
+            cover: finalCover,
+            logo: logo || null,
+            banner: banner || null,
+            subtitles: subtitles || [],
+            duration: duration || 0,
+            userNick: userNick,
+            authorName: userNick,
+            mediaType: "video",
+            type: "movie",
+            isChannel: true,
+            syncMode: "group",
+            isSyncHost: false,
+            activity: {
+              name: title || "Película",
+              details: details || "Cinema",
+              state: "Viendo con el canal",
+              cover: finalCover,
+              type: "movie",
+              isCatalog: false,
+              startTime: Date.now(),
+            },
+          },
+        })
+      );
+    };
+
+    return (
+      <div className="w-full max-w-sm my-2 p-3.5 rounded-onicord-inner bg-onicord-mantle border border-onicord-island select-none text-onicord-text font-sans transition-all duration-200">
+        <div className="flex items-center gap-3 mb-2.5">
+          <div className="w-11 h-14 rounded-xl bg-onicord-accent/20 flex items-center justify-center text-onicord-accent shrink-0 border border-onicord-accent/30 overflow-hidden shadow-sm">
+            {finalCover && !imgError ? (
+              <img
+                src={finalCover}
+                alt={title || "Movie Poster"}
+                onError={() => setImgError(true)}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <MaterialIcon name="movie" size={24} />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h4 className="font-bold text-sm text-onicord-text truncate">
+              {title || "Película / Serie"}
+            </h4>
+            <p className="text-xs text-onicord-muted truncate">
+              {authorName ? `${authorName} te invita a ver` : "Sesión disponible"}
+              {details ? ` • ${details}` : ""}
+            </p>
+          </div>
+          <div
+            className="w-8 h-8 rounded-lg bg-onicord-surface/80 border border-white/10 flex items-center justify-center shrink-0 text-onicord-accent"
+            title="Cinema"
+          >
+            <MaterialIcon name="movie" size={18} />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleJoinCinema}
+          className="w-full py-2 px-3 bg-onicord-accent hover:bg-onicord-accent/90 text-onicord-dark rounded-lg font-bold text-xs transition-all duration-150 flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer shadow-sm"
+        >
+          <MaterialIcon name="play_arrow" size={16} />
+          {t("stage.joinCinema", "Unirse a ver la película")}
         </button>
       </div>
     );

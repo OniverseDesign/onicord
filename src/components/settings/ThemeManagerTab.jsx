@@ -170,7 +170,7 @@ export default function ThemeManagerTab({ profile }) {
 
   return (
     <div className="onicord-settings-container">
-      {/* TARJETA 1: MODO DE TEMA */}
+      {/* Theme mode selector */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.theme.themeMode", "Modo de Tema")}</span>
@@ -226,7 +226,7 @@ export default function ThemeManagerTab({ profile }) {
         </div>
       </div>
 
-      {/* TARJETA 2: COLOR DE ACENTO Y PREVISUALIZACIÓN REALISTA */}
+      {/* CARD 2: ACCENT COLOR AND REALISTIC PREVIEW */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.theme.accentColor", "Color de Acento Primario")}</span>
@@ -243,7 +243,7 @@ export default function ThemeManagerTab({ profile }) {
           />
         </div>
 
-        {/* PREVISUALIZACIÓN REALISTA EN TIEMPO REAL */}
+        {/* REALISTIC REAL-TIME PREVIEW */}
         <div className="pt-4 border-t border-white/5 space-y-3.5">
           <div className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted flex items-center gap-2">
             <MaterialIcon name="visibility" size={16} />
@@ -251,17 +251,17 @@ export default function ThemeManagerTab({ profile }) {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch pt-0.5">
-            {/* COLUMNA IZQUIERDA: VISTA PREVIA DEL CHAT (# GENERAL) */}
+            {/* LEFT COLUMN: CHAT PREVIEW (# general) */}
             <div className="lg:col-span-7 bg-onicord-base/70 border border-white/5 rounded-2xl overflow-hidden flex flex-col shadow-inner min-h-[250px]">
-              {/* Encabezado del canal */}
+              {/* Channel Header */}
               <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/5 select-none bg-onicord-base/30">
                 <span className="text-onicord-muted font-bold text-base leading-none">#</span>
                 <span className="text-onicord-text font-bold text-sm tracking-normal">general</span>
               </div>
 
-              {/* Mensajes del chat */}
+              {/* Chat messages */}
               <div className="p-4 space-y-4 text-left flex-1 font-sans">
-                {/* Mensaje 1 (Autor principal + segundo mensaje agrupado) */}
+                {/* Message 1 (Main author + grouped second message) */}
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-onicord-accent shadow-sm flex items-center justify-center">
                     {profile?.avatar ? (
@@ -296,7 +296,7 @@ export default function ThemeManagerTab({ profile }) {
                   </div>
                 </div>
 
-                {/* Mensaje 2 (Segundo autor: Alex) */}
+                {/* Message 2 (Second author: Alex) */}
                 <div className="flex items-start gap-3 pt-1">
                   <div className="w-10 h-10 rounded-full shrink-0 bg-[#8c74bd] text-white shadow-sm flex items-center justify-center font-bold text-base">
                     A
@@ -320,7 +320,7 @@ export default function ThemeManagerTab({ profile }) {
               </div>
             </div>
 
-            {/* COLUMNA DERECHA: CONTROLES Y ESTADO */}
+            {/* Right column: Controls and status */}
             <div className="lg:col-span-5 bg-onicord-base/70 border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-inner min-h-[250px]">
               <div className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted text-left">
                 {t("settings.theme.controlsTitle", "Controles y Estado")}
@@ -380,7 +380,7 @@ export default function ThemeManagerTab({ profile }) {
         </div>
       </div>
 
-      {/* TARJETA 3: AJUSTES DINÁMICOS DE FONDO */}
+      {/* CARD 3: DYNAMIC BACKGROUND SETTINGS */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between">
           <h3 className="onicord-settings-section-title !mb-0">
@@ -439,7 +439,7 @@ export default function ThemeManagerTab({ profile }) {
         </div>
       </div>
 
-      {/* TARJETA 4: EDITOR CSS PERSONALIZADO */}
+      {/* Custom CSS stylesheet editor */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between gap-2 mb-2">
           <h3 className="onicord-settings-section-title !mb-0">

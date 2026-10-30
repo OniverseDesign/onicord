@@ -79,7 +79,29 @@ if (window.electronAPI?.diagLog) {
 function TitleBar() {
   const { t } = useTranslation();
   const api = window.electronAPI;
-  if (!api) return null;
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!api?.onFullscreenChange) return;
+    return api.onFullscreenChange((full) => setIsFullscreen(Boolean(full)));
+  }, [api]);
+
+  useEffect(() => {
+    const handleStageFs = (e) => {
+      setIsFullscreen(Boolean(e.detail?.isFullscreen));
+    };
+    const handleDomFs = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    window.addEventListener("onicord:stage-fullscreen-change", handleStageFs);
+    document.addEventListener("fullscreenchange", handleDomFs);
+    return () => {
+      window.removeEventListener("onicord:stage-fullscreen-change", handleStageFs);
+      document.removeEventListener("fullscreenchange", handleDomFs);
+    };
+  }, []);
+
+  if (!api || isFullscreen) return null;
   return (
     <div className="titlebar-drag flex h-[22px] w-full items-center justify-between bg-onicord-mantle px-2 text-[12px] font-medium text-onicord-text select-none z-50">
       <div className="flex items-center gap-2 p-3 mt-4 pointer-events-none">
@@ -239,6 +261,11 @@ export default function App() {
         setProfile(storedProfile);
         if (storedProfile?.general) {
           localStorage.setItem("onicord_general_settings", JSON.stringify(storedProfile.general));
+          const isContinuous = storedProfile.general.enableContinuousAnimations !== false;
+          document.documentElement.setAttribute("data-continuous-animations", isContinuous ? "true" : "false");
+          window.dispatchEvent(
+            new CustomEvent("onicord:general-settings-updated", { detail: storedProfile.general })
+          );
         }
 
         await new Promise((resolve) => setTimeout(resolve, 50));
@@ -257,7 +284,7 @@ export default function App() {
           setLoading(false);
         }
 
-        // Paso 2: Conectar el resto de servidores en segundo plano de forma no bloqueante
+        // Step 2: Connect remaining servers in the background without blocking UI
         if (api.bootBackgroundServers) {
           api.bootBackgroundServers(storedProfile, matched?.id).catch((err) => {
             console.error("[App Init] Error in bootBackgroundServers:", err);
@@ -304,6 +331,16 @@ export default function App() {
       const savedZoom = localStorage.getItem("onicord_zoom_level");
       if (savedZoom) {
         document.documentElement.style.zoom = Number(savedZoom) / 100;
+      }
+
+      try {
+        const genRaw = localStorage.getItem("onicord_general_settings");
+        if (genRaw) {
+          const gen = JSON.parse(genRaw);
+          const isContinuous = gen.enableContinuousAnimations !== false;
+          document.documentElement.setAttribute("data-continuous-animations", isContinuous ? "true" : "false");
+        }
+      } catch (_) {
       }
     } catch (err) {
       console.error(
@@ -471,11 +508,16 @@ export default function App() {
 
     const unsubServerUpdated = api.on?.("server:updated", handleServerUpdated);
 
+    const unsubPluginToast = api.onPluginShowToast?.(({ title, message, type }) => {
+      notificationManager.showToast(title || "Complemento", message || "", type || "info");
+    });
+
     return () => {
       if (unsubscribe) unsubscribe();
       if (unsubDirectLink) unsubDirectLink();
       if (unsubDetails) unsubDetails();
       if (unsubServerUpdated) unsubServerUpdated();
+      if (unsubPluginToast) unsubPluginToast();
     };
   }, [profile, handleDeepLinkJoin, enterServerProcess, refreshServers, handleServerUpdated]);
 

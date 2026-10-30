@@ -14,3 +14,23 @@ Thumbs.db
 check-i18n.js
 other_projects/
 CHANGELOG_DISCOVERIES.md
+
+# Herramientas y scripts locales (no subir a GitHub)
+obtener iconos.py
+resultado_games.json
+migrate-to-onicord.js
+DISTRIBUIR.md
+start.bat
+start_user2.bat
+auditoria_protocolo_onicord_media.md
+sistema_complementos.md
+design.md
+implementation_plan.md
+scripts/pack-addons-repo.cjs
+client_secret_*.json
+.local_backup/
+
+
+stickers/
+comments-report.json
+extract-comments.js

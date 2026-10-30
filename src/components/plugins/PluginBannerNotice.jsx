@@ -41,7 +41,7 @@ export default function PluginBannerNotice({ serverPlugins = [] }) {
       remoteFailed = true;
     }
 
-    // 2. Seguro: Si falló la descarga remota/timeout, abrir diálogo de instalación local
+    // 2. Fallback: If remote download failed/timed out, open local file installer dialog
     if (remoteFailed) {
       try {
         if (window.electronAPI?.installPluginDialog) {
@@ -52,7 +52,7 @@ export default function PluginBannerNotice({ serverPlugins = [] }) {
       }
     }
 
-    // 3. Recargar lista local tras la instalación
+    // 3. Reload local plugin registry after installation
     try {
       if (window.electronAPI?.listPlugins) {
         const localPlugins = await window.electronAPI.listPlugins();
@@ -70,12 +70,12 @@ export default function PluginBannerNotice({ serverPlugins = [] }) {
   return (
     <div className="mx-4 my-2.5 p-3.5 rounded-onicord-button bg-onicord-mantle/80 backdrop-blur-md border border-onicord-accent/30 shadow-onicord-elevated flex items-center justify-between gap-4 text-xs animate-fade-in select-none">
       <div className="flex items-center gap-3.5 min-w-0">
-        {/* Badge de icono de complemento */}
+        {/* Addon icon badge */}
         <div className="w-10 h-10 rounded-xl bg-onicord-accent/15 border border-onicord-accent/25 text-onicord-accent flex items-center justify-center shrink-0 shadow-inner">
           <MaterialIcon name="extension" size={22} className="animate-pulse" />
         </div>
 
-        {/* Detalles del texto */}
+        {/* Notice description */}
         <div className="flex flex-col min-w-0">
           <h4 className="font-bold text-[13px] text-onicord-text flex items-center gap-1.5 truncate leading-snug">
             Este servidor sugiere {missingPlugins.length} complemento{missingPlugins.length > 1 ? "s" : ""}

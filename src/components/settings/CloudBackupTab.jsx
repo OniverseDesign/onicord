@@ -167,7 +167,7 @@ function BackupCard({ selectedCats, onToggleCat, estimatedSize, onBackup, progre
         })}
       </div>
 
-      {/* Tamaño estimado */}
+      {/* Estimated size */}
       <div className="flex items-center justify-between mb-4 p-2.5 rounded-lg bg-onicord-base/40 border border-white/5">
         <span className="text-xs text-onicord-muted">
           {t("settings.cloudBackup.estimatedSize", "Tamaño estimado")}
@@ -228,7 +228,7 @@ function AutoBackupCard({ settings, onUpdateSettings }) {
       </h3>
 
       <div className="divide-y divide-white/5 border border-white/5 rounded-xl overflow-hidden bg-onicord-base/20">
-        {/* Switch: Backups automáticos */}
+        {/* Switch: Automatic backups */}
         <div className="flex items-center justify-between p-3.5 hover:bg-white/[0.02] transition-colors">
           <div className="min-w-0 pr-4">
             <p className="text-sm font-semibold text-white">
@@ -249,7 +249,7 @@ function AutoBackupCard({ settings, onUpdateSettings }) {
           </label>
         </div>
 
-        {/* Frecuencia Dropdown (Solo si backups automáticos está activo) */}
+        {/* Frequency Dropdown (Only when automatic backups are enabled) */}
         {settings.autoBackupEnabled && (
           <div className="flex items-center justify-between p-3.5 hover:bg-white/[0.02] transition-colors">
             <div className="min-w-0 pr-4">

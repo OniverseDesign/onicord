@@ -209,7 +209,11 @@ class PluginService {
     if (packageData.files) {
       for (const [filename, fileEntry] of Object.entries(packageData.files)) {
         const safeName = path.normalize(filename).replace(/^(\.\.[\/\\])+/, "");
-        const filePath = path.join(targetDir, safeName);
+        const filePath = path.resolve(targetDir, safeName);
+        if (!filePath.startsWith(path.resolve(targetDir))) {
+          console.warn(`[PLUGIN SERVICE] 🚨 Bloqueado intento de Zip Slip: ${filename}`);
+          continue;
+        }
         const fileDir = path.dirname(filePath);
         if (!fs.existsSync(fileDir)) {
           fs.mkdirSync(fileDir, { recursive: true });
@@ -481,23 +485,56 @@ class PluginService {
     }
 
     const targetDir = this.findPluginDir(pluginId);
+    const pluginsDir = path.resolve(this.getPluginsDir());
     if (targetDir && fs.existsSync(targetDir)) {
-      try {
-        fs.rmSync(targetDir, { recursive: true, force: true });
-        console.log(`[PLUGIN SERVICE] Complemento desinstalado: ${targetDir}`);
-        return { success: true };
-      } catch (err) {
-        console.error(`[PLUGIN SERVICE] Error desinstalando complemento ${targetDir}:`, err);
+      const resolvedTarget = path.resolve(targetDir);
+      // Only delete from disk if located inside the installed plugins directory (never wipe workspace source)
+      if (resolvedTarget.startsWith(pluginsDir) && resolvedTarget !== pluginsDir) {
         try {
-          await new Promise((resolve) => setTimeout(resolve, 150));
           fs.rmSync(targetDir, { recursive: true, force: true });
+          console.log(`[PLUGIN SERVICE] Complemento desinstalado de ${targetDir}`);
           return { success: true };
-        } catch (retryErr) {
-          return { success: false, error: retryErr.message };
+        } catch (err) {
+          console.error(`[PLUGIN SERVICE] Error desinstalando complemento ${targetDir}:`, err);
+          try {
+            await new Promise((resolve) => setTimeout(resolve, 150));
+            fs.rmSync(targetDir, { recursive: true, force: true });
+            return { success: true };
+          } catch (retryErr) {
+            return { success: false, error: retryErr.message };
+          }
         }
+      } else {
+        console.warn(`[PLUGIN SERVICE] Se omitió borrado en disco de ${pluginId}: es un plugin fuente del workspace (${targetDir}).`);
+        return { success: true, workspacePreserved: true };
       }
     }
     return { success: false, error: "Plugin not found on disk" };
+  }
+
+  getPlugin(id) {
+    if (!id) return null;
+    const targetDir = this.findPluginDir(id);
+    if (targetDir) {
+      const manifestPath = path.join(targetDir, "manifest.json");
+      if (fs.existsSync(manifestPath)) {
+        try {
+          const raw = fs.readFileSync(manifestPath, "utf-8");
+          const manifest = JSON.parse(raw);
+          const rawIcon = manifest.icon || manifest.avatar || null;
+          const resolvedIcon = this.resolvePluginIcon(rawIcon, path.basename(targetDir));
+          return {
+            ...manifest,
+            id: manifest.id || id,
+            dir: targetDir,
+            icon: resolvedIcon,
+            rawIcon,
+            manifest,
+          };
+        } catch (_) {}
+      }
+    }
+    return null;
   }
 
   async togglePlugin(pluginId, enabled) {
@@ -516,11 +553,12 @@ class PluginService {
   }
 
   getPluginStoragePath(pluginId) {
+    const safeId = String(pluginId || "unknown").replace(/[^a-zA-Z0-9_\-\.]/g, "_");
     const dataDir = path.join(this.getPluginsDir(), ".storage");
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
-    return path.join(dataDir, `${pluginId}.json`);
+    return path.join(dataDir, `${safeId}.json`);
   }
 
   getPluginStorage(pluginId, key) {

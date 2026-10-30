@@ -46,14 +46,22 @@ function parsePollInput(rawInput) {
   };
 }
 
+const POLL_NOTICES = {
+  es: "Uso: /p ¿Qué cenamos hoy? -Pizza -Tacos",
+  en: "Usage: /p Dinner tonight? -Pizza -Tacos",
+  pt: "Uso: /p O que vamos jantar? -Pizza -Tacos",
+};
+
 if (typeof Onicord !== "undefined" && Onicord.chat?.onCommand) {
   Onicord.chat.onCommand("p", (args) => {
     const rawInput = args.join(" ");
     const parsed = parsePollInput(rawInput.startsWith("/p") ? rawInput : `/p ${rawInput}`);
 
     if (!parsed) {
+      const lang = String(Onicord.language || Onicord.getLanguage?.() || "es").split("-")[0].toLowerCase();
+      const msg = POLL_NOTICES[lang] || POLL_NOTICES.es;
       if (Onicord.ui?.showToast) {
-        Onicord.ui.showToast("⚠️ Uso: /p ¿Qué cenamos hoy? -Pizza -Tacos");
+        Onicord.ui.showToast(msg, "warning");
       }
       return;
     }

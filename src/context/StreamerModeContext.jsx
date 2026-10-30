@@ -55,7 +55,7 @@ export function StreamerModeProvider({ children }) {
     });
   }, []);
 
-  // Escuchar detección periódica de procesos de OBS / streaming desde Electron
+  // Listen for OBS / streaming software process detection from Electron
   useEffect(() => {
     let isMounted = true;
 
@@ -85,12 +85,12 @@ export function StreamerModeProvider({ children }) {
     };
   }, []);
 
-  // Modo streamer está activo si el usuario lo forzó manualmente O si está en auto y se detectó OBS
+  // Streamer mode is active if manually toggled on, or if set to auto and OBS/streaming app was detected
   const isStreamerMode = useMemo(() => {
     return Boolean(manualActive || (autoEnabled && detectedState.active));
   }, [manualActive, autoEnabled, detectedState.active]);
 
-  // Disparar evento global para que componentes no-React (ej. notificationManager) puedan consultar
+  // Dispatch global event so non-React services (e.g. notificationManager) can query state
   useEffect(() => {
     window.__ONICORD_STREAMER_MODE__ = isStreamerMode;
     window.dispatchEvent(

@@ -141,7 +141,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
 
   return (
     <div className="onicord-settings-container">
-      {/* BANNER AVISO DEV */}
+      {/* Developer sandbox banner */}
       <div className="onicord-settings-card bg-amber-500/10 border-amber-500/30 flex items-center gap-3.5 p-4">
         <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
           <MaterialIcon name="developer_mode" size={24} />
@@ -156,7 +156,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
         </div>
       </div>
 
-      {/* TARJETA 1: PROBADOR DE FLAMAS */}
+      {/* Flame streak tester */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between">
           <h3 className="onicord-settings-section-title !mb-0">
@@ -202,7 +202,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
         </div>
       </div>
 
-      {/* TARJETA 2: PROBADOR DE TOASTS */}
+      {/* Toast notification tester */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.devSandbox.toastTitle", "Notificaciones Toast In-App")}</span>
@@ -236,7 +236,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
         </div>
       </div>
 
-      {/* TARJETA 3: NOTIFICACIONES DE SISTEMA Y EFECTOS DE SONIDO */}
+      {/* System notifications and sound effects */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.devSandbox.systemNotifTitle", "Notificaciones del Sistema y Sonidos")}</span>
@@ -275,7 +275,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
         </div>
       </div>
 
-      {/* TARJETA 4: DIAGNÓSTICO ONIDIAG */}
+      {/* CARD 4: ONIDIAG DIAGNOSTICS */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between gap-4">
           <h3 className="onicord-settings-section-title !mb-0">
@@ -299,7 +299,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
         </p>
       </div>
 
-      {/* TARJETA 5: CONFIGURACIÓN TRANSMISIÓN PROPIA */}
+      {/* CARD 5: LOCAL STREAM CONFIGURATION */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -330,7 +330,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
         </div>
       </div>
 
-      {/* TARJETA 6: PRUEBA DE INSIGNIA / BADGE EN BARRA DE TAREAS */}
+      {/* CARD 6: TASKBAR NOTIFICATION BADGE TEST */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.devSandbox.badgeTestTitle", "Insignia de Notificación en Barra de Tareas (Overlay Badge)")}</span>

@@ -35,8 +35,13 @@ function registerSystemDiagHandlers() {
 
   ipcMain.on("window:setFullscreen", (_event, flag) => {
     if (global.mainWindow) {
-      global.mainWindow.setFullScreen(flag);
+      global.mainWindow.setFullScreen(Boolean(flag));
+      global.mainWindow.webContents?.send("window:fullscreen-change", Boolean(flag));
     }
+  });
+
+  ipcMain.handle("window:isFullscreen", () => {
+    return Boolean(global.mainWindow?.isFullScreen());
   });
 
   ipcMain.on("window:close", () => {
@@ -79,10 +84,10 @@ function registerSystemDiagHandlers() {
       const count = Number(payload?.count) || 0;
       const dataUrl = payload?.dataUrl;
 
-      // 1. Windows: Usar setOverlayIcon exclusivamente con el canvas PNG generado
+      // 1. Windows: Use setOverlayIcon exclusively with the rendered PNG canvas
       if (process.platform === "win32") {
-        // En Windows, NUNCA debemos llamar a app.setBadgeCount con count > 0 porque la API
-        // nativa de Chromium dibuja una insignia negra del sistema con números crudos que sobrescribe setOverlayIcon.
+        // On Windows, avoid calling app.setBadgeCount with count > 0 because Chromium's
+        // native API draws an unstyled black badge that overrides setOverlayIcon.
         if (typeof app.setBadgeCount === "function") {
           try {
             app.setBadgeCount(0);
@@ -111,7 +116,7 @@ function registerSystemDiagHandlers() {
         app.dock.setBadge(badgeStr);
       }
 
-      // 3. Linux / Unity ÚNICAMENTE
+      // 3. Linux / Unity ONLY
       if (process.platform === "linux" && typeof app.setBadgeCount === "function") {
         app.setBadgeCount(count);
       }
@@ -443,7 +448,7 @@ function registerSystemDiagHandlers() {
     const exeName = parsedTarget.base;
     const cleanBaseName = parsedFile.ext.toLowerCase() === ".lnk" ? parsedFile.name : parsedTarget.name;
 
-    // 1. Catálogo base oficial games.json
+    // 1. Official base catalog games.json
     try {
       const gamesDB = require("../../games.json");
       const inDb = gamesDB.find((g) => g.exe && g.exe.toLowerCase() === exeName.toLowerCase());
@@ -456,7 +461,7 @@ function registerSystemDiagHandlers() {
       }
     } catch {}
 
-    // Formatear nombre preliminar limpio
+    // Format clean candidate title
     let candidateTitle = cleanBaseName
       .replace(/[_-]+/g, " ")
       .replace(/([a-z])([A-Z0-9])/g, "$1 $2")
@@ -467,7 +472,7 @@ function registerSystemDiagHandlers() {
       candidateTitle = cleanBaseName;
     }
 
-    // 2. Heurísticas de directorio y nombre
+    // 2. Directory and executable name heuristics
     const lowerPath = targetPath.toLowerCase();
     const lowerExe = exeName.toLowerCase();
 
@@ -490,7 +495,7 @@ function registerSystemDiagHandlers() {
       detectedType = "app";
     }
 
-    // 3. Consulta rápida y ligera a Wikipedia API
+    // 3. Lightweight query to Wikipedia API
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1800);

@@ -119,13 +119,13 @@ export function parseInlineStyles(
 
   let tokens = [{ type: "text", content: text }];
 
-  // 1. Bloques de código inline (`...`) primero para proteger código exacto
+  // 1. Inline code blocks (`...`) first to protect exact code literals
   tokens = parseRegexToken(tokens, /`([^`]+)`/g, (match) => ({
     type: "code",
     content: match[1],
   }));
 
-  // 2. Tarjetas de invitación Onicord
+  // 2. Onicord invite cards
   const inviteRegex = /(?:onicord:\/\/join\/([a-zA-Z0-9]+)|https?:\/\/(?:[a-zA-Z0-9-]+\.)?onicord\.(?:app|io|com)\/join\/([a-zA-Z0-9]+))/gi;
   tokens = parseRegexToken(tokens, inviteRegex, (match) => {
     const code = (match[1] || match[2] || "").trim().toUpperCase();
@@ -137,7 +137,7 @@ export function parseInlineStyles(
     };
   });
 
-  // 3. Enlaces markdown explícitos [label](url)
+  // 3. Explicit markdown links [label](url)
   const markdownLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/gi;
   tokens = parseRegexToken(tokens, markdownLinkRegex, (match) => ({
     type: "markdownLink",
@@ -145,14 +145,14 @@ export function parseInlineStyles(
     url: match[2],
   }));
 
-  // 4. Enlaces y URLs directas (se analizan ANTES del formato markdown como cursiva/negrita
-  // para que parámetros con guiones bajos '_' o asteriscos no rompan el link)
+  // 4. Raw URLs (parsed BEFORE bold/italic markdown formatting
+  // so that parameters containing underscores '_' or asterisks do not break URLs)
   const urlRegex = /(https?:\/\/[^\s]+)/gi;
   tokens = parseRegexToken(tokens, urlRegex, (match) => {
     let rawUrl = match[0];
     let trailing = "";
 
-    // Separar signos de puntuación de cierre o paréntesis no balanceados al final de la URL
+    // Strip trailing punctuation or unbalanced parentheses from URLs
     while (true) {
       if (/[.,!?;:]$/.test(rawUrl)) {
         trailing = rawUrl.slice(-1) + trailing;

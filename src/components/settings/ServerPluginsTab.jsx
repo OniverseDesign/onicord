@@ -127,7 +127,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
 
   return (
     <div className="onicord-settings-container space-y-3">
-      {/* MENSAJE DE ESTADO */}
+      {/* Status message banner */}
       {statusMessage && (
         <div
           className={`p-3 rounded-2xl text-xs flex items-center justify-between border ${
@@ -155,7 +155,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
         </div>
       )}
 
-      {/* TARJETA 1: COMPLEMENTOS ACTIVOS EN ESTE SERVIDOR */}
+      {/* Active server plugins */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between mb-3">
           <h3 className="onicord-settings-section-title mb-0 flex items-center gap-2">
@@ -205,7 +205,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                   className="flex flex-col bg-onicord-base/60 border border-white/5 p-3 rounded-2xl hover:border-white/10 transition-colors"
                 >
                   <div className="flex items-center gap-3 w-full">
-                    {/* Icono Principal */}
+                    {/* Main Icon */}
                     <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden">
                       {sp.icon || installedMeta.icon ? (
                         <img
@@ -218,7 +218,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                       )}
                     </div>
 
-                    {/* Nombre, Ámbito y Descripción */}
+                    {/* Name, Scope and Description */}
                     <div className="flex-1 min-w-0 text-left">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="font-bold text-xs text-onicord-text truncate">
@@ -240,7 +240,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                       </p>
                     </div>
 
-                    {/* Botón Engranaje de Configuración de la Sala */}
+                    {/* Room Plugin Settings Gear Button */}
                     <button
                       type="button"
                       onClick={() => setExpandedPluginId(isExpanded ? null : sp.id)}
@@ -254,7 +254,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                       <MaterialIcon name="tune" size={16} />
                     </button>
 
-                    {/* Botón Desvincular del Servidor */}
+                    {/* Unlink from Server Button */}
                     <button
                       type="button"
                       onClick={() => setPluginToUnlink({ id: sp.id, name })}
@@ -264,7 +264,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                       <MaterialIcon name="link_off" size={18} />
                     </button>
 
-                    {/* Interruptor Habilitar / Deshabilitar en esta sala */}
+                    {/* Enable / Disable toggle in this room */}
                     <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
                       <input
                         type="checkbox"
@@ -278,7 +278,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                     </label>
                   </div>
 
-                  {/* SECCIÓN DESPLEGABLE DE CONFIGURACIÓN DEL COMPLEMENTO EN ESTA SALA */}
+                  {/* COLLAPSIBLE PLUGIN CONFIGURATION SECTION IN THIS ROOM */}
                   {isExpanded && (
                     <div className="w-full mt-3 p-3.5 bg-onicord-surface/80 border border-white/5 rounded-xl animate-fade-in space-y-3">
                       <div className="flex items-center justify-between pb-2 border-b border-white/5">
@@ -292,28 +292,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                       </div>
 
                       <div className="space-y-2.5">
-                        {/* Configuración Estándar: Prefijo */}
-                        <div className="onicord-settings-row">
-                          <div className="min-w-0 pr-4 text-left">
-                            <p className="onicord-settings-row-title">
-                              {t("serverSettings.plugins.prefixTitle", "Comando Prefijo / Alias")}
-                            </p>
-                            <p className="onicord-settings-row-desc">
-                              {t("serverSettings.plugins.prefixDesc", "Prefijo para comandos de este complemento.")}
-                            </p>
-                          </div>
-                          <input
-                            type="text"
-                            value={sp.config?.prefix || ""}
-                            onChange={(e) =>
-                              handleUpdatePluginConfig(sp.id, "prefix", e.target.value)
-                            }
-                            placeholder={t("serverSettings.plugins.prefixPlaceholder", "Ej. /g o /")}
-                            className="w-32 h-8 px-2.5 text-xs bg-onicord-base/60 border border-white/10 rounded-xl text-onicord-text focus:outline-none focus:border-onicord-accent shrink-0"
-                          />
-                        </div>
-
-                        {/* Configuración Estándar: Mostrar en Isla */}
+                        {/* Standard Configuration: Show in Island */}
                         <div className="onicord-settings-row">
                           <div className="min-w-0 pr-4 text-left">
                             <p className="onicord-settings-row-title">
@@ -340,7 +319,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                           </label>
                         </div>
 
-                        {/* Campos de Configuración Personalizados declarados por el complemento */}
+                        {/* Custom Configuration Fields declared by plugin */}
                         {customSchema.map((field) => {
                           const val = sp.config?.[field.key] ?? field.default ?? "";
 
@@ -401,7 +380,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
         )}
       </div>
 
-      {/* TARJETA 2: COMPLEMENTOS DISPONIBLES EN TU BIBLIOTECA PARA VINCULAR */}
+      {/* Available local plugins library */}
       {availableLocalPlugins.length > 0 && (
         <div className="onicord-settings-card">
           <div className="flex items-center justify-between mb-3">
@@ -481,7 +460,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
         </div>
       )}
 
-      {/* TARJETA 3: ACCESO DIRECTO AL CATÁLOGO DE LA APP */}
+      {/* CARD 3: APP CATALOG SHORTCUT */}
       <div className="onicord-settings-card p-4 border border-dashed border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-onicord-base/60 to-onicord-surface/40">
         <div className="flex items-center gap-3 min-w-0 text-left">
           <div className="w-9 h-9 rounded-2xl bg-onicord-accent/10 border border-onicord-accent/20 text-onicord-accent flex items-center justify-center shrink-0">
@@ -510,7 +489,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
         </button>
       </div>
 
-      {/* MODAL DE CONFIRMACIÓN DE DESVINCULACIÓN (NO BORRA ARCHIVOS DE LA PC) */}
+      {/* UNLINK CONFIRMATION MODAL (DOES NOT DELETE FILES FROM PC) */}
       {pluginToUnlink && (
         <ConfirmDialogModal
           isOpen={Boolean(pluginToUnlink)}

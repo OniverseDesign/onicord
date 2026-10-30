@@ -134,6 +134,21 @@ export default function GeneralTab({ general, setGeneral }) {
       soundEngine.setLevel(value);
     }
 
+    if (key === "enableContinuousAnimations") {
+      try {
+        const raw = localStorage.getItem("onicord_general_settings");
+        const parsed = raw ? JSON.parse(raw) : {};
+        parsed.enableContinuousAnimations = value;
+        localStorage.setItem("onicord_general_settings", JSON.stringify(parsed));
+        document.documentElement.setAttribute("data-continuous-animations", value ? "true" : "false");
+        window.dispatchEvent(
+          new CustomEvent("onicord:general-settings-updated", {
+            detail: { enableContinuousAnimations: value },
+          })
+        );
+      } catch {}
+    }
+
     if (key === "enableOpenGraph") {
       try {
         const raw = localStorage.getItem("onicord_general_settings");
@@ -158,7 +173,7 @@ export default function GeneralTab({ general, setGeneral }) {
 
   return (
     <div className="onicord-settings-container">
-      {/* TARJETA 1: INTERFAZ E IDIOMA */}
+      {/* Interface and language settings */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.general.interface", "Interfaz de Usuario e Idioma")}</span>
@@ -255,10 +270,10 @@ export default function GeneralTab({ general, setGeneral }) {
           <div className="onicord-settings-row">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
-                {t("settings.general.continuousAnimations", "Animaciones de Fondo Continuas")}
+                {t("settings.general.continuousAnimations", "Animaciones continuas")}
               </p>
               <p className="onicord-settings-row-desc">
-                {t("settings.general.continuousAnimationsDesc", "Permite efectos visuales y marquesinas fluidas.")}
+                {t("settings.general.continuousAnimationsDesc", "Mantener animados en bucle continuo las imágenes de perfil y los stickers (.webp).")}
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
@@ -274,7 +289,7 @@ export default function GeneralTab({ general, setGeneral }) {
             </label>
           </div>
 
-          {/* Sugerencias de mensajes rápidos */}
+          {/* Quick message suggestions */}
           <div className="onicord-settings-row">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
@@ -299,7 +314,7 @@ export default function GeneralTab({ general, setGeneral }) {
         </div>
       </div>
 
-      {/* TARJETA 2: INTEGRACIÓN CON EL SISTEMA */}
+      {/* CARD 2: SYSTEM INTEGRATION */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.general.systemIntegration", "Integración con el Sistema")}</span>
@@ -375,7 +390,7 @@ export default function GeneralTab({ general, setGeneral }) {
         </div>
       </div>
 
-      {/* TARJETA 3: NOTIFICACIONES Y SONIDOS */}
+      {/* Notifications and audio settings */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.general.notificationsAndSounds", "Notificaciones y Sonidos")}</span>
@@ -505,14 +520,14 @@ export default function GeneralTab({ general, setGeneral }) {
         </div>
       </div>
 
-      {/* TARJETA 4: RENDIMIENTO */}
+      {/* Performance and hardware acceleration */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.general.performance", "Rendimiento y Hardware")}</span>
         </h3>
 
         <div>
-          {/* Previsualización Open Graph */}
+          {/* Open Graph Preview */}
           <div data-setting-id="openGraph" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
@@ -538,7 +553,7 @@ export default function GeneralTab({ general, setGeneral }) {
             </label>
           </div>
 
-          {/* Desactivar aceleración por hardware */}
+          {/* Disable hardware acceleration */}
           <div className="onicord-settings-row">
           <div className="min-w-0 pr-4">
             <p className="onicord-settings-row-title">
@@ -569,7 +584,7 @@ export default function GeneralTab({ general, setGeneral }) {
       </div>
     </div>
 
-      {/* TARJETA 5: MODO STREAMER Y PRIVACIDAD */}
+      {/* Streamer mode and privacy */}
       <div data-setting-id="streamerMode" className="onicord-settings-card transition-all">
         <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-3">
           <div className="flex items-center gap-3">
@@ -606,7 +621,7 @@ export default function GeneralTab({ general, setGeneral }) {
         </div>
 
         <div>
-          {/* Activar automáticamente */}
+          {/* Automatic activation */}
           <div className="onicord-settings-row">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
@@ -641,7 +656,7 @@ export default function GeneralTab({ general, setGeneral }) {
         </div>
       </div>
 
-      {/* BOTÓN RESTABLECER */}
+      {/* RESET BUTTON */}
       <div className="pt-2">
         <button
           type="button"

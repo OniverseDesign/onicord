@@ -3,8 +3,8 @@
  */
 
 /**
- * Compara dos versiones semánticas simples (v1.0.0 vs v1.0.1).
- * Devuelve true si catalogVer es más reciente que installedVer.
+ * Compares two semantic version strings (e.g. v1.0.0 vs v1.0.1).
+ * Returns true if catalogVer is strictly newer than installedVer.
  */
 export function isNewerVersion(catalogVer, installedVer) {
   if (!catalogVer || !installedVer) return false;
@@ -38,18 +38,18 @@ export function getPluginLocalizedMeta(plugin, language = "es") {
 }
 
 /**
- * Determina el ámbito (scope) de un complemento:
- * - "server": Diseñado para servidores y salas colaborativas P2P.
- * - "client": Diseñado exclusivamente para uso personal / Bento Dashboard.
- * - "hybrid": Combina ambos ámbitos.
+ * Determines the operational scope of an addon/plugin:
+ * - "server": Designed for P2P servers and collaborative chat/rooms.
+ * - "client": Designed exclusively for personal usage / Bento Dashboard widgets.
+ * - "hybrid": Combines both server capabilities and dashboard widgets.
  *
- * @param {object} manifest - Manifiesto del complemento o entrada de catálogo.
+ * @param {object} manifest - Plugin manifest or catalog entry.
  * @returns {"server" | "client" | "hybrid"}
  */
 export function getPluginScope(manifest) {
   if (!manifest) return "client";
 
-  // 1. Declaración explícita si existe en manifest o catalog
+  // 1. Explicit declaration if present in manifest or catalog
   if (
     manifest.scope === "server" ||
     manifest.scope === "client" ||
@@ -82,10 +82,10 @@ export function getPluginScope(manifest) {
 }
 
 /**
- * Devuelve la metadata visual del badge de ámbito para renderizar en la UI.
+ * Returns visual metadata for the scope badge to render in UI components.
  *
  * @param {string} scope - "server" | "client" | "hybrid"
- * @param {function} [t] - Función de traducción i18n
+ * @param {function} [t] - Optional translation function
  */
 export function getScopeBadgeInfo(scope, t = (key, fallback) => fallback) {
   switch (scope) {

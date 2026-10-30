@@ -435,11 +435,13 @@ export default function UserProfilePopout({
                   member.activity.details ||
                   (member.activity.type === "music"
                     ? t("userPanel.listeningTo", "Escuchando a")
-                    : member.activity.type === "app"
-                      ? t("gamesTab.usingNow", "Usando ahora")
-                      : member.activity.type === "client"
-                        ? t("userPopout.inMenus", "En los menús")
-                        : t("userPanel.playing", "Jugando a"))
+                    : member.activity.type === "movie" || member.activity.type === "cinema" || member.activity.name === "Cinema" || member.activity.source === "addon:onicord-cinema"
+                      ? (member.activity.isCatalog ? t("userPanel.exploring", "Explorando") : t("userPanel.watching", "Viendo"))
+                      : member.activity.type === "app"
+                        ? t("gamesTab.usingNow", "Usando ahora")
+                        : member.activity.type === "client"
+                          ? t("userPopout.inMenus", "En los menús")
+                          : t("userPanel.playing", "Jugando a"))
                 }
               />
             </div>

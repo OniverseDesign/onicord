@@ -49,40 +49,48 @@
 
   <script>
     const area = document.getElementById("notesArea");
+    let debounceTimer = null;
 
     window.addEventListener("onicord:widget-ready", async () => {
       // Demostración del permiso: server.info
-      const server = OnicordWidgetAPI.server.getInfo();
+      const server = OnicordWidgetAPI?.server?.getInfo?.();
       if (server && server.serverName) {
         document.getElementById("roomTag").textContent = server.serverName;
       }
 
       // Demostración del permiso: storage
-      const savedNotes = await OnicordWidgetAPI.storage.get("squad_notes_data");
+      const savedNotes = await OnicordWidgetAPI?.storage?.get?.("squad_notes_data");
       if (savedNotes) {
         area.value = savedNotes;
       }
 
       // Demostración del permiso: p2p.network (recibir actualizaciones en vivo)
-      OnicordWidgetAPI.p2p.onMessage((data, senderPeerId) => {
+      OnicordWidgetAPI?.p2p?.onMessage?.((data, senderPeerId) => {
         if (data && data.type === "SYNC_NOTES") {
-          area.value = data.text;
-          OnicordWidgetAPI.storage.set("squad_notes_data", data.text);
-          document.getElementById("syncTag").textContent = `Editado por ${senderPeerId.slice(0, 6)}`;
+          area.value = data.text || "";
+          OnicordWidgetAPI?.storage?.set?.("squad_notes_data", data.text || "");
+          document.getElementById("syncTag").textContent = `Editado por ${String(senderPeerId || "").slice(0, 6)}`;
         }
       });
     });
 
     area.oninput = () => {
       const text = area.value;
-      OnicordWidgetAPI.storage.set("squad_notes_data", text);
       document.getElementById("syncTag").textContent = "Guardado local";
 
-      // Demostración del permiso: p2p.network (transmitir cambios P2P a los peers)
-      OnicordWidgetAPI.p2p.broadcast({
-        type: "SYNC_NOTES",
-        text,
-      });
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        OnicordWidgetAPI?.storage?.set?.("squad_notes_data", text);
+
+        // Demostración del permiso: p2p.network (transmitir cambios P2P a los peers)
+        const p2pBroadcast = OnicordWidgetAPI?.p2p?.sendData || OnicordWidgetAPI?.p2p?.broadcast;
+        if (typeof p2pBroadcast === "function") {
+          p2pBroadcast({
+            type: "SYNC_NOTES",
+            text,
+          });
+        }
+      }, 300);
     };
   </script>
 </body>

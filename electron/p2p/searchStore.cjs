@@ -3,37 +3,49 @@ const fs = require("fs/promises");
 const cryptoService = require("../services/cryptoService.cjs");
 
 /**
- * Normaliza y tokeniza un texto eliminando tildes, signos de puntuación y convirtiendo a minúsculas.
- * Soporta caracteres Unicode completos (acentos, diéresis, ñ, etc.).
+ * Normalizes and tokenizes text by stripping diacritics, removing punctuation,
+ * and converting to lowercase. Supports full Unicode character sets (accents, umlauts, etc.).
+ *
+ * @param {string} str - Raw input string.
+ * @returns {string} Normalized string with punctuation replaced by single spaces.
  */
 function normalizeText(str) {
   if (!str || typeof str !== "string") return "";
   return str
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remueve diacríticos (á -> a, é -> e, etc.)
-    .replace(/[^\p{L}\p{N}_\s]+/gu, " ") // Convierte signos de puntuación en espacios
+    .replace(/[\u0300-\u036f]/g, "") // Strip diacritics (á -> a, é -> e, etc.)
+    .replace(/[^\p{L}\p{N}_\s]+/gu, " ") // Convert punctuation symbols into spaces
     .replace(/\s+/g, " ")
     .trim();
 }
 
+/**
+ * Splits normalized text into discrete word tokens.
+ *
+ * @param {string} text - Input text.
+ * @returns {string[]} Array of non-empty tokens.
+ */
 function tokenize(text) {
   const normalized = normalizeText(text);
   if (!normalized) return [];
-  // Divide por cualquier carácter no alfanumérico
+  // Split on non-alphanumeric unicode boundaries
   return normalized
     .split(/[^\p{L}\p{N}_]+/u)
     .filter((t) => t.length > 0);
 }
 
 /**
- * Parsea una consulta de búsqueda que puede contener texto libre y operadores especiales:
- * - from:<usuario>  (filtra por autor)
- * - in:<canal>      (filtra por id de canal)
- * - has:file        (solo mensajes con archivo adjunto)
- * - has:image       (solo mensajes con imágenes)
- * - has:link        (solo mensajes con enlaces web)
- * - "frase exacta"  (coincidencia exacta)
+ * Parses a search query that may contain free-form terms and special operators:
+ * - from:<user>     (filters by message author)
+ * - in:<channel>    (filters by channel ID)
+ * - has:file        (matches messages with generic file attachments)
+ * - has:image       (matches messages with images)
+ * - has:link        (matches messages containing web URLs)
+ * - "exact phrase"  (quoted substring match)
+ *
+ * @param {string} rawQuery - Raw query string entered by the user.
+ * @returns {{ raw: string, terms: string[], phrases: string[], filters: object }}
  */
 function parseSearchQuery(rawQuery) {
   if (!rawQuery || typeof rawQuery !== "string") {
@@ -50,26 +62,26 @@ function parseSearchQuery(rawQuery) {
   };
   const phrases = [];
 
-  // Extraer frases entre comillas "..."
+  // Extract quoted exact phrases: "..."
   text = text.replace(/"([^"]+)"/g, (_match, phrase) => {
     const trimmed = phrase.trim();
     if (trimmed) phrases.push(trimmed);
     return " ";
   });
 
-  // Extraer operadores from:...
+  // Extract from:<author> filter
   text = text.replace(/(?:^|\s)from:(\S+)/gi, (_match, val) => {
     filters.from = normalizeText(val);
     return " ";
   });
 
-  // Extraer operadores in:...
+  // Extract in:<channel> filter
   text = text.replace(/(?:^|\s)in:(\S+)/gi, (_match, val) => {
     filters.in = String(val).toLowerCase().replace(/^#/, "").trim();
     return " ";
   });
 
-  // Extraer operadores has:...
+  // Extract has:<type> filter (file, image, link)
   text = text.replace(/(?:^|\s)has:(\S+)/gi, (match, val) => {
     const lower = val.toLowerCase();
     if (lower === "file" || lower === "attachment" || lower === "archivo" || lower === "adjunto" || lower.startsWith("fil")) {
@@ -175,7 +187,7 @@ class SearchStore {
   }
 
   _indexDocument(indexData, doc) {
-    // Si ya existe, primero des-indexarlo
+    // If document already exists, remove it before re-indexing
     if (indexData.docs.has(doc.id)) {
       this._removeDocument(indexData, doc.id);
     }
@@ -333,13 +345,15 @@ class SearchStore {
   }
 
   /**
-   * Ejecuta una búsqueda BM25 completa con filtrado por operadores.
-   * @param {string} roomCode
-   * @param {string} queryString
-   * @param {object} [options]
-   * @param {string} [options.channelId]
-   * @param {number} [options.limit=50]
-   * @returns {Promise<Array>} Lista de mensajes ordenados por relevancia y fecha
+   * Performs a full BM25 search ranking query with structured operator filters.
+   *
+   * @param {string} roomCode - Target room code.
+   * @param {string} queryString - Query string with optional filter operators.
+   * @param {object} [options] - Search options.
+   * @param {string} [options.channelId] - Scope search to this channel ID.
+   * @param {boolean} [options.channelOnly] - Whether to enforce single channel search.
+   * @param {number} [options.limit=50] - Maximum messages to return.
+   * @returns {Promise<Array<object>>} Ranked list of messages matching query.
    */
   async search(roomCode, queryString, options = {}) {
     if (!roomCode || !queryString || typeof queryString !== "string") {
@@ -352,7 +366,7 @@ class SearchStore {
     const parsed = parseSearchQuery(queryString);
     const { terms, phrases, filters } = parsed;
 
-    // Si no hay términos, frases ni filtros válidos, retornar vacío
+    // If no search terms, phrases, or active filters, return early
     if (terms.length === 0 && phrases.length === 0 && !filters.from && !filters.in && !filters.hasFile && !filters.hasImage && !filters.hasLink) {
       return [];
     }
@@ -364,14 +378,14 @@ class SearchStore {
     const k1 = 1.2;
     const b = 0.75;
 
-    // Filtro por canal explícito si se pasa por opción y no se especificó in:
+    // Explicit channel filter from options if not overridden by in:<channel>
     const targetChannel = filters.in || (options.channelOnly ? options.channelId : null);
 
-    // Candidatos a considerar
+    // Candidate message IDs to evaluate
     let candidateIds = null;
 
     if (terms.length > 0) {
-      // Para búsquedas con términos, calculamos la unión o intersección de candidatos
+      // For term searches, compute candidate documents using inverted postings
       candidateIds = new Set();
       for (const term of terms) {
         const postings = indexData.inverted.get(term);
@@ -380,7 +394,7 @@ class SearchStore {
             candidateIds.add(msgId);
           }
         } else {
-          // Búsqueda por prefijo/subcadena para términos parciales si no hay coincidencia exacta de token
+          // Prefix / substring match for partial terms when exact token postings miss
           for (const [indexedToken, postingsMap] of indexData.inverted) {
             if (indexedToken.startsWith(term) || (term.length >= 3 && indexedToken.includes(term))) {
               for (const msgId of postingsMap.keys()) {
@@ -391,7 +405,7 @@ class SearchStore {
         }
       }
     } else {
-      // Si solo hay frases o filtros (ej. from:pepe o has:file), todos los docs son candidatos
+      // If query contains only phrases or filter operators (e.g. from:username or has:file), all documents are candidates
       candidateIds = new Set(indexData.docs.keys());
     }
 
@@ -401,12 +415,12 @@ class SearchStore {
       const doc = indexData.docs.get(msgId);
       if (!doc) continue;
 
-      // 1. Filtro de Canal
+      // 1. Channel filter
       if (targetChannel && doc.channelId.toLowerCase() !== targetChannel.toLowerCase()) {
         continue;
       }
 
-      // 2. Filtro from:autor
+      // 2. Author filter: from:<author>
       if (filters.from) {
         const normalizedAuthor = normalizeText(doc.authorName);
         if (!normalizedAuthor.includes(filters.from)) {
@@ -414,22 +428,22 @@ class SearchStore {
         }
       }
 
-      // 3. Filtro has:file
+      // 3. File attachment filter: has:file
       if (filters.hasFile && !doc.isFile) {
         continue;
       }
 
-      // 4. Filtro has:image
+      // 4. Image attachment filter: has:image
       if (filters.hasImage && !doc.isImage) {
         continue;
       }
 
-      // 5. Filtro has:link
+      // 5. Web link filter: has:link
       if (filters.hasLink && !doc.hasLink) {
         continue;
       }
 
-      // 6. Verificación de Frases Exactas ("frase")
+      // 6. Quoted exact phrase match ("phrase")
       if (phrases.length > 0) {
         const docNormalized = normalizeText(`${doc.text || ""} ${doc.fileName || ""}`);
         const allPhrasesMatch = phrases.every((phrase) =>
@@ -438,7 +452,7 @@ class SearchStore {
         if (!allPhrasesMatch) continue;
       }
 
-      // 7. Cálculo de Score BM25
+      // 7. BM25 relevance score computation
       let score = 0;
       let matchedTermsCount = 0;
       const docLen = doc.tokenCount || 1;
@@ -449,7 +463,7 @@ class SearchStore {
         if (postings && postings.has(msgId)) {
           tf = postings.get(msgId);
         } else {
-          // Búsqueda aproximada en el texto del doc si no es un token exacto
+          // Soft substring match if term is not an exact token
           const docNorm = normalizeText(`${doc.text || ""} ${doc.fileName || ""}`);
           if (docNorm.includes(term)) {
             tf = 1;
@@ -466,22 +480,22 @@ class SearchStore {
         }
       }
 
-      // Si había términos y el mensaje no contiene ninguno de ellos, descartar
+      // Skip message if query terms were specified but none matched
       if (terms.length > 0 && matchedTermsCount === 0) {
         continue;
       }
 
-      // Bonus por coincidencia en nombre de archivo
+      // File name match relevance boost
       if (doc.fileName && terms.some((t) => normalizeText(doc.fileName).includes(t))) {
         score += 2.0;
       }
 
-      // Bonus por coincidencia de frase exacta
+      // Exact phrase match relevance boost
       if (phrases.length > 0) {
         score += 5.0 * phrases.length;
       }
 
-      // Bonus de frescura temporal muy sutil (mensajes más recientes rompen empates)
+      // Subtle recency tiebreaker (more recent messages gain slight boost)
       const ageHours = Math.max(0, (Date.now() - (doc.timestamp || 0)) / 3600000);
       const recencyBonus = Math.max(0, 1.0 / (1.0 + ageHours * 0.05));
       score += recencyBonus;
@@ -510,7 +524,7 @@ class SearchStore {
       });
     }
 
-    // Ordenar resultados por Score descendente y luego por timestamp
+    // Sort results by descending BM25 score, then by timestamp
     results.sort((a, b) => {
       if (Math.abs(b.score - a.score) > 0.001) {
         return b.score - a.score;

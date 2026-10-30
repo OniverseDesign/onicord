@@ -62,7 +62,7 @@
       position: relative;
     }
 
-    /* Top Right Action Buttons (Volume, Add, Settings - identical to onicord-dice) */
+    /* Top Right Action Buttons (Volume, Add, Settings) */
     .top-actions {
       position: absolute;
       top: 14px;
@@ -84,18 +84,17 @@
       justify-content: center;
       padding: 4px;
       border-radius: 6px;
-      transition: all 0.15s ease;
+      transition: color 0.15s ease, opacity 0.15s ease;
       outline: none;
     }
 
     .btn-action:hover {
       opacity: 1;
       color: var(--text);
-      transform: scale(1.08);
     }
 
     .btn-action:active {
-      transform: scale(0.95);
+      opacity: 0.9;
     }
 
     .btn-action.active {
@@ -117,7 +116,7 @@
       overflow: hidden;
     }
 
-    /* Empty Dropzone State (Clean, no extra boxes) */
+    /* Empty Dropzone State */
     .empty-dropzone {
       width: 100%;
       height: 100%;
@@ -129,7 +128,7 @@
       border: 2px dashed var(--border-subtle);
       border-radius: var(--squircle-radius);
       background: rgba(255, 255, 255, 0.02);
-      transition: all 0.18s ease;
+      transition: border-color 0.18s ease, background 0.18s ease;
       gap: 8px;
       text-align: center;
       padding: 16px;
@@ -138,7 +137,6 @@
     .empty-dropzone:hover, .empty-dropzone.dragover, body.dragover .empty-dropzone {
       border-color: var(--border-die);
       background: rgba(255, 255, 255, 0.05);
-      transform: scale(0.99);
     }
 
     .empty-icon {
@@ -161,7 +159,7 @@
       line-height: 1.35;
     }
 
-    /* Sound Grid (Fills the viewport below top-actions and scrolls smoothly) */
+    /* Sound Grid */
     .sound-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
@@ -181,7 +179,7 @@
       overscroll-behavior: contain;
     }
 
-    /* Squircle Sound Button (Matching .die-card in onicord-dice) */
+    /* Squircle Sound Button */
     .sound-card {
       background: rgba(255, 255, 255, 0.035);
       border: 2px solid var(--border-die);
@@ -193,7 +191,7 @@
       justify-content: center;
       gap: 4px;
       cursor: pointer;
-      transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+      transition: border-color 0.15s ease, background 0.15s ease;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
       min-height: 82px;
       height: 82px;
@@ -204,11 +202,6 @@
     .sound-card:hover {
       background: rgba(255, 255, 255, 0.07);
       border-color: #ffffff;
-      transform: translateY(-2px);
-    }
-
-    .sound-card:active {
-      transform: scale(0.95);
     }
 
     .sound-card.playing {
@@ -222,7 +215,7 @@
       line-height: 1;
       height: 20px;
       color: var(--subtext);
-      transition: all 0.15s ease;
+      transition: color 0.15s ease;
     }
 
     .sound-card.playing .card-icon {
@@ -235,7 +228,6 @@
       to { transform: scale(1.18) rotate(2deg); }
     }
 
-    /* Card Name Container - Masks Marquee and Prevents Vertical Clipping */
     .card-name-wrapper {
       width: 100%;
       max-width: 86px;
@@ -271,7 +263,6 @@
       transition: color 0.15s ease;
     }
 
-    /* Marquee Effect on Hover and When Playing */
     .sound-card.has-overflow:hover .card-name,
     .sound-card.has-overflow.playing .card-name {
       max-width: none;
@@ -297,7 +288,7 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* ─── SIMPLIFIED SETTINGS OVERLAY (Identical to onicord-dice) ─── */
+    /* ─── SIMPLIFIED SETTINGS OVERLAY ─── */
     .panel-overlay {
       position: absolute;
       inset: 0;
@@ -361,7 +352,7 @@
       color: var(--subtext);
     }
 
-    /* Volume Pill Stepper (Matching .count-pill) */
+    /* Volume Pill Stepper */
     .vol-pill {
       display: flex;
       align-items: center;
@@ -452,7 +443,7 @@
       border: 1px solid var(--border-subtle);
       border-radius: 9999px;
       background: rgba(255, 255, 255, 0.025);
-      transition: all 0.12s ease;
+      transition: background 0.12s ease, border-color 0.12s ease;
       flex-shrink: 0;
     }
 
@@ -495,7 +486,7 @@
       justify-content: center;
       padding: 2px;
       border-radius: 4px;
-      transition: all 0.15s ease;
+      transition: color 0.15s ease, opacity 0.15s ease;
       outline: none;
       opacity: 0.6;
       flex-shrink: 0;
@@ -504,7 +495,6 @@
     .btn-edit-item:hover {
       color: var(--text);
       opacity: 1;
-      transform: scale(1.15);
     }
 
     .manage-edit-row {
@@ -544,13 +534,12 @@
       justify-content: center;
       padding: 2px;
       border-radius: 4px;
-      transition: all 0.15s ease;
+      transition: color 0.15s ease;
       outline: none;
       flex-shrink: 0;
     }
 
     .btn-save-rename:hover {
-      transform: scale(1.15);
       color: #ffffff;
     }
 
@@ -564,14 +553,13 @@
       justify-content: center;
       padding: 2px;
       border-radius: 4px;
-      transition: all 0.15s ease;
+      transition: color 0.15s ease;
       outline: none;
       flex-shrink: 0;
     }
 
     .btn-cancel-rename:hover {
       color: var(--red);
-      transform: scale(1.15);
     }
 
     .manage-dur {
@@ -590,13 +578,12 @@
       justify-content: center;
       padding: 2px;
       border-radius: 4px;
-      transition: all 0.15s ease;
+      transition: color 0.15s ease;
       outline: none;
     }
 
     .btn-del-item:hover {
       color: var(--red);
-      transform: scale(1.15);
     }
 
     .empty-manage {
@@ -606,7 +593,6 @@
       padding: 20px 0;
     }
 
-    /* Pill Buttons (Matching onicord-dice: save-pill-btn & clear-pill-btn) */
     .save-pill-btn {
       align-self: center;
       border: 1.5px solid var(--border-die);
@@ -617,7 +603,7 @@
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: background 0.15s ease;
       outline: none;
       margin-top: 6px;
       flex-shrink: 0;
@@ -625,7 +611,6 @@
 
     .save-pill-btn:hover {
       background: rgba(255, 255, 255, 0.12);
-      transform: translateY(-1px);
     }
 
     .clear-pill-btn {
@@ -641,7 +626,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      transition: all 0.15s ease;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       outline: none;
       margin-top: 4px;
       flex-shrink: 0;
@@ -665,7 +650,6 @@
       z-index: 20;
     }
 
-    /* Custom Scrollbar (Matching onicord-dice) */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb {
@@ -680,7 +664,7 @@
     <button class="btn-action" id="btnAdd" title="Añadir audio (.mp3, .wav, .ogg)">
       <span class="material-symbols-outlined">add</span>
     </button>
-    <button class="btn-action" id="btnSettings" title="Configurar Soundboard">
+    <button class="btn-action" id="btnSettings" title="Configuración">
       <span class="material-symbols-outlined">settings</span>
     </button>
   </div>
@@ -690,27 +674,27 @@
     <!-- Empty State Dropzone -->
     <div class="empty-dropzone" id="emptyDropzone">
       <span class="material-symbols-outlined empty-icon">graphic_eq</span>
-      <div class="empty-title">Arrastra audios aquí</div>
-      <div class="empty-sub">o haz clic para subir (.mp3, .wav, .ogg)</div>
+      <div class="empty-title" id="txtEmptyTitle">Arrastra audios aquí</div>
+      <div class="empty-sub" id="txtEmptySub">o haz clic para subir (.mp3, .wav, .ogg)</div>
     </div>
 
-    <!-- Sound Cards Grid (Pure playback, no delete buttons on cards) -->
+    <!-- Sound Cards Grid -->
     <div class="sound-grid" id="soundGrid" style="display: none;"></div>
   </div>
 
-  <!-- Settings Simplified Overlay (Pill Style, identical to onicord-dice) -->
+  <!-- Settings Simplified Overlay -->
   <div class="panel-overlay" id="panelSettings">
     <div class="panel-header">
-      <span class="panel-title">Configuración</span>
+      <span class="panel-title" id="txtSettingsTitle">Configuración</span>
       <button class="btn-action" id="btnCloseSettings" title="Cerrar">
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
 
     <div class="setting-section">
-      <!-- Volume Row with Pill Slider & Mute Toggle -->
+      <!-- Volume Row -->
       <div class="setting-row">
-        <span class="setting-label">Volumen</span>
+        <span class="setting-label" id="txtVolLabel">Volumen</span>
         <div class="vol-pill">
           <button class="pill-btn" id="btnMute" title="Silenciar / Activar">
             <span class="material-symbols-outlined" id="soundIcon" style="font-size: 16px;">volume_up</span>
@@ -723,19 +707,19 @@
       <!-- Manage & Delete Sounds Section -->
       <div class="manage-list-container">
         <div class="setting-row">
-          <span class="setting-label">Sonidos instalados</span>
+          <span class="setting-label" id="txtInstalledLabel">Sonidos instalados</span>
           <span class="setting-label" id="soundCountLabel" style="color: var(--muted); font-size: 11px;">0 sonidos</span>
         </div>
 
         <div class="manage-list" id="manageList">
-          <div class="empty-manage">No hay sonidos agregados aún.</div>
+          <div class="empty-manage" id="txtEmptyManage">No hay sonidos agregados aún.</div>
         </div>
       </div>
 
       <!-- Clear All Pill Button -->
       <button class="clear-pill-btn" id="btnClearAll" style="display: none;">
         <span class="material-symbols-outlined" style="font-size: 14px;">delete_sweep</span>
-        Vaciar soundboard
+        <span id="txtClearAll">Vaciar soundboard</span>
       </button>
     </div>
 
@@ -747,11 +731,122 @@
   <input type="file" id="fileInput" accept=".mp3,.wav,.ogg,.opus,.m4a,.aac,.flac,.webm" multiple style="display: none;">
 
   <script>
+    // ─── I18N SUPPORT ────────────────────────────────────────────────
+    const I18N = {
+      es: {
+        addAudio: "Añadir audio (.mp3, .wav, .ogg)",
+        settings: "Configuración",
+        dragAudios: "Arrastra audios aquí",
+        clickUpload: "o haz clic para subir (.mp3, .wav, .ogg)",
+        volume: "Volumen",
+        installedSounds: "Sonidos instalados",
+        noSoundsYet: "No hay sonidos agregados aún.",
+        clearSoundboard: "Vaciar soundboard",
+        done: "Listo",
+        soundSingular: "sonido",
+        soundPlural: "sonidos",
+        playInVoice: "Reproducir en canal de voz",
+        previewOnly: "Escucha previa (solo tú - no estás en un chat de voz)",
+        renameTooltip: "Doble clic o clic en lápiz para renombrar",
+        deleteTooltip: "Eliminar sonido",
+        saveTooltip: "Guardar nombre",
+        cancelTooltip: "Cancelar",
+        close: "Cerrar",
+      },
+      en: {
+        addAudio: "Add audio (.mp3, .wav, .ogg)",
+        settings: "Settings",
+        dragAudios: "Drag audio files here",
+        clickUpload: "or click to upload (.mp3, .wav, .ogg)",
+        volume: "Volume",
+        installedSounds: "Installed sounds",
+        noSoundsYet: "No sounds added yet.",
+        clearSoundboard: "Clear soundboard",
+        done: "Done",
+        soundSingular: "sound",
+        soundPlural: "sounds",
+        playInVoice: "Play in voice channel",
+        previewOnly: "Private preview (you only - not in a voice chat)",
+        renameTooltip: "Double click or click pencil to rename",
+        deleteTooltip: "Delete sound",
+        saveTooltip: "Save name",
+        cancelTooltip: "Cancel",
+        close: "Close",
+      },
+      pt: {
+        addAudio: "Adicionar áudio (.mp3, .wav, .ogg)",
+        settings: "Configurações",
+        dragAudios: "Arraste áudios aqui",
+        clickUpload: "ou clique para carregar (.mp3, .wav, .ogg)",
+        volume: "Volume",
+        installedSounds: "Sons instalados",
+        noSoundsYet: "Nenhum som adicionado ainda.",
+        clearSoundboard: "Esvaziar soundboard",
+        done: "Pronto",
+        soundSingular: "som",
+        soundPlural: "sons",
+        playInVoice: "Tocar no canal de voz",
+        previewOnly: "Prévia privada (apenas você - fora de um chat de voz)",
+        renameTooltip: "Duplo clique ou lápis para renomear",
+        deleteTooltip: "Excluir som",
+        saveTooltip: "Salvar nome",
+        cancelTooltip: "Cancelar",
+        close: "Fechar",
+      }
+    };
+
+    function getLang() {
+      const loc = (window.OnicordWidgetAPI?.env?.locale || window.OnicordWidgetAPI?.getLocale?.() || navigator.language || "es").toLowerCase();
+      if (loc.startsWith("pt")) return "pt";
+      if (loc.startsWith("en")) return "en";
+      return "es";
+    }
+
+    function t(key) {
+      const lang = getLang();
+      return (I18N[lang] && I18N[lang][key]) || I18N.es[key] || "";
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function applyStaticI18n() {
+      const btnAdd = document.getElementById("btnAdd");
+      const btnSettings = document.getElementById("btnSettings");
+      const txtEmptyTitle = document.getElementById("txtEmptyTitle");
+      const txtEmptySub = document.getElementById("txtEmptySub");
+      const txtSettingsTitle = document.getElementById("txtSettingsTitle");
+      const txtVolLabel = document.getElementById("txtVolLabel");
+      const txtInstalledLabel = document.getElementById("txtInstalledLabel");
+      const txtClearAll = document.getElementById("txtClearAll");
+      const btnDoneSettings = document.getElementById("btnDoneSettings");
+      const btnCloseSettings = document.getElementById("btnCloseSettings");
+
+      if (btnAdd) btnAdd.title = t("addAudio");
+      if (btnSettings) btnSettings.title = t("settings");
+      if (txtEmptyTitle) txtEmptyTitle.textContent = t("dragAudios");
+      if (txtEmptySub) txtEmptySub.textContent = t("clickUpload");
+      if (txtSettingsTitle) txtSettingsTitle.textContent = t("settings");
+      if (txtVolLabel) txtVolLabel.textContent = t("volume");
+      if (txtInstalledLabel) txtInstalledLabel.textContent = t("installedSounds");
+      if (txtClearAll) txtClearAll.textContent = t("clearSoundboard");
+      if (btnDoneSettings) btnDoneSettings.textContent = t("done");
+      if (btnCloseSettings) btnCloseSettings.title = t("close");
+    }
+
     // State
     let sounds = [];
     let volume = 0.8;
     let isMuted = false;
     let duckMultiplier = 1.0;
+    let isInitialized = false;
     const activeAudios = new Map();
 
     // DOM Elements
@@ -773,13 +868,13 @@
     const soundCountLabel = document.getElementById("soundCountLabel");
     const btnClearAll = document.getElementById("btnClearAll");
 
-    // Voice status tracking (scoped to voice channels)
+    // Voice status tracking
     let currentVoiceStatus = {
       inVoice: false,
       channelId: null,
     };
 
-    // Auto-ducking & Voice State listeners from parent window
+    // Auto-ducking & Voice State listeners
     window.addEventListener("message", (e) => {
       if (e.data?.type === "VOICE_DUCKING") {
         duckMultiplier = e.data.duckMultiplier ?? 1.0;
@@ -811,11 +906,11 @@
       const v = getVoiceState();
       document.querySelectorAll(".sound-card").forEach((card) => {
         const nameSpan = card.querySelector(".card-name");
-        const name = nameSpan?.textContent || "Sonido";
+        const name = nameSpan?.textContent || "Audio";
         if (v.inVoice && v.channelId) {
-          card.title = `Reproducir en canal de voz: ${name}`;
+          card.title = `${t("playInVoice")}: ${name}`;
         } else {
-          card.title = `Escucha previa (solo tú - no estás en un chat de voz): ${name}`;
+          card.title = `${t("previewOnly")}: ${name}`;
         }
       });
     }
@@ -834,6 +929,7 @@
       valVol.textContent = `${Math.round(volume * 100)}%`;
       soundIcon.textContent = volume === 0 ? "volume_off" : "volume_up";
       updateActiveVolumes();
+      saveSettings();
     });
 
     btnMute.addEventListener("click", () => {
@@ -841,9 +937,9 @@
       soundIcon.textContent = isMuted ? "volume_off" : (volume === 0 ? "volume_off" : "volume_up");
       valVol.style.opacity = isMuted ? "0.4" : "1";
       updateActiveVolumes();
+      saveSettings();
     });
 
-    // View Switcher (Matching onicord-dice: hides canvas & top actions so nothing overlaps)
     function showView(view) {
       if (view === "settings") {
         canvasEl.style.display = "none";
@@ -858,33 +954,59 @@
       }
     }
 
-    btnSettings.addEventListener("click", () => {
-      showView("settings");
-    });
+    btnSettings.addEventListener("click", () => showView("settings"));
+    btnCloseSettings.addEventListener("click", () => showView("main"));
+    btnDoneSettings.addEventListener("click", () => showView("main"));
 
-    btnCloseSettings.addEventListener("click", () => {
-      showView("main");
-    });
-
-    btnDoneSettings.addEventListener("click", () => {
-      showView("main");
-    });
-
-    // Clear All Sounds
+    // Clear All Sounds locally
     btnClearAll.addEventListener("click", () => {
       if (sounds.length === 0) return;
+      sounds.forEach((snd) => {
+        if (snd._blobUrl) {
+          try { URL.revokeObjectURL(snd._blobUrl); } catch (_) {}
+        }
+      });
       sounds = [];
       saveCatalog();
       render();
       renderManageList();
-      if (window.OnicordWidgetAPI?.p2p?.broadcast) {
-        window.OnicordWidgetAPI.p2p.broadcast({ type: "CLEAR_CATALOG" });
-      }
     });
+
+    async function loadSettings() {
+      if (window.OnicordWidgetAPI?.storage?.get) {
+        try {
+          const raw = await window.OnicordWidgetAPI.storage.get("soundboard_settings");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (typeof parsed.volume === "number") {
+              volume = parsed.volume;
+              volSlider.value = volume;
+              valVol.textContent = `${Math.round(volume * 100)}%`;
+            }
+            if (typeof parsed.isMuted === "boolean") {
+              isMuted = parsed.isMuted;
+              soundIcon.textContent = isMuted ? "volume_off" : "volume_up";
+              valVol.style.opacity = isMuted ? "0.4" : "1";
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    async function saveSettings() {
+      if (window.OnicordWidgetAPI?.storage?.set) {
+        try {
+          await window.OnicordWidgetAPI.storage.set("soundboard_settings", JSON.stringify({
+            volume,
+            isMuted
+          }));
+        } catch (_) {}
+      }
+    }
 
     // Save and load persistence via OnicordWidgetAPI.storage
     async function loadCatalog() {
-      if (window.OnicordWidgetAPI?.storage) {
+      if (window.OnicordWidgetAPI?.storage?.get) {
         try {
           const raw = await window.OnicordWidgetAPI.storage.get("soundboard_catalog");
           if (raw) {
@@ -899,20 +1021,27 @@
     }
 
     async function saveCatalog() {
-      if (window.OnicordWidgetAPI?.storage) {
+      if (window.OnicordWidgetAPI?.storage?.set) {
         try {
-          await window.OnicordWidgetAPI.storage.set("soundboard_catalog", JSON.stringify(sounds));
+          const cleanToSave = sounds.map((s) => ({
+            id: s.id,
+            name: s.name,
+            dataUrl: s.dataUrl,
+            duration: s.duration,
+          }));
+          await window.OnicordWidgetAPI.storage.set("soundboard_catalog", JSON.stringify(cleanToSave));
         } catch (_) {}
       }
     }
 
     // Render Management List inside Settings
     function renderManageList() {
-      soundCountLabel.textContent = `${sounds.length} ${sounds.length === 1 ? "sonido" : "sonidos"}`;
+      const countLabel = `${sounds.length} ${sounds.length === 1 ? t("soundSingular") : t("soundPlural")}`;
+      soundCountLabel.textContent = countLabel;
       btnClearAll.style.display = sounds.length > 0 ? "inline-flex" : "none";
 
       if (sounds.length === 0) {
-        manageList.innerHTML = '<div class="empty-manage">No hay sonidos agregados aún.</div>';
+        manageList.innerHTML = `<div class="empty-manage">${escapeHtml(t("noSoundsYet"))}</div>`;
         return;
       }
 
@@ -926,14 +1055,14 @@
           item.innerHTML = `
             <div class="manage-info" style="flex: 1; min-width: 0;">
               <span class="material-symbols-outlined" style="font-size: 15px; color: var(--subtext); flex-shrink: 0;">graphic_eq</span>
-              <span class="manage-name" title="Doble clic o clic en lápiz para renombrar">${snd.name}</span>
-              <button class="btn-edit-item" title="Renombrar sonido">
+              <span class="manage-name" title="${escapeHtml(t("renameTooltip"))}">${escapeHtml(snd.name)}</span>
+              <button class="btn-edit-item" title="${escapeHtml(t("renameTooltip"))}">
                 <span class="material-symbols-outlined" style="font-size: 13px;">edit</span>
               </button>
             </div>
             <div class="manage-info" style="flex-shrink: 0;">
-              <span class="manage-dur">${snd.duration || "0:01"}</span>
-              <button class="btn-del-item" title="Eliminar sonido" data-id="${snd.id}">
+              <span class="manage-dur">${escapeHtml(snd.duration || "0:01")}</span>
+              <button class="btn-del-item" title="${escapeHtml(t("deleteTooltip"))}" data-id="${escapeHtml(snd.id)}">
                 <span class="material-symbols-outlined" style="font-size: 15px;">delete</span>
               </button>
             </div>
@@ -955,11 +1084,11 @@
         function showEditView() {
           item.innerHTML = `
             <div class="manage-edit-row">
-              <input type="text" class="manage-input" value="${snd.name.replace(/"/g, '&quot;')}" maxlength="60" />
-              <button class="btn-save-rename" title="Guardar nombre">
+              <input type="text" class="manage-input" value="${escapeHtml(snd.name)}" maxlength="60" />
+              <button class="btn-save-rename" title="${escapeHtml(t("saveTooltip"))}">
                 <span class="material-symbols-outlined" style="font-size: 15px;">check</span>
               </button>
-              <button class="btn-cancel-rename" title="Cancelar">
+              <button class="btn-cancel-rename" title="${escapeHtml(t("cancelTooltip"))}">
                 <span class="material-symbols-outlined" style="font-size: 15px;">close</span>
               </button>
             </div>
@@ -1010,7 +1139,7 @@
         emptyDropzone.style.display = "flex";
         soundGrid.style.display = "none";
         if (window.OnicordWidgetAPI?.island?.setSummary) {
-          window.OnicordWidgetAPI.island.setSummary("0 sonidos");
+          window.OnicordWidgetAPI.island.setSummary(`0 ${t("soundPlural")}`);
         }
         return;
       }
@@ -1026,15 +1155,15 @@
         
         const v = getVoiceState();
         card.title = v.inVoice && v.channelId
-          ? `Reproducir en canal de voz: ${snd.name}`
-          : `Escucha previa (solo tú - no estás en chat de voz): ${snd.name}`;
+          ? `${t("playInVoice")}: ${snd.name}`
+          : `${t("previewOnly")}: ${snd.name}`;
 
         card.innerHTML = `
           <span class="material-symbols-outlined card-icon">graphic_eq</span>
           <div class="card-name-wrapper">
-            <span class="card-name">${snd.name}</span>
+            <span class="card-name">${escapeHtml(snd.name)}</span>
           </div>
-          <span class="card-duration">${snd.duration || "0:01"}</span>
+          <span class="card-duration">${escapeHtml(snd.duration || "0:01")}</span>
         `;
 
         card.addEventListener("click", () => {
@@ -1045,14 +1174,13 @@
       });
 
       if (window.OnicordWidgetAPI?.island?.setSummary) {
-        window.OnicordWidgetAPI.island.setSummary(`${sounds.length} sonidos`);
+        window.OnicordWidgetAPI.island.setSummary(`${sounds.length} ${sounds.length === 1 ? t("soundSingular") : t("soundPlural")}`);
       }
 
       updateCardMarquees();
       updateCardTooltips();
     }
 
-    // Dynamic marquee measurement for long sound titles
     function updateCardMarquees() {
       requestAnimationFrame(() => {
         document.querySelectorAll(".sound-card").forEach((card) => {
@@ -1080,7 +1208,6 @@
 
     window.addEventListener("resize", updateCardMarquees);
 
-    // Helper to get a fast native Blob URL from dataUrl or cache
     function getPlayableUrl(snd) {
       if (snd._blobUrl) return snd._blobUrl;
       if (snd.dataUrl && snd.dataUrl.startsWith("data:")) {
@@ -1103,7 +1230,6 @@
       return snd.dataUrl;
     }
 
-    // Play Sound locally & Broadcast over P2P (scoped strictly to voice channel)
     function playSound(snd, isLocalTrigger = false) {
       if (!snd || !snd.dataUrl) return;
 
@@ -1128,23 +1254,24 @@
 
       audio.play().catch(() => {});
 
-      // Transmisión colaborativa vinculada al chat de voz:
-      // Si el usuario está en un chat de voz, transmite sólo a quienes compartan su mismo canal de voz.
-      // Si el usuario NO está en un chat de voz, el sonido es una escucha previa privada (sólo él lo escucha).
       if (isLocalTrigger) {
         const v = getVoiceState();
         if (v.inVoice && v.channelId && window.OnicordWidgetAPI?.p2p?.broadcast) {
           window.OnicordWidgetAPI.p2p.broadcast({
             type: "PLAY_SOUND",
             soundId: snd.id,
-            sound: snd,
+            sound: {
+              id: snd.id,
+              name: snd.name,
+              dataUrl: snd.dataUrl,
+              duration: snd.duration
+            },
             voiceChannelId: v.channelId,
           });
         }
       }
     }
 
-    // Add sound from file
     function handleFile(file) {
       if (!file) return;
       const ext = (file.name.split(".").pop() || "").toLowerCase();
@@ -1180,7 +1307,6 @@
           saveCatalog();
           render();
 
-          // Broadcast to other peers
           if (window.OnicordWidgetAPI?.p2p?.broadcast) {
             window.OnicordWidgetAPI.p2p.broadcast({
               type: "ADD_SOUND",
@@ -1211,7 +1337,6 @@
       reader.readAsDataURL(file);
     }
 
-    // Rename sound & broadcast to peers
     function renameSound(soundId, newName) {
       const trimmed = (newName || "").trim();
       if (!trimmed) return;
@@ -1233,8 +1358,11 @@
       }
     }
 
-    // Delete sound
     function deleteSound(soundId) {
+      const snd = sounds.find((s) => s.id === soundId);
+      if (snd && snd._blobUrl) {
+        try { URL.revokeObjectURL(snd._blobUrl); } catch (_) {}
+      }
       sounds = sounds.filter((s) => s.id !== soundId);
       saveCatalog();
       render();
@@ -1247,7 +1375,7 @@
       }
     }
 
-    // Drag and Drop (global body)
+    // Drag and Drop
     ["dragenter", "dragover"].forEach((evt) => {
       window.addEventListener(evt, (e) => {
         e.preventDefault();
@@ -1291,16 +1419,15 @@
         if (msg.type === "PLAY_SOUND") {
           const v = getVoiceState();
 
-          // Si el audio fue emitido en un canal de voz, sólo lo reproducen quienes estén en ese mismo canal
           if (msg.voiceChannelId) {
             if (!v.inVoice || v.channelId !== msg.voiceChannelId) {
-              return; // El usuario está en otro canal de voz o desconectado: no lo escucha
+              return;
             }
           } else {
             if (!v.inVoice) return;
           }
 
-          const snd = msg.sound || sounds.find((s) => s.id === msg.soundId);
+          const snd = sounds.find((s) => s.id === msg.soundId) || msg.sound;
           if (snd) playSound(snd, false);
         } else if (msg.type === "ADD_SOUND" && msg.sound) {
           if (!sounds.some((s) => s.id === msg.sound.id)) {
@@ -1312,14 +1439,11 @@
             }
           }
         } else if (msg.type === "REMOVE_SOUND" && msg.soundId) {
-          sounds = sounds.filter((s) => s.id !== msg.soundId);
-          saveCatalog();
-          render();
-          if (panelSettings.classList.contains("show")) {
-            renderManageList();
+          const snd = sounds.find((s) => s.id === msg.soundId);
+          if (snd && snd._blobUrl) {
+            try { URL.revokeObjectURL(snd._blobUrl); } catch (_) {}
           }
-        } else if (msg.type === "CLEAR_CATALOG") {
-          sounds = [];
+          sounds = sounds.filter((s) => s.id !== msg.soundId);
           saveCatalog();
           render();
           if (panelSettings.classList.contains("show")) {
@@ -1339,7 +1463,12 @@
           if (sounds.length > 0) {
             window.OnicordWidgetAPI.p2p.broadcast({
               type: "CATALOG_RESPONSE",
-              sounds,
+              sounds: sounds.map((s) => ({
+                id: s.id,
+                name: s.name,
+                dataUrl: s.dataUrl,
+                duration: s.duration
+              })),
             });
           }
         } else if (msg.type === "CATALOG_RESPONSE" && Array.isArray(msg.sounds)) {
@@ -1367,15 +1496,21 @@
       window.OnicordWidgetAPI.p2p.broadcast({ type: "REQUEST_CATALOG" });
     }
 
-    // Init lifecycle
-    window.addEventListener("onicord:widget-ready", () => {
-      loadCatalog();
+    async function init() {
+      if (isInitialized) return;
+      isInitialized = true;
+      applyStaticI18n();
+      await loadSettings();
+      await loadCatalog();
       setupP2P();
-    });
+    }
 
+    // Init lifecycle
+    window.addEventListener("onicord:widget-ready", init);
     if (window.OnicordWidgetAPI) {
-      loadCatalog();
-      setupP2P();
+      init();
+    } else {
+      setTimeout(init, 250);
     }
   </script>
 </body>

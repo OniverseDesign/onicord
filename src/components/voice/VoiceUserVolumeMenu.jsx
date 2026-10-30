@@ -100,7 +100,7 @@ export default function VoiceUserVolumeMenu({
 
   return createPortal(
     <>
-      {/* Backdrop transparente a pantalla completa: captura cualquier click fuera para cerrar de inmediato */}
+      {/* Transparent fullscreen backdrop: dismisses menu on outside click */}
       <div
         className="fixed inset-0 z-[99998] cursor-default bg-transparent"
         onPointerDown={(e) => {

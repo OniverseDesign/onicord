@@ -33,7 +33,6 @@ export default function DeleteStickerModal({ sticker, onClose, onConfirm }) {
             from your local library?
           </p>
 
-          {/* 🚀 ABSTRAÍDO: Caja de previsualización unificada con bordes sutiles y fondo base */}
           <div className="onicord-modal-preview-box">
             <div className="w-14 h-14 bg-black/10 rounded-onicord-button p-2 flex items-center justify-center border border-white/[0.02]">
               <img
@@ -52,7 +51,6 @@ export default function DeleteStickerModal({ sticker, onClose, onConfirm }) {
             </div>
           </div>
 
-          {/* 🚀 ABSTRAÍDO: Banner de advertencia rígido con tokens Mocha */}
           <div className="onicord-modal-warning-box text-left">
             <strong className="block text-onicord-danger text-[11px] uppercase font-bold tracking-wider mb-1">
               Advertencia:
@@ -63,7 +61,6 @@ export default function DeleteStickerModal({ sticker, onClose, onConfirm }) {
           </div>
         </div>
 
-        {/* PIE DE PÁGINA */}
         <div className="pt-6 flex items-center justify-end gap-6">
           <button type="button" onClick={triggerClose} className="onicord-btn-text">
             Cancelar

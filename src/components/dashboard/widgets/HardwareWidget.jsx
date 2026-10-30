@@ -76,7 +76,6 @@ export default function HardwareWidget({
       style={{ containerType: "inline-size" }}
       className="onicord-widget-shell w-full h-full p-6 flex flex-col justify-between select-none"
     >
-      {/* Header */}
       <div className="onicord-widget-header flex justify-between items-center w-full gap-2 mb-2 shrink-0">
         <h3
           style={{ fontSize: "clamp(0.6rem, 3.5cqi, 0.8rem)" }}
@@ -92,7 +91,7 @@ export default function HardwareWidget({
         </span>
       </div>
 
-      {/* Grid datos hardware en vivo */}
+      {/* Live hardware stats grid */}
       <div className="grid grid-cols-4 gap-2 my-2 shrink-0 w-full">
         <div className="min-w-0">
           <p
@@ -155,7 +154,7 @@ export default function HardwareWidget({
         </div>
       </div>
 
-      {/* GRÁFICO INFERIOR HISTORIOGRÁFICO AUTOCALIBRADO */}
+      {/* Self-calibrating CPU history chart */}
       <div
         ref={containerRef}
         className="h-[40%] w-full flex items-end justify-between gap-[2.5px] mt-1 pt-2 border-t border-white/5 relative overflow-hidden"

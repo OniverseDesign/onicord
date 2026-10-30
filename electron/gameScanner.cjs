@@ -4,7 +4,7 @@ const gamesDB = require("./games.json");
 const gamesMap = new Map();
 let customGamesList = [];
 
-// Lista de ejecutables de streaming para detección automática
+// List of streaming executables for automatic detection
 const STREAMING_APPS = new Map([
   ["obs64.exe", "OBS Studio"],
   ["obs32.exe", "OBS Studio"],
@@ -21,7 +21,7 @@ let lastStreamerApp = null;
 function rebuildGamesMap() {
   gamesMap.clear();
 
-  // 1. Cargar catálogo base oficial
+  // 1. Load official base catalog
   for (const g of gamesDB) {
     if (!g.exe) continue;
     gamesMap.set(g.exe.toLowerCase(), {
@@ -32,7 +32,7 @@ function rebuildGamesMap() {
     });
   }
 
-  // 2. Fusionar con lista blanca personalizada del usuario
+  // 2. Merge with user's custom whitelist
   for (const cg of customGamesList) {
     if (cg.enabled === false) continue;
     if (!cg.exe) continue;
@@ -47,12 +47,12 @@ function rebuildGamesMap() {
   }
 }
 
-// Inicializar mapa de juegos
+// Initialize games map
 rebuildGamesMap();
 
 let currentState = { name: null, cover: null, type: "game", startTime: null };
 let lockedGame = null;
-let rpcActivity = null; // Prioridad máxima si un juego se comunica vía IPC/RPC
+let rpcActivity = null; // Highest priority if a game communicates via IPC/RPC
 let scannerStarted = false;
 let scanInProgress = false;
 let timer = null;
@@ -210,12 +210,12 @@ async function runScan(mainWindow, sessionId) {
   try {
     const runningProcesses = await getActiveProcesses();
 
-    // Detección continua de software de captura/streaming
+    // Continuous detection of capture/streaming software
     checkStreamerProcesses(runningProcesses, mainWindow);
 
     if (sessionId !== currentSessionId) return;
 
-    // Si hay una actividad de RPC activa, tiene prioridad sobre la detección de juegos
+    // Active RPC activity takes precedence over game process detection
     if (rpcActivity) {
       broadcast(mainWindow);
       return;
@@ -277,7 +277,7 @@ function setBackgroundMode(bg) {
 function setCustomGames(list) {
   customGamesList = Array.isArray(list) ? list : [];
   rebuildGamesMap();
-  // Si el escáner está activo y no hay actividad RPC, forzar chequeo inmediato
+  // If scanner is running and there's no active RPC, trigger an immediate scan
   if (scannerStarted && globalMainWindow && !rpcActivity) {
     runScan(globalMainWindow, currentSessionId);
   }
@@ -313,7 +313,7 @@ function clearRpcActivity() {
   if (onActivityChangeCallback) onActivityChangeCallback(currentState);
   broadcast(globalMainWindow);
 
-  // Retornar limpiamente al escáner de procesos
+  // Cleanly resume process scanner loop
   if (scannerStarted && globalMainWindow) {
     runScan(globalMainWindow, currentSessionId);
   }

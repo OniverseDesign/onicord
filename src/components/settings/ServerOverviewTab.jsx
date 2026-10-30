@@ -107,7 +107,7 @@ export default function ServerOverviewTab({
 
   const initial = name.trim()?.[0]?.toUpperCase() || "?";
 
-  // Agrupamiento dinámico de categorías y canales reales
+  // Dynamic grouping of categories and channels
   const isCategoryNode = (c) =>
     c.type === "category" || String(c.id).startsWith("cat-");
   const categories = (channels || []).filter(isCategoryNode);
@@ -117,11 +117,11 @@ export default function ServerOverviewTab({
 
   return (
     <div className="onicord-settings-container">
-      {/* DISEÑO EN 2 COLUMNAS (6 y 6 DE ANCHO COMO INVITE TAB Y PROFILE TAB) */}
+      {/* Two-column layout */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-        {/* COLUMNA IZQUIERDA: CONFIGURACIONES DE EDICIÓN (6/12) */}
+        {/* Left column: Server configuration */}
         <div className="md:col-span-6 space-y-4">
-          {/* TARJETA 1: IDENTIDAD DEL SERVIDOR */}
+          {/* Server identity */}
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>
@@ -133,7 +133,7 @@ export default function ServerOverviewTab({
             </h3>
 
             <div className="space-y-4 pt-1">
-              {/* Nombre del Servidor */}
+              {/* Server Name */}
               <div>
                 <label className="text-xs font-semibold text-onicord-text block mb-1.5">
                   {t(
@@ -152,7 +152,7 @@ export default function ServerOverviewTab({
             </div>
           </div>
 
-          {/* TARJETA 2: COMPORTAMIENTO Y NAVEGACIÓN */}
+          {/* CARD 2: BEHAVIOR AND NAVIGATION */}
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>
@@ -267,11 +267,11 @@ export default function ServerOverviewTab({
               </span>
             </span>
 
-            {/* REPLICACIÓN FIEL DEL SIDEBAR DE ROOMVIEW */}
-            <div className="w-full rounded-2xl bg-onicord-base/90 border border-white/5 overflow-hidden flex flex-col font-sans select-none shadow-xl min-h-[320px]">
-              {/* Cabecera del Servidor - CONDICIONAL según banner */}
+            {/* FAITHFUL REPLICATION OF ROOMVIEW SIDEBAR */}
+            <div className="w-full rounded-2xl bg-onicord-base/90 border border-onicord-island overflow-hidden flex flex-col font-sans select-none min-h-[320px]">
+              {/* Server Header - CONDITIONAL based on banner */}
               {banner ? (
-                /* === CON BANNER: Portada redondeada con padding + avatar grande solapando + nombre debajo === */
+                /* === WITH BANNER: Rounded cover with padding + overlapping avatar + name below === */
                 <div>
                   {/* Banner con padding, bordes redondeados y overlay interactivo */}
                   <div className="px-2.5 pt-2.5 pb-0">
@@ -319,7 +319,7 @@ export default function ServerOverviewTab({
                   </div>
                   {/* Avatar grande solapando el borde inferior del banner con overlay interactivo */}
                   <div className="px-5 -mt-7 relative z-10">
-                    <div className="w-16 h-16 rounded-full border-[4px] border-onicord-base flex items-center justify-center bg-onicord-surface shadow-lg relative group">
+                    <div className="w-16 h-16 rounded-full border-[4px] border-onicord-base flex items-center justify-center bg-onicord-surface relative group">
                       <div
                         className="absolute inset-0 rounded-full overflow-hidden flex items-center justify-center cursor-pointer"
                         style={{ isolation: "isolate" }}
@@ -356,7 +356,7 @@ export default function ServerOverviewTab({
                         )}
                       </div>
 
-                      {/* Mini botón para eliminar icono si existe */}
+                      {/* Mini delete button for icon if present */}
                       {icon && !readOnly && (
                         <button
                           type="button"
@@ -372,7 +372,7 @@ export default function ServerOverviewTab({
                       )}
                     </div>
                   </div>
-                  {/* Nombre del servidor + Flama en la misma fila */}
+                  {/* Server name + Flame on same row */}
                   <div className="flex items-center justify-between px-5 pt-2 pb-3">
                     <span
                       className="text-[15px] font-semibold text-white truncate max-w-[200px]"
@@ -386,9 +386,9 @@ export default function ServerOverviewTab({
                   </div>
                 </div>
               ) : (
-                /* === SIN BANNER: Opción para subir portada + cabecera horizontal === */
+                /* === WITHOUT BANNER: Option to upload cover + horizontal header === */
                 <div>
-                  {/* Slot interactivo para añadir/subir portada directa si no tiene una */}
+                  {/* Interactive slot to upload cover directly if none present */}
                   {!readOnly && (
                     <div className="px-2.5 pt-2.5 pb-0">
                       <div
@@ -416,7 +416,7 @@ export default function ServerOverviewTab({
 
                   <div className="h-[52px] border-b border-white/[0.04] px-3.5 flex items-center justify-between bg-black/10">
                     <div className="flex items-center min-w-0">
-                      {/* Icono del Servidor REDONDEADO EN CÍRCULO con overlay interactivo */}
+                      {/* Server Icon ROUNDED IN CIRCLE with interactive overlay */}
                       <div
                         className="relative w-8 h-8 rounded-full border border-white/10 overflow-hidden flex items-center justify-center shrink-0 bg-onicord-surface shadow-sm group cursor-pointer"
                         onClick={() => !readOnly && iconInputRef.current?.click()}
@@ -464,7 +464,7 @@ export default function ServerOverviewTab({
                           </button>
                         )}
                       </div>
-                      {/* Nombre del Servidor */}
+                      {/* Server Name */}
                       <span
                         className="text-[14px] font-bold text-white truncate ml-2.5 max-w-[130px]"
                         title={name}
@@ -483,9 +483,9 @@ export default function ServerOverviewTab({
                 </div>
               )}
 
-              {/* Lista Dinámica de Categorías y Canales Reales */}
+              {/* Dynamic Category and Channel List */}
               <div className="flex-1 py-3 pl-1 pr-2 space-y-4 max-h-[260px] overflow-y-auto minimal-scrollbar">
-                {/* Canales Huérfanos (sin categoría) */}
+                {/* Uncategorized channels (orphans) */}
                 {orphanChannels.length > 0 && (
                   <div className="space-y-0.5">
                     {orphanChannels.map((c, idx) => {
@@ -514,7 +514,7 @@ export default function ServerOverviewTab({
                   </div>
                 )}
 
-                {/* Categorías y sus Canales Reales */}
+                {/* Real Categories and Channels */}
                 {categories.length > 0 ? (
                   categories.map((cat) => {
                     const catChannels = (channels || []).filter(
@@ -561,7 +561,7 @@ export default function ServerOverviewTab({
                     );
                   })
                 ) : orphanChannels.length === 0 ? (
-                  /* Canales de Muestra si no hay datos */
+                  /* Sample channels if no data */
                   <div>
                     <div className="flex items-center justify-between text-[11px] font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1.5 cursor-pointer hover:text-white transition-colors duration-150">
                       <span>

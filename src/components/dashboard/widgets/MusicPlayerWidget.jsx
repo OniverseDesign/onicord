@@ -46,7 +46,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
     setRepeatMode,
   } = musicState;
 
-  // Clase dinámica para alternar el texto entre reproducción y pausa/detenido
+  // Dynamic text class depending on active playback state
   const textColor = isPlaying ? "text-white" : "text-onicord-text";
 
   const [currentTime, setCurrentTime] = useState("0:00");

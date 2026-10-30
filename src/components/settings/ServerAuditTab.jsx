@@ -66,7 +66,7 @@ export default function ServerAuditTab({ server }) {
 
   return (
     <div className="onicord-settings-container">
-      {/* CONTENEDOR UNIFICADO: ENCABEZADO Y REGISTROS */}
+      {/* Audit log records container */}
       <div className="onicord-settings-card space-y-4">
         <div>
           <h3 className="onicord-settings-section-title !mb-1">

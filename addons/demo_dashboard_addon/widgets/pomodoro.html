@@ -42,7 +42,7 @@
       cursor: pointer;
       font-size: 12px;
       font-weight: 600;
-      transition: all 0.2s;
+      transition: background 0.15s, border-color 0.15s;
     }
     .btn:hover {
       background: rgba(255, 255, 255, 0.2);
@@ -62,16 +62,19 @@
 
     window.addEventListener("onicord:widget-ready", async () => {
       // Demostración del permiso: user.profile
-      const user = OnicordWidgetAPI.user.getProfile();
+      const user = OnicordWidgetAPI?.user?.getProfile?.();
       if (user && user.nickname) {
         document.getElementById("userInfo").textContent = `Focus for ${user.nickname}`;
       }
 
       // Demostración del permiso: storage
-      const savedTime = await OnicordWidgetAPI.storage.get("pomodoro_time");
+      const savedTime = await OnicordWidgetAPI?.storage?.get?.("pomodoro_time");
       if (savedTime) {
-        time = parseInt(savedTime, 10);
-        updateDisplay();
+        const parsed = parseInt(savedTime, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          time = parsed;
+          updateDisplay();
+        }
       }
     });
 
@@ -87,16 +90,23 @@
         timerId = null;
         document.getElementById("toggleBtn").textContent = "Reanudar";
       } else {
+        if (time <= 0) {
+          time = 1500;
+          updateDisplay();
+        }
         document.getElementById("toggleBtn").textContent = "Pausar";
         timerId = setInterval(() => {
           if (time > 0) {
             time--;
             updateDisplay();
-            OnicordWidgetAPI.storage.set("pomodoro_time", time);
+            if (time % 5 === 0) {
+              OnicordWidgetAPI?.storage?.set?.("pomodoro_time", time);
+            }
           } else {
             clearInterval(timerId);
             timerId = null;
             document.getElementById("toggleBtn").textContent = "Reiniciar";
+            OnicordWidgetAPI?.storage?.set?.("pomodoro_time", 1500);
           }
         }, 1000);
       }

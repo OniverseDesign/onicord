@@ -218,7 +218,7 @@ class CacheService {
         }
       }
 
-      // 2. FLAC METADATA_BLOCK_PICTURE
+      // 2. FLAC metadata picture block parser
       if (buf.length > 4 && buf.toString("ascii", 0, 4) === "fLaC") {
         let offset = 4;
         while (offset < buf.length - 4) {

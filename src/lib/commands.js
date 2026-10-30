@@ -10,7 +10,7 @@ export function parsePollInput(rawInput) {
 
   if (!text) return null;
 
-  // Buscar el primer guion que separa la pregunta de las opciones
+  // Find the first dash separator between question and options
   const dashIndex = text.search(/(?<=\s|^)-(?=[^\s])/);
   if (dashIndex === -1) return null;
 

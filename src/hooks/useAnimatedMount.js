@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 /**
- * Hook para coordinar animaciones de montaje y desmontaje fluido en componentes de UI.
+ * Hook to coordinate smooth mount and unmount exit animations in UI components.
  *
- * @param {boolean} isOpen - Estado de visibilidad deseado.
- * @param {number} durationMs - Duracion en ms de la animacion de salida.
+ * @param {boolean} isOpen - Desired visibility state.
+ * @param {number} durationMs - Exit animation duration in milliseconds.
  * @returns {{ shouldRender: boolean, isAnimatingOut: boolean }}
  */
 export function useAnimatedMount(isOpen, durationMs = 150) {
@@ -46,11 +46,11 @@ export function useAnimatedMount(isOpen, durationMs = 150) {
 }
 
 /**
- * Hook para componentes que se cierran internamente antes de notificar al padre.
- * Permite reproducir la animacion de salida antes de llamar al callback onClose.
+ * Hook for components that initiate internal closing prior to notifying parent state.
+ * Plays the exit animation before invoking the onClose callback.
  *
- * @param {Function} onCloseCallback - Callback invocado al terminar la animacion.
- * @param {number} durationMs - Duracion de la animacion de salida.
+ * @param {Function} onCloseCallback - Callback invoked upon animation completion.
+ * @param {number} durationMs - Exit animation duration in milliseconds.
  * @returns {{ isClosing: boolean, triggerClose: () => void }}
  */
 export function useInternalClose(onCloseCallback, durationMs = 150) {

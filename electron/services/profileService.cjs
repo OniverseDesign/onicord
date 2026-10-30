@@ -4,6 +4,39 @@ const path = require("path");
 const crypto = require("crypto");
 const { app } = require("electron");
 
+const DEFAULT_KEYBINDINGS = [
+  { id: "default-focus-search", action: "focus_search", shortcut: "Ctrl + F" },
+  { id: "default-toggle-mute", action: "toggle_mute", shortcut: "Ctrl + Shift + M" },
+  { id: "default-toggle-deafen", action: "toggle_deafen", shortcut: "Ctrl + Shift + D" },
+  { id: "default-disconnect-voice", action: "disconnect_voice", shortcut: "Ctrl + Shift + E" },
+  { id: "default-open-settings", action: "open_settings", shortcut: "Ctrl + ," },
+  { id: "default-open-pinned", action: "open_pinned", shortcut: "Ctrl + P" },
+  { id: "default-go-to-dashboard", action: "go_to_dashboard", shortcut: "Alt + Home" },
+  { id: "default-open-server-settings", action: "open_server_settings", shortcut: "Ctrl + Shift + S" },
+  { id: "default-switch-server-up", action: "switch_server_up", shortcut: "Ctrl + Alt + ArrowUp" },
+  { id: "default-switch-server-down", action: "switch_server_down", shortcut: "Ctrl + Alt + ArrowDown" },
+];
+
+function normalizeKeybindings(userKeybindings) {
+  if (!Array.isArray(userKeybindings) || userKeybindings.length === 0) {
+    return DEFAULT_KEYBINDINGS.map((kb) => ({ ...kb, id: crypto.randomUUID() }));
+  }
+
+  const result = [...userKeybindings];
+  const configuredActions = new Set(userKeybindings.map((kb) => kb.action));
+
+  for (const def of DEFAULT_KEYBINDINGS) {
+    if (!configuredActions.has(def.action)) {
+      result.push({
+        ...def,
+        id: crypto.randomUUID(),
+      });
+    }
+  }
+
+  return result;
+}
+
 class ProfileService {
   constructor() {
     this.activeProfile = null;
@@ -59,11 +92,21 @@ class ProfileService {
   async getProfile() {
     const profile = await this.loadProfile();
     if (!profile) return null;
-    if (profile.id) return profile;
-    const upgraded = { ...profile, id: crypto.randomUUID() };
-    await this.saveProfileToDisk(upgraded);
-    this.activeProfile = upgraded;
-    return upgraded;
+    let modified = false;
+    if (!profile.id) {
+      profile.id = crypto.randomUUID();
+      modified = true;
+    }
+    const normalizedKb = normalizeKeybindings(profile.keybindings);
+    if (!profile.keybindings || profile.keybindings.length !== normalizedKb.length) {
+      profile.keybindings = normalizedKb;
+      modified = true;
+    }
+    if (modified) {
+      await this.saveProfileToDisk(profile);
+    }
+    this.activeProfile = profile;
+    return profile;
   }
 
   async saveProfile(profile, roomManager) {
@@ -123,9 +166,11 @@ class ProfileService {
         enableOpenGraph: profile.general?.enableOpenGraph ?? existing?.general?.enableOpenGraph ?? true,
       },
 
-      keybindings: Array.isArray(profile.keybindings)
-        ? profile.keybindings
-        : (existing?.keybindings || []),
+      keybindings: normalizeKeybindings(
+        Array.isArray(profile.keybindings)
+          ? profile.keybindings
+          : (existing?.keybindings || [])
+      ),
       serverFolders: Array.isArray(profile.serverFolders)
         ? profile.serverFolders
         : (existing?.serverFolders || []),

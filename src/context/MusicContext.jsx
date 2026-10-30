@@ -100,7 +100,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     return expected;
   }, []);
 
-  // 1. Cargar historial del servidor al cambiar de servidor activo
+  // 1. Load server play history when active server changes
   useEffect(() => {
     if (!activeServerId || !window.electronAPI?.loadHistory) return;
     window.electronAPI.loadHistory(activeServerId).then((history) => {
@@ -110,7 +110,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     }).catch(console.error);
   }, [activeServerId]);
 
-  // Guardar en historial cuando una canción comienza
+  // Record track to play history on playback start
   const recordToHistory = useCallback((track) => {
     if (!track || !track.trackId || !activeServerId) return;
     setPlayHistory((prev) => {
@@ -171,7 +171,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     ).catch(console.error);
   }, [currentVoiceChannelId, currentVoiceRoomCode, djUserId, djPeerId, profile?.id, currentTrack, playlist, isPlaying, repeatMode]);
 
-  // 3. Heartbeat del DJ para mantener sincronizados a los oyentes
+  // 3. DJ Heartbeat interval to keep remote listeners in sync
   useEffect(() => {
     if (!isDJ || !isPlaying || !currentTrack || !currentVoiceChannelId) return;
 
@@ -187,7 +187,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     return () => clearInterval(heartbeat);
   }, [isDJ, isPlaying, currentTrack, currentVoiceChannelId, broadcastCurrentState]);
 
-  // 4. Limpieza cuando el usuario sale del canal de voz
+  // 4. Session cleanup when user leaves voice channel
   useEffect(() => {
     if (!inVoice || !currentVoiceChannelId) {
       if (audioRef.current) {
@@ -205,7 +205,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     }
   }, [inVoice, currentVoiceChannelId]);
 
-  // 5. Localización de audio de la pista (resuelve URL local o proxy seguro)
+  // 5. Audio track localization (resolves local file URL or secure proxy)
   useEffect(() => {
     if (!currentTrack) {
       setLocalAudioUrl(null);
@@ -241,7 +241,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     };
   }, [currentTrack?.trackId]);
 
-  // 6. Control del elemento <audio> según hasJoinedMusic e isPlaying
+  // 6. Manage <audio> playback state according to hasJoinedMusic and isPlaying
   useEffect(() => {
     const audioNode = audioRef.current;
     if (!audioNode) return;
@@ -270,7 +270,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     }
   }, [isPlaying, localAudioUrl, hasJoinedMusic, volume, getExpectedPlaybackTime]);
 
-  // 7. Corrección suave de deriva (Drift correction) para oyentes remotos
+  // 7. Drift correction for remote listeners
   useEffect(() => {
     if (isDJ || hasJoinedMusic !== true || !isPlaying || !currentTrack) return;
 
@@ -283,12 +283,12 @@ export function MusicProvider({ profile, activeServer, children }) {
       const absDiff = Math.abs(diff);
 
       if (absDiff > 2.5) {
-        // Deriva grande: corrección con seek
+        // Large drift: hard seek correction
         console.log(`[MusicSync] Seek drift correction: local=${audioNode.currentTime.toFixed(2)}s target=${targetTime.toFixed(2)}s`);
         audioNode.currentTime = targetTime;
         audioNode.playbackRate = 1.0;
       } else if (absDiff > 0.4) {
-        // Micro-ajuste suave en playbackRate
+        // Small drift: gentle playbackRate nudge
         audioNode.playbackRate = diff > 0 ? 0.96 : 1.04;
       } else {
         if (audioNode.playbackRate !== 1.0) {
@@ -300,7 +300,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     return () => clearInterval(driftInterval);
   }, [isDJ, hasJoinedMusic, isPlaying, currentTrack, getExpectedPlaybackTime]);
 
-  // 8. Manejo de terminación de pista (<audio onEnded>) — Solo el DJ avanza
+  // 8. Track completion handler (<audio onEnded>) — Only DJ advances queue
   const handleTrackEnded = useCallback(() => {
     if (!isDJ) return;
 
@@ -318,7 +318,7 @@ export function MusicProvider({ profile, activeServer, children }) {
         broadcastCurrentState({ currentTime: 0, isPlaying: true });
         return;
       }
-      // Sin más pistas: detener sesión
+      // End of queue: stop session
       setCurrentTrack(null);
       setIsPlaying(false);
       broadcastCurrentState({
@@ -350,7 +350,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     });
   }, [isDJ, repeatMode, currentTrack, playlist, broadcastCurrentState, recordToHistory]);
 
-  // 9. Acciones Públicas / Comandos
+  // 9. Public actions and commands
   const playTrackNow = useCallback(async (trackOrUrl) => {
     if (!inVoice || !currentVoiceChannelId) {
       console.warn("[MusicSession] Debe unirse a un canal de voz para reproducir música.");
@@ -374,7 +374,7 @@ export function MusicProvider({ profile, activeServer, children }) {
 
     if (!track) return;
 
-    // Si somos el DJ o tenemos permisos para gestionar:
+    // If local user is the DJ or has management permissions:
     if (canManageMusic || !djUserId) {
       setPlaylist([]);
       setCurrentTrack(track);
@@ -393,7 +393,7 @@ export function MusicProvider({ profile, activeServer, children }) {
         currentTime: 0,
       });
     } else {
-      // Enviar comando al DJ
+      // Forward command to current DJ
       window.electronAPI?.sendMusicCommand(
         currentVoiceChannelId,
         { type: "PLAY_NOW", track },
@@ -419,7 +419,7 @@ export function MusicProvider({ profile, activeServer, children }) {
 
     if (!track) return;
 
-    // Si no hay nada reproduciéndose, arranca de inmediato
+    // If playback is idle, begin immediately
     if (!currentTrack) {
       playTrackNow(track);
       return;
@@ -561,7 +561,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     }
   }, [canManageMusic, isDJ, currentVoiceChannelId, currentVoiceRoomCode, broadcastCurrentState]);
 
-  // 10. Escuchar eventos P2P de música (`music:channel-state` y `music:channel-cmd`)
+  // 10. Subscribe to P2P music events ('music:channel-state' and 'music:channel-cmd')
   useEffect(() => {
     if (!window.electronAPI) return;
 
@@ -571,7 +571,7 @@ export function MusicProvider({ profile, activeServer, children }) {
       const incoming = data.state;
       if (!incoming) return;
 
-      // Si somos el DJ que emitió, ignoramos nuestro propio eco
+      // Ignore own echo if local user is broadcasting DJ
       if (isDJ && incoming.djUserId === profile?.id) return;
 
       channelStateRef.current = incoming;
@@ -583,7 +583,7 @@ export function MusicProvider({ profile, activeServer, children }) {
       setIsPlaying(Boolean(incoming.isPlaying));
       setRepeatMode(incoming.repeatMode || 0);
 
-      // Pre-resolver stream si somos oyente
+      // Pre-resolve stream if listener
       if (incoming.currentTrack && (incoming.currentTrack.originalUrl || incoming.currentTrack.audioUrl)) {
         const targetUrl = incoming.currentTrack.originalUrl || incoming.currentTrack.audioUrl;
         window.electronAPI?.resolveAndPrepareStream?.(targetUrl).catch(() => {});
@@ -592,7 +592,7 @@ export function MusicProvider({ profile, activeServer, children }) {
 
     const unsubCmd = window.electronAPI.onMusicChannelCommand?.((data) => {
       if (!data || data.channelId !== currentVoiceChannelId) return;
-      if (!isDJ) return; // Solo el DJ ejecuta los comandos de la sesión
+      if (!isDJ) return; // Only DJ executes session control commands
 
       const cmd = data.command;
       if (!cmd || typeof cmd !== "object") return;
@@ -682,18 +682,18 @@ export function MusicProvider({ profile, activeServer, children }) {
     };
   }, [currentVoiceChannelId, isDJ, profile?.id, broadcastCurrentState, handleTrackEnded, recordToHistory]);
 
-  // 11. Migración automática de DJ si el DJ sale de la llamada
+  // 11. Automatic DJ host failover if current DJ leaves voice channel
   useEffect(() => {
     if (!inVoice || !currentVoiceChannelId || !currentTrack) return;
-    if (isDJ) return; // Ya somos el DJ
+    if (isDJ) return; // Local user is already DJ
 
-    // Verificar si el DJ actual sigue conectado al canal de voz
+    // Check whether current DJ is still present in voice channel
     const djStillHere = voiceMembers?.some(
       (m) => (m.userId && m.userId === djUserId) || (m.peerId && m.peerId === djPeerId)
     );
 
     if (!djStillHere && voiceMembers?.length > 0) {
-      // Ordenar miembros para elegir determinísticamente al nuevo líder
+      // Deterministically elect new DJ based on sorted user IDs
       const selfPeerId = profile?.id;
       const otherUserIds = voiceMembers.map((m) => m.userId || m.id).filter(Boolean).sort();
 
@@ -793,7 +793,7 @@ export function MusicProvider({ profile, activeServer, children }) {
   return (
     <MusicContext.Provider value={value}>
       {children}
-      {/* Elemento de audio global centralizado y aislado */}
+      {/* Centralized, isolated global audio element */}
       <audio
         id="onicord-music-audio"
         ref={audioRef}

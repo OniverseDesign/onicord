@@ -11,8 +11,6 @@ import ConfirmDialogModal from "./ConfirmDialogModal";
 import { CONFIG_ISLAS, STORAGE_KEY, WIDGET_COMPONENTS, getCombinedConfigs, getWidgetComponent } from "../dashboard/dashboardConfig";
 import { useMicTest } from "../../hooks/useMicTest";
 import { useAudioDevices } from "../../hooks/useAudioDevices";
-
-// IMPORTAMOS NUESTROS NUEVOS COMPONENTES MODULARES
 import ProfileTab from "../settings/ProfileTab";
 import AudioTab from "../settings/AudioTab";
 import WidgetsTab from "../settings/WidgetsTab";
@@ -21,6 +19,7 @@ import DevSandboxTab from "../settings/DevSandboxTab";
 import AboutTab from "../settings/AboutTab";
 import PluginsTab from "../settings/PluginsTab";
 import KeybindingsTab from "../settings/KeybindingsTab";
+import { normalizeKeybindings } from "../../lib/defaultKeybindings";
 import { normalizeGeneralSettings, DEFAULT_GENERAL } from "../../lib/generalSettings";
 import CloudBackupTab from "../settings/CloudBackupTab";
 import OverlayTab from "../settings/OverlayTab";
@@ -215,7 +214,7 @@ export default function AppSettingsModal({
     normalizeGeneralSettings(profile?.general),
   );
   const [keybindings, setKeybindings] = useState(() =>
-    Array.isArray(profile?.keybindings) ? profile.keybindings : []
+    normalizeKeybindings(profile?.keybindings)
   );
   const [overlay, setOverlay] = useState(() => ({
     enabled: profile?.overlay?.enabled ?? true,
@@ -242,8 +241,6 @@ export default function AppSettingsModal({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  // INTEGRATING REUSABLE CUSTOM HOOKS
   const { isTestingMic, micLevel, toggleMicTest } = useMicTest(audio.inputDeviceId);
   const { inputs, outputs, devicesLoading } = useAudioDevices(section === "audio");
 
@@ -316,7 +313,7 @@ export default function AppSettingsModal({
         }
       });
 
-      // 2. Si es activación de un widget nuevo, buscar ubicación libre garantizando que quepa
+      // 2. If activating a new widget, find an available placement ensuring it fits
       if (nuevoEstado[widgetId] && !currentLayout[widgetId]) {
         const meta = getCombinedConfigs().find((m) => m.id === widgetId);
         if (meta) {
@@ -324,17 +321,17 @@ export default function AppSettingsModal({
           const minW = Comp?.minW || meta.defaultGeo?.w || 1;
           const minH = Comp?.minH || meta.defaultGeo?.h || 1;
 
-          // Intentar colocarlo en su tamaño por defecto
+          // Attempt placement at default size
           let slot = reubicarEnEspacioVacio(meta.defaultGeo || { w: 2, h: 2 }, nuevoLayout);
           if (slot) {
             nuevoLayout[widgetId] = slot;
           } else {
-            // Intentar colocarlo en su tamaño mínimo
+            // Attempt placement at minimum size
             slot = reubicarEnEspacioVacio({ w: minW, h: minH }, nuevoLayout);
             if (slot) {
               nuevoLayout[widgetId] = slot;
             } else {
-              // Si no cabe en tamaño mínimo, achicar el widget más grande activo progresivamente
+              // If minimum size fails to fit, progressively shrink largest active widget
               let conseguido = false;
 
               while (true) {
@@ -529,6 +526,8 @@ export default function AppSettingsModal({
       onSaved(saved);
       if (saved?.general) {
         localStorage.setItem("onicord_general_settings", JSON.stringify(saved.general));
+        const isContinuous = saved.general.enableContinuousAnimations !== false;
+        document.documentElement.setAttribute("data-continuous-animations", isContinuous ? "true" : "false");
         window.dispatchEvent(
           new CustomEvent("onicord:general-settings-updated", { detail: saved.general })
         );

@@ -56,9 +56,19 @@ export default function WatchPartyStage() {
   const [seekValue, setSeekValue] = useState(0);
 
   // Quality & Subtitles controls (individual per user)
-  const [availableQualities, setAvailableQualities] = useState(["auto"]);
+  const [availableQualities, setAvailableQualities] = useState([
+    "auto",
+    "hd1080",
+    "hd720",
+    "large",
+    "medium",
+    "small",
+  ]);
   const [currentQuality, setCurrentQuality] = useState("auto");
   const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const userSelectedQualityRef = useRef("auto");
+  const qualitySwitchingUntilRef = useRef(0);
+  const savedPlaybackTimeRef = useRef(0);
 
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
   const [availableTracks, setAvailableTracks] = useState([]);
@@ -162,6 +172,9 @@ export default function WatchPartyStage() {
 
   // Initialize YouTube Player
   useEffect(() => {
+    savedPlaybackTimeRef.current = 0;
+    qualitySwitchingUntilRef.current = 0;
+
     if (!session?.videoId || !hasJoined) {
       if (ytPlayerInstance.current) {
         try {
@@ -202,6 +215,8 @@ export default function WatchPartyStage() {
             autohide: 1,
             enablejsapi: 1,
             playsinline: 1,
+            origin: window.location.origin,
+            widget_referrer: window.location.origin,
           },
           events: {
             onReady: (event) => {
@@ -241,7 +256,7 @@ export default function WatchPartyStage() {
               refreshQualities();
             },
             onPlaybackQualityChange: (event) => {
-              if (event.data) {
+              if (event.data && userSelectedQualityRef.current === "auto") {
                 setCurrentQuality(event.data);
               }
             },
@@ -250,6 +265,9 @@ export default function WatchPartyStage() {
                 const dur = event.target.getDuration();
                 if (dur > 0) setVideoDuration(dur);
               } catch {}
+              if (event.data === window.YT?.PlayerState?.PLAYING) {
+                refreshQualities();
+              }
               if (isHost && event.data === window.YT?.PlayerState?.PAUSED && session?.isPlaying) {
                 togglePlayPause();
               } else if (isHost && event.data === window.YT?.PlayerState?.PLAYING && !session?.isPlaying) {
@@ -303,6 +321,17 @@ export default function WatchPartyStage() {
         if (player && typeof player.getCurrentTime === "function") {
           const t = player.getCurrentTime() || 0;
           const d = player.getDuration() || 0;
+
+          // Guard against transient 0 timestamp while YouTube swaps quality stream buffer
+          const isQualitySwitching = Date.now() < qualitySwitchingUntilRef.current;
+          if (isQualitySwitching && t < 1 && savedPlaybackTimeRef.current > 2) {
+            return;
+          }
+
+          if (t > 0) {
+            savedPlaybackTimeRef.current = t;
+          }
+
           if (isHost && updateHostPlaybackTime) {
             updateHostPlaybackTime(t);
           }
@@ -327,6 +356,7 @@ export default function WatchPartyStage() {
 
     const checkSync = () => {
       try {
+        if (Date.now() < qualitySwitchingUntilRef.current) return;
         const player = ytPlayerInstance.current;
         if (!player || typeof player.getCurrentTime !== "function") return;
 
@@ -379,22 +409,110 @@ export default function WatchPartyStage() {
     } catch {}
   }, []);
 
-  const refreshQualities = useCallback(() => {
-    const player = ytPlayerInstance.current;
-    if (!player) return;
+  const syncYoutubeSubframeQuality = useCallback((targetQuality = null, targetTime = null) => {
     try {
-      if (typeof player.getAvailableQualityLevels === "function") {
-        const qList = player.getAvailableQualityLevels() || [];
-        if (qList.length > 0) {
-          setAvailableQualities(qList.includes("auto") ? qList : ["auto", ...qList]);
-        }
-      }
-      if (typeof player.getPlaybackQuality === "function") {
-        const curQ = player.getPlaybackQuality() || "auto";
-        setCurrentQuality(curQ);
-      }
+      const targetJson = JSON.stringify(targetQuality);
+      const timeVal = typeof targetTime === "number" && targetTime > 0 ? targetTime : null;
+      const script = `
+        (function() {
+          try {
+            var mp = document.getElementById("movie_player") || document.querySelector(".html5-video-player");
+            if (!mp) return;
+            var target = ${targetJson};
+            var savedTime = ${timeVal};
+            if (target) {
+              var curTime = savedTime || 0;
+              if (!curTime || curTime <= 0) {
+                try {
+                  curTime = typeof mp.getCurrentTime === "function" ? (mp.getCurrentTime() || 0) : 0;
+                } catch (_) {}
+              }
+
+              // Clear existing debounce timer to avoid conflicting seeks
+              if (window._onicordQualityTimer) {
+                clearTimeout(window._onicordQualityTimer);
+                window._onicordQualityTimer = null;
+              }
+
+              if (target === "auto") {
+                if (typeof mp.setPlaybackQualityRange === "function") {
+                  try { mp.setPlaybackQualityRange("default", "default"); } catch (_) {}
+                }
+              } else {
+                if (typeof mp.setPlaybackQualityRange === "function") {
+                  try { mp.setPlaybackQualityRange(target, target); } catch (_) {}
+                }
+              }
+
+              // Restore position gently only if YouTube reset the stream buffer to 0
+              if (curTime > 1.5) {
+                window._onicordQualityTimer = setTimeout(function() {
+                  try {
+                    var nowT = typeof mp.getCurrentTime === "function" ? mp.getCurrentTime() : 0;
+                    if (nowT < 1 || Math.abs(nowT - curTime) > 3) {
+                      if (typeof mp.seekTo === "function") {
+                        mp.seekTo(curTime, true);
+                      }
+                    }
+                  } catch (_) {}
+                }, 140);
+              }
+            }
+            var levels = typeof mp.getAvailableQualityLevels === "function" ? (mp.getAvailableQualityLevels() || []) : [];
+            var current = typeof mp.getPlaybackQuality === "function" ? (mp.getPlaybackQuality() || "auto") : "auto";
+            window.parent.postMessage({
+              type: "ONICORD_YT_QUALITIES_SYNC",
+              qualities: levels,
+              current: target || current
+            }, "*");
+          } catch (_) {}
+        })();
+      `;
+      window.electronAPI?.openStageView?.({
+        subframeEvalOnly: true,
+        url: "https://www.youtube-nocookie.com",
+        frameScripts: [script],
+      });
     } catch {}
   }, []);
+
+  useEffect(() => {
+    const handleMessage = (e) => {
+      if (e.data && e.data.type === "ONICORD_YT_QUALITIES_SYNC") {
+        if (Array.isArray(e.data.qualities) && e.data.qualities.length > 0) {
+          const list = e.data.qualities;
+          setAvailableQualities(list.includes("auto") ? list : ["auto", ...list]);
+        }
+        if (userSelectedQualityRef.current !== "auto") {
+          setCurrentQuality(userSelectedQualityRef.current);
+        } else if (e.data.current) {
+          setCurrentQuality(e.data.current);
+        }
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  const refreshQualities = useCallback(() => {
+    const player = ytPlayerInstance.current;
+    if (player) {
+      try {
+        if (typeof player.getAvailableQualityLevels === "function") {
+          const qList = player.getAvailableQualityLevels() || [];
+          if (qList.length > 0) {
+            setAvailableQualities(qList.includes("auto") ? qList : ["auto", ...qList]);
+          }
+        }
+        if (userSelectedQualityRef.current === "auto" && typeof player.getPlaybackQuality === "function") {
+          const curQ = player.getPlaybackQuality() || "auto";
+          setCurrentQuality(curQ);
+        }
+      } catch {}
+    }
+    // Only query available levels and active quality without forcing a re-set
+    syncYoutubeSubframeQuality(null);
+  }, [syncYoutubeSubframeQuality]);
 
   const handleSelectCaptionTrack = (trackLang) => {
     const player = ytPlayerInstance.current;
@@ -425,20 +543,35 @@ export default function WatchPartyStage() {
   };
 
   const handleSetQuality = (q) => {
+    if (q === currentQuality && userSelectedQualityRef.current === q) {
+      setShowQualityMenu(false);
+      return;
+    }
+
+    userSelectedQualityRef.current = q;
+    setCurrentQuality(q);
+
+    // Capture playback position before changing quality
     const player = ytPlayerInstance.current;
-    if (!player) return;
+    let savedTime = currentPlaybackTime || 0;
     try {
-      if (typeof player.setPlaybackQualityRange === "function") {
-        player.setPlaybackQualityRange(
-          q === "auto" ? "small" : q,
-          q === "auto" ? "highres" : q
-        );
+      const curT = player?.getCurrentTime?.();
+      if (typeof curT === "number" && curT > 0) {
+        savedTime = curT;
       }
-      if (typeof player.setPlaybackQuality === "function") {
-        player.setPlaybackQuality(q);
-      }
-      setCurrentQuality(q);
-    } catch {}
+    } catch (_) {}
+    if (savedTime <= 0 && savedPlaybackTimeRef.current > 0) {
+      savedTime = savedPlaybackTimeRef.current;
+    }
+
+    // Lock position updates for 2s to prevent broadcasting transient 0
+    qualitySwitchingUntilRef.current = Date.now() + 2000;
+    if (savedTime > 0) {
+      savedPlaybackTimeRef.current = savedTime;
+    }
+
+    // Apply cleanly via internal player in the subframe without conflicting postMessage commands
+    syncYoutubeSubframeQuality(q, savedTime);
     setShowQualityMenu(false);
   };
 
@@ -506,7 +639,7 @@ export default function WatchPartyStage() {
 
   // 1. Join prompt banner (when another peer starts a Watch Party)
   const renderJoinPrompt = () => {
-    if (!joinPrompt || hasJoined) return null;
+    if (!joinPrompt || hasJoined || joinPrompt.type === "cinema") return null;
     return (
       <div className="fixed top-14 right-6 z-50 animate-bounce-in max-w-sm bg-onicord-surface/95 backdrop-blur-xl border border-onicord-accent/40 shadow-2xl rounded-2xl p-4 text-white">
         <div className="flex items-start gap-3">
@@ -554,6 +687,11 @@ export default function WatchPartyStage() {
       </div>
     );
   };
+
+  // Cinema watch party is handled by AddonStageDisplay
+  if (session?.type === "cinema") {
+    return null;
+  }
 
   // If no active session or not joined, only show join prompt if present
   if (!session?.videoId || !hasJoined) {

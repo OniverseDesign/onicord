@@ -394,8 +394,8 @@ class RoomManager {
         let meta = await this.roomMetaStore.load(this.roomCode);
         const isAlreadyMember = Boolean(meta.savedMembers && meta.savedMembers[profile.id]?.joinedAt);
 
-        // Si el usuario no es Host y se une por primera vez (o reingresa sin membresía previa),
-        // resetear metadata local a versión 0 para permitir sincronización limpia desde el Host.
+        // If user is not the host and joins for the first time (or rejoins without previous membership),
+        // reset local metadata to version 0 to allow clean initial synchronization from the host.
         if (!this.isHost && !isAlreadyMember) {
           console.log(`[RoomManager] Primera unión detectada para ${this.roomCode}. Inicializando metadata limpia para sync desde Host...`);
           const freshMeta = {
@@ -624,7 +624,7 @@ class RoomManager {
 
     if (this.localActivity && this.localActivity.name) {
       if (this.p2pService.profile && this.p2pService.profile.showRichPresence === false) {
-        // No enviar si el usuario desactivó la presencia
+        // Do not broadcast if user disabled Rich Presence
       } else {
         safeWriteSocket(socket, encodeMessage("activity-state", this.localActivity));
       }

@@ -5,6 +5,7 @@ function decodeEntities(text) {
   return text
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
@@ -12,15 +13,79 @@ function decodeEntities(text) {
     .replace(/&#39;/g, "'")
     .replace(/&#x27;/g, "'")
     .replace(/&nbsp;/g, " ")
-    .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function evaluateSafeMath(expr) {
+  // Evaluador aritmético seguro basado en tokens (sin new Function ni eval)
+  const tokens = expr.match(/\d+(?:\.\d+)?|[+\-*/%()]/g);
+  if (!tokens) return null;
+
+  let pos = 0;
+  function peek() { return tokens[pos]; }
+  function consume(expected) {
+    const t = tokens[pos];
+    if (expected && t !== expected) throw new Error("Unexpected token");
+    pos++;
+    return t;
+  }
+
+  function parseFactor() {
+    const t = peek();
+    if (t === "(") {
+      consume("(");
+      const val = parseExpression();
+      consume(")");
+      return val;
+    }
+    if (t === "-") {
+      consume("-");
+      return -parseFactor();
+    }
+    if (t === "+") {
+      consume("+");
+      return parseFactor();
+    }
+    if (/^\d+(?:\.\d+)?$/.test(t)) {
+      consume();
+      return parseFloat(t);
+    }
+    throw new Error("Invalid factor");
+  }
+
+  function parseTerm() {
+    let left = parseFactor();
+    while (peek() === "*" || peek() === "/" || peek() === "%") {
+      const op = consume();
+      const right = parseFactor();
+      if (op === "*") left *= right;
+      else if (op === "/") left = right === 0 ? NaN : left / right;
+      else if (op === "%") left = left % right;
+    }
+    return left;
+  }
+
+  function parseExpression() {
+    let left = parseTerm();
+    while (peek() === "+" || peek() === "-") {
+      const op = consume();
+      const right = parseTerm();
+      if (op === "+") left += right;
+      else if (op === "-") left -= right;
+    }
+    return left;
+  }
+
+  const result = parseExpression();
+  if (pos !== tokens.length || isNaN(result) || !isFinite(result)) return null;
+  return result;
 }
 
 function tryEvaluateMathQuery(query) {
   if (!query) return null;
 
-  const percMatch = query.match(/(\d+(?:\.\d+)?)\s*%\s*de\s*(\d+(?:\.\d+)?)/i);
+  const percMatch = query.match(/(\d+(?:\.\d+)?)\s*%\s*(?:de|of)\s*(\d+(?:\.\d+)?)/i);
   if (percMatch) {
     const p = parseFloat(percMatch[1]);
     const total = parseFloat(percMatch[2]);
@@ -30,42 +95,50 @@ function tryEvaluateMathQuery(query) {
 
   let cleaned = query
     .toLowerCase()
-    .replace(/^cu[aá]nto\s+es\s+/i, '')
-    .replace(/^qu[eé]\s+es\s+/i, '')
-    .replace(/^calcula\s+/i, '')
-    .replace(/\?/g, '')
+    .replace(/^cu[aá]nto\s+es\s+/i, "")
+    .replace(/^qu[eé]\s+es\s+/i, "")
+    .replace(/^what\s+is\s+/i, "")
+    .replace(/^quanto\s+[eé]\s+/i, "")
+    .replace(/^calcula\s+/i, "")
+    .replace(/^calc\s+/i, "")
+    .replace(/\?/g, "")
     .trim();
 
-  cleaned = cleaned.replace(/×/g, '*').replace(/÷/g, '/').replace(/,/g, '.');
+  cleaned = cleaned.replace(/×/g, "*").replace(/÷/g, "/").replace(/,/g, ".");
 
   if (/^[0-9+\-*/%().\s]+$/.test(cleaned) && /[0-9]/.test(cleaned)) {
     try {
-      const expr = cleaned.replace(/\s+/g, '');
-      const fn = new Function(`return (${expr});`);
-      const val = fn();
-      if (typeof val === 'number' && !isNaN(val) && isFinite(val)) {
+      const expr = cleaned.replace(/\s+/g, "");
+      const val = evaluateSafeMath(expr);
+      if (val !== null) {
         return `${query.trim()} = ${val}`;
       }
-    } catch (e) {}
+    } catch (_) {}
   }
 
   return null;
 }
 
-Onicord.chat.onCommand('g', async (args) => {
-  const query = args.join(' ').trim();
+const CLEAR_NOTICES = {
+  es: "Historial de mensajes de búsqueda limpiado para esta sesión.",
+  en: "Search message history cleared for this session.",
+  pt: "Histórico de mensagens de pesquisa limpo para esta sessão.",
+};
+
+Onicord.chat.onCommand("g", async (args) => {
+  const query = args.join(" ").trim();
   if (!query) return;
 
-  const currentLang = (Onicord.language || Onicord.config?.language || 'es').toLowerCase();
+  const currentLang = (Onicord.language || Onicord.getLanguage?.() || "es").split("-")[0].toLowerCase();
 
   // COMANDO SUBORDINADO: /g clear o /g limpiar
-  if (query.toLowerCase() === 'clear' || query.toLowerCase() === 'limpiar') {
+  if (query.toLowerCase() === "clear" || query.toLowerCase() === "limpiar" || query.toLowerCase() === "limpar") {
     if (Onicord.chat.clearPluginMessages) {
       Onicord.chat.clearPluginMessages();
-      const clearNotice = currentLang.startsWith('en')
-        ? '*Plugin chat history cleared for this session.*'
-        : '*Historial de mensajes del complemento limpiado para esta sesión.*';
-      Onicord.ui.showToast(clearNotice);
+      const clearNotice = CLEAR_NOTICES[currentLang] || CLEAR_NOTICES.es;
+      if (Onicord.ui?.showToast) {
+        Onicord.ui.showToast(clearNotice, "info");
+      }
     }
     return;
   }
@@ -85,9 +158,9 @@ Onicord.chat.onCommand('g', async (args) => {
       const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&hl=${currentLang}`;
       const res = await fetch(googleUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-          'Accept-Language': `${currentLang}-${currentLang.toUpperCase()},${currentLang};q=0.9`,
-          'Cookie': 'CONSENT=YES+shp.gws-20210601-0-RC2.es+FX+999; SOCS=CAESHAgBEhJnd3NfMjAyMzA4MTAtMF9SQzEaAmVzIAEaBgiAo_CgBg'
+          "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+          "Accept-Language": `${currentLang}-${currentLang.toUpperCase()},${currentLang};q=0.9`,
+          "Cookie": "CONSENT=YES+shp.gws-20210601-0-RC2.es+FX+999; SOCS=CAESHAgBEhJnd3NfMjAyMzA4MTAtMF9SQzEaAmVzIAEaBgiAo_CgBg"
         }
       });
 
@@ -103,6 +176,7 @@ Onicord.chat.onCommand('g', async (args) => {
                 txt.length > 0 && 
                 !txt.includes("Google") && 
                 !txt.includes("Buscar") && 
+                !txt.includes("Search") &&
                 !txt.includes("Imágenes") && 
                 !txt.includes("Preferencias")
               );
@@ -122,7 +196,7 @@ Onicord.chat.onCommand('g', async (args) => {
           }
         }
       }
-    } catch (gErr) {}
+    } catch (_) {}
 
     // 3. Fallback a DuckDuckGo HTML
     if (!firstLink) {
@@ -130,7 +204,7 @@ Onicord.chat.onCommand('g', async (args) => {
         const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
         const ddgRes = await fetch(ddgUrl, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
           }
         });
 
@@ -163,7 +237,7 @@ Onicord.chat.onCommand('g', async (args) => {
             }
           }
         }
-      } catch (ddgErr) {}
+      } catch (_) {}
     }
 
     if (!firstLink) {
@@ -187,7 +261,7 @@ Onicord.chat.onCommand('g', async (args) => {
     };
 
     Onicord.chat.sendMessage(responsePayload);
-  } catch (err) {
+  } catch (_) {
     const fallbackUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     Onicord.chat.sendMessage({
       isComplement: true,

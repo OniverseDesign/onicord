@@ -65,6 +65,7 @@ export default function ThreadSidePanel({
 
   const endRef = useRef(null);
   const tyrannyInputRef = useRef(null);
+  const isLocalTypingRef = useRef(false);
   const fileInputRef = useRef(null);
   const stickersBtnRef = useRef(null);
   const emojisBtnRef = useRef(null);
@@ -174,6 +175,15 @@ export default function ThreadSidePanel({
     const el = tyrannyInputRef.current;
     if (!el) return;
 
+    const isLocalTyping = isLocalTypingRef.current;
+    isLocalTypingRef.current = false;
+
+    // If the user is actively typing and the DOM text has advanced beyond this effect's input,
+    // do not clobber newer keystrokes with older state.
+    if (isLocalTyping && el.textContent !== input) {
+      return;
+    }
+
     const allUsers = [
       { id: profile?.id, nickname: profile?.nickname || "Usuario" },
       ...Object.values(peers || {}).map((p) => ({
@@ -182,6 +192,13 @@ export default function ThreadSidePanel({
       })),
     ];
     const targetHTML = renderHTMLForInput(input, allUsers);
+
+    // If input has no markdown formatting spans (plain text) and already matches DOM text:
+    // Native contenteditable already holds the text and correct caret position.
+    const hasFormattingSpans = targetHTML.includes("<span");
+    if (!hasFormattingSpans && el.textContent === input) {
+      return;
+    }
 
     if (el.innerHTML !== targetHTML) {
       const offsets = getSelectionCharacterOffsets(el);
@@ -303,6 +320,7 @@ export default function ThreadSidePanel({
   };
 
   const handleInputChange = (e) => {
+    isLocalTypingRef.current = true;
     const text = e.currentTarget.innerText || "";
     setInput(text);
   };

@@ -282,12 +282,13 @@ FloatingMediaBar.Timeline = function FloatingTimeline({
 };
 
 /**
- * 8. Popup Menu Button (Dropdown popout for Quality, Subtitles, etc.)
+ * 8. Popup Menu Button (Dropdown popout for Quality, Subtitles, Audio, etc.)
  */
 FloatingMediaBar.Menu = function FloatingMenu({
   icon,
   title,
   menuTitle,
+  showTitle = false,
   active = false,
   isOpen = false,
   onToggle,
@@ -330,14 +331,18 @@ FloatingMediaBar.Menu = function FloatingMenu({
       {isOpen && (
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{ zIndex: 9999999 }}
+          style={{
+            zIndex: 9999999,
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
           className={cn(
-            "onicord-party-popup absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-onicord-surface/95 backdrop-blur-2xl border border-onicord-island rounded-2xl p-2 z-50 flex flex-col gap-1 text-xs select-none max-h-64 overflow-y-auto",
+            "onicord-party-popup absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-onicord-surface/95 backdrop-blur-2xl border border-onicord-island rounded-2xl p-1.5 z-50 flex flex-col gap-0.5 text-xs select-none max-h-60 overflow-y-auto overscroll-contain no-scrollbar shadow-2xl [&::-webkit-scrollbar]:hidden",
             widthClass
           )}
         >
-          {menuTitle && (
-            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-onicord-muted border-b border-white/5 flex items-center justify-between">
+          {showTitle && menuTitle && (
+            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-onicord-muted border-b border-white/5 flex items-center justify-between mb-1">
               <span>{menuTitle}</span>
               {onClose && (
                 <button

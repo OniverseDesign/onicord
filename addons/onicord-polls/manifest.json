@@ -2,7 +2,7 @@
   "id": "onicord-polls",
   "name": "Quick Polls",
   "icon": "assets/icon.png",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scope": "server",
   "author": "Oniverse",
   "description": "Create real-time interactive polls in chat using the /p command.",
@@ -13,6 +13,24 @@
       "commands": {
         "/p": {
           "description": "Crea una encuesta interactiva. Uso: /p Pregunta -Opción 1 -Opción 2"
+        }
+      }
+    },
+    "en": {
+      "name": "Quick Polls",
+      "description": "Create real-time interactive polls in chat using the /p command.",
+      "commands": {
+        "/p": {
+          "description": "Create an interactive poll. Usage: /p Question -Option 1 -Option 2"
+        }
+      }
+    },
+    "pt": {
+      "name": "Enquetes Rápidas",
+      "description": "Crie enquetes interativas no chat usando o comando /p.",
+      "commands": {
+        "/p": {
+          "description": "Cria uma enquete interativa. Uso: /p Pergunta -Opção 1 -Opção 2"
         }
       }
     }
@@ -30,7 +48,6 @@
   },
   "permissions": [
     "chat.read",
-    "chat.send",
-    "p2p.network"
+    "chat.send"
   ]
 }

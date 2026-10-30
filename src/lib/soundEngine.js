@@ -13,7 +13,7 @@ export const SFX_LEVEL = {
 };
 
 const CUE_MIN_LEVEL = {
-  // Nivel 1: Esenciales (Voz, Stream, Llamadas, Alertas críticas)
+  // Level 1: Essential (Voice, Stream, Calls, Critical alerts)
   connect: 1,
   disconnect: 1,
   "toggle-on": 1,
@@ -25,7 +25,7 @@ const CUE_MIN_LEVEL = {
   notification: 1,
   mention: 1,
 
-  // Nivel 2: Comunicación (Chat, Mensajes, Escritura, Reacciones)
+  // Level 2: Communication (Chat, Messages, Typing, Reactions)
   send: 2,
   receive: 2,
   typing: 2,
@@ -33,7 +33,7 @@ const CUE_MIN_LEVEL = {
   delete: 2,
   drop: 2,
 
-  // Nivel 3: Completo (Navegación, Widgets, Acciones y Feedback de UI)
+  // Level 3: Complete (Navigation, Widgets, Actions, UI Feedback)
   open: 3,
   close: 3,
   select: 3,
@@ -104,7 +104,7 @@ class SoundEngine {
           this.level = parsed;
         }
       } else {
-        // Migración inteligente retroactiva
+        // Retroactive legacy migration
         const savedEnabled = localStorage.getItem("onicord_sfx_enabled");
         if (savedEnabled === "false") {
           this.level = SFX_LEVEL.MUTED;

@@ -15,7 +15,7 @@ export default function AudioTab({
 }) {
   const { t } = useTranslation();
 
-  // Auto-healing: Si el deviceId cambió de hash en Chromium, re-vincular usando el label
+  // Auto-healing: if deviceId changed hash in Chromium, rebind using the label
   useEffect(() => {
     if (!inputs || inputs.length === 0) return;
 
@@ -70,7 +70,7 @@ export default function AudioTab({
     }
   }, [outputs, audio.outputDeviceId, audio.outputDeviceLabel, setAudio]);
 
-  // Construir opciones de entrada preservando dispositivo guardado si está desconectado
+  // Build input options preserving saved device even if disconnected
   const inputOptions = useMemo(() => {
     const opts = [
       {
@@ -103,7 +103,7 @@ export default function AudioTab({
     return opts;
   }, [inputs, audio.inputDeviceId, audio.inputDeviceLabel, t]);
 
-  // Construir opciones de salida preservando dispositivo guardado si está desconectado
+  // Build output options preserving saved device even if disconnected
   const outputOptions = useMemo(() => {
     const opts = [
       {
@@ -138,14 +138,14 @@ export default function AudioTab({
 
   return (
     <div className="onicord-settings-container">
-      {/* TARJETA 1: DISPOSITIVOS DE ENTRADA Y SALIDA */}
+      {/* Audio input and output devices */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.tabs.voiceVideo", "Voz y Video — Dispositivos")}</span>
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
-          {/* Entradas (Micrófono) */}
+          {/* Inputs (Microphone) */}
           <div data-setting-id="inputDevice" className="space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-white/5 transition-all">
             <label className="text-xs font-semibold text-onicord-text flex items-center justify-between">
               <span>{t("settings.voiceVideo.inputDevice", "Dispositivo de Entrada")}</span>
@@ -239,7 +239,7 @@ export default function AudioTab({
         </div>
       </div>
 
-      {/* TARJETA: MODO DE ENTRADA (Voice Activity vs Push-to-Talk) */}
+      {/* Voice input mode (Voice Activity vs Push-to-Talk) */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.voiceVideo.inputModeTitle", "Modo de Entrada")}</span>
@@ -316,14 +316,14 @@ export default function AudioTab({
         )}
       </div>
 
-      {/* TARJETA 2: PRUEBA Y SENSIBILIDAD DE MICRÓFONO */}
+      {/* Microphone sensitivity and test */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.voiceVideo.sensitivityLabel", "Prueba y Sensibilidad del Micrófono")}</span>
         </h3>
 
         <div>
-          {/* Prueba de Micrófono */}
+          {/* Microphone Test */}
           <div data-setting-id="micTest" className="pb-3 border-b border-white/5 space-y-2 transition-all">
             <p className="onicord-settings-row-desc">
               {t("settings.voiceVideo.micTestHint", "¿Tienes problemas? Prueba hablar en tu micrófono para verificar la señal.")}
@@ -349,7 +349,7 @@ export default function AudioTab({
             </div>
           </div>
 
-          {/* Sensibilidad Automática & VAD Slider */}
+          {/* Automatic Sensitivity & VAD Slider */}
           <div data-setting-id="vadSensitivity" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
@@ -409,7 +409,7 @@ export default function AudioTab({
         </div>
       </div>
 
-      {/* TARJETA 3: PROCESAMIENTO AVANZADO DE VOZ */}
+      {/* Advanced voice processing */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.voiceVideo.advancedProcessing", "Procesamiento Avanzado de Audio")}</span>
@@ -555,7 +555,7 @@ export default function AudioTab({
         </div>
       </div>
 
-      {/* BOTÓN RESTABLECER */}
+      {/* RESET BUTTON */}
       <div className="pt-2">
         <button
           type="button"

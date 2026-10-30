@@ -21,7 +21,7 @@ export function useUnreadTracker(activeRoomCode, activeChannelId, profileOrId, s
     delete toPersist.test_channel;
     localStorage.setItem("onicord_unreads", JSON.stringify(toPersist));
 
-    // Calcular el total de mensajes no leídos respetando servidores silenciados
+    // Calculate total unread count while respecting muted servers
     let muted = [];
     try {
       muted = JSON.parse(localStorage.getItem("onicord_muted_servers") || "[]");

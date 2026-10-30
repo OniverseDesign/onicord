@@ -141,7 +141,7 @@ export default function ChatMessageList({
             </div>
           ) : (
             <ul className="py-4">
-              {/* SKELETON SUPERIOR AL HACER SCROLL UP */}
+              {/* Top skeleton when scrolling up */}
               {isScrollingUpLoading && (
                 <div className="w-full px-4 py-2 flex flex-col gap-4 opacity-50 animate-pulse select-none">
                   <div className="flex items-start gap-4 w-full">

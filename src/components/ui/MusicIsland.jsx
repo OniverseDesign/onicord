@@ -221,7 +221,7 @@ export default function MusicIsland({ musicState }) {
           />
 
           <div className="p-3 flex flex-col gap-3 z-10 w-full">
-            {/* Seccion superior: Miniatura a la izquierda, Info de track a la derecha */}
+            {/* Top section: Thumbnail on left, track info on right */}
             <div className="flex items-center gap-4 w-full">
               <div className="w-24 h-24 shrink-0 rounded-onicord-button overflow-hidden bg-black/40 border border-white/5 relative shadow-md">
                 <img
@@ -256,7 +256,7 @@ export default function MusicIsland({ musicState }) {
           </div>
         </div>
 
-        {/* Seccion inferior: Controles de reproduccion a la izquierda, Slider de volumen a la derecha */}
+        {/* Bottom section: Playback controls on left, volume slider on right */}
         <div className="flex items-center justify-between w-full gap-2">
           <div className="flex items-center gap-1.5 shrink-0">
             <button

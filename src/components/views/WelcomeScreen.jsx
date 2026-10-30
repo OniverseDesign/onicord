@@ -377,26 +377,6 @@ export default function WelcomeScreen({
           </button>
         </section>
 
-        {/* Google Drive restore - temporalmente comentado para v0.1.0 hasta habilitar verificacion publica
-        {isElectron && (
-          <>
-            <div className="flex items-center gap-3 my-5">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-onicord-muted">{t("common.or", "o")}</span>
-              <div className="h-px flex-1 bg-white/10" />
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowRestore(true)}
-              className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 border border-white/10 hover:border-white/20 bg-onicord-base/30 hover:bg-onicord-base/50 text-onicord-muted hover:text-white text-sm font-semibold rounded-xl transition-all cursor-pointer"
-            >
-              <MaterialIcon name="cloud_download" size={16} className="text-onicord-accent" />
-              {t("drive.restoreBtn", "Restaurar desde Google Drive")}
-            </button>
-          </>
-        )}
-        */}
-
         <p className="mt-6 text-center text-xs text-onicord-muted">
           Hyperswarm + DHT · Automatic hole punching · WebRTC
         </p>

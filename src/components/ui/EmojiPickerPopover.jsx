@@ -424,20 +424,6 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
     };
   }, [onClose, triggerRef]);
 
-  // Close on scroll
-  useEffect(() => {
-    const handleScroll = (e) => {
-      if (popoverRef.current && popoverRef.current.contains(e.target)) {
-        return; // Ignore scroll inside the picker itself
-      }
-      onClose?.();
-    };
-
-    window.addEventListener("scroll", handleScroll, true);
-    return () => {
-      window.removeEventListener("scroll", handleScroll, true);
-    };
-  }, [onClose]);
 
   if (!targetRect) return null;
 

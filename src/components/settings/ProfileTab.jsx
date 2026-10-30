@@ -78,9 +78,9 @@ export default function ProfileTab({
   return (
     <div className="onicord-settings-container">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-        {/* COLUMNA IZQUIERDA: CONTROLES DE EDICIÓN (7/12) */}
+        {/* Left column: Profile controls */}
         <div className="md:col-span-6 space-y-4">
-          {/* TARJETA 1: DATOS PERSONALES */}
+          {/* Personal profile info */}
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>{t("profileTab.title", "Información Personal")}</span>
@@ -136,7 +136,7 @@ export default function ProfileTab({
             </div>
           </div>
 
-          {/* TARJETA 2: VISIBILIDAD DE ACTIVIDAD */}
+          {/* Activity and presence visibility */}
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>
@@ -168,7 +168,7 @@ export default function ProfileTab({
             </div>
           </div>
 
-          {/* TARJETA 3: COLOR DE FONDO DE PERFIL */}
+          {/* Profile background color */}
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>
@@ -191,7 +191,7 @@ export default function ProfileTab({
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: PREVISUALIZACIÓN EN VIVO (5/12) */}
+        {/* RIGHT COLUMN: LIVE PREVIEW (5/12) */}
         <div className="md:col-span-6">
           <div className="onicord-settings-card flex flex-col items-center">
             <span className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted mb-3 flex items-center gap-1.5 self-start">

@@ -4,12 +4,12 @@ import MaterialIcon from "../icons/MaterialIcon";
 import { soundEngine } from "../../lib/soundEngine";
 
 /**
- * Custom Dropdown Select estilizado según la identidad visual de Onicord.
- * Reemplaza los <select> nativos de HTML con soporte para:
- * - Menú flotante con blur y colores temáticos Onicord
- * - Opciones con iconos, descripciones y checkmarks
- * - Cierre al hacer click fuera y con tecla Escape
- * - Variantes de tamaño: "sm" | "md" | "lg"
+ * Custom Dropdown Select styled to match Onicord's visual design system.
+ * Replaces native HTML <select> elements with:
+ * - Floating menu with backdrop blur and thematic tokens
+ * - Options with icons, descriptions, and checkmarks
+ * - Click-outside and Escape key dismissal
+ * - Size variants: "sm" | "md" | "lg"
  */
 export default function Select({
   id,
@@ -33,7 +33,7 @@ export default function Select({
   const generatedId = useId();
   const selectId = id || generatedId;
 
-  // Extraer opciones si vienen por children <option>
+  // Extract options when provided as <option> children
   const parsedOptions = React.useMemo(() => {
     if (options && options.length > 0) {
       return options.map((opt) => {
@@ -44,7 +44,7 @@ export default function Select({
       });
     }
 
-    // Fallback: Si el usuario pasa <option> como children
+    // Fallback: When consumer passes <option> as children
     if (children) {
       const extracted = [];
       React.Children.forEach(children, (child) => {
@@ -62,12 +62,12 @@ export default function Select({
     return [];
   }, [options, children]);
 
-  // Encontrar la opción actualmente seleccionada
+  // Resolve currently selected option
   const selectedOption = parsedOptions.find(
     (opt) => String(opt.value) === String(value)
   );
 
-  // Cerrar al hacer clic afuera
+  // Dismiss menu on outside pointerdown or Escape key
   useEffect(() => {
     if (!isOpen) return;
 
@@ -108,7 +108,7 @@ export default function Select({
     setIsOpen(false);
 
     if (onChange) {
-      // Evento sintético compatible tanto con (val) => ... como con (e) => e.target.value
+      // Synthetic event compatible with both (val) => ... and (e) => e.target.value
       const syntheticEvent = {
         target: { value: option.value, name, id: selectId },
         currentTarget: { value: option.value, name, id: selectId },
@@ -118,7 +118,7 @@ export default function Select({
     }
   };
 
-  // Tamaños y paddings sincronizados con los tokens de Onicord
+  // Sizes and padding synchronized with Onicord design tokens
   const sizeStyles = {
     sm: "h-8 px-2.5 text-xs gap-1.5 rounded-onicord-button",
     md: "h-9 px-3 text-xs gap-2 rounded-onicord-button",
@@ -136,7 +136,6 @@ export default function Select({
       ref={containerRef}
       className={cn("relative inline-block text-left select-none", className)}
     >
-      {/* TRIGGER BUTTON */}
       <button
         id={selectId}
         type="button"
@@ -181,7 +180,7 @@ export default function Select({
           </span>
         </div>
 
-        {/* FLECHA CHEVRON CON ROTACIÓN ANIMADA */}
+        {/* Animated rotation chevron */}
         <span
           className={cn(
             "text-onicord-muted shrink-0 flex items-center transition-transform duration-200",
@@ -192,7 +191,7 @@ export default function Select({
         </span>
       </button>
 
-      {/* DROPDOWN MENU POPOVER */}
+      {/* Dropdown menu popover */}
       {isOpen && (
         <div
           role="listbox"
@@ -252,7 +251,7 @@ export default function Select({
                     </div>
                   </div>
 
-                  {/* CHECKMARK PARA OPCIÓN SELECCIONADA */}
+                  {/* Checkmark icon for active selection */}
                   {isSelected && (
                     <span className="shrink-0 text-onicord-accent flex items-center pl-2">
                       <MaterialIcon name="check" size={14} />

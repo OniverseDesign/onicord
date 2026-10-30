@@ -16,7 +16,7 @@ const OPCODES = {
 let activeServers = [];
 let activeClientSocket = null;
 
-// Cachés en memoria para optimizar velocidad y no repetir peticiones
+// In-memory caches for fast responses and deduplicating upstream metadata requests
 const appInfoCache = new Map();
 const appAssetsCache = new Map();
 const gameCoverCache = new Map();
@@ -54,7 +54,9 @@ function encodeFrame(opcode, payload) {
 }
 
 /**
- * Consulta la información pública de una aplicación registrada en Discord (Nombre e Icono)
+ * Fetches public application metadata registered in Discord's developer portal (Name and Icon).
+ * @param {string} clientId - The Discord Application/Client ID.
+ * @returns {Promise<{name: string|null, icon: string|null}|null>}
  */
 async function fetchDiscordAppInfo(clientId) {
   if (!clientId) return null;
@@ -83,7 +85,9 @@ async function fetchDiscordAppInfo(clientId) {
 }
 
 /**
- * Consulta el listado de assets registrados (imágenes con claves como 'rpcs3_logo')
+ * Fetches registered rich presence asset keys from Discord API (e.g., 'rpcs3_logo').
+ * @param {string} clientId - The Discord Application/Client ID.
+ * @returns {Promise<Array<{id: string, name: string, type: number}>>}
  */
 async function fetchDiscordAppAssets(clientId) {
   if (!clientId) return [];
@@ -109,14 +113,16 @@ async function fetchDiscordAppAssets(clientId) {
 }
 
 /**
- * Detecta si un string corresponde a un código de serial de ROM (ej: BCES00510, BLUS30443, etc.)
+ * Detects whether a string matches a known ROM serial/title code format (e.g. BCES00510, BLUS30443).
+ * @param {string} str - Candidate string to evaluate.
+ * @returns {boolean}
  */
 function isRomSerialCode(str) {
   if (!str || typeof str !== "string") return false;
   const s = str.trim();
   // PlayStation (PS1, PS2, PS3, PSP, PS Vita): BCES00510, BLUS-30111, SLUS_20011, NPEB01234
   if (/^[A-Z]{3,4}[-_]?[0-9]{4,6}$/i.test(s)) return true;
-  // Nintendo Switch Title ID (16 caracteres hex empezando por 0100)
+  // Nintendo Switch Title ID (16 hex chars starting with 0100)
   if (/^0100[0-9A-Fa-f]{12}$/i.test(s)) return true;
   // GameCube / Wii 4-6 char disc ID: RMCE01, GM8E01, etc.
   if (/^[A-Z0-9]{4,6}$/i.test(s) && /[0-9]/.test(s) && /[A-Z]/i.test(s)) return true;
@@ -126,7 +132,9 @@ function isRomSerialCode(str) {
 }
 
 /**
- * Detecta si la aplicación es un emulador
+ * Detects whether an application name corresponds to a known console emulator.
+ * @param {string} appName - The application or executable title.
+ * @returns {boolean}
  */
 function isEmulator(appName) {
   if (!appName || typeof appName !== "string") return false;
@@ -135,7 +143,9 @@ function isEmulator(appName) {
 }
 
 /**
- * Obtiene el nombre del proceso desde su PID en Windows de forma ligera
+ * Queries process name from PID on Windows using a lightweight tasklist filter.
+ * @param {number} pid - Process identifier.
+ * @returns {Promise<string|null>}
  */
 function getProcessNameByPid(pid) {
   return new Promise((resolve) => {
@@ -149,12 +159,14 @@ function getProcessNameByPid(pid) {
 }
 
 /**
- * Busca la carátula oficial en alta resolución del videojuego en Wikipedia
+ * Searches Wikipedia API for the official high-resolution cover art of a video game.
+ * @param {string} rawTitle - Raw game title string.
+ * @returns {Promise<string|null>} URL of the cover art thumbnail or null.
  */
 async function resolveGameCover(rawTitle) {
   if (!rawTitle || typeof rawTitle !== "string") return null;
 
-  // Limpiar título de marcas registradas, corchetes y tags de región
+  // Clean title of trademark symbols, square brackets, and regional tags
   const cleanTitle = rawTitle
     .replace(/[®™©]/g, "")
     .replace(/\[[^\]]*\]/g, "")
@@ -187,7 +199,7 @@ async function resolveGameCover(rawTitle) {
     }
   } catch (err) {}
 
-  // 2. Wikipedia Summary con sufijo "(video game)" si no lo tiene
+  // 2. Wikipedia Summary with "(video game)" disambiguation suffix
   if (!cleanTitle.toLowerCase().includes("video game") && !cleanTitle.toLowerCase().includes("game")) {
     try {
       const controller = new AbortController();
@@ -213,7 +225,12 @@ async function resolveGameCover(rawTitle) {
 }
 
 /**
- * Resuelve una imagen de Discord (URL directa, asset key o fallback icon)
+ * Resolves a Discord asset identifier into an absolute media URL (direct URL, asset key, or fallback).
+ * @param {string} assetKey - Discord asset name or URL.
+ * @param {string} clientId - The client/application ID.
+ * @param {Array} appAssets - List of known assets for the client.
+ * @param {string|null} fallbackIcon - Fallback application icon URL.
+ * @returns {string|null}
  */
 function resolveDiscordAsset(assetKey, clientId, appAssets, fallbackIcon) {
   if (!assetKey) return fallbackIcon || null;
@@ -241,7 +258,7 @@ function handleClientMessage(socket, opcode, payload, clientInfo) {
       clientInfo.clientId = payload.client_id || payload.clientId || null;
       clientInfo.version = payload.v || 1;
 
-      // Precargar en segundo plano la info de la app
+      // Asynchronously prefetch application metadata and assets
       if (clientInfo.clientId) {
         fetchDiscordAppInfo(clientInfo.clientId).then((info) => {
           if (info) {
@@ -283,7 +300,7 @@ function handleClientMessage(socket, opcode, payload, clientInfo) {
         const act = args?.activity;
         const pid = args?.pid;
 
-        // Responder confirmación ACK al cliente de inmediato
+        // Immediately respond with ACK frame to the client
         const ackResponse = {
           cmd: "SET_ACTIVITY",
           data: act || null,
@@ -297,9 +314,9 @@ function handleClientMessage(socket, opcode, payload, clientInfo) {
           return;
         }
 
-        // Procesar actividad y enriquecer metadatos
+        // Process activity and enrich metadata
         (async () => {
-          // Si aún no tenemos info de la app, intentar obtenerla
+          // Fetch application info if not yet available in cache
           if (clientInfo.clientId && !clientInfo.appName) {
             const info = await fetchDiscordAppInfo(clientInfo.clientId);
             if (info) {
@@ -311,7 +328,7 @@ function handleClientMessage(socket, opcode, payload, clientInfo) {
             clientInfo.assets = await fetchDiscordAppAssets(clientInfo.clientId);
           }
 
-          // Fallback por proceso (PID) si la app no tiene nombre registrado
+          // Process name (PID) fallback if application name is unregistered
           if (!clientInfo.appName && pid) {
             const proc = await getProcessNameByPid(pid);
             if (proc) {
@@ -323,22 +340,22 @@ function handleClientMessage(socket, opcode, payload, clientInfo) {
           const isSerial = isRomSerialCode(act.state);
           const isEmu = isEmulator(clientInfo.appName) || (isSerial && Boolean(act.details));
 
-          let finalName = act.name || clientInfo.appName || "Juego";
+          let finalName = act.name || clientInfo.appName || "Game";
           let finalDetails = act.details || null;
           let finalState = isSerial ? null : (act.state || null);
 
-          // Si es un emulador y tiene detalles del juego (ej: RPCS3 con God of War III)
+          // If running in an emulator with game details (e.g., RPCS3 with God of War III)
           if (isEmu && act.details) {
-            finalName = act.details; // Título: nombre del juego
-            finalDetails = clientInfo.appName || "Emulador"; // Subtítulo: nombre del emulador
-            finalState = null; // Suprimir el serial de la ROM (BCES00510)
+            finalName = act.details; // Title: game name
+            finalDetails = clientInfo.appName || "Emulator"; // Subtitle: emulator name
+            finalState = null; // Suppress raw ROM serial code (e.g., BCES00510)
           } else if (isEmu && !act.details) {
-            finalName = clientInfo.appName || "Emulador";
-            finalDetails = isSerial ? null : (act.state || "En los menús");
+            finalName = clientInfo.appName || "Emulator";
+            finalDetails = isSerial ? null : (act.state || "In Menus");
             finalState = null;
           }
 
-          // Resolver carátula e icono de emulador
+          // Resolve cover image and emulator icon
           const appCover = resolveDiscordAsset(
             act.assets?.large_image || act.assets?.largeImage,
             clientInfo.clientId,
@@ -346,14 +363,14 @@ function handleClientMessage(socket, opcode, payload, clientInfo) {
             clientInfo.appIcon
           );
 
-          // Buscar la carátula real del juego en Wikipedia si estamos emulando
+          // Fetch true game cover art from Wikipedia when running inside an emulator
           let gameCover = null;
           let smallCover = null;
 
           if (isEmu && act.details) {
             gameCover = await resolveGameCover(act.details);
             if (gameCover) {
-              smallCover = appCover; // El logo del emulador como sub-icono
+              smallCover = appCover; // Use emulator icon as sub-badge
             }
           }
 
@@ -399,7 +416,7 @@ function handleClientMessage(socket, opcode, payload, clientInfo) {
 }
 
 function createPipeServer(pipePath) {
-  // En Unix, eliminar archivo socket anterior si quedó huérfano
+  // On Unix systems, remove orphaned socket file if it exists
   if (process.platform !== "win32") {
     try {
       if (fs.existsSync(pipePath)) {
@@ -429,7 +446,7 @@ function createPipeServer(pipePath) {
         }
 
         if (buffer.length < 8 + length) {
-          // Esperar más datos
+          // Buffer incomplete; await remaining frame bytes
           break;
         }
 

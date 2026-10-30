@@ -32,6 +32,9 @@ function canonicalizeShortcut(str) {
     .filter(Boolean)
     .map((token) => {
       if (token === "control") return "ctrl";
+      if (token === "comma" || token === ",") return ",";
+      if (token === "cmd" || token === "command") return "meta";
+      if (token === "option") return "alt";
       const m = token.match(/^mouse(\d+)$/);
       if (m) return `mouse${m[1]}`;
       return token;
@@ -202,23 +205,30 @@ class GlobalKeybindService {
 
     const pressedCanonical = canonicalizeShortcut(pressedShortcut);
 
-    const match = this.keybindings.find(
+    let match = this.keybindings.find(
       (kb) => canonicalizeShortcut(kb.shortcut) === pressedCanonical,
     );
 
+    if (!match && process.platform === "darwin" && pressedCanonical.includes("meta")) {
+      const asCtrl = pressedCanonical.replace("meta", "ctrl");
+      match = this.keybindings.find(
+        (kb) => canonicalizeShortcut(kb.shortcut) === asCtrl,
+      );
+    }
+
     if (!match) return;
 
-    // REGLA FUNDAMENTAL DE SEGURIDAD PARA ATAJOS:
-    // Los atajos de una sola tecla (sin Ctrl/Alt/Meta, no ratón, no F1-F24) NUNCA deben ser
-    // despachados por el hook global a nivel de sistema operativo (uIOhook).
-    // 1) En segundo plano interferirían con la escritura en cualquier otra app (Word, navegadores, juegos).
-    // 2) En primer plano ya son capturados por el DOM de la ventana de Onicord (keydown),
-    //    donde se puede comprobar de forma fidedigna si el usuario está escribiendo en un input, textarea o chat.
+    // Core shortcut safety rule:
+    // Single-key shortcuts (without Ctrl/Alt/Meta, non-mouse, non-F1-F24) must NEVER
+    // be dispatched by the OS-level global hook (uIOhook).
+    // 1) In the background, they would interfere with typing in any other application (Word, browsers, games).
+    // 2) In the foreground, they are already captured by the Onicord window DOM (keydown),
+    //    where we can reliably check if the user is focused on an input, textarea, or chat element.
     if (!isMouse && !hasModifiers && !isFunctionKey) {
       return;
     }
 
-    // Debounce de 120ms para evitar disparos duplicados
+    // 120ms debounce to prevent duplicate triggers
     const now = Date.now();
     if (
       this.lastTriggerAction === match.action &&

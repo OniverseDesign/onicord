@@ -14,14 +14,14 @@ export function useAppUpdater() {
       notificationManager.notifyUpdateAvailable(version);
     };
 
-    // 1. Escuchar eventos push desde el servicio de actualización de Electron
+    // 1. Listen for push events from Electron update service
     const unsubscribe = api.onUpdateStatus?.((data) => {
       if (data?.status === "available" && data?.version) {
         handleUpdate(data.version);
       }
     });
 
-    // 2. Comprobación inicial garantizada tras 4 segundos de inicio
+    // 2. Guaranteed initial update check 4 seconds after launch
     const timer = setTimeout(async () => {
       if (api.checkForUpdates) {
         try {
@@ -35,7 +35,7 @@ export function useAppUpdater() {
       }
     }, 4000);
 
-    // 3. Comprobación periódica cada 2 horas por si la aplicación permanece abierta
+    // 3. Periodic check every 2 hours while application remains open
     const interval = setInterval(async () => {
       if (api.checkForUpdates) {
         try {

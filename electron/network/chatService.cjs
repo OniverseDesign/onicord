@@ -338,7 +338,7 @@ class ChatService {
 
   normalizeStoredMessage(msg) {
     if (!msg) return msg;
-    // Solo reescribir "self" si el nickname coincide fehacientemente con el perfil local actual
+    // Only rewrite "self" if nickname strictly matches the current local profile
     if (msg.authorId === "self") {
       const myId = this.p2p.profile?.id;
       const myNick = this.p2p.profile?.nickname;

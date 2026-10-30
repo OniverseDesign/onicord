@@ -60,18 +60,23 @@ function GameCardItem({ game, isActive, activeStartTime }) {
   }, [game.name]);
 
   const isApp = game.type === "app";
+  const isMovie =
+    game.type === "movie" ||
+    game.type === "cinema" ||
+    game.name === "Cinema" ||
+    game.source === "addon:onicord-cinema";
   const displayTime = isActive
     ? elapsedTime
     : formatPlaytime(game.totalSeconds);
 
   const detailsText = isActive
-    ? `${isApp ? t("gamesTab.usingNow", "Usando ahora") : t("userPanel.playing", "Jugando ahora")} • ${t("widgets.gaming.totalTime", "Total")}: ${formatPlaytime(game.totalSeconds)}`
+    ? `${isApp ? t("gamesTab.usingNow", "Usando ahora") : isMovie ? t("userPanel.watching", "Viendo ahora") : t("userPanel.playing", "Jugando ahora")} • ${t("widgets.gaming.totalTime", "Total")}: ${formatPlaytime(game.totalSeconds)}`
     : `${t("widgets.gaming.totalTime", "Tiempo acumulado")}: ${formatPlaytime(game.totalSeconds)} • ${formatRelativeDate(game.lastPlayed, t)}`;
 
   return (
     <div className="shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island py-3 w-full transition-all duration-200">
       <div className="flex items-center gap-4 px-4">
-        {/* Carátula / Portada */}
+        {/* Cover image */}
         <div className="w-14 h-14 shrink-0 rounded-[10px] overflow-hidden flex items-center justify-center bg-onicord-surface/30">
           {game.cover ? (
             <img
@@ -79,6 +84,8 @@ function GameCardItem({ game, isActive, activeStartTime }) {
               alt={game.name}
               className="w-full h-full object-cover"
             />
+          ) : isMovie ? (
+            <MaterialIcon name="movie" size={28} className="text-onicord-accent" />
           ) : (
             <span className="text-xl font-bold text-onicord-muted">
               {game.name.slice(0, 1).toUpperCase()}
@@ -86,7 +93,6 @@ function GameCardItem({ game, isActive, activeStartTime }) {
           )}
         </div>
 
-        {/* Detalles del Juego */}
         <div className="flex flex-col min-w-0 flex-1">
           <div
             ref={containerRef}
@@ -126,7 +132,9 @@ function GameCardItem({ game, isActive, activeStartTime }) {
             }`}
           >
             {isApp ? (
-              <MaterialIcon name="apps" size={16} />
+              <MaterialIcon name="apps" size="lg" />
+            ) : isMovie ? (
+              <MaterialIcon name="movie" size="lg" className="text-onicord-accent" />
             ) : (
               <IconJoystick size="lg" />
             )}
@@ -149,7 +157,7 @@ export default function ActivityWidget({ activeGame = null }) {
   const { t } = useTranslation();
   const [playtimeMap, setPlaytimeMap] = useState(() => getPlaytimeData());
 
-  // Escuchar actualizaciones globales de tiempo (generadas por initGlobalPlaytimeTracker)
+  // Listen for global playtime updates broadcasted by initGlobalPlaytimeTracker
   useEffect(() => {
     const handleUpdate = (e) => {
       if (e.detail) {
@@ -160,13 +168,11 @@ export default function ActivityWidget({ activeGame = null }) {
     return () => window.removeEventListener("onicord-playtime-updated", handleUpdate);
   }, []);
 
-  // Combinar juegos almacenados con el juego activo actual
+  // Merge stored historical games with the currently active game
   const gamesList = useMemo(() => {
     const map = { ...playtimeMap };
     const isValidActiveGame =
       activeGame?.name &&
-      activeGame.name !== "Arcade" &&
-      activeGame.name !== "Onicord Arcade" &&
       activeGame.type !== "music" &&
       activeGame.type !== "launcher" &&
       !activeGame.isCatalog;
@@ -183,16 +189,14 @@ export default function ActivityWidget({ activeGame = null }) {
       }
     }
 
-    // Filtrar para no mostrar lanzadores o catálogos en la lista de videojuegos
+    // Filter out game launchers and generic catalogs from the games list
     const validGames = Object.values(map).filter(
       (g) =>
         g.type !== "launcher" &&
-        !g.isCatalog &&
-        g.name !== "Arcade" &&
-        g.name !== "Onicord Arcade"
+        !g.isCatalog
     );
 
-    // Ordenar: primero el activo en vivo, luego por mayor tiempo jugado
+    // Sort: live active game first, then by total playtime descending
     return validGames.sort((a, b) => {
       const aActive = isValidActiveGame && activeGame?.name === a.name;
       const bActive = isValidActiveGame && activeGame?.name === b.name;
@@ -207,7 +211,6 @@ export default function ActivityWidget({ activeGame = null }) {
       style={{ containerType: "inline-size" }}
       className="onicord-widget-shell w-full h-full p-6 flex flex-col justify-between select-none"
     >
-      {/* Header */}
       <div className="onicord-widget-header flex justify-between items-center w-full gap-2 mb-2 shrink-0">
         <h3
           style={{ fontSize: "clamp(0.6rem, 3.5cqi, 0.8rem)" }}
@@ -242,10 +245,9 @@ export default function ActivityWidget({ activeGame = null }) {
           gamesList.map((game) => {
             const isActive =
               activeGame?.name === game.name &&
-              activeGame?.name !== "Arcade" &&
-              activeGame?.name !== "Onicord Arcade" &&
-              (activeGame?.type === "game" || activeGame?.type === "client" || activeGame?.type === "app") &&
-              !activeGame?.isCatalog;
+              activeGame?.type !== "launcher" &&
+              !activeGame?.isCatalog &&
+              (activeGame?.type === "game" || activeGame?.type === "client" || activeGame?.type === "app" || activeGame?.type === "movie");
             return (
               <GameCardItem
                 key={game.name}

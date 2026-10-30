@@ -95,10 +95,10 @@ export function ChannelButton({
           />
         )}
 
-        {/* Contenido opcional a la derecha (ej: timer de llamadas de voz) */}
+        {/* Optional right-aligned content (e.g. voice call timer) */}
         {rightContent}
 
-        {/* Badge de No Leídos */}
+        {/* Unread badge */}
         {hasUnread && !active && (
           <div className="bg-onicord-danger text-white text-[10px] font-bold px-1.5 h-4 rounded-full flex items-center justify-center animate-scale-up">
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -297,10 +297,10 @@ export default function ChannelsSidebar({
           const isAdmin = checkPermission(server, profile?.id, "admin");
           const hasBanner = Boolean(server?.banner);
 
-          /* Contenido interno común (con o sin banner) */
+          /* Shared server header content */
           const inner = hasBanner ? (
             <>
-              {/* Banner redondeado con padding */}
+              {/* Server banner */}
               <div className="px-2.5 pt-2.5 pb-0">
                 <div className="w-full h-[100px] rounded-xl overflow-hidden relative">
                   <SmartAnimatedImage
@@ -399,7 +399,7 @@ export default function ChannelsSidebar({
             </>
           );
 
-          /* Wrapper: clickeable para todos */
+          /* Clickable server settings trigger */
           return (
             <button
               type="button"

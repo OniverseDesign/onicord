@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 
 const getContinuousAnimationsSetting = () => {
   try {
@@ -36,15 +36,21 @@ export default function SmartAnimatedImage({
 
   // Listen to storage changes or custom settings event without aggressive polling
   useEffect(() => {
-    const handleStorageChange = () => {
-      setEnableContinuousAnimations(getContinuousAnimationsSetting());
+    const handleSettingsUpdate = (e) => {
+      if (e?.detail?.enableContinuousAnimations !== undefined) {
+        setEnableContinuousAnimations(Boolean(e.detail.enableContinuousAnimations));
+      } else {
+        setEnableContinuousAnimations(getContinuousAnimationsSetting());
+      }
     };
-    window.addEventListener("storage", handleStorageChange);
-    window.addEventListener("onicord:settings-changed", handleStorageChange);
+    window.addEventListener("storage", handleSettingsUpdate);
+    window.addEventListener("onicord:general-settings-updated", handleSettingsUpdate);
+    window.addEventListener("onicord:settings-changed", handleSettingsUpdate);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("onicord:settings-changed", handleStorageChange);
+      window.removeEventListener("storage", handleSettingsUpdate);
+      window.removeEventListener("onicord:general-settings-updated", handleSettingsUpdate);
+      window.removeEventListener("onicord:settings-changed", handleSettingsUpdate);
     };
   }, []);
 
@@ -86,7 +92,7 @@ export default function SmartAnimatedImage({
 
   const shouldAnimate = enableContinuousAnimations || isHovered || isJustArrived || isPlayingMinTime;
 
-  const handleImageLoad = () => {
+  const drawStaticFrame = useCallback(() => {
     if (canvasRef.current && imgRef.current) {
       const canvas = canvasRef.current;
       const img = imgRef.current;
@@ -102,12 +108,25 @@ export default function SmartAnimatedImage({
           ctx.clearRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
           setShowCanvas(true);
+          return true;
         } catch (err) {
           console.error("Error drawing animated frame to canvas:", err);
         }
       }
     }
+    return false;
+  }, []);
+
+  const handleImageLoad = () => {
+    drawStaticFrame();
   };
+
+  // When continuous animations are disabled, ensure we have drawn the static canvas frame
+  useEffect(() => {
+    if (!enableContinuousAnimations && !showCanvas) {
+      drawStaticFrame();
+    }
+  }, [enableContinuousAnimations, showCanvas, drawStaticFrame]);
 
   // Re-draw when src changes, and retry to catch race conditions (cached images/ref mount timing)
   useEffect(() => {
@@ -116,39 +135,15 @@ export default function SmartAnimatedImage({
     let active = true;
     let attempts = 0;
 
-    const checkAndDraw = () => {
-      if (!active) return false;
-      if (canvasRef.current && imgRef.current) {
-        const img = imgRef.current;
-        const canvas = canvasRef.current;
-        const w = img.naturalWidth || img.width;
-        const h = img.naturalHeight || img.height;
-
-        if (img.complete && w > 0 && h > 0) {
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext("2d");
-          try {
-            ctx.clearRect(0, 0, w, h);
-            ctx.drawImage(img, 0, 0, w, h);
-            setShowCanvas(true);
-            return true;
-          } catch (err) {
-            console.error("Error drawing animated frame to canvas:", err);
-          }
-        }
-      }
-      return false;
-    };
-
     // Try immediately
-    if (checkAndDraw()) return;
+    if (drawStaticFrame()) return;
 
-    // Retry a few times if refs/dimensions take a moment
+    // Retry if refs/dimensions take a moment to load
     const interval = setInterval(() => {
+      if (!active) return;
       attempts++;
-      const success = checkAndDraw();
-      if (success || attempts >= 15) {
+      const success = drawStaticFrame();
+      if (success || attempts >= 30) {
         clearInterval(interval);
       }
     }, 100);

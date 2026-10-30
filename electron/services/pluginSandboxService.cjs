@@ -21,6 +21,13 @@ class PluginSandboxService {
     let deleted = false;
     for (const [key, sandbox] of this.activeSandboxes.entries()) {
       if (key === pluginId || sandbox?.manifest?.id === pluginId) {
+        if (sandbox.activeTimers) {
+          for (const timer of sandbox.activeTimers) {
+            clearTimeout(timer);
+            clearInterval(timer);
+          }
+          sandbox.activeTimers.clear();
+        }
         this.activeSandboxes.delete(key);
         deleted = true;
         console.log(`[SANDBOX] Desactivado e inhabilitado el complemento: ${key}`);
@@ -82,10 +89,10 @@ class PluginSandboxService {
       }
     }
 
-    // Idioma por defecto del sistema
+    // Default system language
     const appLanguage = (app.getLocale ? app.getLocale() : "es").split("-")[0] || "es";
 
-    // Crear API aislada Onicord Sandbox
+    // Create isolated Onicord Sandbox API
     const sandboxAPI = {
       manifest,
       language: appLanguage,
@@ -300,6 +307,12 @@ class PluginSandboxService {
         },
         openStageView: (stageDef) => {
           if (manifest.permissions?.includes("ui.stage_view") || manifest.permissions?.includes("ui.custom_widget")) {
+            // Do not open stage view locally if triggered remotely by another user in chat
+            const activeCtx = sandboxAPI._activeContext;
+            const currentProfile = profileService.activeProfile;
+            if (activeCtx && activeCtx.requestMessageAuthorId && currentProfile?.id && activeCtx.requestMessageAuthorId !== currentProfile.id) {
+              return;
+            }
             const pluginsDir = pluginService.getPluginsDir ? pluginService.getPluginsDir() : "";
             const pluginDir = (pluginService.findPluginDir && pluginService.findPluginDir(pluginId)) || (pluginsDir ? path.join(pluginsDir, pluginId) : "");
             let htmlContent = stageDef?.htmlContent || "";
@@ -365,6 +378,17 @@ class PluginSandboxService {
               scripts.unshift(`window._onicordUserNick = ${JSON.stringify(nick.trim().slice(0, 20))};`);
             }
             global.currentStageScripts = scripts;
+            global.activeStageDef = enriched;
+            global.activeStageUrl = enriched?.url || null;
+            let stageHost = "";
+            if (enriched?.url) {
+              try {
+                stageHost = new URL(enriched.url).host.toLowerCase();
+              } catch (_) {
+                stageHost = String(enriched.url).replace(/^https?:\/\//i, "").split("/")[0].toLowerCase();
+              }
+            }
+            global.activeStageHost = stageHost || null;
 
             if (ipcBroadcaster) {
               ipcBroadcaster("plugins:open-stage-view", enriched);
@@ -375,6 +399,8 @@ class PluginSandboxService {
         },
         closeStageView: () => {
           global.activeStageDef = null;
+          global.activeStageUrl = null;
+          global.activeStageHost = null;
           global.currentStageScripts = [];
           if (ipcBroadcaster) {
             ipcBroadcaster("plugins:close-stage-view", { pluginId });
@@ -438,8 +464,10 @@ class PluginSandboxService {
             const { setRpcActivity } = require("../gameScanner.cjs");
             const resolvedIcon = (pluginService.resolvePluginIcon && pluginService.resolvePluginIcon(manifest.icon, pluginId)) || manifest.icon || null;
             const locName = (manifest.locales && manifest.locales[appLanguage] && manifest.locales[appLanguage].name) || manifest.name || "Complemento";
+            const isMediaAddon = pluginId === "onicord-cinema" || manifest.icon === "movie" || activity.type === "movie";
             setRpcActivity({
               ...activity,
+              type: isMediaAddon ? "movie" : (activity.type || (activity.isCatalog ? "launcher" : "game")),
               source: `addon:${pluginId}`,
               smallCover: activity.smallCover !== undefined ? activity.smallCover : resolvedIcon,
               smallText: activity.smallText || locName,
@@ -497,13 +525,38 @@ class PluginSandboxService {
       }
     };
 
-    // Contexto aislado (VM Sandbox)
+    const activeTimers = new Set();
+    const safeSetTimeout = (fn, delay, ...args) => {
+      const id = setTimeout(() => {
+        activeTimers.delete(id);
+        if (typeof fn === "function") fn(...args);
+      }, delay);
+      activeTimers.add(id);
+      return id;
+    };
+    const safeClearTimeout = (id) => {
+      activeTimers.delete(id);
+      clearTimeout(id);
+    };
+    const safeSetInterval = (fn, delay, ...args) => {
+      const id = setInterval((...a) => {
+        if (typeof fn === "function") fn(...a);
+      }, delay, ...args);
+      activeTimers.add(id);
+      return id;
+    };
+    const safeClearInterval = (id) => {
+      activeTimers.delete(id);
+      clearInterval(id);
+    };
+
+    // Isolated execution context (VM Sandbox)
     const contextObject = {
       Onicord: sandboxAPI,
-      setTimeout,
-      clearTimeout,
-      setInterval,
-      clearInterval,
+      setTimeout: safeSetTimeout,
+      clearTimeout: safeClearTimeout,
+      setInterval: safeSetInterval,
+      clearInterval: safeClearInterval,
       Math,
       Date,
       JSON,
@@ -533,6 +586,7 @@ class PluginSandboxService {
         commandHandlers,
         p2pListeners,
         stageResolvers,
+        activeTimers,
       });
       console.log(`[SANDBOX] Complemento ${manifest.name} iniciado correctamente.`);
       if (ipcBroadcaster) {
@@ -570,7 +624,7 @@ class PluginSandboxService {
       }
     }
 
-    // Si la etapa define un entryPoint HTML pero aún no tiene htmlContent precargado
+    // If the stage defines an HTML entryPoint but does not yet have preloaded htmlContent
     if (resolvedStage?.entryPoint && !resolvedStage?.htmlContent) {
       const pluginsDir = pluginService.getPluginsDir ? pluginService.getPluginsDir() : "";
       const pluginDir = (pluginService.findPluginDir && pluginService.findPluginDir(pluginId)) || (pluginsDir ? path.join(pluginsDir, pluginId) : "");
@@ -761,6 +815,7 @@ class PluginSandboxService {
         senderPeerId,
         data,
       });
+      this.handleP2PPluginMessage(senderPeerId, { pluginId, data });
     }
   }
 
@@ -792,11 +847,11 @@ class PluginSandboxService {
   async processLiveChatMessage(message) {
     if (!message || !message.text) return;
     const text = message.text.trim();
-    console.log(`[SANDBOX] processLiveChatMessage evaluando: "${text}" en sala: "${message.roomCode}". Sandboxes activas: ${this.activeSandboxes.size}`);
+    if (!text.startsWith("/")) return;
 
     const parts = text.split(/\s+/);
     if (!parts[0]) return;
-    const rawCmd = parts[0].toLowerCase().replace(/^\/+/, "");
+    const rawCmd = parts[0].slice(1).toLowerCase();
     const matchedArgs = parts.slice(1);
 
     if (!rawCmd) return;
@@ -813,7 +868,6 @@ class PluginSandboxService {
 
     for (const [pluginId, sandbox] of this.activeSandboxes) {
       const manifestId = sandbox.manifest?.id;
-      const manifestName = sandbox.manifest?.name;
 
       let sp = null;
       let isEnabled = false;
@@ -822,9 +876,7 @@ class PluginSandboxService {
         sp = server.plugins.find(
           (p) =>
             p.id === pluginId ||
-            p.id === manifestId ||
-            (p.id && pluginId && (p.id.includes(pluginId) || pluginId.includes(p.id))) ||
-            (p.name && manifestName && p.name.toLowerCase() === manifestName.toLowerCase())
+            p.id === manifestId
         );
         if (sp) {
           isEnabled = sp.enabled !== false;
@@ -835,10 +887,7 @@ class PluginSandboxService {
         continue;
       }
 
-      console.log(`[SANDBOX] Evaluando complemento ${pluginId}: buscando comando "/${rawCmd}". Manejadores disponibles:`, Array.from(sandbox.commandHandlers.keys()));
-
       if (sandbox.commandHandlers.has(rawCmd)) {
-        console.log(`[SANDBOX] Ejecutando manejador "/${rawCmd}" para el complemento ${pluginId}...`);
         try {
           if (sandbox.context && sandbox.context.Onicord) {
             sandbox.context.Onicord._activeContext = {
@@ -851,9 +900,8 @@ class PluginSandboxService {
           }
           const handler = sandbox.commandHandlers.get(rawCmd);
           await handler(matchedArgs, { author });
-          console.log(`[SANDBOX] ✅ Comando "/${rawCmd}" finalizado para complemento ${pluginId}.`);
         } catch (err) {
-          console.error(`[SANDBOX] ❌ Error ejecutando comando en complemento ${pluginId}:`, err);
+          console.error(`[SANDBOX] ❌ Error ejecutando comando /${rawCmd} en complemento ${pluginId}:`, err);
         }
       }
     }
@@ -863,7 +911,7 @@ class PluginSandboxService {
     const { pluginId, data } = payload || {};
     if (!pluginId || !this.activeSandboxes.has(pluginId)) return;
 
-    // Verificar si el servidor activo tiene este complemento habilitado
+    // Verify whether the active server has this plugin enabled
     try {
       const roomCode = global.roomManager?.roomCode;
       if (roomCode) {

@@ -14,7 +14,7 @@ const path = require("path");
 const fs = require("fs");
 const diagService = require("./services/diagService.cjs");
 
-// Configurar flags de Chromium y V8 para captura DXGI, WebAssembly JSPI, Wasm EH, SharedArrayBuffer, Mandos/HID y aislamiento
+// Configure Chromium and V8 flags for DXGI capture, WebAssembly JSPI, Wasm EH, SharedArrayBuffer, Gamepads/HID, and cross-origin isolation
 app.commandLine.appendSwitch("disable-features", "WgcScreenCapturer,WgcScreenCapturerWin,WgcScreenCapturerForWindow,WgcScreenCapturerForCursor");
 app.commandLine.appendSwitch("enable-features", "DxgiScreenCapturer,SharedArrayBuffer,WebAssemblyExperimentalJSPI,WebAssemblyJSPromiseIntegration,CrossOriginOpenerPolicyReporting,CrossOriginEmbedderPolicyCredentialless,GamepadTriggerRumble,GamepadMultitouch");
 app.commandLine.appendSwitch("disable-background-timer-throttling");
@@ -61,6 +61,7 @@ const overlayService = require("./services/overlayService.cjs");
 const globalKeybindService = require("./services/globalKeybindService.cjs");
 const rpcServerService = require("./services/rpcServerService.cjs");
 const adBlockerService = require("./services/adBlockerService.cjs");
+const torrentService = require("./services/torrentService.cjs");
 const { registerIPCHandlers } = require("./ipc/ipcRouter.cjs");
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
@@ -69,6 +70,24 @@ global.isQuitting = false;
 global.mainWindow = null;
 global.roomManager = null;
 global.pendingDeepLink = null;
+global.pendingDirectLink = null;
+global.pendingOnipkgPath = null;
+
+function handleOnipkgFile(filePath) {
+  try {
+    if (!filePath || typeof filePath !== "string") return;
+    const cleanPath = filePath.replace(/^["']|["']$/g, "").trim();
+    if (!cleanPath.endsWith(".onipkg") || !fs.existsSync(cleanPath)) return;
+    console.log(`[Plugin Package] Archivo .onipkg detectado: ${cleanPath}`);
+    if (global.mainWindow && !global.mainWindow.webContents.isDestroyed()) {
+      global.mainWindow.webContents.send("plugins:package-dropped", cleanPath);
+    } else {
+      global.pendingOnipkgPath = cleanPath;
+    }
+  } catch (err) {
+    console.error("[Plugin Package Error] Fallo al procesar archivo:", err.message);
+  }
+}
 
 function handleDeepLink(urlStr) {
   try {
@@ -140,6 +159,10 @@ if (!gotTheLock) {
     const deepLink = commandLine.find((arg) => arg.startsWith("onicord://"));
     if (deepLink) {
       handleDeepLink(deepLink);
+    }
+    const onipkgArg = commandLine.find((arg) => arg.endsWith(".onipkg"));
+    if (onipkgArg) {
+      handleOnipkgFile(onipkgArg);
     }
   });
 }
@@ -295,14 +318,32 @@ function createWindow() {
     setBackgroundMode(false);
   });
 
+  global.mainWindow.on("enter-full-screen", () => {
+    global.mainWindow?.webContents?.send("window:fullscreen-change", true);
+  });
+
+  global.mainWindow.on("leave-full-screen", () => {
+    global.mainWindow?.webContents?.send("window:fullscreen-change", false);
+  });
+
   global.mainWindow.webContents.on("enter-html-full-screen", () => {
     diagService.log("info", "Console", "[OniDiag][MAIN] webContents enter-html-full-screen fired!");
-    try { global.mainWindow?.setFullScreen(true); } catch (e) { diagService.log("error", "Console", `[OniDiag][MAIN] Error setting fullscreen: ${e.message}`); }
+    try {
+      global.mainWindow?.setFullScreen(true);
+      global.mainWindow?.webContents?.send("window:fullscreen-change", true);
+    } catch (e) {
+      diagService.log("error", "Console", `[OniDiag][MAIN] Error setting fullscreen: ${e.message}`);
+    }
   });
 
   global.mainWindow.webContents.on("leave-html-full-screen", () => {
     diagService.log("info", "Console", "[OniDiag][MAIN] webContents leave-html-full-screen fired!");
-    try { global.mainWindow?.setFullScreen(false); } catch (e) { diagService.log("error", "Console", `[OniDiag][MAIN] Error leaving fullscreen: ${e.message}`); }
+    try {
+      global.mainWindow?.setFullScreen(false);
+      global.mainWindow?.webContents?.send("window:fullscreen-change", false);
+    } catch (e) {
+      diagService.log("error", "Console", `[OniDiag][MAIN] Error leaving fullscreen: ${e.message}`);
+    }
   });
 
   global.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -342,7 +383,18 @@ function createWindow() {
         const frame = webFrameMain.fromId(frameProcessId, frameRoutingId);
         if (!frame || !frame.url) return;
 
-        // Inyección agnóstica de control de volumen maestro (Web Audio API & HTMLMediaElement)
+        const frameUrl = (frame.url || "").toLowerCase();
+        // Exclude internal plugin island and widget frames
+        if (frameUrl.startsWith("onicord-media://") || frameUrl.startsWith("about:srcdoc")) {
+          return;
+        }
+
+        const activeStageHost = global.activeStageHost;
+        if (activeStageHost && !frameUrl.includes(activeStageHost)) {
+          return;
+        }
+
+        // Agnostic master volume control injection (Web Audio API & HTMLMediaElement)
         const volumeScript = `
           (() => {
             if (window._onicordAudioHooked) return;
@@ -399,7 +451,7 @@ function createWindow() {
         `;
         await frame.executeJavaScript(volumeScript).catch(() => {});
 
-        // Aplicar volumen actual si ya fue modificado por el usuario
+        // Re-apply current volume if already modified by the user
         if (global.currentStageVolume) {
           const volRatio = typeof global.currentStageVolume.volume === "number"
             ? Math.max(0, Math.min(1, global.currentStageVolume.volume / 100))
@@ -408,7 +460,7 @@ function createWindow() {
           await frame.executeJavaScript(`if (typeof window._onicordSetStageVolume === 'function') { window._onicordSetStageVolume(${volRatio}, ${muted}); }`).catch(() => {});
         }
 
-        // Inyectar el apodo del usuario actual desde profileService de forma persistente
+        // Persistently inject the current user's nickname from profileService
         const activeProfile = profileService.activeProfile;
         const currentNick = activeProfile?.nickname || activeProfile?.username || "Oniverse";
         await frame.executeJavaScript(`window._onicordUserNick = ${JSON.stringify(currentNick)};`).catch(() => {});
@@ -428,7 +480,7 @@ function createWindow() {
   session.defaultSession.protocol.registerFileProtocol(
     "onicord-media",
     (request, callback) => {
-      // Protección de aislamiento: bloquear cualquier solicitud originada desde un sitio web remoto no autorizado
+      // Isolation protection: block any requests originating from unauthorized remote origins
       const referrer = (request.referrer || "").toLowerCase();
       const origin = (request.headers?.Origin || request.headers?.origin || "").toLowerCase();
       const isRemote = (u) => (u.startsWith("http://") || u.startsWith("https://")) && !u.startsWith("http://localhost") && !u.startsWith("http://127.0.0.1");
@@ -483,11 +535,13 @@ function createWindow() {
           ".png",
           ".gif",
           ".webp",
+          ".svg",
           ".mp4",
           ".webm",
           ".ogg",
           ".mp3",
           ".wav",
+          ".opus",
           ".zip",
           ".rar",
           ".7z",
@@ -495,7 +549,15 @@ function createWindow() {
           ".gz",
           ".pdf",
           ".txt",
+          ".json",
         ];
+
+        if (!extensionesSeguras.includes(ext)) {
+          console.warn(
+            `🚨 Bloqueado intento de cargar extensión no permitida: ${ext}`,
+          );
+          return callback({ error: -10 });
+        }
 
         const mimeTypes = {
           ".pdf": "application/pdf",
@@ -545,6 +607,11 @@ function createWindow() {
       console.log(`[Direct Link] Enlace directo pendiente enviado al frontend: ${JSON.stringify(global.pendingDirectLink)}`);
       global.pendingDirectLink = null;
     }
+    if (global.pendingOnipkgPath) {
+      global.mainWindow.webContents.send("plugins:package-dropped", global.pendingOnipkgPath);
+      console.log(`[Plugin Package] Paquete .onipkg pendiente enviado al frontend: ${global.pendingOnipkgPath}`);
+      global.pendingOnipkgPath = null;
+    }
   });
 
   if (isDev) {
@@ -555,7 +622,7 @@ function createWindow() {
   }
 
   global.mainWindow.once("ready-to-show", () => {
-    // Asegurar que en Windows no quede ninguna insignia ni overlay previo retenido por la barra de tareas
+    // Ensure no stale badge or overlay icon remains cached on the Windows taskbar
     if (process.platform === "win32") {
       try {
         if (typeof app.setBadgeCount === "function") app.setBadgeCount(0);
@@ -609,64 +676,84 @@ app.whenReady().then(async () => {
   // Electron 33+ requires explicit permission grants for getUserMedia, displayMedia, and hardware devices.
   session.defaultSession.setPermissionRequestHandler(
     (webContents, permission, callback) => {
+      const url = (webContents && !webContents.isDestroyed() && webContents.getURL()) || "";
+      const isLocalOrigin =
+        url.startsWith("file://") ||
+        url.startsWith("http://127.0.0.1") ||
+        url.startsWith("http://localhost");
+
       if (permission.startsWith("clipboard")) {
         return callback(true);
       }
-      const allowed = [
+      const standardAllowed = [
         "media",
         "mediaKeySystem",
-        "display-capture",
         "audioCapture",
         "videoCapture",
-        "clipboard-read",
-        "clipboard-write",
-        "clipboard-sanitized-write",
         "fullscreen",
         "pointerLock",
-        "gamepad",
-        "gamepads",
-        "hid",
-        "usb",
-        "serial",
         "accessibility-events",
         "screen-wake-lock",
         "wake-lock",
       ];
-      callback(allowed.includes(permission));
+      if (standardAllowed.includes(permission)) {
+        return callback(true);
+      }
+      if (permission === "display-capture") {
+        return callback(isLocalOrigin);
+      }
+      // Restrict hardware peripheral access strictly to local app origin
+      const hardwarePerms = ["hid", "usb", "serial", "gamepad", "gamepads"];
+      if (hardwarePerms.includes(permission)) {
+        return callback(isLocalOrigin);
+      }
+      callback(false);
     }
   );
 
   session.defaultSession.setPermissionCheckHandler(
     (webContents, permission) => {
+      const url = (webContents && !webContents.isDestroyed() && webContents.getURL()) || "";
+      const isLocalOrigin =
+        url.startsWith("file://") ||
+        url.startsWith("http://127.0.0.1") ||
+        url.startsWith("http://localhost");
+
       if (permission.startsWith("clipboard")) {
         return true;
       }
-      const allowed = [
+      const standardAllowed = [
         "media",
         "mediaKeySystem",
-        "display-capture",
         "audioCapture",
         "videoCapture",
-        "clipboard-read",
-        "clipboard-write",
-        "clipboard-sanitized-write",
         "fullscreen",
         "pointerLock",
-        "gamepad",
-        "gamepads",
-        "hid",
-        "usb",
-        "serial",
         "accessibility-events",
         "screen-wake-lock",
         "wake-lock",
       ];
-      return allowed.includes(permission);
+      if (standardAllowed.includes(permission)) {
+        return true;
+      }
+      if (permission === "display-capture") {
+        return isLocalOrigin;
+      }
+      const hardwarePerms = ["hid", "usb", "serial", "gamepad", "gamepads"];
+      if (hardwarePerms.includes(permission)) {
+        return isLocalOrigin;
+      }
+      return false;
     }
   );
 
   session.defaultSession.setDevicePermissionHandler((details) => {
-    if (details.deviceType === "hid" || details.deviceType === "usb") {
+    const origin = details.origin || "";
+    const isLocalOrigin =
+      origin.startsWith("file://") ||
+      origin.startsWith("http://127.0.0.1") ||
+      origin.startsWith("http://localhost");
+    if (isLocalOrigin && (details.deviceType === "hid" || details.deviceType === "usb")) {
       return true;
     }
     return false;
@@ -682,6 +769,10 @@ app.whenReady().then(async () => {
   const startupUrl = process.argv.find((arg) => arg.startsWith("onicord://"));
   if (startupUrl) {
     handleDeepLink(startupUrl);
+  }
+  const startupOnipkg = process.argv.find((arg) => arg.endsWith(".onipkg"));
+  if (startupOnipkg) {
+    handleOnipkgFile(startupOnipkg);
   }
 
   await ytdlpService.autoUpdateYtdlp();
@@ -730,8 +821,8 @@ app.whenReady().then(async () => {
     const url = details.url || "";
     const responseHeaders = { ...details.responseHeaders };
 
-    // Si es un servicio de verificación / challenge (Cloudflare Turnstile, hCaptcha, reCAPTCHA),
-    // no alterar sus políticas de aislamiento ni sus encabezados CORS para evitar bloqueos por credenciales o duplicados
+    // If this is a verification/challenge service (Cloudflare Turnstile, hCaptcha, reCAPTCHA),
+    // do not mutate its isolation policies or CORS headers to prevent credential or duplicate header conflicts
     const isChallengeService =
       url.includes("challenges.cloudflare.com") ||
       url.includes("cloudflare.com/cdn-cgi/challenge-platform") ||
@@ -747,7 +838,7 @@ app.whenReady().then(async () => {
       return callback({ responseHeaders });
     }
 
-    // Eliminar encabezados restrictivos de políticas previas sin importar mayúsculas/minúsculas
+    // Strip restrictive header policies in a case-insensitive manner
     for (const h of Object.keys(responseHeaders)) {
       const lower = h.toLowerCase();
       if (
@@ -761,18 +852,18 @@ app.whenReady().then(async () => {
       }
     }
 
-    // Permitir portapapeles, fullscreen, gamepad, micrófono, hid y control de hardware para frames y subframes
+    // Grant clipboard, fullscreen, gamepad, pointer-lock, hid, and audio/media permissions to frames and subframes
     responseHeaders["Permissions-Policy"] = [
       "clipboard-write=*, clipboard-read=*, fullscreen=*, gamepad=*, pointer-lock=*, hid=*, usb=*, microphone=*, autoplay=*",
     ];
 
-    // Habilitar Cross-Origin Isolation para soportar WebAssembly con SharedArrayBuffer y multihilo (pthreads)
+    // Enable Cross-Origin Isolation for WebAssembly SharedArrayBuffer and multi-threading (pthreads)
     responseHeaders["Cross-Origin-Opener-Policy"] = ["same-origin"];
     responseHeaders["Cross-Origin-Embedder-Policy"] = ["credentialless"];
     responseHeaders["Cross-Origin-Resource-Policy"] = ["cross-origin"];
 
-    // Solo agregar Access-Control-Allow-Origin si el servidor remoto NO envió ya una política CORS
-    // y si la respuesta no requiere credenciales explícitas (las peticiones con credenciales prohíben '*')
+    // Only attach Access-Control-Allow-Origin if the remote server did not supply one
+    // and the response does not require explicit credentials ('*' is prohibited with credentials)
     const hasCors = Object.keys(responseHeaders).some(
       (k) => k.toLowerCase() === "access-control-allow-origin"
     );
@@ -820,7 +911,7 @@ app.whenReady().then(async () => {
         if (global.roomManager) {
           global.roomManager.setLocalActivity(newState);
         }
-        // Overlay: solo se activa para videojuegos, no para software/apps de trabajo
+        // Overlay: only activates for video games, not general software/work applications
         const isGame = newState && newState.name && (newState.type === "game" || newState.type === "client");
         overlayService.setGameActive(Boolean(isGame));
       });
@@ -869,6 +960,7 @@ app.on("before-quit", () => {
   feedPollerService.stop();
   rpcServerService.stopRpcServer();
   overlayService.destroyOverlay();
+  torrentService.destroyAll();
 });
 
 app.on("window-all-closed", async () => {

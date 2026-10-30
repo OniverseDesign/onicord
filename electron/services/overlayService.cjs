@@ -193,7 +193,7 @@ function evaluateVisibility() {
     showOverlay();
   } else {
     hideOverlay();
-    // Liberar memoria RAM completa del segundo renderer de Chromium si no se está jugando o no se está en voz
+    // Completely free Chromium renderer memory if user is not in a game or voice session
     if (!isTestMode && (!isGameActive || !hasVoiceData || !currentSettings.enabled)) {
       destroyOverlay();
     }

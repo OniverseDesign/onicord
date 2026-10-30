@@ -157,7 +157,7 @@ class StickerService {
         throw new Error("Estructura de paquete .onipkg inválida o corrupta.");
       }
 
-      // Guardar cada sticker con deduplicación estricta en userData/stickers
+      // Save each sticker with strict deduplication in userData/stickers
       for (const stk of pack.stickers) {
         if (!stk?.id) continue;
 
@@ -167,7 +167,7 @@ class StickerService {
 
         if (!stk.base64) continue;
 
-        // Si el sticker ya existe en disco, no lo duplicamos ni reescribimos
+        // If sticker already exists on disk, avoid duplicate writes
         if (!fs.existsSync(filePathStk)) {
           const base64Parts = stk.base64.split(",");
           const targetBufferString = base64Parts[1] || base64Parts[0];

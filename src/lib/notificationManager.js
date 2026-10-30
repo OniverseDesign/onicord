@@ -46,7 +46,7 @@ class NotificationManager {
 
   showToast(title, message, type = "info", duration = 7500, action = null, avatar = null, senderName = null) {
     if (this.settings && this.settings.enableNotifications === false) return;
-    // En Modo Streamer, suprimir toasts de mensajes para proteger la privacidad en pantalla compartida
+    // In Streamer Mode, suppress message toasts to protect privacy during screen sharing
     if (window.__ONICORD_STREAMER_MODE__ && (type === "message" || action?.type === "message")) {
       return;
     }

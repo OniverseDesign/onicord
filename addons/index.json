@@ -1,38 +1,7 @@
 {
   "version": "1.0.0",
-  "updatedAt": "2026-10-25T19:03:05.089Z",
+  "updatedAt": "2026-10-30T03:52:46.662Z",
   "plugins": [
-    {
-      "id": "com.oniverse.demo_dashboard_addon",
-      "name": "Demo Widgets Addon",
-      "version": "0.1.0",
-      "scope": "hybrid",
-      "author": "Oniverse Team",
-      "description": "Demostración de widgets extensibles locales y colaborativos P2P para el Panel de Widgets.",
-      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/demo_dashboard_addon/assets/icon.png",
-      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/com.oniverse.demo_dashboard_addon/package.onipkg"
-    },
-    {
-      "id": "onicord-google-search",
-      "name": "Google Search",
-      "version": "0.1.0",
-      "scope": "server",
-      "author": "Oniverse",
-      "description": "Search Google & AI and post formatted web results directly into chat.",
-      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/google-search/assets/icon.png",
-      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-google-search/package.onipkg",
-      "locales": {
-        "es": {
-          "name": "Búsqueda en Google",
-          "description": "Busca información en Google e IA y publica el resultado formateado en el chat.",
-          "commands": {
-            "/g": {
-              "description": "Busca en la web o limpia el historial (/g clear)."
-            }
-          }
-        }
-      }
-    },
     {
       "id": "onicord-arcade",
       "name": "Arcade",
@@ -40,7 +9,7 @@
       "scope": "hybrid",
       "author": "Oniverse",
       "description": "Biblioteca de juegos web clásicos y porteados con multijugador integrado, salas cooperativas y sincronización de perfiles.",
-      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/onicord-arcade/assets/icon.png",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-arcade/assets/icon.png",
       "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-arcade/package.onipkg",
       "locales": {
         "es": {
@@ -60,17 +29,65 @@
               "description": "Open Arcade games library."
             }
           }
+        },
+        "pt": {
+          "name": "Arcade",
+          "description": "Biblioteca de jogos web clássicos e portados com multijogador integrado, salas cooperativas e sincronização de perfis.",
+          "commands": {
+            "/arcade": {
+              "description": "Abre a biblioteca de jogos do Arcade."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "onicord-cinema",
+      "name": "Cinema",
+      "version": "0.2.0",
+      "scope": "hybrid",
+      "author": "Oniverse",
+      "description": "Cine colaborativo sincronizado con soporte para addons de Stremio, catálogos enriquecidos y favoritos del servidor.",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-cinema/assets/icon.png",
+      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-cinema/package.onipkg",
+      "locales": {
+        "es": {
+          "name": "Cinema",
+          "description": "Cine colaborativo sincronizado con soporte para addons de Stremio, catálogos enriquecidos y favoritos del servidor.",
+          "commands": {
+            "/cinema": {
+              "description": "Abre el catálogo y reproductor de películas/series de Onicord Cinema."
+            }
+          }
+        },
+        "en": {
+          "name": "Cinema",
+          "description": "Synchronized collaborative cinema with Stremio addons support, rich catalogs and server favorites.",
+          "commands": {
+            "/cinema": {
+              "description": "Open Onicord Cinema movie/series catalog and player."
+            }
+          }
+        },
+        "pt": {
+          "name": "Cinema",
+          "description": "Cinema colaborativo sincronizado com suporte para addons do Stremio, catálogos enriquecidos e favoritos do servidor.",
+          "commands": {
+            "/cinema": {
+              "description": "Abre o catálogo e reprodutor de filmes/séries do Onicord Cinema."
+            }
+          }
         }
       }
     },
     {
       "id": "onicord-dice",
       "name": "Dices",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "scope": "server",
       "author": "Oniverse",
       "description": "Real-time configurable dice roller for the room.",
-      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/onicord-dice/assets/icon.png",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-dice/assets/icon.png",
       "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-dice/package.onipkg",
       "locales": {
         "es": {
@@ -90,17 +107,65 @@
               "description": "Roll configured dice directly from chat (e.g. /roll, /roll 2d6, /roll 1d20)."
             }
           }
+        },
+        "pt": {
+          "name": "Dados",
+          "description": "Dado virtual colaborativo e configurável em tempo real para o painel da sala.",
+          "commands": {
+            "/roll": {
+              "description": "Lança dados configurados diretamente do chat (ex: /roll, /roll 2d6, /roll 1d20)."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "onicord-google-search",
+      "name": "Google Search",
+      "version": "0.2.0",
+      "scope": "server",
+      "author": "Oniverse",
+      "description": "Search Google & AI and post formatted web results directly into chat.",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-google-search/assets/icon.png",
+      "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-google-search/package.onipkg",
+      "locales": {
+        "es": {
+          "name": "Búsqueda en Google",
+          "description": "Busca información en Google e IA y publica el resultado formateado en el chat.",
+          "commands": {
+            "/g": {
+              "description": "Busca en la web o limpia el historial (/g clear)."
+            }
+          }
+        },
+        "en": {
+          "name": "Google Search",
+          "description": "Search Google & AI and post formatted web results directly into chat.",
+          "commands": {
+            "/g": {
+              "description": "Search the web or clear history (/g clear)."
+            }
+          }
+        },
+        "pt": {
+          "name": "Pesquisa Google",
+          "description": "Pesquise no Google e IA e publique o resultado formatado no chat.",
+          "commands": {
+            "/g": {
+              "description": "Pesquise na web ou limpe o histórico (/g clear)."
+            }
+          }
         }
       }
     },
     {
       "id": "onicord-polls",
       "name": "Quick Polls",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "scope": "server",
       "author": "Oniverse",
       "description": "Create real-time interactive polls in chat using the /p command.",
-      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/onicord-polls/assets/icon.png",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-polls/assets/icon.png",
       "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-polls/package.onipkg",
       "locales": {
         "es": {
@@ -111,17 +176,35 @@
               "description": "Crea una encuesta interactiva. Uso: /p Pregunta -Opción 1 -Opción 2"
             }
           }
+        },
+        "en": {
+          "name": "Quick Polls",
+          "description": "Create real-time interactive polls in chat using the /p command.",
+          "commands": {
+            "/p": {
+              "description": "Create an interactive poll. Usage: /p Question -Option 1 -Option 2"
+            }
+          }
+        },
+        "pt": {
+          "name": "Enquetes Rápidas",
+          "description": "Crie enquetes interativas no chat usando o comando /p.",
+          "commands": {
+            "/p": {
+              "description": "Cria uma enquete interativa. Uso: /p Pergunta -Opção 1 -Opção 2"
+            }
+          }
         }
       }
     },
     {
       "id": "onicord-soundboard",
       "name": "Soundboard",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "scope": "hybrid",
       "author": "Oniverse",
       "description": "Soundboard colaborativo P2P para la Isla de Complementos. Carga tus propios audios (.mp3, .wav, .ogg), sincronízalos en tiempo real y reprodúcelos con la sala.",
-      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/onicord-soundboard/assets/icon.png",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-soundboard/assets/icon.png",
       "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-soundboard/package.onipkg",
       "locales": {
         "es": {
@@ -141,11 +224,11 @@
     {
       "id": "onicord-youtube-search",
       "name": "YouTube Search",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "scope": "server",
       "author": "Oniverse",
       "description": "Search YouTube videos directly from chat using the /y command.",
-      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/youtube-search/assets/icon.png",
+      "icon": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-youtube-search/assets/icon.png",
       "downloadUrl": "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/onicord-youtube-search/package.onipkg",
       "locales": {
         "es": {
@@ -154,6 +237,24 @@
           "commands": {
             "/y": {
               "description": "Busca un video en YouTube. Ej: /y Olivia Rodrigo Vampire"
+            }
+          }
+        },
+        "en": {
+          "name": "YouTube Search",
+          "description": "Search YouTube videos directly from chat using the /y command.",
+          "commands": {
+            "/y": {
+              "description": "Search YouTube for a video. Eg: /y Olivia Rodrigo Vampire"
+            }
+          }
+        },
+        "pt": {
+          "name": "Pesquisa no YouTube",
+          "description": "Pesquise vídeos do YouTube diretamente no chat usando o comando /y.",
+          "commands": {
+            "/y": {
+              "description": "Pesquise um vídeo no YouTube. Ex: /y Olivia Rodrigo Vampire"
             }
           }
         }

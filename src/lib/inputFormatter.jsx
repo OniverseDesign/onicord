@@ -47,43 +47,56 @@ export function parseRegexToken(tokens, regex, factory) {
 export function getSelectionCharacterOffsets(element) {
   let start = 0;
   let end = 0;
+  if (!element) return { start, end };
   const doc = element.ownerDocument || element.document;
-  const win = doc.defaultView || doc.parentWindow;
-  const sel = win.getSelection();
-  if (sel.rangeCount > 0) {
-    const range = sel.getRangeAt(0);
-    const preCaretRange = range.cloneRange();
-    preCaretRange.selectNodeContents(element);
-    preCaretRange.setEnd(range.startContainer, range.startOffset);
-    start = preCaretRange.toString().length;
-    preCaretRange.setEnd(range.endContainer, range.endOffset);
-    end = preCaretRange.toString().length;
+  const win = doc ? (doc.defaultView || doc.parentWindow || window) : window;
+  const sel = win.getSelection ? win.getSelection() : null;
+  if (sel && sel.rangeCount > 0) {
+    try {
+      const range = sel.getRangeAt(0);
+      if (element.contains(range.startContainer) && element.contains(range.endContainer)) {
+        const preCaretRange = range.cloneRange();
+        preCaretRange.selectNodeContents(element);
+        preCaretRange.setEnd(range.startContainer, range.startOffset);
+        start = preCaretRange.toString().length;
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+        end = preCaretRange.toString().length;
+      }
+    } catch (_) {
+      // Range detached or outside bounds
+    }
   }
   return { start, end };
 }
 
 export function setSelectionOffsets(element, start, end) {
+  if (!element) return;
   const range = document.createRange();
   const sel = window.getSelection();
+  if (!sel) return;
   
   let currentOffset = 0;
   let startNode = null;
   let startOffset = 0;
   let endNode = null;
   let endOffset = 0;
+  let lastTextNode = null;
+  let lastTextLen = 0;
   
   function traverse(el) {
     for (let i = 0; i < el.childNodes.length; i++) {
       const child = el.childNodes[i];
       if (child.nodeType === Node.TEXT_NODE) {
+        lastTextNode = child;
         const len = child.textContent.length;
+        lastTextLen = len;
         if (!startNode && currentOffset + len >= start) {
           startNode = child;
-          startOffset = start - currentOffset;
+          startOffset = Math.max(0, Math.min(start - currentOffset, len));
         }
         if (!endNode && currentOffset + len >= end) {
           endNode = child;
-          endOffset = end - currentOffset;
+          endOffset = Math.max(0, Math.min(end - currentOffset, len));
         }
         currentOffset += len;
       } else {
@@ -94,14 +107,24 @@ export function setSelectionOffsets(element, start, end) {
   
   traverse(element);
   
-  // Fallbacks if node is not found (e.g. empty content)
+  // Safe fallbacks: clamp out-of-range offsets to the end of content instead of dropping caret to 0
   if (!startNode) {
-    startNode = element;
-    startOffset = 0;
+    if (lastTextNode && start > 0) {
+      startNode = lastTextNode;
+      startOffset = lastTextLen;
+    } else {
+      startNode = element;
+      startOffset = element.childNodes.length > 0 && start > 0 ? element.childNodes.length : 0;
+    }
   }
   if (!endNode) {
-    endNode = element;
-    endOffset = 0;
+    if (lastTextNode && end > 0) {
+      endNode = lastTextNode;
+      endOffset = lastTextLen;
+    } else {
+      endNode = element;
+      endOffset = element.childNodes.length > 0 && end > 0 ? element.childNodes.length : 0;
+    }
   }
   
   try {

@@ -1,0 +1,3196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onicord Cinema</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0..1,0" />
+  <style>
+    :root {
+      --bg-base: #11111b;
+      --bg-surface: #181825;
+      --bg-card: #1e1e2e;
+      --bg-overlay: #313244;
+      --accent: #f38ba8;
+      --accent-hover: #f7a1b8;
+      --accent-dark: #d25c7b;
+      --accent-glow: rgba(243, 139, 168, 0.4);
+      --gold: #f9e2af;
+      --text-main: #cdd6f4;
+      --text-sub: #bac2de;
+      --text-muted: #7f849c;
+      --pad-x: clamp(20px, 4.5vw, 64px);
+      --card-w: clamp(108px, 11vw, 150px);
+      --card-h: calc(var(--card-w) * 1.45);
+      --title-size: clamp(28px, 4.2vw, 52px);
+      --btn-h: clamp(42px, 5.2vh, 48px);
+      --topbar-h: 62px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    html, body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      height: 100dvh;
+      width: 100vw;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 🎨 SCROLLBAR CON DISEÑO OFICIAL DE ONICORD */
+    ::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      width: 8px !important;
+      height: 8px !important;
+    }
+
+    ::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-track {
+      background: transparent !important;
+    }
+
+    ::-webkit-scrollbar-thumb,
+    *::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.16) !important;
+      border-radius: 9999px !important;
+      border: 2px solid transparent !important;
+      background-clip: padding-box !important;
+      transition: background-color 0.15s ease-out !important;
+    }
+
+    ::-webkit-scrollbar-thumb:hover,
+    *::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, 0.35) !important;
+    }
+
+    /* =========================================================================
+       1. ATMOSPHERIC HERO BACKDROP (IGUAL A ARCADE CON TRIPLE VIGNETTE)
+       ========================================================================= */
+    .hero-backdrop-container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+      background-color: var(--bg-base);
+    }
+
+    .hero-backdrop {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 18%;
+      filter: brightness(0.66) contrast(1.08) saturate(1.14);
+      opacity: 0;
+      transform: scale(1.06);
+      transition: opacity 0.65s ease, transform 6s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .hero-backdrop.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .hero-vignette-radial {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        circle at 72% 28%,
+        transparent 0%,
+        rgba(17, 17, 27, 0.45) 50%,
+        rgba(17, 17, 27, 0.94) 95%
+      );
+    }
+
+    .hero-vignette-left {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        var(--bg-base) 0%,
+        rgba(17, 17, 27, 0.94) 30%,
+        rgba(17, 17, 27, 0.62) 58%,
+        rgba(17, 17, 27, 0.15) 85%,
+        transparent 100%
+      );
+    }
+
+    .hero-vignette-bottom {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        0deg,
+        var(--bg-base) 0%,
+        var(--bg-base) 18%,
+        rgba(17, 17, 27, 0.92) 42%,
+        rgba(17, 17, 27, 0.35) 75%,
+        rgba(17, 17, 27, 0.5) 100%
+      );
+    }
+
+    /* =========================================================================
+       2. TOP BAR (ALINEADA CON LOS CONTROLES FLOTANTES DE ADDONSTAGEDISPLAY)
+       ========================================================================= */
+    .cinema-topbar {
+      flex-shrink: 0;
+      height: var(--topbar-h);
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 clamp(135px, 16vw, 210px);
+      background: linear-gradient(to bottom, rgba(17, 17, 27, 0.94) 0%, rgba(17, 17, 27, 0.6) 80%, transparent 100%);
+      backdrop-filter: blur(12px);
+    }
+
+    .cinema-search-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      align-items: center;
+    }
+
+    .cinema-search-input {
+      width: 100%;
+      height: 38px;
+      padding: 0 38px 0 40px;
+      background: rgba(30, 30, 46, 0.85);
+      border: 1px solid rgba(88, 91, 112, 0.4);
+      border-radius: 9999px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 500;
+      outline: none;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .cinema-search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .cinema-search-input:focus {
+      border-color: var(--accent);
+      background: rgba(49, 50, 68, 0.9);
+      box-shadow: 0 0 22px var(--accent-glow), 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .cinema-search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 18px;
+      pointer-events: none;
+      transition: color 0.2s ease;
+    }
+
+    .cinema-search-wrapper:focus-within .cinema-search-icon {
+      color: var(--accent);
+    }
+
+    .cinema-search-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(49, 50, 68, 0.6);
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: all 0.18s ease;
+    }
+
+    .cinema-search-clear:hover {
+      background: rgba(243, 139, 168, 0.25);
+      color: #fff;
+    }
+
+    /* =========================================================================
+       3. MAIN STAGE & HERO (HERO IMPONENTE ESTILO ARCADE, FIJO ARRIBA)
+       ========================================================================= */
+    .stage-content {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .hero-section {
+      flex-shrink: 0;
+      width: 100%;
+      padding: clamp(6px, 1.8vh, 18px) var(--pad-x) clamp(8px, 1.8vh, 18px) var(--pad-x);
+      max-width: min(880px, 90vw);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: clamp(8px, 1.4vh, 14px);
+    }
+
+    .game-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-height: 26px;
+    }
+
+    .tag-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 26px;
+      padding: 0 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: rgba(49, 50, 68, 0.45);
+      border: 1px solid rgba(88, 91, 112, 0.35);
+      color: #bac2de;
+      backdrop-filter: blur(8px);
+    }
+
+    .tag-platform {
+      background: rgba(243, 139, 168, 0.16);
+      border-color: rgba(243, 139, 168, 0.4);
+      color: #f38ba8;
+    }
+
+    .tag-rating {
+      background: rgba(249, 226, 175, 0.14);
+      border-color: rgba(249, 226, 175, 0.35);
+      color: var(--gold);
+    }
+
+    /* Caja de altura reservada fija (2 líneas) igual a Arcade para evitar saltos */
+    .hero-title-box {
+      height: calc(var(--title-size) * 1.08 * 2);
+      display: flex;
+      align-items: flex-end;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .hero-title {
+      font-size: var(--title-size);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: #cdd6f4;
+      text-transform: uppercase;
+      text-shadow: 0 8px 28px rgba(0, 0, 0, 0.9);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    /* Caja de sinopsis con altura fija (3 líneas) igual a Arcade */
+    .hero-synopsis {
+      font-family: 'Roboto', sans-serif;
+      font-size: clamp(13px, 1.05vw, 15.5px);
+      line-height: 1.55;
+      color: #bac2de;
+      max-width: 65ch;
+      height: calc(1.55em * 3);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 2px;
+      flex-wrap: wrap;
+    }
+
+    .btn-play {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: auto;
+      min-width: 180px;
+      height: var(--btn-h);
+      flex-shrink: 0;
+      white-space: nowrap;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+      color: #11111b;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 0 clamp(24px, 2.4vw, 34px);
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: clamp(13.5px, 1.05vw, 15.5px);
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 0 28px var(--accent-glow), 0 8px 20px rgba(0, 0, 0, 0.4);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-play:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
+      box-shadow: 0 0 38px rgba(243, 139, 168, 0.7), 0 10px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .btn-play:active:not(:disabled) {
+      filter: brightness(0.92);
+    }
+
+    .btn-play:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: auto;
+      height: var(--btn-h);
+      flex-shrink: 0;
+      white-space: nowrap;
+      background: rgba(49, 50, 68, 0.45);
+      color: #cdd6f4;
+      border: 1px solid rgba(88, 91, 112, 0.4);
+      padding: 0 clamp(18px, 2vw, 24px);
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: clamp(13px, 1vw, 14.5px);
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(49, 50, 68, 0.75);
+      border-color: rgba(205, 214, 244, 0.3);
+    }
+
+    .btn-secondary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-fav {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: auto;
+      min-width: 136px;
+      height: var(--btn-h);
+      flex-shrink: 0;
+      white-space: nowrap;
+      background: rgba(49, 50, 68, 0.45);
+      color: #cdd6f4;
+      border: 1px solid rgba(88, 91, 112, 0.4);
+      padding: 0 18px;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: clamp(13px, 1vw, 14px);
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+
+    .btn-fav:hover {
+      background: rgba(249, 226, 175, 0.16);
+      border-color: rgba(249, 226, 175, 0.45);
+      color: var(--gold);
+    }
+
+    .btn-fav.favorited {
+      background: rgba(249, 226, 175, 0.22);
+      border-color: rgba(249, 226, 175, 0.55);
+      color: var(--gold);
+    }
+
+    /* =========================================================================
+       4. SECCIONES DE CARRUSELES (SIN CORTES DE PORTADAS AL EXPANDIRSE)
+       ========================================================================= */
+    .cinema-sections {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      gap: clamp(12px, 2vh, 20px);
+      padding: 6px 0 54px 0;
+      scroll-behavior: smooth;
+    }
+
+    .carousel-section {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .carousel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--pad-x);
+      margin-bottom: 2px;
+    }
+
+    .carousel-section-title {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .carousel-section-title::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    .carousel-section-title.gold-dot::before {
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold);
+    }
+
+    .carousel-section-title.cyan-dot::before {
+      background: #89dceb;
+      box-shadow: 0 0 10px #89dceb;
+    }
+
+    .carousel-counter {
+      font-size: 11px;
+      font-weight: 700;
+      color: #bac2de;
+      letter-spacing: 0.8px;
+      font-variant-numeric: tabular-nums;
+      background: rgba(49, 50, 68, 0.5);
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(88, 91, 112, 0.3);
+    }
+
+    .carousel-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Padding superior amplio (36px) para que la tarjeta agrandada + su glow nunca se corten */
+    .carousel-container {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 36px var(--pad-x) 16px var(--pad-x);
+      margin-top: -16px;
+      -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black calc(var(--pad-x) * 0.55),
+        black calc(100% - (var(--pad-x) * 0.55)),
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black calc(var(--pad-x) * 0.55),
+        black calc(100% - (var(--pad-x) * 0.55)),
+        transparent 100%
+      );
+    }
+
+    .carousel-container::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+
+    .carousel-track {
+      display: flex;
+      align-items: flex-end;
+      gap: clamp(14px, 1.8vw, 22px);
+      width: max-content;
+    }
+
+    /* Botones laterales de navegación igual a Arcade */
+    .carousel-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 25;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(24, 24, 37, 0.88);
+      border: 1px solid rgba(88, 91, 112, 0.4);
+      color: #cdd6f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0;
+    }
+
+    .carousel-wrapper:hover .carousel-nav-btn:not(.hidden-nav) {
+      opacity: 1;
+    }
+
+    .carousel-nav-btn.hidden-nav {
+      opacity: 0 !important;
+      pointer-events: none;
+    }
+
+    .carousel-nav-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent-hover);
+      color: #11111b;
+      transform: translateY(-50%);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .carousel-nav-btn:active {
+      transform: translateY(-50%);
+      filter: brightness(0.9);
+    }
+
+    .carousel-nav-btn.prev {
+      left: max(8px, calc(var(--pad-x) - 20px));
+    }
+
+    .carousel-nav-btn.next {
+      right: max(8px, calc(var(--pad-x) - 20px));
+    }
+
+    /* =========================================================================
+       5. TARJETA DE PELÍCULA / SERIE (ANIMACIÓN FLUIDA SIN CORTES)
+       ========================================================================= */
+    .media-card {
+      flex: 0 0 auto;
+      width: var(--card-w);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      cursor: pointer;
+      position: relative;
+      opacity: 0.68;
+      transform-origin: center bottom;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
+    }
+
+    .media-card-poster-wrapper {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      border: 2px solid rgba(88, 91, 112, 0.25);
+      background-color: #181825;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+      transition: border-color 0.28s ease, box-shadow 0.28s ease;
+    }
+
+    /* Reflejo diagonal sutil tipo cristal igual a Arcade */
+    .media-card-poster-wrapper::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, transparent 45%);
+      pointer-events: none;
+    }
+
+    .media-card-poster {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.35s ease;
+    }
+
+    .media-card-title {
+      font-size: clamp(11px, 0.85vw, 12.5px);
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      padding: 0 2px;
+      transition: color 0.2s ease, font-weight 0.2s ease;
+    }
+
+    .media-card:hover,
+    .media-card.active {
+      opacity: 1;
+      z-index: 10;
+    }
+
+    .media-card:hover .media-card-poster-wrapper,
+    .media-card.active .media-card-poster-wrapper {
+      border-color: var(--accent);
+      box-shadow:
+        0 14px 28px rgba(0, 0, 0, 0.85),
+        0 0 22px var(--accent-glow);
+    }
+
+    .media-card:hover .media-card-title,
+    .media-card.active .media-card-title {
+      color: #cdd6f4;
+      font-weight: 800;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    }
+
+    .media-card-fav-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(17, 17, 27, 0.82);
+      border: 1px solid rgba(88, 91, 112, 0.35);
+      color: #cdd6f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      backdrop-filter: blur(6px);
+      transition: all 0.2s ease;
+      z-index: 15;
+    }
+
+    .media-card:hover .media-card-fav-btn,
+    .media-card-fav-btn.favorited {
+      opacity: 1;
+    }
+
+    .media-card-fav-btn:hover {
+      background: rgba(249, 226, 175, 0.2);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .media-card-fav-btn.favorited {
+      color: var(--gold);
+      border-color: rgba(249, 226, 175, 0.55);
+    }
+
+    .media-card-progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 4px;
+      background: rgba(17, 17, 27, 0.85);
+      overflow: hidden;
+      z-index: 12;
+      border-bottom-left-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+
+    .media-card-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #89dceb, var(--accent));
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .media-card-resume-badge {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(17, 17, 27, 0.88);
+      border: 1px solid rgba(137, 220, 235, 0.3);
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #89dceb;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      backdrop-filter: blur(8px);
+      z-index: 12;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    .media-card-dismiss-btn {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(17, 17, 27, 0.85);
+      border: 1px solid rgba(88, 91, 112, 0.4);
+      color: #cdd6f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      backdrop-filter: blur(6px);
+      transition: all 0.2s ease;
+      z-index: 16;
+    }
+
+    .media-card:hover .media-card-dismiss-btn {
+      opacity: 1;
+    }
+
+    .media-card-dismiss-btn:hover {
+      background: rgba(243, 139, 168, 0.28);
+      border-color: #f38ba8;
+      color: #f38ba8;
+      transform: scale(1.08);
+    }
+
+    .media-card-play-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(17, 17, 27, 0.42);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 11;
+      pointer-events: none;
+    }
+
+    .media-card:hover .media-card-play-overlay {
+      opacity: 1;
+    }
+
+    .media-card-play-overlay .play-icon-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #11111b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px var(--accent-glow);
+      transform: scale(0.85);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .media-card:hover .media-card-play-overlay .play-icon-circle {
+      transform: scale(1);
+    }
+
+    .media-card-subdetail {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      padding: 0 2px;
+      margin-top: -4px;
+    }
+
+    /* =========================================================================
+       6. MODAL DE FUENTES: COMPACTO, BOTONES SIEMPRE VISIBLES E ICONO CENTRADO
+       ========================================================================= */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(17, 17, 27, 0.88);
+      backdrop-filter: blur(14px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-card {
+      position: relative;
+      background: var(--bg-surface);
+      border: 1px solid rgba(88, 91, 112, 0.35);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 780px;
+      max-height: min(86vh, 780px);
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(49, 50, 68, 0.6);
+      border: 1px solid rgba(88, 91, 112, 0.4);
+      color: #cdd6f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 30;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .modal-close-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #11111b;
+    }
+
+    .modal-header-banner {
+      position: relative;
+      height: 130px;
+      width: 100%;
+      overflow: hidden;
+      background: #11111b;
+      flex-shrink: 0;
+    }
+
+    .modal-backdrop-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.65);
+    }
+
+    .modal-banner-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, var(--bg-surface) 0%, rgba(24, 24, 37, 0.45) 60%, transparent 100%);
+    }
+
+    .modal-body-scrollable {
+      flex: 1 1 0%;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0 24px 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      margin-top: -42px;
+    }
+
+    .modal-top-row {
+      display: flex;
+      gap: 18px;
+      align-items: flex-end;
+    }
+
+    .modal-poster {
+      width: 96px;
+      height: 142px;
+      border-radius: 10px;
+      object-fit: cover;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      border: 2px solid rgba(88, 91, 112, 0.3);
+      flex-shrink: 0;
+      background: #1e1e2e;
+    }
+
+    .modal-main-info {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 6px;
+      padding-bottom: 2px;
+    }
+
+    .modal-title {
+      font-size: clamp(19px, 2.2vw, 24px);
+      font-weight: 800;
+      line-height: 1.15;
+      color: #cdd6f4;
+    }
+
+    .modal-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+
+    .modal-synopsis {
+      font-family: 'Roboto', sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #bac2de;
+      max-height: 52px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* SECCIÓN DE SERIES: TEMPORADAS Y EPISODIOS */
+    .series-episodes-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(30, 30, 46, 0.45);
+      border: 1px solid rgba(88, 91, 112, 0.25);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .season-select {
+      background: #1e1e2e;
+      border: 1px solid rgba(88, 91, 112, 0.4);
+      color: #cdd6f4;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .episodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 6px;
+      max-height: 110px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .episode-card {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(30, 30, 46, 0.6);
+      border: 1px solid rgba(88, 91, 112, 0.2);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: all 0.18s ease;
+    }
+
+    .episode-card:hover, .episode-card.selected {
+      background: rgba(243, 139, 168, 0.18);
+      border-color: rgba(243, 139, 168, 0.55);
+    }
+
+    .episode-num {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 11px;
+    }
+
+    .episode-name {
+      font-size: 11.5px;
+      color: #cdd6f4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* SECCIÓN DE FUENTES / STREAMS */
+    .streams-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .streams-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      color: #cdd6f4;
+    }
+
+    .streams-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 135px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .stream-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      background: rgba(30, 30, 46, 0.6);
+      border: 1px solid rgba(88, 91, 112, 0.25);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .stream-item:hover, .stream-item.selected {
+      background: rgba(243, 139, 168, 0.18);
+      border-color: rgba(243, 139, 168, 0.55);
+    }
+
+    .stream-quality-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10.5px;
+      font-weight: 800;
+      background: #1e1e2e;
+      color: #89dceb;
+      border: 1px solid rgba(137, 220, 235, 0.3);
+      flex-shrink: 0;
+    }
+
+    .stream-quality-badge.q4k {
+      background: rgba(249, 226, 175, 0.18);
+      color: var(--gold);
+      border-color: rgba(249, 226, 175, 0.4);
+    }
+
+    .stream-title-text {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #cdd6f4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stream-meta-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* BARRA DE ACCIONES ANCLADA AL PIE DEL MODAL (CERO SCROLL INNECESARIO) */
+    .modal-actions-bar {
+      flex-shrink: 0;
+      background: var(--bg-surface);
+      padding: 12px 24px 16px 24px;
+      border-top: 1px solid rgba(88, 91, 112, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      z-index: 10;
+    }
+
+    /* 7. MODAL DE ADDONS STREMIO */
+    .addons-manager-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .addons-input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .addons-input {
+      flex: 1;
+      height: 40px;
+      padding: 0 16px;
+      background: #1e1e2e;
+      border: 1px solid rgba(88, 91, 112, 0.4);
+      border-radius: 10px;
+      color: #cdd6f4;
+      font-family: inherit;
+      font-size: 13.5px;
+      outline: none;
+    }
+
+    .addons-input:focus {
+      border-color: var(--accent);
+    }
+
+    .addons-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .addon-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 14px;
+      background: rgba(30, 30, 46, 0.6);
+      border: 1px solid rgba(88, 91, 112, 0.3);
+      border-radius: 10px;
+      gap: 12px;
+    }
+
+    /* =========================================================================
+       8. RESPONSIVE BREAKPOINTS (UNIFICADOS CON ARCADE)
+       ========================================================================= */
+    @media (max-height: 740px) {
+      :root {
+        --card-w: clamp(92px, 9.5vw, 122px);
+        --title-size: clamp(24px, 3.4vw, 36px);
+        --topbar-h: 48px;
+      }
+      .hero-section {
+        padding-top: 4px;
+        padding-bottom: 4px;
+        gap: 6px;
+      }
+      .hero-synopsis {
+        -webkit-line-clamp: 2;
+        height: calc(1.55em * 2);
+      }
+      .carousel-container {
+        padding-top: 32px;
+        padding-bottom: 12px;
+      }
+      .cinema-sections {
+        gap: 10px;
+      }
+    }
+
+    @media (max-height: 600px) {
+      .hero-synopsis {
+        display: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      :root {
+        --card-w: 102px;
+        --title-size: 24px;
+        --topbar-h: 50px;
+      }
+      .cinema-topbar {
+        height: auto;
+        padding: 50px 16px 8px 16px;
+      }
+      .hero-vignette-left {
+        background: linear-gradient(to top, var(--bg-base) 15%, rgba(17, 17, 27, 0.78) 65%, rgba(17, 17, 27, 0.4) 100%);
+      }
+      .hero-section {
+        align-items: flex-start;
+      }
+      .carousel-nav-btn {
+        display: none;
+      }
+      .modal-top-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .modal-poster {
+        width: 80px;
+        height: 120px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BACKDROP DUAL BUFFER CON TRIPLE VIGNETTE DE ARCADE -->
+  <div class="hero-backdrop-container">
+    <img id="bgA" class="hero-backdrop active" src="" alt="Backdrop">
+    <img id="bgB" class="hero-backdrop" src="" alt="Backdrop">
+    <div class="hero-vignette-radial"></div>
+    <div class="hero-vignette-left"></div>
+    <div class="hero-vignette-bottom"></div>
+  </div>
+
+  <!-- TOPBAR (SOLO LA BARRA DE BÚSQUEDA, ALINEADA ENTRE EL BADGE Y CONTROLES DE ONICORD) -->
+  <header class="cinema-topbar">
+    <div class="cinema-search-wrapper">
+      <span class="material-symbols-outlined cinema-search-icon">search</span>
+      <input type="text" id="searchInput" class="cinema-search-input" placeholder="Buscar películas, series, anime..." autocomplete="off">
+      <button id="searchClear" class="cinema-search-clear" title="Limpiar búsqueda">✕</button>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL: HERO IMPONENTE FIJO ARRIBA + CARRUSELES CON SCROLL VERTICAL -->
+  <main class="stage-content">
+    <!-- HERO SECTION FIJO (CERO LAYOUT SHIFT Y SIEMPRE VISIBLE AL NAVEGAR O SCROLLEAR) -->
+    <section class="hero-section" id="heroSection">
+      <div class="game-tags">
+        <span id="heroType" class="tag-item tag-platform">Película</span>
+        <span class="tag-item tag-rating">
+          <span class="material-symbols-outlined" style="font-size: 13px;">star</span>
+          <span id="heroRating">8.7</span>
+        </span>
+        <span id="heroYear" class="tag-item">2024</span>
+        <span id="heroGenres" class="tag-item">Ciencia Ficción · Aventura</span>
+      </div>
+
+      <div class="hero-title-box">
+        <h1 class="hero-title" id="heroTitle">Cargando catálogo...</h1>
+      </div>
+
+      <p class="hero-synopsis" id="heroDescription">Explorando el catálogo de películas y series disponibles en Cinemeta...</p>
+
+      <div class="hero-actions">
+        <button id="btnHeroOpenDetails" class="btn-play">
+          <span class="material-symbols-outlined" style="font-size: 21px;">play_arrow</span>
+          <span id="btnHeroOpenDetailsLabel">Ver Opciones y Fuentes</span>
+        </button>
+        <button id="btnHeroFav" class="btn-fav" title="Guardar o quitar de los favoritos del servidor">
+          <span class="material-symbols-outlined" style="font-size: 18px;">star_border</span>
+          <span id="btnHeroFavText">Favorito</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- DOCK DE CARRUSELES: ÚNICA SECCIÓN QUE HACE SCROLL VERTICAL -->
+    <div class="cinema-sections" id="cinemaSections">
+
+      <!-- RESULTADOS DE BÚSQUEDA (VISIBLE SOLO AL BUSCAR) -->
+      <section class="carousel-section" id="sectionSearch" style="display: none;">
+        <div class="carousel-header">
+          <span class="carousel-section-title" id="searchSectionTitle">Resultados de Búsqueda</span>
+          <span class="carousel-counter" id="counterSearch">00 títulos</span>
+        </div>
+        <div class="carousel-wrapper">
+          <button class="carousel-nav-btn prev" aria-label="Anterior"><span class="material-symbols-outlined">chevron_left</span></button>
+          <div class="carousel-container">
+            <div class="carousel-track" id="rowSearch"></div>
+          </div>
+          <button class="carousel-nav-btn next" aria-label="Siguiente"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+      </section>
+
+      <!-- SEGUIR VIENDO (CONTINUE WATCHING) -->
+      <section class="carousel-section" id="sectionContinue" style="display: none;">
+        <div class="carousel-header">
+          <span class="carousel-section-title cyan-dot" id="titleContinue">Seguir Viendo</span>
+          <span class="carousel-counter" id="counterContinue">00 títulos</span>
+        </div>
+        <div class="carousel-wrapper">
+          <button class="carousel-nav-btn prev" aria-label="Anterior"><span class="material-symbols-outlined">chevron_left</span></button>
+          <div class="carousel-container">
+            <div class="carousel-track" id="rowContinue"></div>
+          </div>
+          <button class="carousel-nav-btn next" aria-label="Siguiente"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+      </section>
+
+      <!-- FAVORITOS DEL SERVIDOR -->
+      <section class="carousel-section" id="sectionFavorites" style="display: none;">
+        <div class="carousel-header">
+          <span class="carousel-section-title gold-dot" id="titleFavorites">Favoritos de la Comunidad</span>
+          <span class="carousel-counter" id="counterFavorites">00 títulos</span>
+        </div>
+        <div class="carousel-wrapper">
+          <button class="carousel-nav-btn prev" aria-label="Anterior"><span class="material-symbols-outlined">chevron_left</span></button>
+          <div class="carousel-container">
+            <div class="carousel-track" id="rowFavorites"></div>
+          </div>
+          <button class="carousel-nav-btn next" aria-label="Siguiente"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+      </section>
+
+      <!-- TENDENCIAS EN VIVO -->
+      <section class="carousel-section" id="sectionTrending">
+        <div class="carousel-header">
+          <span class="carousel-section-title" id="titleTrending">Tendencias de Hoy</span>
+          <span class="carousel-counter" id="counterTrending">24 títulos</span>
+        </div>
+        <div class="carousel-wrapper">
+          <button class="carousel-nav-btn prev" aria-label="Anterior"><span class="material-symbols-outlined">chevron_left</span></button>
+          <div class="carousel-container">
+            <div class="carousel-track" id="rowTrending"></div>
+          </div>
+          <button class="carousel-nav-btn next" aria-label="Siguiente"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+      </section>
+
+      <!-- ESTRENOS RECIENTES EN VIVO -->
+      <section class="carousel-section" id="sectionNewReleases">
+        <div class="carousel-header">
+          <span class="carousel-section-title" id="titleNewReleases">Estrenos Recientes</span>
+          <span class="carousel-counter" id="counterNewReleases">24 títulos</span>
+        </div>
+        <div class="carousel-wrapper">
+          <button class="carousel-nav-btn prev" aria-label="Anterior"><span class="material-symbols-outlined">chevron_left</span></button>
+          <div class="carousel-container">
+            <div class="carousel-track" id="rowNewReleases"></div>
+          </div>
+          <button class="carousel-nav-btn next" aria-label="Siguiente"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+      </section>
+
+      <!-- PELÍCULAS DESTACADAS -->
+      <section class="carousel-section" id="sectionTopMovies">
+        <div class="carousel-header">
+          <span class="carousel-section-title" id="titleTopMovies">Películas Destacadas</span>
+          <span class="carousel-counter" id="counterTopMovies">24 títulos</span>
+        </div>
+        <div class="carousel-wrapper">
+          <button class="carousel-nav-btn prev" aria-label="Anterior"><span class="material-symbols-outlined">chevron_left</span></button>
+          <div class="carousel-container">
+            <div class="carousel-track" id="rowTopMovies"></div>
+          </div>
+          <button class="carousel-nav-btn next" aria-label="Siguiente"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+      </section>
+
+      <!-- SERIES DESTACADAS -->
+      <section class="carousel-section" id="sectionTopSeries">
+        <div class="carousel-header">
+          <span class="carousel-section-title" id="titleTopSeries">Series Destacadas</span>
+          <span class="carousel-counter" id="counterTopSeries">24 títulos</span>
+        </div>
+        <div class="carousel-wrapper">
+          <button class="carousel-nav-btn prev" aria-label="Anterior"><span class="material-symbols-outlined">chevron_left</span></button>
+          <div class="carousel-container">
+            <div class="carousel-track" id="rowTopSeries"></div>
+          </div>
+          <button class="carousel-nav-btn next" aria-label="Siguiente"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+      </section>
+
+      <!-- CATÁLOGOS DINÁMICOS DE ADDONS STREMIO INSTALADOS -->
+      <div id="customAddonCatalogs" style="display: contents;"></div>
+
+    </div>
+  </main>
+
+  <!-- MODAL DE DETALLES, EPISODIOS Y FUENTES DE STREMIO -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="modalCloseBtn" title="Cerrar ventana">
+        <span class="material-symbols-outlined" style="font-size: 18px; line-height: 1;">close</span>
+      </button>
+      
+      <div class="modal-header-banner">
+        <img id="modalBackdrop" class="modal-backdrop-img" src="" alt="Backdrop">
+        <div class="modal-banner-gradient"></div>
+      </div>
+
+      <div class="modal-body-scrollable">
+        <div class="modal-top-row">
+          <img id="modalPoster" class="modal-poster" src="" alt="Poster">
+          <div class="modal-main-info">
+            <h2 class="modal-title" id="modalTitle">Título</h2>
+            <div class="modal-tags">
+              <span id="modalRating" class="tag-item tag-rating">★ 8.5</span>
+              <span id="modalYear" class="tag-item">2024</span>
+              <span id="modalGenres" class="tag-item">Acción · Sci-Fi</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="modal-synopsis" id="modalSynopsis">Cargando sinopsis...</p>
+
+        <!-- Bloque de Temporadas y Episodios para Series -->
+        <div class="series-episodes-block" id="seriesEpisodesBlock" style="display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span id="modalSeasonsHeader" style="font-weight: 700; font-size: 13px;">Temporadas y Episodios</span>
+            <select id="modalSeasonSelect" class="season-select"></select>
+          </div>
+          <div class="episodes-grid" id="modalEpisodesGrid"></div>
+        </div>
+
+        <!-- Bloque de Fuentes y Resoluciones -->
+        <div class="streams-section">
+          <div class="streams-header">
+            <span id="modalStreamsHeader">Fuentes de Streaming Disponibles</span>
+            <span class="stream-meta-text" id="streamsStatus">Buscando fuentes...</span>
+          </div>
+          <div class="streams-list" id="modalStreamsList"></div>
+        </div>
+      </div>
+
+      <!-- BARRA DE ACCIONES ANCLADA AL PIE DEL MODAL (SIEMPRE VISIBLE) -->
+      <div class="modal-actions-bar">
+        <button id="btnModalWatchChannel" class="btn-play" disabled>
+          <span class="material-symbols-outlined" style="font-size: 19px;">group</span>
+          <span id="btnModalWatchChannelLabel">Ver con el canal</span>
+        </button>
+        <button id="btnModalWatchSolo" class="btn-secondary" disabled>
+          <span class="material-symbols-outlined" style="font-size: 19px;">play_arrow</span>
+          <span id="btnModalWatchSoloLabel">Ver en solitario</span>
+        </button>
+        <button id="btnModalFav" class="btn-fav">
+          <span class="material-symbols-outlined" style="font-size: 18px;">star_border</span>
+          <span id="btnModalFavLabel">Favorito</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ADMINISTRADOR DE ADDONS STREMIO -->
+  <div class="modal-overlay" id="addonsModal">
+    <div class="modal-card" style="max-height: 520px;">
+      <button class="modal-close-btn" id="addonsModalCloseBtn" title="Cerrar ventana">
+        <span class="material-symbols-outlined" style="font-size: 18px; line-height: 1;">close</span>
+      </button>
+      <div class="addons-manager-body">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="material-symbols-outlined" style="font-size: 28px; color: var(--accent);">extension</span>
+          <h2 id="addonsModalTitle" style="font-size: 20px; font-weight: 800; color: #cdd6f4;">Administrador de Addons de Stremio</h2>
+        </div>
+        <p id="addonsModalDesc" style="color: var(--text-muted); font-size: 13px; line-height: 1.5;">
+          Instala cualquier addon compatible con Stremio (Torrentio, CyberFlix, Anime Kitsu, etc.) pegando la URL de su <code style="color: #cdd6f4;">manifest.json</code>.
+        </p>
+
+        <div class="addons-input-row">
+          <input type="text" id="addonUrlInput" class="addons-input" placeholder="https://torrentio.strem.fun/manifest.json">
+          <button id="btnAddAddon" class="btn-play" style="min-width: auto; padding: 0 20px; font-size: 13px;">Instalar</button>
+        </div>
+        <div id="addonInstallStatus" style="font-size: 13px; display: none;"></div>
+
+        <h3 id="addonsInstalledTitle" style="font-size: 14.5px; font-weight: 700; margin-top: 4px;">Addons Instalados</h3>
+        <div class="addons-list" id="addonsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE AVISO / STREMIO ENGINE -->
+  <div class="modal-overlay" id="noticeModal">
+    <div class="modal-card" style="max-width: 500px; padding: 28px; text-align: center;">
+      <button class="modal-close-btn" id="noticeModalCloseBtn" title="Cerrar ventana">
+        <span class="material-symbols-outlined" style="font-size: 18px; line-height: 1;">close</span>
+      </button>
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;">
+        <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(243, 139, 168, 0.15); display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+          <span class="material-symbols-outlined" id="noticeModalIcon" style="font-size: 32px; color: var(--accent);">cloud_sync</span>
+        </div>
+        <h2 id="noticeModalTitle" style="font-size: 18px; font-weight: 800; color: #cdd6f4; margin: 0;">Aviso</h2>
+        <p id="noticeModalDesc" style="color: var(--text-muted); font-size: 13.5px; line-height: 1.55; white-space: pre-line; margin: 0;"></p>
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 8px;">
+          <button id="btnNoticeRetry" class="btn-play" style="display: none; padding: 10px 24px; font-size: 13.5px;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">refresh</span>
+            <span id="btnNoticeRetryLabel">Reintentar</span>
+          </button>
+          <button id="btnNoticeClose" class="btn-secondary" style="padding: 10px 24px; font-size: 13.5px;">
+            <span id="btnNoticeCloseLabel">Entendido</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // LÓGICA DEL LAUNCHER: HERO FIJO + CARRUSELES SCROLLABLES + STREMIO STREAMS
+    // =========================================================================
+    const DEFAULT_ADDONS = [
+      { id: "community.cinemeta", name: "Cinemeta", url: "https://v3-cinemeta.strem.io/manifest.json", isDefault: true },
+      { id: "torrentio", name: "Torrentio", url: "https://torrentio.strem.fun/manifest.json", isDefault: true },
+      { id: "org.stremio.opensubtitlesv3", name: "OpenSubtitles v3", url: "https://opensubtitles-v3.strem.io/manifest.json", isDefault: true },
+    ];
+
+    let installedAddons = [...DEFAULT_ADDONS];
+    try {
+      const stored = localStorage.getItem("onicord_cinema_addons");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) installedAddons = parsed;
+      }
+    } catch (_) {}
+
+    let serverFavorites = [];
+    try {
+      const storedFav = localStorage.getItem("onicord_cinema_favorites");
+      if (storedFav) serverFavorites = JSON.parse(storedFav);
+    } catch (_) {}
+
+    let currentHeroItem = null;
+    let selectedModalItem = null;
+    let selectedEpisode = null;
+    let selectedStream = null;
+    let currentActiveBg = "bgA";
+    let heroBgSeq = 0;
+    let hasDraggedRecently = false;
+
+    const cinemaSections = document.getElementById("cinemaSections");
+    const heroSection = document.getElementById("heroSection");
+    const cinemaTopbar = document.querySelector(".cinema-topbar");
+
+    // Reenviar scroll de rueda desde el Hero o Topbar directamente a los carruseles
+    function forwardWheelToSections(e) {
+      if (!cinemaSections) return;
+      if (Math.abs(e.deltaY) > 0) {
+        cinemaSections.scrollBy({ top: e.deltaY, behavior: "auto" });
+      }
+    }
+
+    heroSection?.addEventListener("wheel", forwardWheelToSections, { passive: true });
+    cinemaTopbar?.addEventListener("wheel", forwardWheelToSections, { passive: true });
+
+    // 1. SCROLL DE CARRUSELES SIN BLOQUEAR EL SCROLL VERTICAL DE LA PÁGINA
+    function updateCarouselArrows(sectionEl) {
+      const container = sectionEl.querySelector(".carousel-container");
+      const prevBtn = sectionEl.querySelector(".carousel-nav-btn.prev");
+      const nextBtn = sectionEl.querySelector(".carousel-nav-btn.next");
+      if (!container || !prevBtn || !nextBtn) return;
+
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      prevBtn.classList.toggle("hidden-nav", container.scrollLeft <= 8);
+      nextBtn.classList.toggle("hidden-nav", maxScroll <= 8 || container.scrollLeft >= maxScroll - 8);
+    }
+
+    function setupCarouselScroll(sectionEl) {
+      const container = sectionEl.querySelector(".carousel-container");
+      const prevBtn = sectionEl.querySelector(".carousel-nav-btn.prev");
+      const nextBtn = sectionEl.querySelector(".carousel-nav-btn.next");
+
+      if (!container) return;
+
+      // Interceptar solo Shift+Rueda para scroll horizontal manual del carrusel.
+      // La rueda normal vertical burbujea directamente hacia #cinemaSections.
+      container.addEventListener("wheel", (e) => {
+        if (e.shiftKey && Math.abs(e.deltaY) > 0) {
+          e.preventDefault();
+          container.scrollLeft += e.deltaY * 1.4;
+        }
+      }, { passive: false });
+
+      container.addEventListener("scroll", () => {
+        updateCarouselArrows(sectionEl);
+      }, { passive: true });
+
+      let isDown = false;
+      let startX = 0;
+      let scrollStart = 0;
+
+      container.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+        isDown = true;
+        hasDraggedRecently = false;
+        startX = e.pageX;
+        scrollStart = container.scrollLeft;
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isDown) {
+          isDown = false;
+          setTimeout(() => { hasDraggedRecently = false; }, 80);
+        }
+      });
+
+      container.addEventListener("mousemove", (e) => {
+        if (!isDown) return;
+        const delta = e.pageX - startX;
+        if (Math.abs(delta) > 6) {
+          hasDraggedRecently = true;
+        }
+        container.scrollLeft = scrollStart - delta;
+      });
+
+      if (prevBtn) {
+        prevBtn.addEventListener("click", () => {
+          const step = Math.max(container.clientWidth * 0.72, 340);
+          container.scrollBy({ left: -step, behavior: "smooth" });
+        });
+      }
+
+      if (nextBtn) {
+        nextBtn.addEventListener("click", () => {
+          const step = Math.max(container.clientWidth * 0.72, 340);
+          container.scrollBy({ left: step, behavior: "smooth" });
+        });
+      }
+
+      setTimeout(() => updateCarouselArrows(sectionEl), 150);
+    }
+
+    document.querySelectorAll(".carousel-section").forEach(setupCarouselScroll);
+    window.addEventListener("resize", () => {
+      document.querySelectorAll(".carousel-section").forEach(updateCarouselArrows);
+    });
+
+    // =========================================================================
+    // SINCRONIZACIÓN DE IDIOMA CON ONICORD (ES / EN / PT)
+    // =========================================================================
+    const GENRE_TRANSLATIONS = {
+      es: {
+        Action: "Acción", Adventure: "Aventura", Animation: "Animación", Biography: "Biografía",
+        Comedy: "Comedia", Crime: "Crimen", Documentary: "Documental", Drama: "Drama",
+        Family: "Familiar", Fantasy: "Fantasía", History: "Historia", Horror: "Terror",
+        Mystery: "Misterio", Romance: "Romance", "Sci-Fi": "Ciencia Ficción", Sport: "Deporte",
+        Thriller: "Suspenso", War: "Bélico", Western: "Western", "Reality-TV": "Reality",
+        "Talk-Show": "Talk Show", "Game-Show": "Concurso"
+      },
+      en: {},
+      pt: {
+        Action: "Ação", Adventure: "Aventura", Animation: "Animação", Biography: "Biografia",
+        Comedy: "Comédia", Crime: "Crime", Documentary: "Documentário", Drama: "Drama",
+        Family: "Família", Fantasy: "Fantasia", History: "História", Horror: "Terror",
+        Mystery: "Mistério", Romance: "Romance", "Sci-Fi": "Ficção Científica", Sport: "Esporte",
+        Thriller: "Suspense", War: "Guerra", Western: "Faroeste", "Reality-TV": "Reality",
+        "Talk-Show": "Talk Show", "Game-Show": "Game Show"
+      }
+    };
+
+    const CINEMA_I18N = {
+      es: {
+        searchPlaceholder: "Buscar películas, series, anime...",
+        clearSearch: "Limpiar búsqueda",
+        loadingCatalog: "Cargando catálogo...",
+        exploringCatalog: "Explorando el catálogo en vivo de películas y series...",
+        untitled: "Sin título",
+        defaultDescription: "Haz clic en 'Ver Opciones y Fuentes' para explorar las calidades de streaming y subtítulos disponibles.",
+        movie: "Película",
+        series: "Serie TV",
+        streamingP2P: "Streaming P2P",
+        viewOptions: "Ver Opciones y Fuentes",
+        favorite: "Favorito",
+        favorited: "En Favoritos",
+        favTooltip: "Guardar o quitar de los favoritos del servidor",
+        serverFavoriteTitle: "Favorito del Servidor",
+        prev: "Anterior",
+        next: "Siguiente",
+        continueWatching: "Seguir Viendo",
+        resume: "Reanudar",
+        removeFromContinue: "Quitar de Seguir Viendo",
+        remaining: "restante",
+        communityFavorites: "Favoritos de la Comunidad",
+        trendingToday: "Tendencias de Hoy",
+        newReleases: "Estrenos Recientes",
+        featuredMovies: "Películas Destacadas",
+        featuredSeries: "Series Destacadas",
+        titleSingular: "título",
+        titlePlural: "títulos",
+        resultSingular: "resultado",
+        resultPlural: "resultados",
+        emptyFavorites: "Aún no hay favoritos guardados en la comunidad. Pulsa el icono de estrella en cualquier película o serie para añadirla aquí.",
+        closeWindow: "Cerrar ventana",
+        loadingSynopsis: "Cargando sinopsis...",
+        seasonsAndEpisodes: "Temporadas y Episodios",
+        seasonNum: "Temporada",
+        episodeShort: "Capítulo",
+        episodeFallback: "Episodio",
+        availableStreams: "Fuentes de Streaming Disponibles",
+        searchingStreams: "Buscando fuentes en Torrentio y addons...",
+        noStreamsCount: "0 fuentes encontradas",
+        streamsAvailableCount: "fuentes disponibles",
+        noStreamsHint: "No se encontraron streams para este título. Asegúrate de tener instalado <strong>Torrentio</strong> desde el botón de Addons.",
+        watchWithChannel: "Ver con el canal",
+        watchSolo: "Ver en solitario",
+        noPlayableLink: "Esta fuente no cuenta con un enlace reproducible.",
+        watchingGroup: "Viendo en grupo",
+        watchingSolo: "Viendo en solitario",
+        addonsManagerTitle: "Administrador de Addons de Stremio",
+        addonsManagerDesc: "Instala cualquier addon compatible con Stremio (Torrentio, CyberFlix, Anime Kitsu, etc.) pegando la URL de su <code style=\"color: #cdd6f4;\">manifest.json</code>.",
+        installBtn: "Instalar",
+        installedAddonsTitle: "Addons Instalados",
+        officialBadge: "Oficial",
+        removeBtn: "Eliminar",
+        verifyingManifest: "Verificando manifiesto de Stremio...",
+        invalidManifest: "Manifiesto de Stremio inválido.",
+        addonInstalledOk: "¡Addon \"{name}\" instalado con éxito!",
+        addonLoadErr: "No se pudo cargar el addon",
+        searchResultsFor: "Resultados para \"{q}\"",
+        searching: "Buscando...",
+        searchingCinemeta: "Buscando en Cinemeta...",
+        noResultsFor: "No se encontraron resultados para \"{q}\".",
+        manageAddonsTooltip: "Administrar addons de Stremio",
+        communityFavsTooltip: "Favoritos de la comunidad",
+        stremioRequiredTitle: "Stremio en segundo plano requerido",
+        stremioRequiredDesc: "Esta fuente es un enlace Torrent y requiere que la aplicación de Stremio esté ejecutándose en segundo plano en tu equipo para procesar la transmisión P2P.\n\nPor favor, abre la aplicación de Stremio y vuelve a intentarlo, o selecciona otra fuente.",
+        retryBtn: "Reintentar",
+        understoodBtn: "Entendido"
+      },
+      en: {
+        searchPlaceholder: "Search movies, series, anime...",
+        clearSearch: "Clear search",
+        loadingCatalog: "Loading catalog...",
+        exploringCatalog: "Exploring live catalog of movies and TV series...",
+        untitled: "Untitled",
+        defaultDescription: "Click 'View Options & Sources' to browse available streaming qualities and subtitles.",
+        movie: "Movie",
+        series: "TV Series",
+        streamingP2P: "P2P Streaming",
+        viewOptions: "View Options & Sources",
+        favorite: "Favorite",
+        favorited: "Favorited",
+        favTooltip: "Add or remove from server favorites",
+        serverFavoriteTitle: "Server Favorite",
+        prev: "Previous",
+        next: "Next",
+        continueWatching: "Continue Watching",
+        resume: "Resume",
+        removeFromContinue: "Remove from Continue Watching",
+        remaining: "left",
+        communityFavorites: "Community Favorites",
+        trendingToday: "Trending Today",
+        newReleases: "New Releases",
+        featuredMovies: "Featured Movies",
+        featuredSeries: "Featured Series",
+        titleSingular: "title",
+        titlePlural: "titles",
+        resultSingular: "result",
+        resultPlural: "results",
+        emptyFavorites: "No community favorites saved yet. Click the star icon on any movie or series to add it here.",
+        closeWindow: "Close window",
+        loadingSynopsis: "Loading synopsis...",
+        seasonsAndEpisodes: "Seasons & Episodes",
+        seasonNum: "Season",
+        episodeShort: "Episode",
+        episodeFallback: "Episode",
+        availableStreams: "Available Streaming Sources",
+        searchingStreams: "Searching sources across Torrentio & addons...",
+        noStreamsCount: "0 sources found",
+        streamsAvailableCount: "sources available",
+        noStreamsHint: "No streams found for this title. Make sure <strong>Torrentio</strong> is installed via the Addons button.",
+        watchWithChannel: "Watch with channel",
+        watchSolo: "Watch solo",
+        noPlayableLink: "This source does not have a playable link.",
+        watchingGroup: "Watching together",
+        watchingSolo: "Watching solo",
+        addonsManagerTitle: "Stremio Addons Manager",
+        addonsManagerDesc: "Install any Stremio-compatible addon (Torrentio, CyberFlix, Anime Kitsu, etc.) by pasting its <code style=\"color: #cdd6f4;\">manifest.json</code> URL.",
+        installBtn: "Install",
+        installedAddonsTitle: "Installed Addons",
+        officialBadge: "Official",
+        removeBtn: "Remove",
+        verifyingManifest: "Verifying Stremio manifest...",
+        invalidManifest: "Invalid Stremio manifest.",
+        addonInstalledOk: "Addon \"{name}\" installed successfully!",
+        addonLoadErr: "Could not load addon",
+        searchResultsFor: "Results for \"{q}\"",
+        searching: "Searching...",
+        searchingCinemeta: "Searching Cinemeta...",
+        noResultsFor: "No results found for \"{q}\".",
+        manageAddonsTooltip: "Manage Stremio addons",
+        communityFavsTooltip: "Community favorites",
+        stremioRequiredTitle: "Stremio Background Required",
+        stremioRequiredDesc: "This stream source is a Torrent and requires the Stremio app to be running in the background on your computer to process P2P streaming.\n\nPlease open the Stremio application and try again, or select another source.",
+        retryBtn: "Retry",
+        understoodBtn: "Understood"
+      },
+      pt: {
+        searchPlaceholder: "Pesquisar filmes, séries, anime...",
+        clearSearch: "Limpar pesquisa",
+        loadingCatalog: "Carregando catálogo...",
+        exploringCatalog: "Explorando o catálogo ao vivo de filmes e séries...",
+        untitled: "Sem título",
+        defaultDescription: "Clique em 'Ver Opções e Fontes' para explorar as qualidades de streaming e legendas disponíveis.",
+        movie: "Filme",
+        series: "Série de TV",
+        streamingP2P: "Streaming P2P",
+        viewOptions: "Ver Opções e Fontes",
+        favorite: "Favorito",
+        favorited: "Nos Favoritos",
+        favTooltip: "Salvar ou remover dos favoritos do servidor",
+        serverFavoriteTitle: "Favorito do Servidor",
+        prev: "Anterior",
+        next: "Próximo",
+        continueWatching: "Continuar Assistindo",
+        resume: "Retomar",
+        removeFromContinue: "Remover de Continuar Assistindo",
+        remaining: "restante",
+        communityFavorites: "Favoritos da Comunidade",
+        trendingToday: "Em Alta Hoje",
+        newReleases: "Lançamentos Recentes",
+        featuredMovies: "Filmes em Destaque",
+        featuredSeries: "Séries em Destaque",
+        titleSingular: "título",
+        titlePlural: "títulos",
+        resultSingular: "resultado",
+        resultPlural: "resultados",
+        emptyFavorites: "Ainda não há favoritos salvos na comunidade. Clique no ícone de estrela em qualquer filme ou série para adicioná-lo aqui.",
+        closeWindow: "Fechar janela",
+        loadingSynopsis: "Carregando sinopse...",
+        seasonsAndEpisodes: "Temporadas e Episódios",
+        seasonNum: "Temporada",
+        episodeShort: "Capítulo",
+        episodeFallback: "Episódio",
+        availableStreams: "Fontes de Streaming Disponíveis",
+        searchingStreams: "Buscando fontes no Torrentio e addons...",
+        noStreamsCount: "0 fontes encontradas",
+        streamsAvailableCount: "fontes disponíveis",
+        noStreamsHint: "Nenhuma fonte encontrada para este título. Certifique-se de ter o <strong>Torrentio</strong> instalado no botão de Addons.",
+        watchWithChannel: "Assistir com o canal",
+        watchSolo: "Assistir sozinho",
+        noPlayableLink: "Esta fonte não possui um link reproduzível.",
+        watchingGroup: "Assistindo em grupo",
+        watchingSolo: "Assistindo sozinho",
+        addonsManagerTitle: "Gerenciador de Addons do Stremio",
+        addonsManagerDesc: "Instale qualquer addon compatível com o Stremio (Torrentio, CyberFlix, Anime Kitsu, etc.) colando a URL do seu <code style=\"color: #cdd6f4;\">manifest.json</code>.",
+        installBtn: "Instalar",
+        installedAddonsTitle: "Addons Instalados",
+        officialBadge: "Oficial",
+        removeBtn: "Remover",
+        verifyingManifest: "Verificando manifesto do Stremio...",
+        invalidManifest: "Manifesto do Stremio inválido.",
+        addonInstalledOk: "Addon \"{name}\" instalado com sucesso!",
+        addonLoadErr: "Não foi possível carregar o addon",
+        searchResultsFor: "Resultados para \"{q}\"",
+        searching: "Pesquisando...",
+        searchingCinemeta: "Pesquisando no Cinemeta...",
+        noResultsFor: "Nenhum resultado encontrado para \"{q}\".",
+        manageAddonsTooltip: "Gerenciar addons do Stremio",
+        communityFavsTooltip: "Favoritos da comunidade",
+        stremioRequiredTitle: "Stremio em segundo plano necessário",
+        stremioRequiredDesc: "Esta fonte é um link Torrent e requer que o aplicativo Stremio esteja em execução em segundo plano no seu computador para processar a transmissão P2P.\n\nPor favor, abra o aplicativo Stremio e tente novamente, ou selecione outra fonte.",
+        retryBtn: "Tentar novamente",
+        understoodBtn: "Entendi"
+      }
+    };
+
+    function detectInitialLang() {
+      try {
+        const stored = localStorage.getItem("onicord_language");
+        if (stored) {
+          const clean = stored.split("-")[0].toLowerCase();
+          if (CINEMA_I18N[clean]) return clean;
+        }
+      } catch (_) {}
+      const nav = (navigator.language || "es").split("-")[0].toLowerCase();
+      return CINEMA_I18N[nav] ? nav : "es";
+    }
+
+    let currentLang = detectInitialLang();
+
+    function t(key, vars = null) {
+      const dict = CINEMA_I18N[currentLang] || CINEMA_I18N.es;
+      let str = dict[key] || CINEMA_I18N.es[key] || key;
+      if (vars && typeof vars === "object") {
+        Object.keys(vars).forEach((k) => {
+          str = str.replace(`{${k}}`, vars[k]);
+        });
+      }
+      return str;
+    }
+
+    function translateGenres(genres) {
+      if (!Array.isArray(genres) || genres.length === 0) return "";
+      const map = GENRE_TRANSLATIONS[currentLang] || {};
+      return genres.map((g) => map[g] || g);
+    }
+
+    function formatTitleCount(count) {
+      return `${String(count).padStart(2, "0")} ${count === 1 ? t("titleSingular") : t("titlePlural")}`;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // 2. HELPER DE CARGA REST EN VIVO DE STREMIO (SIN CACHÉ ESTÁTICA)
+    async function fetchStremio(path, baseUrl = "https://v3-cinemeta.strem.io") {
+      try {
+        const res = await fetch(`${baseUrl}/${path}`, { cache: "no-store" });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch (e) {
+        console.warn("[Cinema] Error al conectar con catálogo Stremio:", e);
+        return null;
+      }
+    }
+
+    // 3. ACTUALIZACIÓN DEL HERO (FIJO EN EL VIEWPORT CON KEN BURNS Y DATOS EN VIVO)
+    function updateHero(item, activeCardEl = null) {
+      if (!item) return;
+      currentHeroItem = item;
+
+      document.getElementById("heroTitle").textContent = item.name || t("untitled");
+      document.getElementById("heroDescription").textContent = item.description || t("defaultDescription");
+      document.getElementById("heroRating").textContent = item.imdbRating || "8.0";
+      document.getElementById("heroYear").textContent = item.year || item.releaseInfo || String(new Date().getFullYear());
+      document.getElementById("heroType").textContent = item.type === "series" ? t("series") : t("movie");
+
+      const localizedGenres = translateGenres(item.genres);
+      const genresText = localizedGenres.length > 0
+        ? localizedGenres.slice(0, 3).join(" · ")
+        : t("streamingP2P");
+      document.getElementById("heroGenres").textContent = genresText;
+
+      document.querySelectorAll(".media-card.active").forEach(c => c.classList.remove("active"));
+      if (activeCardEl) {
+        activeCardEl.classList.add("active");
+      } else if (item.id) {
+        const matching = document.querySelector(`.media-card[data-id="${CSS.escape(item.id)}"]`);
+        if (matching) matching.classList.add("active");
+      }
+
+      const currBgEl = document.getElementById(currentActiveBg);
+
+      const bgUrl = item.background || item.poster || "";
+      if (bgUrl && currBgEl.dataset.currentSrc !== bgUrl) {
+        const seq = ++heroBgSeq;
+        const imgLoader = new Image();
+        imgLoader.onload = () => {
+          if (seq !== heroBgSeq) return;
+          const nextBgId = currentActiveBg === "bgA" ? "bgB" : "bgA";
+          const nextBgEl = document.getElementById(nextBgId);
+          const prevBgEl = document.getElementById(currentActiveBg);
+          nextBgEl.dataset.currentSrc = bgUrl;
+          nextBgEl.src = bgUrl;
+          nextBgEl.classList.add("active");
+          prevBgEl.classList.remove("active");
+          currentActiveBg = nextBgId;
+        };
+        imgLoader.src = bgUrl;
+      }
+
+      const isFav = serverFavorites.some(f => f.id === item.id);
+      const favBtn = document.getElementById("btnHeroFav");
+      favBtn.classList.toggle("favorited", isFav);
+      favBtn.querySelector(".material-symbols-outlined").textContent = isFav ? "star" : "star_border";
+      document.getElementById("btnHeroFavText").textContent = isFav ? t("favorited") : t("favorite");
+    }
+
+    // 3.5 SEGUIR VIENDO (CONTINUE WATCHING)
+    let continueWatchingList = [];
+
+    function loadContinueWatching() {
+      try {
+        const stored = localStorage.getItem("onicord_cinema_continue_watching");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            continueWatchingList = parsed.filter(item => {
+              if (!item || !item.id) return false;
+              if (item.progress && item.progress >= 0.95) return false;
+              if (item.duration > 0 && item.currentTime / item.duration >= 0.95) return false;
+              return true;
+            });
+            return;
+          }
+        }
+      } catch (_) {}
+      continueWatchingList = [];
+    }
+
+    function removeContinueWatchingItem(mediaId, e) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      continueWatchingList = continueWatchingList.filter(x => x.id !== mediaId);
+      try {
+        localStorage.setItem("onicord_cinema_continue_watching", JSON.stringify(continueWatchingList));
+      } catch (_) {}
+      renderContinueWatching();
+      window.parent.postMessage({
+        type: "ONICORD_CINEMA_CONTINUE_WATCHING_UPDATED"
+      }, "*");
+    }
+
+    function formatRemainingTime(item) {
+      if (!item.duration || item.duration <= 0 || !item.currentTime) return "";
+      const rem = Math.max(0, item.duration - item.currentTime);
+      if (rem >= 3600) {
+        const h = Math.floor(rem / 3600);
+        const m = Math.floor((rem % 3600) / 60);
+        return `${h}h ${m}m ${t("remaining")}`;
+      }
+      const m = Math.max(1, Math.floor(rem / 60));
+      return `${m}m ${t("remaining")}`;
+    }
+
+    function createContinueCard(item) {
+      const card = document.createElement("div");
+      card.className = "media-card";
+      card.dataset.id = item.id;
+      if (currentHeroItem && currentHeroItem.id === item.id) {
+        card.classList.add("active");
+      }
+
+      const isFav = serverFavorites.some(f => f.id === item.id);
+      const safeName = escapeHtml(item.name || item.title || "");
+      const safePoster = escapeHtml(item.poster || item.cover || "");
+      const safeDetails = item.details ? escapeHtml(item.details) : "";
+      const pct = Math.min(100, Math.max(5, Math.round((item.progress || (item.duration > 0 ? item.currentTime / item.duration : 0.1)) * 100)));
+      const timeBadge = formatRemainingTime(item);
+
+      card.innerHTML = `
+        <div class="media-card-poster-wrapper">
+          <img class="media-card-poster" src="${safePoster}" alt="${safeName}" loading="lazy">
+          <button class="media-card-dismiss-btn" title="${t("removeFromContinue")}">
+            <span class="material-symbols-outlined" style="font-size: 15px;">close</span>
+          </button>
+          <button class="media-card-fav-btn ${isFav ? 'favorited' : ''}" title="${t("serverFavoriteTitle")}">
+            <span class="material-symbols-outlined" style="font-size: 16px;">${isFav ? 'star' : 'star_border'}</span>
+          </button>
+          <div class="media-card-play-overlay">
+            <div class="play-icon-circle">
+              <span class="material-symbols-outlined" style="font-size: 24px;">play_arrow</span>
+            </div>
+          </div>
+          ${timeBadge ? `
+            <div class="media-card-resume-badge">
+              <span class="material-symbols-outlined" style="font-size: 12px;">history</span>
+              <span>${timeBadge}</span>
+            </div>
+          ` : ""}
+          <div class="media-card-progress">
+            <div class="media-card-progress-fill" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+        <div class="media-card-title">${safeName}</div>
+        ${safeDetails ? `<div class="media-card-subdetail">${safeDetails}</div>` : ""}
+      `;
+
+      const posterWrap = card.querySelector(".media-card-poster-wrapper");
+      const posterImg = card.querySelector(".media-card-poster");
+      if (posterImg && posterWrap) {
+        posterImg.onerror = () => {
+          posterWrap.style.background = "linear-gradient(135deg, #1e1e2e, #313244)";
+          posterImg.style.display = "none";
+          const fallbackEl = document.createElement("div");
+          fallbackEl.style.cssText = "display:flex;height:100%;align-items:center;justify-content:center;padding:10px;text-align:center;font-weight:700;font-size:12px;color:#cdd6f4;";
+          fallbackEl.textContent = item.name || item.title || "";
+          posterWrap.insertBefore(fallbackEl, posterWrap.firstChild);
+        };
+      }
+
+      card.addEventListener("mouseenter", () => {
+        updateHero(item, card);
+      });
+
+      card.addEventListener("click", (e) => {
+        if (hasDraggedRecently) return;
+        if (e.target.closest(".media-card-fav-btn")) return;
+        if (e.target.closest(".media-card-dismiss-btn")) return;
+        resumeMedia(item);
+      });
+
+      card.querySelector(".media-card-dismiss-btn").addEventListener("click", (e) => {
+        removeContinueWatchingItem(item.id, e);
+      });
+
+      card.querySelector(".media-card-fav-btn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleFavorite(item);
+      });
+
+      return card;
+    }
+
+    function resumeMedia(item) {
+      if (item.streamUrl || item.infoHash) {
+        const isChannel = Boolean(item.isChannel);
+        const stateLabel = isChannel ? t("watchingGroup") : t("watchingSolo");
+        window.parent.postMessage({
+          type: "ONICORD_STAGE_LAUNCH_GAME",
+          game: {
+            id: item.id,
+            title: item.title || item.name,
+            details: item.details || (item.year ? String(item.year) : t("movie")),
+            url: item.streamUrl || item.url,
+            streamUrl: item.streamUrl || item.url,
+            resumeTime: item.currentTime || item.resumeTime || 0,
+            duration: item.duration || 0,
+            infoHash: item.infoHash ? item.infoHash.toLowerCase() : undefined,
+            fileIdx: item.fileIdx ?? 0,
+            trackers: item.trackers || [],
+            cover: item.cover || item.poster,
+            banner: item.banner || item.background || item.poster,
+            logo: item.logo || null,
+            mediaType: "video",
+            type: item.type || "movie",
+            isCatalog: false,
+            isChannel: isChannel,
+            syncMode: isChannel ? "group" : "solo",
+            subtitles: item.subtitles || [],
+            activity: {
+              name: item.title || item.name,
+              details: "Cinema",
+              state: stateLabel,
+              cover: item.cover || item.poster,
+              type: "movie",
+              isCatalog: false,
+              startTime: Date.now() - ((item.currentTime || 0) * 1000),
+            }
+          }
+        }, "*");
+      } else {
+        openModal(item);
+      }
+    }
+
+    function renderContinueWatching() {
+      const section = document.getElementById("sectionContinue");
+      const track = document.getElementById("rowContinue");
+      const counter = document.getElementById("counterContinue");
+      if (!section || !track) return;
+      track.innerHTML = "";
+
+      const count = continueWatchingList.length;
+      if (counter) {
+        counter.dataset.count = String(count);
+        counter.textContent = formatTitleCount(count);
+      }
+
+      if (count === 0) {
+        section.style.display = "none";
+      } else {
+        section.style.display = "flex";
+        continueWatchingList.forEach((m) => {
+          track.appendChild(createContinueCard(m));
+        });
+      }
+      setTimeout(() => updateCarouselArrows(section), 60);
+    }
+
+    // 4. CREACIÓN DE TARJETAS (HOVER ACTUALIZA HERO, CLICK ABRE MODAL DE DETALLES)
+    function createMediaCard(item) {
+      const card = document.createElement("div");
+      card.className = "media-card";
+      card.dataset.id = item.id;
+      if (currentHeroItem && currentHeroItem.id === item.id) {
+        card.classList.add("active");
+      }
+
+      const isFav = serverFavorites.some(f => f.id === item.id);
+      const safeName = escapeHtml(item.name);
+      const safePoster = escapeHtml(item.poster || '');
+
+      card.innerHTML = `
+        <div class="media-card-poster-wrapper">
+          <img class="media-card-poster" src="${safePoster}" alt="${safeName}" loading="lazy">
+          <button class="media-card-fav-btn ${isFav ? 'favorited' : ''}" title="${t("serverFavoriteTitle")}">
+            <span class="material-symbols-outlined" style="font-size: 16px;">${isFav ? 'star' : 'star_border'}</span>
+          </button>
+        </div>
+        <div class="media-card-title">${safeName}</div>
+      `;
+
+      const posterWrap = card.querySelector(".media-card-poster-wrapper");
+      const posterImg = card.querySelector(".media-card-poster");
+      if (posterImg && posterWrap) {
+        posterImg.onerror = () => {
+          posterWrap.style.background = "linear-gradient(135deg, #1e1e2e, #313244)";
+          posterImg.style.display = "none";
+          const fallbackEl = document.createElement("div");
+          fallbackEl.style.cssText = "display:flex;height:100%;align-items:center;justify-content:center;padding:10px;text-align:center;font-weight:700;font-size:12px;color:#cdd6f4;";
+          fallbackEl.textContent = item.name || "";
+          posterWrap.insertBefore(fallbackEl, posterWrap.firstChild);
+        };
+      }
+
+      card.addEventListener("mouseenter", () => {
+        updateHero(item, card);
+      });
+
+      card.addEventListener("click", (e) => {
+        if (hasDraggedRecently) return;
+        if (e.target.closest(".media-card-fav-btn")) return;
+        openModal(item);
+      });
+
+      card.querySelector(".media-card-fav-btn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleFavorite(item);
+      });
+
+      return card;
+    }
+
+    // 5. GESTIÓN DE FAVORITOS DEL SERVIDOR (P2P)
+    function toggleFavorite(item) {
+      const idx = serverFavorites.findIndex(f => f.id === item.id);
+      if (idx >= 0) {
+        serverFavorites.splice(idx, 1);
+      } else {
+        serverFavorites.unshift({
+          id: item.id,
+          type: item.type,
+          name: item.name,
+          poster: item.poster,
+          background: item.background,
+          year: item.year,
+          imdbRating: item.imdbRating,
+          description: item.description,
+          genres: item.genres,
+        });
+      }
+
+      try {
+        localStorage.setItem("onicord_cinema_favorites", JSON.stringify(serverFavorites));
+      } catch (_) {}
+
+      window.parent.postMessage({
+        type: "ONICORD_CINEMA_FAVORITE_TOGGLE",
+        favorites: serverFavorites,
+        item,
+      }, "*");
+
+      renderFavorites();
+      const nowFav = serverFavorites.some(f => f.id === item.id);
+      document.querySelectorAll(`.media-card[data-id="${CSS.escape(item.id)}"] .media-card-fav-btn`).forEach(btn => {
+        btn.classList.toggle("favorited", nowFav);
+        const icon = btn.querySelector(".material-symbols-outlined");
+        if (icon) icon.textContent = nowFav ? "star" : "star_border";
+      });
+
+      if (currentHeroItem?.id === item.id) updateHero(item);
+      if (selectedModalItem?.id === item.id) updateModalFavButton();
+    }
+
+    function renderFavorites(forceShowEmpty = false) {
+      const section = document.getElementById("sectionFavorites");
+      const track = document.getElementById("rowFavorites");
+      const counter = document.getElementById("counterFavorites");
+      track.innerHTML = "";
+
+      const count = serverFavorites.length;
+      counter.dataset.count = String(count);
+      counter.textContent = formatTitleCount(count);
+
+      if (count === 0) {
+        if (forceShowEmpty) {
+          section.style.display = "flex";
+          track.innerHTML = `<div style="color: var(--text-muted); font-size: 13px; padding: 10px 0;">${t("emptyFavorites")}</div>`;
+        } else {
+          section.style.display = "none";
+        }
+      } else {
+        section.style.display = "flex";
+        serverFavorites.forEach((m) => {
+          track.appendChild(createMediaCard(m));
+        });
+      }
+      setTimeout(() => updateCarouselArrows(section), 60);
+    }
+
+    // 6. APERTURA DEL MODAL DE DETALLES, EPISODIOS Y FUENTES (STREMIO WAY)
+    async function openModal(item) {
+      selectedModalItem = { ...item };
+      if (!selectedModalItem.logo && item.id) {
+        selectedModalItem.logo = `https://images.metahub.space/logo/medium/${item.id}/img`;
+      }
+      selectedEpisode = null;
+      selectedStream = null;
+
+      const modal = document.getElementById("detailModal");
+      document.getElementById("modalTitle").textContent = item.name;
+      document.getElementById("modalSynopsis").textContent = item.description || t("loadingSynopsis");
+      document.getElementById("modalRating").textContent = `★ ${item.imdbRating || '8.0'}`;
+      document.getElementById("modalYear").textContent = item.year || item.releaseInfo || String(new Date().getFullYear());
+      const localizedGenres = translateGenres(item.genres);
+      document.getElementById("modalGenres").textContent = localizedGenres.length > 0
+        ? localizedGenres.join(" · ")
+        : (item.type === "series" ? t("series") : t("movie"));
+
+      document.getElementById("modalPoster").src = item.poster || "";
+      document.getElementById("modalBackdrop").src = item.background || item.poster || "";
+
+      document.getElementById("btnModalWatchChannel").disabled = true;
+      document.getElementById("btnModalWatchSolo").disabled = true;
+
+      updateModalFavButton();
+      modal.classList.add("open");
+
+      const fullMetaRes = await fetchStremio(`meta/${item.type}/${item.id}.json`);
+      if (fullMetaRes && fullMetaRes.meta) {
+        selectedModalItem = { ...selectedModalItem, ...fullMetaRes.meta };
+        if (!selectedModalItem.logo && item.id) {
+          selectedModalItem.logo = `https://images.metahub.space/logo/medium/${item.id}/img`;
+        }
+        if (fullMetaRes.meta.description) {
+          document.getElementById("modalSynopsis").textContent = fullMetaRes.meta.description;
+        }
+
+        const epBlock = document.getElementById("seriesEpisodesBlock");
+        if (fullMetaRes.meta.type === "series" && Array.isArray(fullMetaRes.meta.videos) && fullMetaRes.meta.videos.length > 0) {
+          epBlock.style.display = "flex";
+          setupSeriesEpisodes(fullMetaRes.meta.videos);
+        } else {
+          epBlock.style.display = "none";
+          loadStreamsForTarget("movie", item.id);
+        }
+      } else {
+        loadStreamsForTarget("movie", item.id);
+      }
+    }
+
+    function setupSeriesEpisodes(videos) {
+      const seasonSelect = document.getElementById("modalSeasonSelect");
+      const grid = document.getElementById("modalEpisodesGrid");
+      seasonSelect.innerHTML = "";
+
+      const seasons = {};
+      videos.forEach(v => {
+        const s = v.season || 1;
+        if (!seasons[s]) seasons[s] = [];
+        seasons[s].push(v);
+      });
+
+      Object.keys(seasons).sort((a,b) => a - b).forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = s;
+        opt.textContent = `${t("seasonNum")} ${s}`;
+        seasonSelect.appendChild(opt);
+      });
+
+      const renderGrid = (s) => {
+        grid.innerHTML = "";
+        const eps = seasons[s] || [];
+        eps.forEach(ep => {
+          const card = document.createElement("div");
+          card.className = "episode-card";
+          const epName = ep.title || ep.name || `${t("episodeFallback")} ${ep.episode}`;
+          card.innerHTML = `
+            <span class="episode-num">${t("episodeShort")} ${escapeHtml(String(ep.episode))}</span>
+            <span class="episode-name">${escapeHtml(epName)}</span>
+          `;
+          card.addEventListener("click", () => {
+            grid.querySelectorAll(".episode-card").forEach(c => c.classList.remove("selected"));
+            card.classList.add("selected");
+            selectedEpisode = ep;
+            loadStreamsForTarget("series", `${selectedModalItem.id}:${ep.season}:${ep.episode}`);
+          });
+          grid.appendChild(card);
+        });
+
+        if (eps.length > 0) {
+          grid.children[0].classList.add("selected");
+          selectedEpisode = eps[0];
+          loadStreamsForTarget("series", `${selectedModalItem.id}:${eps[0].season}:${eps[0].episode}`);
+        }
+      };
+
+      seasonSelect.onchange = () => renderGrid(seasonSelect.value);
+      if (seasonSelect.value) renderGrid(seasonSelect.value);
+    }
+
+    // 7. CONSULTAR FUENTES (STREAMS) EN TODOS LOS ADDONS INSTALADOS
+    async function loadStreamsForTarget(type, id) {
+      const streamsListEl = document.getElementById("modalStreamsList");
+      const streamsStatus = document.getElementById("streamsStatus");
+      streamsListEl.innerHTML = "";
+      streamsStatus.textContent = t("searchingStreams");
+      document.getElementById("btnModalWatchChannel").disabled = true;
+      document.getElementById("btnModalWatchSolo").disabled = true;
+
+      const foundStreams = [];
+
+      for (const addon of installedAddons) {
+        const base = addon.url.replace(/\/manifest\.json$/i, "").replace(/\/+$/, "");
+        try {
+          const res = await fetch(`${base}/stream/${type}/${encodeURIComponent(id)}.json`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.streams)) {
+              data.streams.forEach(s => {
+                foundStreams.push({
+                  ...s,
+                  addonName: addon.name || "Stremio Addon",
+                });
+              });
+            }
+          }
+        } catch (err) {
+          console.warn(`[Cinema] Error consultando streams en ${addon.name}:`, err);
+        }
+      }
+
+      streamsListEl.innerHTML = "";
+
+      if (foundStreams.length === 0) {
+        streamsStatus.textContent = t("noStreamsCount");
+        streamsListEl.innerHTML = `
+          <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; color: var(--text-muted); font-size: 12.5px;">
+            ${t("noStreamsHint")}
+          </div>
+        `;
+        return;
+      }
+
+      streamsStatus.textContent = `${foundStreams.length} ${t("streamsAvailableCount")}`;
+
+      foundStreams.forEach((stream) => {
+        const item = document.createElement("div");
+        item.className = "stream-item";
+
+        const streamName = stream.name || stream.addonName || "Stream";
+        const titleLines = (stream.title || "").split("\n");
+        const fileInfo = titleLines[0] || streamName;
+        const extraInfo = titleLines.slice(1).join(" • ");
+
+        let qBadge = "1080p";
+        const fullTxt = (streamName + " " + (stream.title || "")).toLowerCase();
+        if (fullTxt.includes("4k") || fullTxt.includes("2160p")) qBadge = "4K";
+        else if (fullTxt.includes("1080p")) qBadge = "1080p";
+        else if (fullTxt.includes("720p")) qBadge = "720p";
+        else if (fullTxt.includes("480p")) qBadge = "480p";
+        else if (fullTxt.includes("cam") || fullTxt.includes("telesync")) qBadge = "CAM";
+
+        const safeFileInfo = escapeHtml(fileInfo);
+        const safeExtraInfo = escapeHtml(extraInfo || stream.addonName);
+
+        item.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+            <span class="stream-quality-badge ${qBadge === '4K' ? 'q4k' : ''}">${escapeHtml(qBadge)}</span>
+            <div style="overflow: hidden;">
+              <div class="stream-title-text" title="${safeFileInfo}">${safeFileInfo}</div>
+              <div class="stream-meta-text">${safeExtraInfo}</div>
+            </div>
+          </div>
+          <span class="material-symbols-outlined" style="color: var(--text-muted); font-size: 19px; flex-shrink: 0;">play_circle</span>
+        `;
+
+        item.addEventListener("click", () => {
+          streamsListEl.querySelectorAll(".stream-item").forEach(el => el.classList.remove("selected"));
+          item.classList.add("selected");
+          selectedStream = stream;
+          document.getElementById("btnModalWatchChannel").disabled = false;
+          document.getElementById("btnModalWatchSolo").disabled = false;
+        });
+
+        streamsListEl.appendChild(item);
+      });
+
+      if (foundStreams.length > 0) {
+        streamsListEl.children[0].click();
+      }
+    }
+
+    // 8. LANZAR REPRODUCCIÓN HACIA ONICORD CON LA FLOATINGMEDIABAR REAL
+    async function executeLaunch(isChannel = true) {
+      if (!selectedModalItem || !selectedStream) return;
+
+      let streamUrl = selectedStream.url;
+      const fileIdx = selectedStream.fileIdx !== undefined ? selectedStream.fileIdx : 0;
+      const trackers = Array.isArray(selectedStream.sources) ? selectedStream.sources : [];
+
+      if (!streamUrl && selectedStream.infoHash) {
+        const params = new URLSearchParams();
+        trackers.forEach(src => {
+          if (typeof src === "string" && src.startsWith("tracker:")) {
+            params.append("tr", src.replace(/^tracker:/i, ""));
+          }
+        });
+        const qs = params.toString();
+        streamUrl = `http://127.0.0.1:42883/torrent/${selectedStream.infoHash.toLowerCase()}/${fileIdx}${qs ? `?${qs}` : ""}`;
+      }
+
+      if (!streamUrl) {
+        openNoticeModal({
+          title: t("untitled"),
+          desc: t("noPlayableLink"),
+          icon: "error_outline",
+          showRetry: false
+        });
+        return;
+      }
+
+      let fetchedSubs = [];
+      try {
+        const targetId = selectedEpisode
+          ? `${selectedModalItem.id}:${selectedEpisode.season}:${selectedEpisode.episode}`
+          : selectedModalItem.id;
+        const subRes = await fetch(`https://opensubtitles-v3.strem.io/subtitles/${selectedModalItem.type}/${encodeURIComponent(targetId)}.json`);
+        if (subRes.ok) {
+          const subData = await subRes.json();
+          if (Array.isArray(subData.subtitles)) {
+            fetchedSubs = subData.subtitles.map(s => ({
+              id: s.id || s.lang,
+              label: s.lang ? s.lang.toUpperCase() : "SUB",
+              lang: s.lang || "es",
+              subtitleFileName: s.subtitleFileName || "",
+              url: s.url,
+            }));
+          }
+        }
+      } catch (_) {}
+
+      const itemLogo = selectedModalItem.logo || (selectedModalItem.id ? `https://images.metahub.space/logo/medium/${selectedModalItem.id}/img` : null);
+      const stateLabel = isChannel ? t("watchingGroup") : t("watchingSolo");
+
+      let expectedDuration = 0;
+      const targetRuntime = (selectedEpisode && selectedEpisode.runtime) || selectedModalItem.runtime;
+      if (typeof targetRuntime === "number" && targetRuntime > 0) {
+        expectedDuration = targetRuntime > 500 ? targetRuntime : targetRuntime * 60;
+      } else if (typeof targetRuntime === "string") {
+        const m = targetRuntime.match(/(\d+)/);
+        if (m) {
+          expectedDuration = parseInt(m[1], 10) * 60;
+        }
+      }
+
+      window.parent.postMessage({
+        type: "ONICORD_STAGE_LAUNCH_GAME",
+        game: {
+          id: selectedModalItem.id,
+          title: selectedModalItem.name,
+          details: selectedEpisode ? `S${selectedEpisode.season} E${selectedEpisode.episode} - ${selectedEpisode.title || t("episodeShort")}` : (selectedModalItem.year ? String(selectedModalItem.year) : t("movie")),
+          url: streamUrl,
+          streamUrl: streamUrl,
+          duration: expectedDuration,
+          infoHash: selectedStream.infoHash ? selectedStream.infoHash.toLowerCase() : undefined,
+          fileIdx: fileIdx,
+          trackers: trackers,
+          cover: selectedModalItem.poster,
+          banner: selectedModalItem.background || selectedModalItem.poster,
+          logo: itemLogo,
+          mediaType: "video",
+          type: "movie",
+          isCatalog: false,
+          isChannel: Boolean(isChannel),
+          syncMode: isChannel ? "group" : "solo",
+          subtitles: fetchedSubs,
+          activity: {
+            name: selectedModalItem.name,
+            details: "Cinema",
+            state: stateLabel,
+            cover: selectedModalItem.poster,
+            type: "movie",
+            isCatalog: false,
+            startTime: Date.now(),
+          }
+        }
+      }, "*");
+
+      closeModal();
+    }
+
+    document.getElementById("btnModalWatchChannel").onclick = () => executeLaunch(true);
+    document.getElementById("btnModalWatchSolo").onclick = () => executeLaunch(false);
+    document.getElementById("btnHeroOpenDetails").onclick = () => {
+      if (currentHeroItem) openModal(currentHeroItem);
+    };
+
+    function updateModalFavButton() {
+      const isFav = serverFavorites.some(f => f.id === selectedModalItem?.id);
+      const btn = document.getElementById("btnModalFav");
+      btn.classList.toggle("favorited", isFav);
+      btn.querySelector(".material-symbols-outlined").textContent = isFav ? "star" : "star_border";
+      btn.querySelector("span:not(.material-symbols-outlined)").textContent = isFav ? t("favorited") : t("favorite");
+    }
+
+    document.getElementById("btnModalFav").onclick = () => {
+      if (selectedModalItem) toggleFavorite(selectedModalItem);
+    };
+    document.getElementById("btnHeroFav").onclick = () => {
+      if (currentHeroItem) toggleFavorite(currentHeroItem);
+    };
+
+    // MODAL DE AVISO / STREMIO ENGINE
+    let noticeRetryCallback = null;
+    function openNoticeModal({ title, desc, icon = "cloud_sync", showRetry = false, onRetry = null }) {
+      const modal = document.getElementById("noticeModal");
+      document.getElementById("noticeModalTitle").textContent = title || "Aviso";
+      document.getElementById("noticeModalDesc").textContent = desc || "";
+      document.getElementById("noticeModalIcon").textContent = icon;
+      const btnRetry = document.getElementById("btnNoticeRetry");
+      document.getElementById("btnNoticeCloseLabel").textContent = t("understoodBtn") || "Entendido";
+      document.getElementById("btnNoticeRetryLabel").textContent = t("retryBtn") || "Reintentar";
+      if (showRetry && onRetry) {
+        btnRetry.style.display = "inline-flex";
+        noticeRetryCallback = onRetry;
+      } else {
+        btnRetry.style.display = "none";
+        noticeRetryCallback = null;
+      }
+      modal.classList.add("open");
+    }
+
+    function closeNoticeModal() {
+      document.getElementById("noticeModal").classList.remove("open");
+      noticeRetryCallback = null;
+    }
+
+    document.getElementById("noticeModalCloseBtn").onclick = closeNoticeModal;
+    document.getElementById("btnNoticeClose").onclick = closeNoticeModal;
+    document.getElementById("btnNoticeRetry").onclick = () => {
+      closeNoticeModal();
+      if (typeof noticeRetryCallback === "function") {
+        noticeRetryCallback();
+      }
+    };
+    document.getElementById("noticeModal").onclick = (e) => {
+      if (e.target.id === "noticeModal") closeNoticeModal();
+    };
+
+    function closeModal() {
+      document.getElementById("detailModal").classList.remove("open");
+    }
+
+    document.getElementById("modalCloseBtn").onclick = closeModal;
+    document.getElementById("detailModal").onclick = (e) => {
+      if (e.target.id === "detailModal") closeModal();
+    };
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (document.getElementById("noticeModal").classList.contains("open")) {
+          closeNoticeModal();
+        } else if (document.getElementById("detailModal").classList.contains("open")) {
+          closeModal();
+        } else if (document.getElementById("addonsModal").classList.contains("open")) {
+          document.getElementById("addonsModal").classList.remove("open");
+        }
+      }
+    });
+
+    // 9. ADMINISTRADOR DE ADDONS DE STREMIO (MODAL)
+    const addonsModal = document.getElementById("addonsModal");
+    const btnCloseAddons = document.getElementById("addonsModalCloseBtn");
+
+    function renderAddonsList() {
+      const list = document.getElementById("addonsList");
+      list.innerHTML = "";
+
+      installedAddons.forEach((addon, idx) => {
+        const item = document.createElement("div");
+        item.className = "addon-item";
+        const safeAddonName = escapeHtml(addon.name);
+        const safeAddonUrl = escapeHtml(addon.url);
+        item.innerHTML = `
+          <div style="overflow: hidden;">
+            <div style="font-weight: 700; color: #cdd6f4; font-size: 13.5px;">${safeAddonName}</div>
+            <div style="font-size: 11px; color: var(--text-muted); word-break: break-all;">${safeAddonUrl}</div>
+          </div>
+          ${addon.isDefault ? `<span style="font-size: 11px; color: #a6e3a1; font-weight: 700; flex-shrink: 0;">${t("officialBadge")}</span>` : `<button class="btn-fav" style="min-width: auto; height: 32px; padding: 0 12px; font-size: 12px; flex-shrink: 0;" onclick="removeAddon(${idx})">${t("removeBtn")}</button>`}
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    window.removeAddon = (idx) => {
+      installedAddons.splice(idx, 1);
+      try { localStorage.setItem("onicord_cinema_addons", JSON.stringify(installedAddons)); } catch (_) {}
+      renderAddonsList();
+      loadCustomAddonCatalogs();
+    };
+
+    btnCloseAddons.onclick = () => addonsModal.classList.remove("open");
+    addonsModal.onclick = (e) => { if (e.target.id === "addonsModal") addonsModal.classList.remove("open"); };
+
+    document.getElementById("btnAddAddon").onclick = async () => {
+      const urlInput = document.getElementById("addonUrlInput");
+      const statusEl = document.getElementById("addonInstallStatus");
+      const url = urlInput.value.trim();
+
+      if (!url) return;
+
+      statusEl.style.display = "block";
+      statusEl.style.color = "var(--text-muted)";
+      statusEl.textContent = t("verifyingManifest");
+
+      try {
+        const res = await fetch(url);
+        const manifest = await res.json();
+
+        if (!manifest || !manifest.id || !manifest.name) {
+          throw new Error(t("invalidManifest"));
+        }
+
+        installedAddons.push({
+          id: manifest.id,
+          name: manifest.name,
+          url: url,
+          isDefault: false,
+        });
+
+        try { localStorage.setItem("onicord_cinema_addons", JSON.stringify(installedAddons)); } catch (_) {}
+
+        statusEl.style.color = "#a6e3a1";
+        statusEl.textContent = t("addonInstalledOk", { name: manifest.name });
+        urlInput.value = "";
+        renderAddonsList();
+        loadCustomAddonCatalogs();
+      } catch (err) {
+        statusEl.style.color = "#f38ba8";
+        statusEl.textContent = `Error: ${err.message || t("addonLoadErr")}`;
+      }
+    };
+
+    // Registrar acciones del encabezado para el Stage agnóstico
+    function registerStageActions() {
+      if (window.parent) {
+        window.parent.postMessage({
+          type: "ONICORD_STAGE_SET_ACTIONS",
+          actions: [
+            {
+              id: "addons",
+              icon: "extension",
+              title: t("manageAddonsTooltip")
+            },
+            {
+              id: "favorites",
+              icon: "star",
+              title: t("communityFavsTooltip")
+            }
+          ]
+        }, "*");
+      }
+    }
+
+    function applyLanguage(lang) {
+      if (!lang) return;
+      const normalized = String(lang).split("-")[0].toLowerCase();
+      const targetLang = CINEMA_I18N[normalized] ? normalized : "es";
+      const changed = targetLang !== currentLang;
+      currentLang = targetLang;
+      document.documentElement.lang = currentLang;
+
+      const searchInp = document.getElementById("searchInput");
+      const searchClr = document.getElementById("searchClear");
+      if (searchInp) searchInp.placeholder = t("searchPlaceholder");
+      if (searchClr) searchClr.title = t("clearSearch");
+
+      const heroOpenLbl = document.getElementById("btnHeroOpenDetailsLabel");
+      const heroFavBtn = document.getElementById("btnHeroFav");
+      if (heroOpenLbl) heroOpenLbl.textContent = t("viewOptions");
+      if (heroFavBtn) heroFavBtn.title = t("favTooltip");
+
+      if (!currentHeroItem) {
+        document.getElementById("heroTitle").textContent = t("loadingCatalog");
+        document.getElementById("heroDescription").textContent = t("exploringCatalog");
+        document.getElementById("heroType").textContent = t("movie");
+      } else {
+        updateHero(currentHeroItem);
+      }
+
+      const titleCont = document.getElementById("titleContinue");
+      const titleFavs = document.getElementById("titleFavorites");
+      const titleTrend = document.getElementById("titleTrending");
+      const titleNew = document.getElementById("titleNewReleases");
+      const titleMov = document.getElementById("titleTopMovies");
+      const titleSer = document.getElementById("titleTopSeries");
+      if (titleCont) titleCont.textContent = t("continueWatching");
+      if (titleFavs) titleFavs.textContent = t("communityFavorites");
+      if (titleTrend) titleTrend.textContent = t("trendingToday");
+      if (titleNew) titleNew.textContent = t("newReleases");
+      if (titleMov) titleMov.textContent = t("featuredMovies");
+      if (titleSer) titleSer.textContent = t("featuredSeries");
+
+      ["counterContinue", "counterTrending", "counterNewReleases", "counterTopMovies", "counterTopSeries", "counterFavorites"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el && el.dataset.count !== undefined) {
+          el.textContent = formatTitleCount(Number(el.dataset.count));
+        }
+      });
+
+      document.querySelectorAll(".carousel-nav-btn.prev").forEach((b) => b.setAttribute("aria-label", t("prev")));
+      document.querySelectorAll(".carousel-nav-btn.next").forEach((b) => b.setAttribute("aria-label", t("next")));
+      document.querySelectorAll(".media-card-fav-btn").forEach((b) => { b.title = t("serverFavoriteTitle"); });
+
+      document.getElementById("modalCloseBtn").title = t("closeWindow");
+      document.getElementById("addonsModalCloseBtn").title = t("closeWindow");
+      document.getElementById("modalSeasonsHeader").textContent = t("seasonsAndEpisodes");
+      document.getElementById("modalStreamsHeader").textContent = t("availableStreams");
+      document.getElementById("btnModalWatchChannelLabel").textContent = t("watchWithChannel");
+      document.getElementById("btnModalWatchSoloLabel").textContent = t("watchSolo");
+      updateModalFavButton();
+
+      document.getElementById("addonsModalTitle").textContent = t("addonsManagerTitle");
+      document.getElementById("addonsModalDesc").innerHTML = t("addonsManagerDesc");
+      document.getElementById("btnAddAddon").textContent = t("installBtn");
+      document.getElementById("addonsInstalledTitle").textContent = t("installedAddonsTitle");
+      if (addonsModal.classList.contains("open")) {
+        renderAddonsList();
+      }
+
+      if (document.getElementById("sectionFavorites").style.display !== "none" && serverFavorites.length === 0) {
+        renderFavorites(true);
+      }
+
+      if (changed) {
+        registerStageActions();
+      }
+    }
+
+    // Mensajes recibidos desde el host (AddonStageDisplay)
+    window.addEventListener("message", (ev) => {
+      if (!ev.data) return;
+
+      if (ev.data.type === "ONICORD_STAGE_CONTEXT" && ev.data.language) {
+        applyLanguage(ev.data.language);
+      } else if (ev.data.type === "ONICORD_STAGE_ACTION_CLICK") {
+        if (ev.data.actionId === "addons") {
+          renderAddonsList();
+          addonsModal.classList.add("open");
+        } else if (ev.data.actionId === "favorites") {
+          renderFavorites(true);
+          const sec = document.getElementById("sectionFavorites");
+          if (sec && cinemaSections) {
+            cinemaSections.scrollTo({ top: sec.offsetTop - 8, behavior: "smooth" });
+          }
+        }
+      } else if (ev.data.type === "ONICORD_OPEN_STREMIO_ADDONS_MODAL") {
+        renderAddonsList();
+        addonsModal.classList.add("open");
+      } else if (ev.data.type === "ONICORD_SCROLL_TO_FAVORITES") {
+        renderFavorites(true);
+        const sec = document.getElementById("sectionFavorites");
+        if (sec && cinemaSections) {
+          cinemaSections.scrollTo({ top: sec.offsetTop - 8, behavior: "smooth" });
+        }
+      }
+    });
+
+    window.addEventListener("storage", (ev) => {
+      if (ev.key === "onicord_language" && ev.newValue) {
+        applyLanguage(ev.newValue);
+      }
+    });
+
+    // 10. BÚSQUEDA CON SECCIÓN DEDICADA Y CONTADOR
+    let searchTimeout = null;
+    const searchInput = document.getElementById("searchInput");
+    const searchClear = document.getElementById("searchClear");
+    const sectionSearch = document.getElementById("sectionSearch");
+
+    searchInput.addEventListener("input", (e) => {
+      const q = e.target.value.trim();
+      searchClear.style.display = q ? "flex" : "none";
+      if (searchTimeout) clearTimeout(searchTimeout);
+
+      searchTimeout = setTimeout(async () => {
+        if (!q) {
+          sectionSearch.style.display = "none";
+          return;
+        }
+
+        sectionSearch.style.display = "flex";
+        document.getElementById("searchSectionTitle").textContent = t("searchResultsFor", { q });
+        document.getElementById("counterSearch").textContent = t("searching");
+        const track = document.getElementById("rowSearch");
+        track.innerHTML = `<div style="color: var(--text-muted); font-size: 13px; padding: 10px 0;">${t("searchingCinemeta")}</div>`;
+
+        const [movies, series] = await Promise.all([
+          fetchStremio(`catalog/movie/top/search=${encodeURIComponent(q)}.json`),
+          fetchStremio(`catalog/series/top/search=${encodeURIComponent(q)}.json`),
+        ]);
+
+        const allResults = [...(movies?.metas || []), ...(series?.metas || [])];
+        track.innerHTML = "";
+        const count = allResults.length;
+        document.getElementById("counterSearch").textContent = `${String(count).padStart(2, "0")} ${count === 1 ? t("resultSingular") : t("resultPlural")}`;
+
+        if (count > 0) {
+          cinemaSections?.scrollTo({ top: 0, behavior: "smooth" });
+          updateHero(allResults[0]);
+          allResults.forEach((m) => track.appendChild(createMediaCard(m)));
+        } else {
+          track.innerHTML = `<div style="color: var(--text-muted); font-size: 13px; padding: 10px 0;">${t("noResultsFor", { q: escapeHtml(q) })}</div>`;
+        }
+        setTimeout(() => updateCarouselArrows(sectionSearch), 80);
+      }, 320);
+    });
+
+    searchClear.addEventListener("click", () => {
+      searchInput.value = "";
+      searchClear.style.display = "none";
+      sectionSearch.style.display = "none";
+    });
+
+    // 11. CATÁLOGOS EN VIVO CON AUTO-ACTUALIZACIÓN PERIÓDICA Y DEDUPLICACIÓN
+    let lastCatalogRefreshAt = 0;
+    let isRefreshingCatalogs = false;
+    const CATALOG_REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min
+    const CATALOG_FOCUS_REFRESH_MS = 5 * 60 * 1000;     // 5 min al volver al foco
+
+    function interleaveUnique(listA, listB, seenIds, maxCount = 24) {
+      const result = [];
+      const maxLen = Math.max(listA.length, listB.length);
+      for (let i = 0; i < maxLen && result.length < maxCount; i++) {
+        if (i < listA.length && listA[i]?.id && !seenIds.has(listA[i].id)) {
+          seenIds.add(listA[i].id);
+          result.push(listA[i]);
+        }
+        if (result.length < maxCount && i < listB.length && listB[i]?.id && !seenIds.has(listB[i].id)) {
+          seenIds.add(listB[i].id);
+          result.push(listB[i]);
+        }
+      }
+      return result;
+    }
+
+    function takeUnique(items, seenIds, maxCount = 24) {
+      const result = [];
+      for (const item of items) {
+        if (!item?.id || seenIds.has(item.id)) continue;
+        seenIds.add(item.id);
+        result.push(item);
+        if (result.length >= maxCount) break;
+      }
+      return result;
+    }
+
+    function populateCarouselRow(sectionId, trackId, counterId, items) {
+      const section = document.getElementById(sectionId);
+      const track = document.getElementById(trackId);
+      const counter = document.getElementById(counterId);
+      const container = section?.querySelector(".carousel-container");
+      if (!section || !track || !counter) return;
+
+      const prevScroll = container ? container.scrollLeft : 0;
+      track.innerHTML = "";
+      items.forEach((m) => track.appendChild(createMediaCard(m)));
+      counter.dataset.count = String(items.length);
+      counter.textContent = formatTitleCount(items.length);
+      section.style.display = items.length > 0 ? "flex" : "none";
+
+      if (container && prevScroll > 0) {
+        container.scrollLeft = prevScroll;
+      }
+      setTimeout(() => updateCarouselArrows(section), 80);
+    }
+
+    async function loadCustomAddonCatalogs() {
+      const host = document.getElementById("customAddonCatalogs");
+      if (!host) return;
+      host.innerHTML = "";
+
+      const customAddons = installedAddons.filter((a) => !a.isDefault && a.url);
+      for (const addon of customAddons) {
+        try {
+          const manifestRes = await fetch(addon.url, { cache: "no-store" });
+          if (!manifestRes.ok) continue;
+          const manifest = await manifestRes.json();
+          const catalogs = Array.isArray(manifest.catalogs) ? manifest.catalogs : [];
+          const base = addon.url.replace(/\/manifest\.json$/i, "").replace(/\/+$/, "");
+
+          for (const cat of catalogs.slice(0, 3)) {
+            const hasRequiredExtra = Array.isArray(cat.extra) && cat.extra.some((ex) => ex.isRequired);
+            if (hasRequiredExtra || !cat.type || !cat.id) continue;
+
+            const catRes = await fetch(`${base}/catalog/${encodeURIComponent(cat.type)}/${encodeURIComponent(cat.id)}.json`, { cache: "no-store" });
+            if (!catRes.ok) continue;
+            const catData = await catRes.json();
+            const metas = Array.isArray(catData?.metas) ? catData.metas.slice(0, 24) : [];
+            if (metas.length === 0) continue;
+
+            const sec = document.createElement("section");
+            sec.className = "carousel-section";
+            const rowTitle = `${addon.name} · ${cat.name || cat.id}`;
+            sec.innerHTML = `
+              <div class="carousel-header">
+                <span class="carousel-section-title">${rowTitle}</span>
+                <span class="carousel-counter" data-count="${metas.length}">${formatTitleCount(metas.length)}</span>
+              </div>
+              <div class="carousel-wrapper">
+                <button class="carousel-nav-btn prev" aria-label="${t("prev")}"><span class="material-symbols-outlined">chevron_left</span></button>
+                <div class="carousel-container">
+                  <div class="carousel-track"></div>
+                </div>
+                <button class="carousel-nav-btn next" aria-label="${t("next")}"><span class="material-symbols-outlined">chevron_right</span></button>
+              </div>
+            `;
+            const rowTrack = sec.querySelector(".carousel-track");
+            metas.forEach((m) => rowTrack.appendChild(createMediaCard({ ...m, type: m.type || cat.type })));
+            host.appendChild(sec);
+            setupCarouselScroll(sec);
+          }
+        } catch (err) {
+          console.debug("[Cinema] No se pudo cargar catálogo personalizado de", addon.name, err);
+        }
+      }
+    }
+
+    async function loadCatalogs({ silent = false } = {}) {
+      if (isRefreshingCatalogs) return;
+      isRefreshingCatalogs = true;
+
+      try {
+        loadContinueWatching();
+        renderContinueWatching();
+
+        if (!silent) {
+          renderFavorites(false);
+        }
+
+        const currentYear = new Date().getFullYear();
+        const prevYear = currentYear - 1;
+
+        const [
+          liveMovTrend,
+          liveSerTrend,
+          v3MovTop,
+          v3SerTop,
+          v3MovFeat,
+          v3SerFeat,
+          movYearCurr,
+          serYearCurr,
+        ] = await Promise.all([
+          fetchStremio("catalog/movie/top.json", "https://cinemeta-catalogs.strem.io/top"),
+          fetchStremio("catalog/series/top.json", "https://cinemeta-catalogs.strem.io/top"),
+          fetchStremio("catalog/movie/top.json"),
+          fetchStremio("catalog/series/top.json"),
+          fetchStremio("catalog/movie/imdbRating.json"),
+          fetchStremio("catalog/series/imdbRating.json"),
+          fetchStremio(`catalog/movie/year/genre=${currentYear}.json`),
+          fetchStremio(`catalog/series/year/genre=${currentYear}.json`),
+        ]);
+
+        let yearMovies = movYearCurr?.metas || [];
+        let yearSeries = serYearCurr?.metas || [];
+        if (yearMovies.length + yearSeries.length < 12) {
+          const [movPrev, serPrev] = await Promise.all([
+            fetchStremio(`catalog/movie/year/genre=${prevYear}.json`),
+            fetchStremio(`catalog/series/year/genre=${prevYear}.json`),
+          ]);
+          yearMovies = [...yearMovies, ...(movPrev?.metas || [])];
+          yearSeries = [...yearSeries, ...(serPrev?.metas || [])];
+        }
+
+        const trendMovList = liveMovTrend?.metas?.length ? liveMovTrend.metas : (v3MovTop?.metas || []);
+        const trendSerList = liveSerTrend?.metas?.length ? liveSerTrend.metas : (v3SerTop?.metas || []);
+        const allMoviesPool = [...(v3MovTop?.metas || []), ...(v3MovFeat?.metas || [])];
+        const allSeriesPool = [...(v3SerTop?.metas || []), ...(v3SerFeat?.metas || [])];
+
+        const globalSeen = new Set();
+
+        // 1. Tendencias de Hoy (mezcla en vivo de películas y series en tendencia)
+        const trendingItems = interleaveUnique(trendMovList, trendSerList, globalSeen, 24);
+
+        // 2. Estrenos Recientes (lanzamientos del año actual en vivo)
+        const newReleaseItems = interleaveUnique(yearMovies, yearSeries, new Set(globalSeen), 24);
+        newReleaseItems.forEach((m) => globalSeen.add(m.id));
+
+        // 3. Películas Destacadas (sin repetir las que ya están arriba)
+        const featuredMovies = takeUnique(allMoviesPool, new Set(globalSeen), 24);
+
+        // 4. Series Destacadas (sin repetir las que ya están arriba)
+        const featuredSeries = takeUnique(allSeriesPool, new Set(globalSeen), 24);
+
+        populateCarouselRow("sectionTrending", "rowTrending", "counterTrending", trendingItems);
+        populateCarouselRow("sectionNewReleases", "rowNewReleases", "counterNewReleases", newReleaseItems);
+        populateCarouselRow("sectionTopMovies", "rowTopMovies", "counterTopMovies", featuredMovies);
+        populateCarouselRow("sectionTopSeries", "rowTopSeries", "counterTopSeries", featuredSeries);
+
+        if (!currentHeroItem && trendingItems.length > 0) {
+          const trackTrend = document.getElementById("rowTrending");
+          updateHero(trendingItems[0], trackTrend?.children[0] || null);
+        } else if (currentHeroItem) {
+          const freshMatch = [...trendingItems, ...newReleaseItems, ...featuredMovies, ...featuredSeries]
+            .find((it) => it.id === currentHeroItem.id);
+          if (freshMatch) {
+            currentHeroItem = { ...currentHeroItem, ...freshMatch };
+          }
+          updateHero(currentHeroItem);
+        }
+
+        await loadCustomAddonCatalogs();
+        lastCatalogRefreshAt = Date.now();
+      } finally {
+        isRefreshingCatalogs = false;
+      }
+    }
+
+    // Auto-actualización periódica en segundo plano y al recuperar visibilidad
+    setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadCatalogs({ silent: true });
+      }
+    }, CATALOG_REFRESH_INTERVAL_MS);
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && Date.now() - lastCatalogRefreshAt >= CATALOG_FOCUS_REFRESH_MS) {
+        loadCatalogs({ silent: true });
+      }
+    });
+
+    window.addEventListener("message", (e) => {
+      if (
+        e.data?.type === "ONICORD_STAGE_CONTINUE_WATCHING_UPDATED" ||
+        e.data?.type === "ONICORD_CINEMA_CONTINUE_WATCHING_UPDATED"
+      ) {
+        loadContinueWatching();
+        renderContinueWatching();
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      loadContinueWatching();
+      renderContinueWatching();
+      if (Date.now() - lastCatalogRefreshAt >= CATALOG_FOCUS_REFRESH_MS) {
+        loadCatalogs({ silent: true });
+      }
+    });
+
+    applyLanguage(currentLang);
+    registerStageActions();
+    loadCatalogs();
+  </script>
+</body>
+</html>

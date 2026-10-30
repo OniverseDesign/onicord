@@ -1,11 +1,11 @@
 export const WEB_INVITE_BASE_URL = "https://oniversedesign.github.io/onicord";
 
 /**
- * Genera el enlace de invitación universal HTTPS (clickeable en chats y navegadores)
- * @param {string} roomCode - Código de 8 caracteres de la sala
- * @param {string} [serverName] - Nombre del servidor para mostrar en la web
- * @param {string} [inviterName] - Nombre del usuario que invita
- * @returns {string} URL HTTPS completa
+ * Generates a universal HTTPS invite link (clickable in web browsers and chats).
+ * @param {string} roomCode - 8-character room identifier code.
+ * @param {string} [serverName] - Optional server display name for preview.
+ * @param {string} [inviterName] - Optional inviting user display name.
+ * @returns {string} Complete HTTPS URL.
  */
 export function getWebInviteUrl(roomCode) {
   if (!roomCode) return "";
@@ -15,11 +15,11 @@ export function getWebInviteUrl(roomCode) {
 }
 
 /**
- * Genera el enlace de conexión directa TCP universal HTTPS
- * @param {string} ip - Dirección IP o Hostname
- * @param {number|string} port - Puerto TCP
- * @param {string} roomCode - Código de la sala
- * @returns {string} URL HTTPS completa
+ * Generates a universal HTTPS direct TCP connection link.
+ * @param {string} ip - IP address or hostname.
+ * @param {number|string} port - TCP port number.
+ * @param {string} roomCode - Room identifier code.
+ * @returns {string} Complete HTTPS URL.
  */
 export function getWebDirectInviteUrl(ip, port, roomCode) {
   if (!ip || !port || !roomCode) return "";

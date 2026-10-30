@@ -80,7 +80,6 @@ const USEFUL_FILES = [
   "LICENSE",
   "README.md",
   "RELEASE_NOTES.md",
-  "CHANGELOG_DISCOVERIES.md",
 ];
 
 function copyDirRecursive(src, dest) {

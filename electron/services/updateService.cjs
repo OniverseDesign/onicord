@@ -125,7 +125,7 @@ class UpdateService {
     const currentVersion = getCurrentAppVersion();
     diagService.log("info", "UpdateService", `Checking GitHub releases fallback (current: v${currentVersion})`);
 
-    // Método 1: GitHub REST API
+    // Method 1: GitHub REST API
     try {
       const response = await fetch(
         "https://api.github.com/repos/OniverseDesign/onicord/releases/latest",
@@ -166,7 +166,7 @@ class UpdateService {
       diagService.log("warn", "UpdateService", `GitHub REST API check failed: ${err.message}`);
     }
 
-    // Método 2: Web HTTP redirect fallback (inmune a cuotas y límites de GitHub API)
+    // Method 2: Web HTTP redirect fallback (immune to GitHub API rate limits)
     try {
       diagService.log("info", "UpdateService", "Attempting web redirect fallback to github.com/releases/latest");
       const redirectRes = await fetch("https://github.com/OniverseDesign/onicord/releases/latest", {
@@ -208,7 +208,7 @@ class UpdateService {
   async checkForUpdates() {
     this._sendToRenderer("update:status", { status: "checking" });
 
-    // 1. Entorno de desarrollo: consultar directamente a GitHub
+    // 1. Development environment: query GitHub directly
     if (!app.isPackaged) {
       diagService.log("info", "UpdateService", "Dev mode: checking GitHub releases directly");
       const devResult = await this._checkGitHubReleasesDirectly();
@@ -219,7 +219,7 @@ class UpdateService {
       };
     }
 
-    // 2. Si es versión Portable: siempre consultar directamente a GitHub Releases
+    // 2. Portable build: always query GitHub Releases directly
     if (this.isPortable) {
       diagService.log("info", "UpdateService", "Portable build detected: checking GitHub releases directly");
       const portableResult = await this._checkGitHubReleasesDirectly();
@@ -231,7 +231,7 @@ class UpdateService {
       return { status: "error", error: "No se pudo consultar la última versión en GitHub." };
     }
 
-    // 3. Paquete instalable (NSIS): intentar con electron-updater
+    // 3. Packaged installer (NSIS): attempt update check via electron-updater
     if (this.autoUpdater) {
       try {
         const result = await this.autoUpdater.checkForUpdates();
@@ -260,7 +260,7 @@ class UpdateService {
       }
     }
 
-    // 4. Fallback directo a GitHub si electron-updater falló
+    // 4. Direct GitHub fallback if electron-updater failed
     const fallbackResult = await this._checkGitHubReleasesDirectly();
     if (fallbackResult) {
       return fallbackResult;

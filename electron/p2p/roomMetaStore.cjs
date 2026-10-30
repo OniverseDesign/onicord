@@ -3,6 +3,11 @@ const path = require("path");
 const crypto = require("crypto");
 const { DEFAULT_CHANNELS } = require("./serverStore.cjs");
 
+/**
+ * RoomMetaStore manages persistent server and channel metadata across P2P swarms.
+ * Provides conflict resolution (CRDT-like semantics), atomic file persistence,
+ * role-based authority verification, and in-memory caching.
+ */
 class RoomMetaStore {
   constructor(userDataPath) {
     this.dir = path.join(userDataPath, "room-meta");
@@ -17,6 +22,14 @@ class RoomMetaStore {
     return path.join(this.dir, `${safe}.json`);
   }
 
+  /**
+   * Loads room metadata from memory cache or reads from disk.
+   * Auto-repairs corrupted JSON representations if partial writes occurred.
+   *
+   * @param {string} roomCode - The room/server unique identifier.
+   * @param {boolean} [forceReload=false] - Whether to bypass in-memory cache and re-read from disk.
+   * @returns {Promise<Object>} The parsed room metadata object.
+   */
   async load(roomCode, forceReload = false) {
     const safeCode = String(roomCode).trim().toUpperCase().replace(/[^A-F0-9]/g, "");
     if (!forceReload && this._cache.has(safeCode)) {
@@ -83,6 +96,14 @@ class RoomMetaStore {
     }
   }
 
+  /**
+   * Atomically writes room metadata to disk using a temporary file rename strategy.
+   * Updates in-memory cache upon successful write.
+   *
+   * @param {string} roomCode - Target room identifier.
+   * @param {Object} meta - The room metadata object to persist.
+   * @returns {Promise<Object>} The persisted metadata object.
+   */
   async save(roomCode, meta) {
     const safeCode = String(roomCode).trim().toUpperCase().replace(/[^A-F0-9]/g, "");
     const filePath = this._path(roomCode);
@@ -101,6 +122,15 @@ class RoomMetaStore {
     return meta;
   }
 
+  /**
+   * Merges remote metadata into local store using role-based authority and timestamp tie-breakers.
+   * Performs authorization validation, CRDT union of audit logs, and member state reconciliation.
+   *
+   * @param {string} roomCode - Room identifier.
+   * @param {Object} remote - Incoming remote metadata payload.
+   * @param {string} [senderUserId] - ID of peer sending the metadata.
+   * @returns {Promise<{applied: boolean, meta: Object}>} Result indicating if changes were applied.
+   */
   merge(roomCode, remote, senderUserId) {
     if (!remote?.version) return Promise.resolve({ applied: false, meta: null });
     return this.load(roomCode).then(async (local) => {
@@ -242,6 +272,15 @@ class RoomMetaStore {
     });
   }
 
+  /**
+   * Incrementally updates local room metadata, increments version number,
+   * updates timestamp, and persists changes to disk.
+   *
+   * @param {string} roomCode - Target room identifier.
+   * @param {Object} patch - Key-value map of properties to update.
+   * @param {string} [updatedByUserId] - ID of user making the change.
+   * @returns {Promise<Object>} The newly bumped metadata object.
+   */
   async bump(roomCode, patch, updatedByUserId) {
     const local = await this.load(roomCode);
     const next = {

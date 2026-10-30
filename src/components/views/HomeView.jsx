@@ -16,6 +16,7 @@ import { useAfkTracker } from "../../hooks/useAfkTracker";
 import { useVoiceChannelInfo } from "../../context/VoiceContext";
 import { useMusicSession } from "../../context/MusicContext";
 import { isTypingInInput, isSingleKeyShortcut } from "../../lib/inputUtils";
+import { canonicalizeShortcut, normalizeKeybindings, isMac } from "../../lib/defaultKeybindings";
 
 export default function HomeView({
   profile,
@@ -109,6 +110,7 @@ export default function HomeView({
       .filter(Boolean)
       .map((token) => {
         if (token === "control") return "ctrl";
+        if (token === "comma" || token === ",") return ",";
         const m = token.match(/^mouse(\d+)$/);
         if (m) return `mouse${m[1]}`;
         return token;
@@ -170,8 +172,18 @@ export default function HomeView({
         }
       }
     } else if (action === "focus_search") {
+      if (activeServer && activeView !== "server") {
+        setActiveView("server");
+      }
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("onicord:focus-search"));
+      }, 50);
       window.dispatchEvent(new CustomEvent("onicord:focus-search"));
     } else if (action === "open_pinned") {
+      if (activeServer && activeView !== "server") {
+        setActiveView("server");
+      }
+      window.dispatchEvent(new CustomEvent("onicord:open-pinned-modal"));
       window.dispatchEvent(new CustomEvent("onicord:open-pinned"));
     } else {
       window.dispatchEvent(new CustomEvent(`onicord:keybind:${action}`));
@@ -180,8 +192,8 @@ export default function HomeView({
 
   // Sync keybindings with Main process global hook on mount or change
   useEffect(() => {
-    if (Array.isArray(profile?.keybindings) && window.electronAPI?.updateGlobalKeybinds) {
-      window.electronAPI.updateGlobalKeybinds(profile.keybindings);
+    if (window.electronAPI?.updateGlobalKeybinds) {
+      window.electronAPI.updateGlobalKeybinds(normalizeKeybindings(profile?.keybindings));
     }
   }, [profile?.keybindings]);
 
@@ -196,7 +208,7 @@ export default function HomeView({
     const handleGlobalKeybindData = (data) => {
       if (!data?.action) return;
 
-      // Si el usuario está escribiendo activamente en un input, textarea o chat, bloquear atajos de una sola tecla
+      // If user is actively typing in an input, textarea, or chat, suppress single-key shortcuts
       if (isTypingInInput()) {
         const kb = profile?.keybindings?.find((k) => k.action === data.action);
         const shortcut = data.shortcut || kb?.shortcut;
@@ -249,12 +261,19 @@ export default function HomeView({
       if (!pressedShortcut) return;
 
       const pressedCanonical = canonicalizeShortcut(pressedShortcut);
-      const userKb = profile?.keybindings || [];
-      const match = userKb.find(
+      const userKb = normalizeKeybindings(profile?.keybindings);
+      let match = userKb.find(
         (kb) => canonicalizeShortcut(kb.shortcut) === pressedCanonical
       );
+      if (!match && isMac && pressedCanonical.includes("meta")) {
+        const asCtrl = pressedCanonical.replace("meta", "ctrl");
+        match = userKb.find((kb) => canonicalizeShortcut(kb.shortcut) === asCtrl);
+      }
 
       if (match) {
+        if (match.action === "push_to_talk") {
+          return;
+        }
         if (isTyping && isSingleKeyShortcut(match.shortcut)) {
           return;
         }
@@ -277,10 +296,14 @@ export default function HomeView({
 
         const pressedShortcut = parts.join(" + ");
         const pressedCanonical = canonicalizeShortcut(pressedShortcut);
-        const userKb = profile?.keybindings || [];
-        const match = userKb.find(
+        const userKb = normalizeKeybindings(profile?.keybindings);
+        let match = userKb.find(
           (kb) => canonicalizeShortcut(kb.shortcut) === pressedCanonical
-        );
+      );
+      if (!match && isMac && pressedCanonical.includes("meta")) {
+        const asCtrl = pressedCanonical.replace("meta", "ctrl");
+        match = userKb.find((kb) => canonicalizeShortcut(kb.shortcut) === asCtrl);
+      }
 
         if (match) {
           e.preventDefault();

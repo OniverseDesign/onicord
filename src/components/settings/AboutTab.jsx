@@ -10,7 +10,7 @@ export default function AboutTab() {
   const [showThirdPartyLicenses, setShowThirdPartyLicenses] = useState(false);
   const [diagInfo, setDiagInfo] = useState(null);
 
-  // ESTADO DE ACTUALIZACIONES AUTOMÁTICAS
+  // Automatic update state
   const [updateState, setUpdateState] = useState({
     status: "idle",
     version: null,
@@ -274,7 +274,7 @@ export default function AboutTab() {
 
   return (
     <div className="onicord-settings-container">
-      {/* HEADER DE MARCA (ONICORD LOGO) */}
+      {/* Branding header */}
       <div className="onicord-settings-card flex flex-col items-center justify-center text-center relative overflow-hidden">
         <div className="absolute -top-12 -right-12 w-36 h-36 bg-onicord-accent/10 rounded-full blur-3xl pointer-events-none" />
         
@@ -286,7 +286,7 @@ export default function AboutTab() {
         </p>
       </div>
 
-      {/* TARJETA DE ESTADO DE ACTUALIZACIÓN */}
+      {/* Update status card */}
       <div className="onicord-settings-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-top gap-3.5 min-w-0">
@@ -337,7 +337,7 @@ export default function AboutTab() {
             </div>
           </div>
 
-          {/* ACCIONES SEGÚN EL ESTADO */}
+          {/* State-dependent actions */}
           <div className="shrink-0">
             {(updateState.status === "idle" || updateState.status === "not-available" || updateState.status === "error" || updateState.status === "dev-mode") && (
               <button
@@ -386,7 +386,7 @@ export default function AboutTab() {
           </div>
         </div>
 
-        {/* BARRA DE PROGRESO DE DESCARGA */}
+        {/* Download progress bar */}
         {updateState.status === "downloading" && (
           <div className="mt-4 space-y-1.5 animate-fade-in">
             <div className="w-full h-2 rounded-full bg-onicord-base overflow-hidden border border-white/5">
@@ -403,7 +403,7 @@ export default function AboutTab() {
         )}
       </div>
 
-      {/* SECCIÓN DE DONACIONES */}
+      {/* Donations and support section */}
       <div className="onicord-settings-card relative overflow-hidden bg-gradient-to-r from-purple-950/20 via-indigo-950/15 to-amber-950/20 border border-amber-500/20 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-top gap-3.5 min-w-0">
@@ -435,7 +435,7 @@ export default function AboutTab() {
         </div>
       </div>
 
-      {/* ENLACES ÚTILES Y COMUNIDAD */}
+      {/* Useful links and community */}
       <div className="onicord-settings-card">
         <h4 className="text-[11px] font-bold text-onicord-muted uppercase tracking-wider mb-3">
           {t("settings.about.linksTitle", "Enlaces y Comunidad")}
@@ -501,7 +501,7 @@ export default function AboutTab() {
         </div>
       </div>
 
-      {/* SOFTWARE DE CODIGO ABIERTO Y CREDITOS */}
+      {/* Open-source software credits */}
       <div className="onicord-settings-card">
         <div className="border-b border-white/5 pb-2.5 mb-3.5">
           <div className="flex items-center gap-2">
@@ -546,7 +546,7 @@ export default function AboutTab() {
           ))}
         </div>
 
-        {/* LISTA COMPLETA DE DEPENDENCIAS / LICENCIAS */}
+        {/* Full dependencies and licenses list */}
         <div className="mt-3.5 pt-3 border-t border-white/5">
           <button
             type="button"
@@ -599,7 +599,7 @@ export default function AboutTab() {
         </div>
       </div>
 
-      {/* DATOS DE SISTEMA */}
+      {/* System diagnostic data */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-2.5">
           <h4 className="text-[11px] font-bold text-onicord-muted uppercase tracking-wider">

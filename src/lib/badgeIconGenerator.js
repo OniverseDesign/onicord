@@ -1,35 +1,35 @@
 /**
- * Generador de insignias (badges) en Canvas para la barra de tareas de Windows (setOverlayIcon),
- * macOS Dock y navegadores.
+ * Canvas-based notification badge generator for Windows taskbar (setOverlayIcon),
+ * macOS Dock, and browser document title.
  *
- * Utiliza el color oficial onicord-danger (Catppuccin Mocha Red #f38ba8), tipografía en bold 16px
- * y limitación a 1..9 y +9.
+ * Utilizes official onicord-danger (#f38ba8), bold typography,
+ * and formatted limits (1..9 and +9).
  */
 
 const BADGE_CACHE = new Map();
-const ONICORD_DANGER_COLOR = "#f38ba8"; // Catppuccin Mocha Red oficial
+const ONICORD_DANGER_COLOR = "#f38ba8"; // Official Catppuccin Mocha Red
 
 export function clearBadgeCache() {
   BADGE_CACHE.clear();
 }
 
 /**
- * Obtiene el color onicord-danger (#f38ba8).
+ * Returns the onicord-danger color (#f38ba8).
  */
 function getDangerColor() {
   return ONICORD_DANGER_COLOR;
 }
 
 /**
- * Genera un Data URL PNG (32x32) con la insignia circular onicord-danger de notificaciones.
- * @param {number} count Número de elementos sin leer
- * @returns {string|null} Data URL en formato image/png o null si count <= 0
+ * Generates a PNG Data URL (32x32) with a circular notification badge.
+ * @param {number} count - Unread item count.
+ * @returns {string|null} Data URL in image/png format, or null if count <= 0.
  */
 export function generateBadgeDataUrl(count) {
   const num = Number(count) || 0;
   if (num <= 0) return null;
 
-  // Formato requerido: 1, 2, ..., 8, 9, y +9
+  // Formatted range: 1, 2, ..., 8, 9, and +9
   const text = num > 9 ? "+9" : String(num);
 
   const fontSize = text.length > 1 ? 19 : 22;
@@ -56,14 +56,14 @@ export function generateBadgeDataUrl(count) {
     const center = size / 2;
     const radius = 15.5;
 
-    // 1. Fondo circular limpio con onicord-danger (#f38ba8)
+    // 1. Clean circular background with danger color (#f38ba8)
     ctx.beginPath();
     ctx.arc(center, center, radius, 0, Math.PI * 2);
     ctx.fillStyle = dangerColor;
     ctx.fill();
 
-    // 2. Texto blanco puro en negrita: tamaño aumentado para máxima legibilidad en barra de tareas
-    // 22px para números 1-9 y 19px para "+9" para llenar armónicamente el círculo
+    // 2. Bold white text sized for maximum legibility in taskbar overlays
+    // 22px for 1-9 and 19px for "+9" to balance circle filling
     const fontSize = text.length > 1 ? 19 : 22;
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "center";
@@ -81,8 +81,8 @@ export function generateBadgeDataUrl(count) {
 }
 
 /**
- * Actualiza la insignia en Windows Taskbar (setOverlayIcon), macOS Dock y título de pestaña.
- * @param {number} count Total de mensajes sin leer
+ * Updates notification badge across Windows Taskbar, macOS Dock, and document title.
+ * @param {number} count - Total unread message count.
  */
 export function updateAppBadge(count) {
   const num = Math.max(0, Number(count) || 0);
@@ -100,7 +100,7 @@ export function updateAppBadge(count) {
     console.warn("[Badge] Error llamando a electronAPI.updateBadgeCount:", err);
   }
 
-  // 2. Título de la pestaña en navegador
+  // 2. Browser document tab title
   try {
     if (typeof document !== "undefined") {
       const baseTitle = "Onicord";

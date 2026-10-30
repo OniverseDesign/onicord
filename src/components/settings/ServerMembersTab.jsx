@@ -120,7 +120,7 @@ export default function ServerMembersTab({
 
   return (
     <div className="onicord-settings-container">
-      {/* TARJETA 1: LISTA Y BUSCADOR DE MIEMBROS */}
+      {/* Members list and filter */}
       <div className="onicord-settings-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="onicord-settings-section-title !mb-0">
@@ -224,7 +224,7 @@ export default function ServerMembersTab({
                           </span>
                         </div>
 
-                        {/* Icono de papelera al hacer hover */}
+                        {/* Trash icon on hover */}
                         {isAllowedToEditRoles && (
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-white">
                             <Delete size="sm" />
@@ -233,7 +233,7 @@ export default function ServerMembersTab({
                       </div>
                     ))}
 
-                    {/* Botón Añadir Rol */}
+                    {/* Add Role Button */}
                     {roles.length > 0 && isAllowedToEditRoles && (
                       <div className="relative">
                         <button
@@ -297,7 +297,7 @@ export default function ServerMembersTab({
                     )}
                   </div>
 
-                  {/* Acciones de Moderación (Kick / Ban) */}
+                  {/* Moderation Actions (Kick / Ban) */}
                   {isAllowedToModerate && (
                     <div className="flex items-center gap-1 pl-2 border-l border-white/10 shrink-0">
                       <button
@@ -331,7 +331,7 @@ export default function ServerMembersTab({
         </div>
       </div>
 
-      {/* TARJETA 2: MIEMBROS BANEADOS */}
+      {/* Banned members list */}
       {bannedUsers.length > 0 && (
         <div className="onicord-settings-card border-onicord-danger/20 bg-onicord-danger/[0.03]">
           <h3 className="onicord-settings-section-title text-onicord-danger">

@@ -44,7 +44,7 @@ export default function UserPanel({
   onProfileChange,
   canShareVideo = true,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isStreamerMode, detectedApp } = useStreamerMode();
   const [targetRect, setTargetRect] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,17 +53,59 @@ export default function UserPanel({
 
   useEffect(() => {
     let isMounted = true;
-    if (window.electronAPI?.getVoiceControlButtons) {
-      window.electronAPI.getVoiceControlButtons().then((buttons) => {
-        if (isMounted && Array.isArray(buttons)) {
-          setVoiceButtons(buttons);
-        }
+    const enrichButtonsWithLocales = (btns, installedList) => {
+      if (!Array.isArray(btns)) return [];
+      const byId = new Map((installedList || []).map((p) => [p.id, p]));
+      return btns.map((b) => {
+        const p = byId.get(b.pluginId);
+        const manifestBtn = p?.voiceControlButtons?.find((mb) => mb.id === b.id);
+        return {
+          ...b,
+          tooltips: b.tooltips || manifestBtn?.tooltips || null,
+          locales: b.locales || p?.locales || null,
+        };
       });
-    }
+    };
+
+    let cachedInstalled = [];
+    const syncVoiceButtons = async () => {
+      if (!window.electronAPI?.getVoiceControlButtons) return;
+      try {
+        let buttons = await window.electronAPI.getVoiceControlButtons();
+        if (window.electronAPI?.listPlugins) {
+          cachedInstalled = (await window.electronAPI.listPlugins()) || [];
+          if (window.electronAPI?.reloadPlugin) {
+            const activePluginIds = new Set((buttons || []).map((b) => b.pluginId));
+            let reloadedAny = false;
+            for (const p of cachedInstalled) {
+              if (
+                p.enabled !== false &&
+                Array.isArray(p.voiceControlButtons) &&
+                p.voiceControlButtons.length > 0 &&
+                !activePluginIds.has(p.id)
+              ) {
+                await window.electronAPI.reloadPlugin(p.id);
+                reloadedAny = true;
+              }
+            }
+            if (reloadedAny) {
+              buttons = await window.electronAPI.getVoiceControlButtons();
+            }
+          }
+        }
+        if (isMounted && Array.isArray(buttons)) {
+          setVoiceButtons(enrichButtonsWithLocales(buttons, cachedInstalled));
+        }
+      } catch (err) {
+        console.error("[UserPanel] Error sincronizando botones de voz:", err);
+      }
+    };
+
+    syncVoiceButtons();
 
     const unsub = window.electronAPI?.onVoiceControlButtonsUpdated?.((buttons) => {
       if (isMounted && Array.isArray(buttons)) {
-        setVoiceButtons(buttons);
+        setVoiceButtons(enrichButtonsWithLocales(buttons, cachedInstalled));
       }
     });
 
@@ -149,7 +191,7 @@ export default function UserPanel({
 
     if (includeAudio) {
       try {
-        // Intentar primero capturar pantalla con audio de escritorio (mandatory: chromeMediaSource: "desktop")
+        // Attempt desktop capture with audio first (mandatory: chromeMediaSource: "desktop")
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             mandatory: {
@@ -219,7 +261,7 @@ export default function UserPanel({
   const renderVoiceControls = () => {
     return (
       <div className="flex shrink-0 items-center gap-1.5 ml-2">
-        {/* Slots dinámicos para botones de complementos en canal de voz */}
+        {/* Dynamic addon control buttons for voice channels */}
         {uniqueVoiceButtons.map((btn) => {
           const isImage = typeof btn.icon === "string" && (
             btn.icon.startsWith("http://") ||
@@ -229,6 +271,15 @@ export default function UserPanel({
             btn.icon.endsWith(".svg") ||
             btn.icon.endsWith(".png")
           );
+
+          const currentLang = (i18n.language || "es").split("-")[0].toLowerCase();
+          const resolvedTooltip =
+            btn.tooltips?.[currentLang] ||
+            btn.locales?.[currentLang]?.voiceTooltip ||
+            btn.tooltip ||
+            btn.locales?.[currentLang]?.name ||
+            btn.pluginName ||
+            t("common.plugin", "Complemento");
 
           return (
             <div
@@ -241,17 +292,19 @@ export default function UserPanel({
             >
               <button
                 type="button"
-                title={btn.tooltip || btn.pluginName || t("common.plugin", "Complemento")}
+                title={resolvedTooltip}
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.electronAPI?.triggerVoiceControlButton?.(btn.pluginId, btn.id);
+                  window.electronAPI?.triggerVoiceControlButton?.(btn.pluginId, btn.id, {
+                    language: currentLang,
+                  });
                 }}
                 className="onicord-icon-btn text-onicord-text hover:text-onicord-accent transition-colors flex items-center justify-center relative group shrink-0"
               >
                 {isImage ? (
                   <img
                     src={btn.icon}
-                    alt={btn.tooltip || "icon"}
+                    alt={resolvedTooltip}
                     className="w-5 h-5 object-contain"
                   />
                 ) : (
@@ -265,7 +318,7 @@ export default function UserPanel({
           );
         })}
 
-        {/* Botón Compartir Pantalla animado */}
+        {/* Screen share button */}
         <div
           className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center justify-center shrink-0 ${
             inVoice
@@ -292,7 +345,7 @@ export default function UserPanel({
           </button>
         </div>
 
-        {/* Botón Silenciar permanente */}
+        {/* Mute toggle button */}
         <button
           type="button"
           title={muted ? t("userPanel.unmute") : t("userPanel.mute")}
@@ -305,7 +358,7 @@ export default function UserPanel({
           {muted ? <IconMicOff size="lg" /> : <IconMicOn size="lg" />}
         </button>
 
-        {/* Botón Ensordecer permanente */}
+        {/* Deafen toggle button */}
         <button
           type="button"
           title={deafened ? t("userPanel.undeafen") : t("userPanel.deafen")}
@@ -318,7 +371,7 @@ export default function UserPanel({
           {deafened ? <IconDeafenOff size="lg" /> : <IconDeafenOn size="lg" />}
         </button>
 
-        {/* Botón Desconectar animado */}
+        {/* Voice disconnect button */}
         <div
           className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center justify-center shrink-0 ${
             inVoice

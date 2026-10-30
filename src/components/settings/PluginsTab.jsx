@@ -213,7 +213,7 @@ export default function PluginsTab() {
 
   return (
     <div className="onicord-settings-container space-y-4">
-      {/* MENSAJE DE ESTADO GLOBAL */}
+      {/* Global status message banner */}
       {statusMessage && (
         <div
           className={`p-3 rounded-2xl text-xs flex items-center justify-between border ${
@@ -247,10 +247,10 @@ export default function PluginsTab() {
         </div>
       )}
 
-      {/* BARRA SUPERIOR: FILTRO DE ÁMBITO Y BÚSQUEDA */}
+      {/* TOP BAR: SCOPE FILTER AND SEARCH */}
       <div className="onicord-settings-card space-y-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-          {/* Pills de Ámbito */}
+          {/* Scope Pills */}
           <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-onicord-base/60 border border-white/5 shrink-0 overflow-x-auto">
             <button
               type="button"
@@ -305,7 +305,7 @@ export default function PluginsTab() {
             </button>
           </div>
 
-          {/* Campo de búsqueda */}
+          {/* Search field */}
           <div className="relative flex-1 min-w-[180px]">
             <MaterialIcon
               name="search"
@@ -332,7 +332,7 @@ export default function PluginsTab() {
         </div>
       </div>
 
-      {/* TARJETA 1: BIBLIOTECA LOCAL EN TU EQUIPO */}
+      {/* Local installed plugins library */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between mb-3">
           <h3 className="onicord-settings-section-title mb-0 flex items-center gap-2">
@@ -376,7 +376,7 @@ export default function PluginsTab() {
               const scope = getPluginScope(plugin);
               const scopeInfo = getScopeBadgeInfo(scope, t);
 
-              // Comprobar si hay una actualización disponible en el catálogo de GitHub
+              // Check if update is available in GitHub catalog
               const catalogEntry = catalogPlugins.find((cp) => cp.id === plugin.id);
               const hasUpdate =
                 catalogEntry && isNewerVersion(catalogEntry.version, plugin.version);
@@ -390,7 +390,7 @@ export default function PluginsTab() {
                   }`}
                 >
                   <div className="flex items-center gap-3 w-full">
-                    {/* Icono Principal */}
+                    {/* Main Icon */}
                     <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden">
                       {plugin.icon ? (
                         <img
@@ -403,7 +403,7 @@ export default function PluginsTab() {
                       )}
                     </div>
 
-                    {/* Nombre, Ámbito y Versión */}
+                    {/* Name, Scope and Version */}
                     <div className="flex-1 min-w-0 text-left">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="font-bold text-xs text-onicord-text truncate">
@@ -430,7 +430,7 @@ export default function PluginsTab() {
                       </p>
                     </div>
 
-                    {/* Botón Actualizar si hay nueva versión */}
+                    {/* Update button if newer version exists */}
                     {hasUpdate && (
                       <button
                         type="button"
@@ -451,7 +451,7 @@ export default function PluginsTab() {
                       </button>
                     )}
 
-                    {/* Botón Seguridad / Permisos */}
+                    {/* Security / Permissions button */}
                     <button
                       type="button"
                       onClick={() =>
@@ -467,7 +467,7 @@ export default function PluginsTab() {
                       <MaterialIcon name="shield" size={16} />
                     </button>
 
-                    {/* Botón Desinstalar de la PC */}
+                    {/* Uninstall from PC button */}
                     <button
                       type="button"
                       onClick={() =>
@@ -497,7 +497,7 @@ export default function PluginsTab() {
                     </label>
                   </div>
 
-                  {/* INSPECTOR DESPLEGABLE DE SEGURIDAD Y PERMISOS */}
+                  {/* Security and permissions inspection drawer */}
                   {isExpanded && (
                     <div className="w-full mt-3 p-4 bg-onicord-surface/80 border border-white/5 rounded-xl animate-fade-in space-y-3">
                       <div className="flex items-center justify-between pb-2 border-b border-white/5">
@@ -578,7 +578,7 @@ export default function PluginsTab() {
         )}
       </div>
 
-      {/* TARJETA 2: CATÁLOGO OFICIAL DE COMPLEMENTOS DESDE GITHUB */}
+      {/* CARD 2: OFFICIAL PLUGIN CATALOG FROM GITHUB */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -627,7 +627,7 @@ export default function PluginsTab() {
                   key={plugin.id}
                   className="flex items-center gap-3 bg-onicord-base/40 border border-white/5 p-3 rounded-2xl hover:border-white/10 transition-colors"
                 >
-                  {/* Icono del complemento */}
+                  {/* Plugin icon */}
                   <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden">
                     {plugin.icon && !failedIcons[plugin.id] ? (
                       <img
@@ -670,7 +670,7 @@ export default function PluginsTab() {
                     </p>
                   </div>
 
-                  {/* Acciones del Catálogo */}
+                  {/* Catalog Actions */}
                   {hasUpdate ? (
                     <button
                       type="button"
@@ -716,7 +716,7 @@ export default function PluginsTab() {
         )}
       </div>
 
-      {/* TARJETA 3: ACCIONES AVANZADAS / IMPORTAR Y EMPAQUETAR */}
+      {/* CARD 3: ADVANCED ACTIONS / IMPORT AND PACK */}
       <div className="onicord-settings-card flex flex-col sm:flex-row items-center gap-3">
         <button
           type="button"
@@ -742,7 +742,7 @@ export default function PluginsTab() {
         </button>
       </div>
 
-      {/* MODAL DE CONFIRMACIÓN DE DESINSTALACIÓN FÍSICA EN DISCO */}
+      {/* DISK UNINSTALL CONFIRMATION MODAL */}
       {pluginToDelete && (
         <ConfirmDialogModal
           isOpen={Boolean(pluginToDelete)}

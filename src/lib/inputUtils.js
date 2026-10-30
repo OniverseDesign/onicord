@@ -76,6 +76,7 @@ export const isSingleKeyShortcut = (shortcutStr) => {
     canonical.includes("ctrl") ||
     canonical.includes("control") ||
     canonical.includes("alt") ||
+    canonical.includes("option") ||
     canonical.includes("meta") ||
     canonical.includes("cmd") ||
     canonical.includes("command");

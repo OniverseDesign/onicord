@@ -138,7 +138,6 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
         <header className="flex items-center justify-between px-6 pt-5 pb-4 shrink-0 bg-onicord-surface">
           <div>
             <h3 className="text-lg font-bold text-onicord-text tracking-wide">
@@ -158,9 +157,8 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
           </button>
         </header>
 
-        {/* CONTROLS BAR: SERVER STORAGE STYLE FILTER PILLS + QUALITY SELECTOR */}
+        {/* Stream source category tabs and quality selector */}
         <div className="flex items-center justify-between px-6 py-2.5 shrink-0 gap-3">
-          {/* CATEGORY FILTER PILLS LIKE SERVER STORAGE TAB */}
           <div className="flex items-center gap-2">
             {[
               { id: "screen", label: t("screenShare.screens", "Pantallas"), count: screens.length },
@@ -251,7 +249,7 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
           </div>
         </div>
 
-        {/* SOURCES GRID AREA */}
+        {/* Sources grid */}
         <div className="flex-1 min-h-0 overflow-y-auto minimal-scrollbar p-5 bg-onicord-base/40">
           {loading ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 text-onicord-muted py-12">
@@ -332,7 +330,6 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
                       )}
                     </div>
 
-                    {/* Title */}
                     <div
                       className={cn(
                         "p-2.5 flex items-center justify-between gap-2 transition-colors",
@@ -358,7 +355,6 @@ export default function ScreenShareModal({ isOpen, onClose, onSelectSource }) {
           )}
         </div>
 
-        {/* FOOTER */}
         <footer className="flex items-center justify-between px-6 py-3.5 shrink-0 bg-onicord-surface border-t border-white/5">
           <div className="min-w-0 flex-1 pr-4">
             {selectedSource ? (

@@ -318,7 +318,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
         </div>
       )}
 
-      {/* TARJETA 1: FORMULARIO DIRECTO PARA CREAR / EDITAR WEBHOOK */}
+      {/* CARD 1: DIRECT FORM TO CREATE / EDIT WEBHOOK */}
       <div className="onicord-settings-card space-y-3.5">
         <div className="flex items-center justify-between pb-1">
           <div className="flex items-center gap-2">
@@ -454,7 +454,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
         </form>
       </div>
 
-      {/* TARJETA 2: LISTA DE WEBHOOKS EXISTENTES */}
+      {/* Registered incoming webhooks list */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between mb-2">
           <h3 className="onicord-settings-section-title mb-0 flex items-center gap-2">
@@ -542,7 +542,6 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                     </div>
                   </div>
 
-                  {/* Acciones */}
                   <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end shrink-0">
                     {wh.type === "pull_poller" ? (
                       <>
@@ -646,7 +645,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
         )}
       </div>
 
-      {/* Modal de Confirmación de Eliminación */}
+      {/* Deletion Confirmation Modal */}
       {webhookToDelete && (
         <ConfirmDialogModal
           isOpen={true}
@@ -659,7 +658,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
         />
       )}
 
-      {/* Modal de Confirmación de Regeneración */}
+      {/* Regeneration Confirmation Modal */}
       {webhookToRegenerate && (
         <ConfirmDialogModal
           isOpen={true}

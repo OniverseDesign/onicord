@@ -34,7 +34,7 @@ export default function GamesActivityTab({
     return () => unsub?.();
   }, []);
 
-  // Agregar juego o software automáticamente con el explorador nativo
+  // Automatically add game or software using native file explorer
   const handleAddProgram = async () => {
     const api = window.electronAPI;
     if (!api?.openExecutableDialog) return;
@@ -132,7 +132,7 @@ export default function GamesActivityTab({
 
   return (
     <div className="onicord-settings-container space-y-5 animate-fade-in">
-      {/* TARJETA 1: ESTADO Y JUEGO ACTUAL */}
+      {/* Current status and active game */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("gamesTab.masterTitle", "Actividad y Presencia")}</span>
@@ -161,7 +161,7 @@ export default function GamesActivityTab({
           </label>
         </div>
 
-        {/* JUEGO ACTUAL */}
+        {/* CURRENT GAME */}
         {showRichPresence && (
           <div className="mt-4 pt-4 border-t border-white/5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted block mb-2.5">
@@ -249,7 +249,7 @@ export default function GamesActivityTab({
           </button>
         </div>
 
-        {/* NOTIFICACIÓN DISCRETA */}
+        {/* STATUS NOTIFICATION */}
         {notification && (
           <div
             className={`mt-3.5 p-3 rounded-lg text-xs flex items-center gap-2 border animate-fade-in ${
@@ -275,7 +275,7 @@ export default function GamesActivityTab({
           </div>
         )}
 
-        {/* LISTA DE JUEGOS Y SOFTWARE */}
+        {/* Registered games and applications list */}
         {customGames.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center text-onicord-muted space-y-2">
             <MaterialIcon name="sports_esports" size={38} className="opacity-40" />
@@ -293,7 +293,7 @@ export default function GamesActivityTab({
               const isEditing = editingId === game.id;
               return (
                 <div key={game.id || game.exe} className="flex items-center justify-between py-3 gap-3.5 group">
-                  {/* Icono + Nombre + Exe */}
+                  {/* Icon, title and executable */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-10 h-10 rounded-lg bg-onicord-base border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
                       {game.cover ? (
@@ -338,7 +338,7 @@ export default function GamesActivityTab({
                           >
                             {game.title}
                           </p>
-                          {/* Badge interactivo para cambiar tipo en 1 clic */}
+                          {/* Interactive badge to toggle type with 1 click */}
                           <button
                             type="button"
                             onClick={() => handleToggleType(game.id)}

@@ -99,7 +99,7 @@ export default function ServerStorageTab({ server }) {
 
   return (
     <div className="onicord-settings-container">
-      {/* TARJETA 1: RESUMEN DE ALMACENAMIENTO */}
+      {/* Storage overview and breakdown */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between gap-3">
           <h3 className="onicord-settings-section-title !mb-0">
@@ -128,7 +128,7 @@ export default function ServerStorageTab({ server }) {
           {t("serverSettings.storage.filesCount", "{{count}} archivos guardados en caché local", { count: files.length })}
         </p>
 
-        {/* Gráfico de Barra de Almacenamiento */}
+        {/* Storage Bar Chart */}
         {files.length > 0 && (
           <div className="space-y-2 pt-2 border-t border-white/5">
             <div className="h-2.5 w-full bg-onicord-base/80 rounded-full overflow-hidden flex border border-white/5">
@@ -159,7 +159,7 @@ export default function ServerStorageTab({ server }) {
               />
             </div>
 
-            {/* Leyenda de Categorías */}
+            {/* Category Legend */}
             <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-onicord-muted font-medium pt-1">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-sm bg-sky-500" />
@@ -186,9 +186,9 @@ export default function ServerStorageTab({ server }) {
         )}
       </div>
 
-      {/* TARJETA 2: FILTROS Y REJILLA DE ARCHIVOS */}
+      {/* Media files grid and filters */}
       <div className="onicord-settings-card">
-        {/* Pills de Categoría */}
+        {/* Category filter pills */}
         <div className="flex gap-2 pb-1 overflow-x-auto minimal-scrollbar">
           {[
             { id: "all", label: t("common.all", "Todos"), icon: "folder_open" },
@@ -239,11 +239,11 @@ export default function ServerStorageTab({ server }) {
                 <div
                   key={file.id || file.localPath || `${file.name}-${index}`}
                   onClick={() => setPreviewIndex(index)}
-                  className="group relative bg-onicord-base/60 hover:bg-onicord-base border border-white/5 hover:border-onicord-accent/40 rounded-xl p-2.5 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:scale-[1.02] shadow-sm hover:shadow-md"
+                  className="group relative bg-onicord-base/60 hover:bg-onicord-base border border-white/5 hover:border-onicord-accent/40 rounded-xl p-2.5 flex flex-col justify-between transition-all duration-200 cursor-pointer"
                   style={{ contain: "content" }}
                   title={t("common.clickToPreview", "Clic para previsualizar")}
                 >
-                  {/* Previsualización ultrarrápida */}
+                  {/* Fast file preview */}
                   <div className="w-full aspect-video rounded-lg bg-black/40 flex items-center justify-center overflow-hidden mb-2 relative">
                     {file.type === "image" ? (
                       <img
@@ -268,13 +268,13 @@ export default function ServerStorageTab({ server }) {
                       <MaterialIcon name="description" size={24} className="text-onicord-muted group-hover:scale-110 transition duration-300" />
                     )}
 
-                    {/* Overlay icono de vista previa */}
+                    {/* Preview overlay icon */}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                       <MaterialIcon name="visibility" size={20} className="text-white drop-shadow" />
                     </div>
                   </div>
 
-                  {/* Info Textual */}
+                  {/* File text info */}
                   <div className="min-w-0">
                     <h4 className="text-xs font-semibold text-white truncate leading-tight" title={file.name}>
                       {file.name}
@@ -290,7 +290,7 @@ export default function ServerStorageTab({ server }) {
               ))}
             </div>
 
-            {/* Paginación Incremental - Cargar más */}
+            {/* Incremental Pagination - Load More */}
             {filteredFiles.length > visibleCount && (
               <div className="flex justify-center pt-2 pb-1">
                 <button
@@ -307,7 +307,7 @@ export default function ServerStorageTab({ server }) {
         )}
       </div>
 
-      {/* MODAL DE CONFIRMACIÓN DE DESVINCULACIÓN DE ÍNDICE */}
+      {/* INDEX UNLINK CONFIRMATION MODAL */}
       {showClearCacheModal && (
         <ConfirmDialogModal
           isOpen={showClearCacheModal}
@@ -321,7 +321,7 @@ export default function ServerStorageTab({ server }) {
         />
       )}
 
-      {/* MODAL DE PREVISUALIZACIÓN MULTIMEDIA CON NAVEGACIÓN EN CARRUSEL */}
+      {/* MEDIA PREVIEW MODAL WITH CAROUSEL NAVIGATION */}
       {previewIndex !== null && (
         <MediaPreviewModal
           isOpen={previewIndex !== null}

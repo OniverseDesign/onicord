@@ -6,6 +6,7 @@ const path = require("path");
 const http = require("http");
 const https = require("https");
 const url = require("url");
+const crypto = require("crypto");
 
 const ALLOWED_MEDIA_HOSTS = new Set([
   "youtube.com",
@@ -62,6 +63,7 @@ class YtdlpService {
     this.streamTargetUrls = new Map(); // trackId -> targetStreamUrl
     this.currentTargetStreamUrl = "";
     this.streamPort = 42883;
+    this.sessionToken = crypto.randomBytes(16).toString("hex");
     this.activeYoutubeProcess = null;
     this.activeBackgroundDownloads = new Set();
     this.preferredCookieBrowser = null;
@@ -91,8 +93,23 @@ class YtdlpService {
   startLocalStreamServer() {
     if (this.streamServer) return;
 
+    const torrentService = require("./torrentService.cjs");
+
     this.streamServer = http.createServer((req, res) => {
+      if (req.method === "OPTIONS") {
+        res.writeHead(204, {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+          "Access-Control-Allow-Headers": "*",
+        });
+        return res.end();
+      }
+
       const parsedUrl = url.parse(req.url, true);
+
+      if (parsedUrl.pathname && parsedUrl.pathname.startsWith("/torrent/")) {
+        return torrentService.handleHttpRequest(req, res, parsedUrl);
+      }
 
       if (parsedUrl.pathname === "/proxy-embed-image") {
         const targetImgUrl = parsedUrl.query.url;
@@ -103,6 +120,23 @@ class YtdlpService {
             console.warn("⚠️ Proxy bloqueado: Solo se permite protocolo HTTPS.", targetImgUrl);
             res.writeHead(403);
             return res.end("Forbidden: Only HTTPS allowed");
+          }
+          const host = targetUrlObj.hostname.toLowerCase();
+          const isPrivate =
+            host === "localhost" ||
+            host === "127.0.0.1" ||
+            host === "::1" ||
+            host === "0.0.0.0" ||
+            host.endsWith(".local") ||
+            host.endsWith(".internal") ||
+            /^10\./.test(host) ||
+            /^192\.168\./.test(host) ||
+            /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host) ||
+            /^169\.254\./.test(host);
+          if (isPrivate) {
+            console.warn("⚠️ Proxy bloqueado: Destino privado no permitido.", host);
+            res.writeHead(403);
+            return res.end("Forbidden: Private network destination");
           }
         } catch (e) {
           res.writeHead(400);
@@ -149,11 +183,19 @@ class YtdlpService {
           if (range) {
             const parts = range.replace(/bytes=/, "").split("-");
             const start = parseInt(parts[0], 10);
+            if (isNaN(start) || start < 0 || start >= fileSize) {
+              res.writeHead(416, {
+                "Content-Range": `bytes */${fileSize}`,
+                "Access-Control-Allow-Origin": "*",
+              });
+              return res.end();
+            }
             const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-            const chunksize = end - start + 1;
-            const file = fs.createReadStream(diskFilePath, { start, end });
+            const safeEnd = Math.max(start, Math.min(isNaN(end) ? fileSize - 1 : end, fileSize - 1));
+            const chunksize = safeEnd - start + 1;
+            const file = fs.createReadStream(diskFilePath, { start, end: safeEnd });
             res.writeHead(206, {
-              "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+              "Content-Range": `bytes ${start}-${safeEnd}/${fileSize}`,
               "Accept-Ranges": "bytes",
               "Content-Length": chunksize,
               "Content-Type": 'audio/webm; codecs="opus"',

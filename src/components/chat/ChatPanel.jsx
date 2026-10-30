@@ -72,6 +72,8 @@ export default function ChatPanel({
   const chatContainerRef = useRef(null);
   const bottomRef = useRef(null);
   const messagesCountRef = useRef(0);
+  const tyrannyInputRef = useRef(null);
+  const isLocalTypingRef = useRef(false);
 
   // Hook for P2P messages and real-time synchronization
   const {
@@ -114,7 +116,7 @@ export default function ChatPanel({
     messagesCountRef,
   });
 
-  // Solo renderizar los mensajes visibles en pantalla (evita saturar el DOM con miles de nodos)
+  // Virtualized window: only render visible messages to prevent DOM saturation with large histories
   const visibleMainStreamMessages = useMemo(() => {
     if (searchQuery?.trim() || !visibleCount || mainStreamMessages.length <= visibleCount) {
       return mainStreamMessages;
@@ -253,6 +255,15 @@ export default function ChatPanel({
     const el = tyrannyInputRef.current;
     if (!el) return;
 
+    const isLocalTyping = isLocalTypingRef.current;
+    isLocalTypingRef.current = false;
+
+    // If the user is actively typing and the DOM text has advanced beyond this effect's input,
+    // do not clobber newer keystrokes with older state.
+    if (isLocalTyping && el.textContent !== input) {
+      return;
+    }
+
     const allUsers = [
       { id: profile?.id, nickname: profile?.nickname || "Usuario" },
       ...Object.values(peers || {}).map((p) => ({
@@ -261,6 +272,13 @@ export default function ChatPanel({
       })),
     ];
     const targetHTML = renderHTMLForInput(input, allUsers);
+
+    // If input has no markdown formatting spans (plain text) and already matches DOM text:
+    // Native contenteditable already holds the text and correct caret position.
+    const hasFormattingSpans = targetHTML.includes("<span");
+    if (!hasFormattingSpans && el.textContent === input) {
+      return;
+    }
 
     if (el.innerHTML !== targetHTML) {
       const offsets = getSelectionCharacterOffsets(el);
@@ -366,7 +384,6 @@ export default function ChatPanel({
   const [contextMenu, setContextMenu] = useState(null);
   const [showPinnedModal, setShowPinnedModal] = useState(false);
 
-  const tyrannyInputRef = useRef(null);
   const emojiButtonRef = useRef(null);
   const stickerButtonRef = useRef(null);
   const focusTimeoutRef = useRef(null);
@@ -375,7 +392,11 @@ export default function ChatPanel({
   useEffect(() => {
     const handleOpenPinned = () => setShowPinnedModal(true);
     window.addEventListener("onicord:open-pinned-modal", handleOpenPinned);
-    return () => window.removeEventListener("onicord:open-pinned-modal", handleOpenPinned);
+    window.addEventListener("onicord:open-pinned", handleOpenPinned);
+    return () => {
+      window.removeEventListener("onicord:open-pinned-modal", handleOpenPinned);
+      window.removeEventListener("onicord:open-pinned", handleOpenPinned);
+    };
   }, []);
 
 
@@ -388,6 +409,7 @@ export default function ChatPanel({
   }, [input, visibleSuggestions.length, replyTarget, scrollToBottom]);
 
   const handleInputChange = (e) => {
+    isLocalTypingRef.current = true;
     const val = e.target.textContent || "";
     setInput(val);
 

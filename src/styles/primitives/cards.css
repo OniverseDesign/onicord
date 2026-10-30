@@ -1,4 +1,5 @@
 @layer components {
+
   /* 🎴 ONICORD ATOMIC CARDS SYSTEM */
   .onicord-card {
     @apply relative flex flex-col rounded-onicord-outer-p4 bg-onicord-surface border border-white/5 shadow-md;
@@ -8,41 +9,41 @@
   .onicord-modal-card-destructive {
     @apply relative flex z-[10000001] w-full max-w-[440px] flex-col rounded-onicord-outer-p4 bg-onicord-surface p-5 text-sm text-onicord-subtext shadow-onicord-elevated border border-white/5 onicord-animate-modal-in;
   }
-  
+
   .onicord-modal-card {
     @apply relative flex z-[10000001] w-full max-w-[440px] flex-col rounded-onicord-outer-p4 bg-onicord-surface p-5 text-sm text-onicord-subtext shadow-onicord-elevated border border-white/5 onicord-animate-modal-in;
   }
-  
+
   .onicord-setup-card {
     @apply w-full rounded-onicord-outer-p4 border border-white/5 bg-onicord-surface p-8 shadow-2xl onicord-animate-modal-in;
   }
-  
+
   .onicord-modal-card-settings {
     @apply flex h-[min(800px,94vh)] w-full max-w-[1040px] overflow-hidden rounded-onicord-outer-p4 bg-onicord-surface shadow-onicord-elevated border border-white/5 onicord-animate-modal-in;
   }
-  
+
   .onicord-modal-card-wide {
     @apply relative w-full max-w-[560px] rounded-onicord-outer-p4 bg-onicord-surface p-5 text-sm text-onicord-subtext shadow-onicord-elevated flex flex-col max-h-[85vh] onicord-animate-modal-in;
   }
-  
+
   .onicord-modal-card-action {
     @apply relative w-full max-w-md bg-onicord-surface p-6 rounded-onicord-outer-p4 border border-white/5 shadow-2xl flex flex-col max-h-[85vh] onicord-animate-modal-in;
   }
-  
+
   .onicord-sticker-card {
     @apply bg-onicord-surface p-1 rounded-onicord-button flex flex-col items-center justify-center overflow-hidden transition-colors duration-150 select-none aspect-square;
     position: relative !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
   }
-  
+
   .onicord-isla-shell {
     @apply h-full w-full rounded-onicord-outer-p4 border p-5 flex flex-col justify-between shadow-md relative overflow-hidden transition-all duration-300 select-none;
   }
-  
+
   .onicord-media-preview-card {
     @apply max-w-[85%] max-h-[80%] flex flex-col items-center justify-center bg-onicord-base p-4 rounded-onicord-outer-p4 border border-onicord-island shadow-2xl relative onicord-animate-modal-in;
   }
-  
+
   .onicord-popover-card {
     @apply fixed z-[99999] bg-onicord-mantle/95 backdrop-blur-md rounded-onicord-outer-p4 border border-onicord-island onicord-animate-popup-in select-none text-onicord-text;
   }

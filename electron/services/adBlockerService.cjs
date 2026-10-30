@@ -1,7 +1,7 @@
 /**
  * adBlockerService.cjs
- * Bloqueador de anuncios de alto rendimiento para el navegador interno de Onicord
- * (iframes de juegos, webviews y multimedia).
+ * High-performance lightweight ad and tracker blocker for Onicord's internal
+ * browser, game iframes, webviews, and embedded multimedia.
  */
 
 const BLOCKED_DOMAINS = new Set([
@@ -21,7 +21,7 @@ const BLOCKED_DOMAINS = new Set([
   "googletagmanager.com",
   "www.googletagmanager.com",
 
-  // Redes publicitarias y trackers comunes en portales de juegos web
+  // Common ad networks and analytics trackers for web portals
   "adnxs.com",
   "ib.adnxs.com",
   "adroll.com",
@@ -61,7 +61,7 @@ const BLOCKED_DOMAINS = new Set([
   "mgid.com",
   "yadro.ru",
 
-  // Redes publicitarias de juegos web (AdinPlay, NitroPay, Playwire, Venatus, etc.)
+  // Web game advertising networks (AdinPlay, NitroPay, Playwire, Venatus, etc.)
   "adinplay.com",
   "api.adinplay.com",
   "delivery.adinplay.com",
@@ -98,13 +98,13 @@ function isAdUrl(urlStr) {
     const parsed = new URL(urlStr);
     const hostname = parsed.hostname.toLowerCase();
 
-    // Comprobar dominio exacto o subdominios
+    // Check exact domain and subdomains
     if (BLOCKED_DOMAINS.has(hostname)) return true;
     for (const domain of BLOCKED_DOMAINS) {
       if (hostname.endsWith("." + domain)) return true;
     }
 
-    // Comprobar patrones de ruta de anuncios
+    // Check ad path and query patterns
     const fullPath = parsed.pathname + parsed.search;
     for (const pattern of BLOCKED_PATH_PATTERNS) {
       if (pattern.test(fullPath)) return true;
@@ -126,7 +126,7 @@ function initAdBlocker(sessionInstance) {
     sessionInstance.webRequest.onBeforeRequest((details, callback) => {
       const url = details.url || "";
       if (isAdUrl(url)) {
-        // Bloqueo transparente y silencioso del anuncio
+        // Silently cancel ad and tracker requests
         return callback({ cancel: true });
       }
       return callback({ cancel: false });

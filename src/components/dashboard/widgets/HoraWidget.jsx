@@ -9,7 +9,7 @@ export default function HoraWidget({ setCustomBackground }) {
     if (setCustomBackground) {
       setCustomBackground({
         type: "color",
-        value: "var(--onicord-pink)", // Mapea directo a tu paleta Mocha V2
+        value: "var(--onicord-pink)",
       });
     }
   }, [setCustomBackground]);

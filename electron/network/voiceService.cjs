@@ -301,7 +301,7 @@ class VoiceService {
 
     let baseScore = (hwScore * 1000) + (bandwidth * 10) - avgPing;
     if (hasLanGatewayPeer) {
-      baseScore -= 5000; // Penalización para evitar colisiones en la misma LAN
+      baseScore -= 5000; // Penalty to avoid election collisions on the same LAN
     }
     this.localVoice.sfuScore = Math.round(baseScore);
   }

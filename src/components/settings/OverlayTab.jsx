@@ -55,7 +55,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
 
   return (
     <div className="onicord-settings-container">
-      {/* SECCIÓN 1: ESTADO GENERAL DEL OVERLAY */}
+      {/* SECTION 1: OVERLAY GENERAL STATUS */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.overlay.title", "Overlay de Voz en Juego")}</span>
@@ -84,7 +84,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
           </label>
         </div>
 
-        {/* Probar Overlay en Pantalla */}
+        {/* Test Overlay on Screen */}
         <div
           className={`pt-3 mt-3 border-t border-white/5 flex items-center justify-between transition-opacity ${
             !enabled ? "opacity-40 pointer-events-none" : ""
@@ -132,7 +132,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
         </div>
       </div>
 
-      {/* SECCIÓN 2: POSICIÓN Y DISPOSICIÓN */}
+      {/* SECTION 2: POSITION AND LAYOUT */}
       <div className={`onicord-settings-card transition-opacity ${!enabled ? "opacity-40 pointer-events-none" : ""}`}>
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.overlay.positionTitle", "Posición en Pantalla")}</span>
@@ -150,7 +150,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
           </p>
         </div>
 
-        {/* Mockup interactivo 3x3 */}
+        {/* Interactive 3x3 mockup */}
         <div className="flex flex-col items-center justify-center pt-2 pb-1">
           <div className="relative w-[260px] h-[165px] bg-onicord-base/60 rounded-xl border border-white/10 overflow-hidden shadow-inner">
             {/* Grid background lines */}
@@ -202,13 +202,13 @@ export default function OverlayTab({ overlay, setOverlay }) {
         </div>
       </div>
 
-      {/* SECCIÓN 3: OPCIONES DE VISUALIZACIÓN DE NOMBRES */}
+      {/* SECTION 3: USER AND NAME DISPLAY OPTIONS */}
       <div className={`onicord-settings-card transition-opacity ${!enabled ? "opacity-40 pointer-events-none" : ""}`}>
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.overlay.displayTitle", "Visualización de Usuarios y Nombres")}</span>
         </h3>
 
-        {/* Solo imagen de perfil */}
+        {/* Avatar only */}
         <div className="onicord-settings-row">
           <div className="min-w-0 pr-4">
             <p className="onicord-settings-row-title">
@@ -232,7 +232,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
           </label>
         </div>
 
-        {/* Mostrar nombre solo al hablar */}
+        {/* Show name only when speaking */}
         <div className={`onicord-settings-row ${avatarOnly ? "opacity-40 pointer-events-none" : ""}`}>
           <div className="min-w-0 pr-4">
             <p className="onicord-settings-row-title">
@@ -258,13 +258,13 @@ export default function OverlayTab({ overlay, setOverlay }) {
         </div>
       </div>
 
-      {/* SECCIÓN 4: APARIENCIA Y COMPORTAMIENTO */}
+      {/* SECTION 4: APPEARANCE AND BEHAVIOR */}
       <div className={`onicord-settings-card transition-opacity ${!enabled ? "opacity-40 pointer-events-none" : ""}`}>
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.overlay.appearanceTitle", "Apariencia y Comportamiento")}</span>
         </h3>
 
-        {/* Opacidad del fondo (Fila con slider) */}
+        {/* Background opacity (slider row) */}
         <div className="onicord-settings-slider-row">
           <div className="flex justify-between items-center">
             <div className="min-w-0 pr-2">

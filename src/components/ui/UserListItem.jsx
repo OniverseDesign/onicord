@@ -152,14 +152,21 @@ export default function UserListItem({
     const isApp = activity.type === "app";
     const isMusic = activity.type === "music";
     const isClient = activity.type === "client";
+    const isMovie =
+      activity.type === "movie" ||
+      activity.type === "cinema" ||
+      activity.name === "Cinema" ||
+      activity.source === "addon:onicord-cinema";
 
     const prefix = isMusic
       ? t("userPanel.listeningTo", "Escuchando a")
-      : isApp
-        ? t("userPanel.using", "Usando")
-        : isClient
-          ? t("userPopout.inMenus", "En los menús")
-          : t("userPanel.playing", "Jugando a");
+      : isMovie
+        ? (activity.isCatalog ? t("userPanel.exploring", "Explorando") : t("userPanel.watching", "Viendo"))
+        : isApp
+          ? t("userPanel.using", "Usando")
+          : isClient
+            ? t("userPopout.inMenus", "En los menús")
+            : t("userPanel.playing", "Jugando a");
 
     subtitle = (
       <span className="text-onicord-subtext group-hover:text-onicord-text transition-colors duration-150 truncate block">

@@ -6,7 +6,7 @@ const path = require("path");
 const { URL } = require("url");
 
 // ─── CREDENTIALS & PKCE (RFC 7636) ───────────────────────────────────────────
-// Las credenciales de Google OAuth se leen exclusivamente desde variables de entorno o .env local
+// Google OAuth credentials are read exclusively from environment variables or local .env
 const DEFAULT_CLIENT_ID = "";
 
 function getGoogleCredentials() {
@@ -188,7 +188,7 @@ async function refreshAccessToken(tokens) {
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
     console.error("[driveAuthService] Token refresh failed:", res.status, errText);
-    // Si el refresh token caducó o fue revocado (invalid_grant), eliminamos las credenciales obsoletas
+    // If refresh token expired or was revoked (invalid_grant), purge stale tokens
     if (res.status === 400 || res.status === 401) {
       deleteTokens();
     }

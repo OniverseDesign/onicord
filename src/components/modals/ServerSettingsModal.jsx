@@ -532,7 +532,7 @@ export default function ServerSettingsModal({
   const todosLosMiembros = useMemo(() => {
     const memberMap = new Map();
 
-    // 1. Incorporar miembros guardados / históricos del servidor (garantiza ver a Juancarlo, subb, etc.)
+    // 1. Incorporate persisted historical members so offline users remain visible
     const saved = server?.savedMembers || serverWithCopy?.savedMembers;
     const savedList = Array.isArray(saved)
       ? saved
@@ -552,7 +552,7 @@ export default function ServerSettingsModal({
       });
     }
 
-    // 2. Integrar lista sanitizada de RoomView si fue provista
+    // 2. Integrate sanitized members list from RoomView if provided
     for (const m of sanitizedMembersList || []) {
       const id = m?.id || m?.userId || m?.peerId;
       if (!id) continue;
@@ -566,7 +566,7 @@ export default function ServerSettingsModal({
       });
     }
 
-    // 3. Integrar peers conectados en tiempo real
+    // 3. Integrate real-time connected peers
     for (const p of peers || []) {
       const id = p?.userId || p?.id || p?.peerId;
       if (!id) continue;
@@ -580,7 +580,7 @@ export default function ServerSettingsModal({
       });
     }
 
-    // 4. Integrar usuario local
+    // 4. Integrate local user profile
     if (profile?.id) {
       const prev = memberMap.get(profile.id) || {};
       memberMap.set(profile.id, {
@@ -591,7 +591,7 @@ export default function ServerSettingsModal({
       });
     }
 
-    // 5. Asegurar presencia del owner si está configurado
+    // 5. Ensure room owner presence if configured
     const ownerId = serverWithCopy?.ownerId || server?.ownerId;
     if (ownerId && !memberMap.has(ownerId)) {
       memberMap.set(ownerId, {

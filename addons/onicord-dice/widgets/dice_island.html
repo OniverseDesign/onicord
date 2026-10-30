@@ -67,7 +67,6 @@
       transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* When rolling: hide buttons, title text and total pill */
     body.is-rolling .top-actions {
       opacity: 0 !important;
       pointer-events: none !important;
@@ -86,7 +85,7 @@
       transform: translateY(8px);
     }
 
-    /* Top Right Action Buttons (Volume, History, Settings) */
+    /* Top Right Action Buttons */
     .top-actions {
       position: absolute;
       top: 14px;
@@ -108,14 +107,13 @@
       justify-content: center;
       padding: 4px;
       border-radius: 6px;
-      transition: all 0.15s ease;
+      transition: color 0.15s ease, opacity 0.15s ease;
       outline: none;
     }
 
     .btn-action:hover {
       opacity: 1;
       color: var(--text);
-      transform: scale(1.08);
     }
 
     .btn-action.active {
@@ -138,7 +136,6 @@
       cursor: wait;
     }
 
-    /* Prompt Title */
     .prompt-title {
       font-size: 16px;
       font-weight: 600;
@@ -152,7 +149,6 @@
       opacity: 0.9;
     }
 
-    /* Dice Container */
     .dice-container {
       display: flex;
       align-items: center;
@@ -161,7 +157,6 @@
       flex-wrap: wrap;
     }
 
-    /* Die Card - iOS Style Squircle matching the mockup, not darker than the island */
     .die-card {
       background: rgba(255, 255, 255, 0.035);
       border: 2px solid var(--border-die);
@@ -172,7 +167,7 @@
       font-weight: 700;
       color: var(--text);
       font-variant-numeric: tabular-nums;
-      transition: transform 0.08s ease, border-color 0.15s ease;
+      transition: border-color 0.15s ease;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
     }
 
@@ -204,7 +199,6 @@
       100% { transform: translate(1px, -0.5px) rotate(1.5deg); }
     }
 
-    /* Total Pill Badge */
     .total-pill {
       margin-top: 16px;
       padding: 4px 22px;
@@ -217,7 +211,6 @@
       display: inline-block;
     }
 
-    /* ─── SIMPLIFIED OVERLAYS (Settings & History - Transparent Island Background) ─── */
     .panel-overlay {
       position: absolute;
       inset: 0;
@@ -255,7 +248,6 @@
       letter-spacing: -0.2px;
     }
 
-    /* Settings UI simplified into pills and chips */
     .setting-section {
       display: flex;
       flex-direction: column;
@@ -278,7 +270,6 @@
       color: var(--subtext);
     }
 
-    /* Pill Stepper */
     .count-pill {
       display: flex;
       align-items: center;
@@ -314,7 +305,6 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Faces Chips */
     .faces-group {
       display: flex;
       flex-direction: column;
@@ -338,7 +328,7 @@
       font-size: 11.5px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: border-color 0.15s ease, color 0.15s ease;
       outline: none;
     }
 
@@ -378,7 +368,6 @@
       color: var(--muted);
     }
 
-    /* Save Pill Button */
     .save-pill-btn {
       align-self: center;
       border: 1.5px solid var(--border-die);
@@ -389,17 +378,15 @@
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: background 0.15s ease;
       outline: none;
       margin-top: 6px;
     }
 
     .save-pill-btn:hover {
       background: rgba(255, 255, 255, 0.12);
-      transform: translateY(-1px);
     }
 
-    /* History UI - Minimalist rows: User and Final Score Only */
     .history-list {
       flex: 1;
       overflow-y: auto;
@@ -471,7 +458,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      transition: all 0.15s ease;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       outline: none;
       margin-top: 4px;
     }
@@ -482,7 +469,6 @@
       color: #f38ba8;
     }
 
-    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb {
@@ -509,19 +495,17 @@
   <div class="main-roller" id="arena" title="Haz click para lanzar">
     <div class="prompt-title" id="promptTitle">Haz click para lanzar.</div>
 
-    <div class="dice-container" id="diceGrid">
-      <!-- Rendered dynamically -->
-    </div>
+    <div class="dice-container" id="diceGrid"></div>
 
     <div class="total-pill" id="totalPill" style="visibility: hidden;">
       Total: 12
     </div>
   </div>
 
-  <!-- Settings Simplified Overlay (Matching Island Color & Pill Style) -->
+  <!-- Settings Simplified Overlay -->
   <div class="panel-overlay" id="panelSettings">
     <div class="panel-header">
-      <span class="panel-title">Configuración</span>
+      <span class="panel-title" id="txtSettingsTitle">Configuración</span>
       <button class="btn-action" id="closeSettings" title="Cerrar">
         <span class="material-symbols-outlined">close</span>
       </button>
@@ -529,7 +513,7 @@
 
     <div class="setting-section">
       <div class="setting-row">
-        <span class="setting-label">Cantidad de dados</span>
+        <span class="setting-label" id="txtCountLabel">Cantidad de dados</span>
         <div class="count-pill">
           <button class="pill-btn" id="btnDecCount">
             <span class="material-symbols-outlined">remove</span>
@@ -542,7 +526,7 @@
       </div>
 
       <div class="faces-group">
-        <span class="setting-label">Caras por dado</span>
+        <span class="setting-label" id="txtFacesLabel">Caras por dado</span>
         <div class="faces-chips">
           <button class="face-chip" data-faces="4">d4</button>
           <button class="face-chip active" data-faces="6">d6</button>
@@ -551,11 +535,11 @@
           <button class="face-chip" data-faces="12">d12</button>
           <button class="face-chip" data-faces="20">d20</button>
           <button class="face-chip" data-faces="100">d100</button>
-          <button class="face-chip" data-faces="custom">Otro</button>
+          <button class="face-chip" data-faces="custom" id="chipCustom">Otro</button>
         </div>
         <div class="custom-row" id="customFaceRow" style="display: none;">
           <input type="number" class="custom-input" id="customFaceInput" min="2" max="100" value="6" />
-          <span class="custom-hint">Caras (2 - 100)</span>
+          <span class="custom-hint" id="txtCustomHint">Caras (2 - 100)</span>
         </div>
       </div>
     </div>
@@ -565,26 +549,152 @@
     </button>
   </div>
 
-  <!-- History Simplified Overlay (Matching Island Color & Clean Rows) -->
+  <!-- History Simplified Overlay -->
   <div class="panel-overlay" id="panelHistory">
     <div class="panel-header">
-      <span class="panel-title">Historial</span>
+      <span class="panel-title" id="txtHistoryTitle">Historial</span>
       <button class="btn-action" id="closeHistory" title="Cerrar">
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
 
     <div class="history-list" id="historyList">
-      <div class="empty-state">No hay tiradas registradas aún.</div>
+      <div class="empty-state" id="txtEmptyHistory">No hay tiradas registradas aún.</div>
     </div>
 
     <button class="clear-pill-btn" id="btnClearHistory">
       <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
-      Borrar historial
+      <span id="txtClearHistory">Borrar historial</span>
     </button>
   </div>
 
   <script>
+    // ─── I18N SUPPORT ────────────────────────────────────────────────
+    const I18N = {
+      es: {
+        clickToRoll: "Haz click para lanzar.",
+        settings: "Configuración",
+        history: "Historial",
+        soundToggle: "Silenciar / Activar Sonido",
+        diceCount: "Cantidad de dados",
+        facesPerDie: "Caras por dado",
+        custom: "Otro",
+        customHint: "Caras (2 - 100)",
+        done: "Listo",
+        noRollsYet: "No hay tiradas registradas aún.",
+        clearHistory: "Borrar historial",
+        total: "Total",
+        rolled: "lanzó",
+        dice: "dados",
+        you: "Tú",
+        user: "Usuario",
+        peer: "Compañero",
+        configUpdated: "Configuración actualizada a",
+        historyCleared: "Historial de tiradas reiniciado",
+        close: "Cerrar",
+      },
+      en: {
+        clickToRoll: "Click to roll.",
+        settings: "Settings",
+        history: "History",
+        soundToggle: "Mute / Unmute Sound",
+        diceCount: "Dice count",
+        facesPerDie: "Sides per die",
+        custom: "Custom",
+        customHint: "Sides (2 - 100)",
+        done: "Done",
+        noRollsYet: "No rolls recorded yet.",
+        clearHistory: "Clear history",
+        total: "Total",
+        rolled: "rolled",
+        dice: "dice",
+        you: "You",
+        user: "User",
+        peer: "Peer",
+        configUpdated: "Configuration updated to",
+        historyCleared: "Roll history cleared",
+        close: "Close",
+      },
+      pt: {
+        clickToRoll: "Clique para rolar.",
+        settings: "Configurações",
+        history: "Histórico",
+        soundToggle: "Silenciar / Ativar Som",
+        diceCount: "Quantidade de dados",
+        facesPerDie: "Faces por dado",
+        custom: "Outro",
+        customHint: "Faces (2 - 100)",
+        done: "Pronto",
+        noRollsYet: "Nenhum lançamento registrado ainda.",
+        clearHistory: "Limpar histórico",
+        total: "Total",
+        rolled: "rolou",
+        dice: "dados",
+        you: "Você",
+        user: "Usuário",
+        peer: "Companheiro",
+        configUpdated: "Configuração atualizada para",
+        historyCleared: "Histórico de rolagens limpo",
+        close: "Fechar",
+      }
+    };
+
+    function getLang() {
+      const loc = (window.OnicordWidgetAPI?.env?.locale || window.OnicordWidgetAPI?.getLocale?.() || navigator.language || "es").toLowerCase();
+      if (loc.startsWith("pt")) return "pt";
+      if (loc.startsWith("en")) return "en";
+      return "es";
+    }
+
+    function t(key) {
+      const lang = getLang();
+      return (I18N[lang] && I18N[lang][key]) || I18N.es[key] || "";
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function applyStaticI18n() {
+      const promptTitleEl = document.getElementById("promptTitle");
+      const arenaEl = document.getElementById("arena");
+      const btnSoundEl = document.getElementById("btnSound");
+      const btnHistoryEl = document.getElementById("btnHistory");
+      const btnSettingsEl = document.getElementById("btnSettings");
+      const txtSettingsTitle = document.getElementById("txtSettingsTitle");
+      const txtCountLabel = document.getElementById("txtCountLabel");
+      const txtFacesLabel = document.getElementById("txtFacesLabel");
+      const chipCustom = document.getElementById("chipCustom");
+      const txtCustomHint = document.getElementById("txtCustomHint");
+      const btnSaveConfig = document.getElementById("btnSaveConfig");
+      const txtHistoryTitle = document.getElementById("txtHistoryTitle");
+      const txtClearHistory = document.getElementById("txtClearHistory");
+      const closeSettings = document.getElementById("closeSettings");
+      const closeHistory = document.getElementById("closeHistory");
+
+      if (promptTitleEl) promptTitleEl.textContent = t("clickToRoll");
+      if (arenaEl) arenaEl.title = t("clickToRoll");
+      if (btnSoundEl) btnSoundEl.title = t("soundToggle");
+      if (btnHistoryEl) btnHistoryEl.title = t("history");
+      if (btnSettingsEl) btnSettingsEl.title = t("settings");
+      if (txtSettingsTitle) txtSettingsTitle.textContent = t("settings");
+      if (txtCountLabel) txtCountLabel.textContent = t("diceCount");
+      if (txtFacesLabel) txtFacesLabel.textContent = t("facesPerDie");
+      if (chipCustom) chipCustom.textContent = t("custom");
+      if (txtCustomHint) txtCustomHint.textContent = t("customHint");
+      if (btnSaveConfig) btnSaveConfig.textContent = t("done");
+      if (txtHistoryTitle) txtHistoryTitle.textContent = t("history");
+      if (txtClearHistory) txtClearHistory.textContent = t("clearHistory");
+      if (closeSettings) closeSettings.title = t("close");
+      if (closeHistory) closeHistory.title = t("close");
+    }
+
     // ─── STATE MANAGEMENT ──────────────────────────────────────────────
     const state = {
       count: 2,
@@ -596,7 +706,23 @@
       history: []
     };
 
-    // ─── AUDIO ENGINE (Web Audio API Procedural Synthesis) ──────────────
+    let duckMultiplier = 1.0;
+    let activeRollInterval = null;
+    let activeRollFinishCb = null;
+
+    window.addEventListener("message", (e) => {
+      if (e.data?.type === "VOICE_DUCKING") {
+        duckMultiplier = e.data.duckMultiplier ?? 1.0;
+      }
+    });
+
+    try {
+      window.parent.addEventListener("voice-ducking-change", (e) => {
+        duckMultiplier = e.detail?.duckMultiplier ?? 1.0;
+      });
+    } catch (_) {}
+
+    // ─── AUDIO ENGINE ──────────────────────────────────────────────────
     let audioCtx = null;
     function getAudioContext() {
       if (!audioCtx) {
@@ -629,8 +755,9 @@
         filter.Q.value = 3;
 
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.25, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.045);
+        const eff = 0.25 * duckMultiplier;
+        gain.gain.setValueAtTime(eff, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01 * duckMultiplier, ctx.currentTime + 0.045);
 
         noise.connect(filter);
         filter.connect(gain);
@@ -651,8 +778,9 @@
         osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.11);
 
-        gain.gain.setValueAtTime(0.35, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.13);
+        const eff = 0.35 * duckMultiplier;
+        gain.gain.setValueAtTime(eff, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001 * duckMultiplier, ctx.currentTime + 0.13);
 
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -708,7 +836,7 @@
       });
 
       const total = rolls.reduce((a, b) => a + b, 0);
-      totalPillEl.textContent = `Total: ${total}`;
+      totalPillEl.textContent = `${t("total")}: ${total}`;
       if (state.count > 1) {
         totalPillEl.style.visibility = "visible";
       } else {
@@ -718,7 +846,7 @@
 
     function renderHistory() {
       if (!state.history || state.history.length === 0) {
-        historyListEl.innerHTML = '<div class="empty-state">No hay tiradas registradas aún.</div>';
+        historyListEl.innerHTML = `<div class="empty-state">${escapeHtml(t("noRollsYet"))}</div>`;
         return;
       }
 
@@ -729,7 +857,7 @@
 
         const userSpan = document.createElement("span");
         userSpan.className = "history-user";
-        userSpan.textContent = item.user || "Usuario";
+        userSpan.textContent = item.user || t("user");
 
         const rightDiv = document.createElement("div");
         rightDiv.className = "history-right";
@@ -739,7 +867,6 @@
         scoreSpan.textContent = item.total;
 
         rightDiv.appendChild(scoreSpan);
-
         row.appendChild(userSpan);
         row.appendChild(rightDiv);
 
@@ -749,16 +876,57 @@
 
     // ─── ROLLING ANIMATION ──────────────────────────────────────────────
     function executeRollAnimation(targetRolls, authorName, callback) {
-      if (state.isRolling) return;
+      // If already rolling, fast-forward previous roll immediately to free up the engine
+      if (state.isRolling && activeRollInterval) {
+        clearInterval(activeRollInterval);
+        activeRollInterval = null;
+        if (typeof activeRollFinishCb === "function") {
+          activeRollFinishCb();
+          activeRollFinishCb = null;
+        }
+      }
+
       state.isRolling = true;
       document.body.classList.add("is-rolling");
       arenaEl.classList.add("locked");
 
       const startTime = Date.now();
-      const totalDuration = 1600;
+      const totalDuration = 1200;
       let lastTumbleSound = 0;
 
-      const interval = setInterval(() => {
+      const finishAnimation = () => {
+        state.currentRolls = targetRolls;
+        state.isRolling = false;
+        document.body.classList.remove("is-rolling");
+        arenaEl.classList.remove("locked");
+
+        const isCrit = state.faces === 20 && (targetRolls.includes(20) || targetRolls.includes(1));
+        playDiceStopSound(isCrit);
+
+        renderDiceElements(targetRolls, false);
+
+        const total = targetRolls.reduce((a, b) => a + b, 0);
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+        
+        state.history.unshift({
+          user: authorName,
+          spec: `${state.count}d${state.faces}`,
+          rolls: targetRolls,
+          total,
+          time: timeStr,
+          timestamp: Date.now()
+        });
+        state.history = state.history.slice(0, 30);
+        renderHistory();
+        saveHistoryToStorage();
+
+        if (typeof callback === "function") callback();
+      };
+
+      activeRollFinishCb = finishAnimation;
+
+      activeRollInterval = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / totalDuration, 1);
 
@@ -781,55 +949,29 @@
         }
 
         if (progress >= 1) {
-          clearInterval(interval);
-          state.currentRolls = targetRolls;
-          state.isRolling = false;
-          document.body.classList.remove("is-rolling");
-          arenaEl.classList.remove("locked");
-
-          const isCrit = state.faces === 20 && (targetRolls.includes(20) || targetRolls.includes(1));
-          playDiceStopSound(isCrit);
-
-          renderDiceElements(targetRolls, false);
-
-          const total = targetRolls.reduce((a, b) => a + b, 0);
-
-          const now = new Date();
-          const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
-          state.history.unshift({
-            user: authorName,
-            spec: `${state.count}d${state.faces}`,
-            rolls: targetRolls,
-            total,
-            time: timeStr,
-            timestamp: Date.now()
-          });
-          state.history = state.history.slice(0, 30);
-          renderHistory();
-          saveHistoryToStorage();
-
-          if (typeof callback === "function") callback();
+          clearInterval(activeRollInterval);
+          activeRollInterval = null;
+          activeRollFinishCb = null;
+          finishAnimation();
         }
       }, 50);
     }
 
     function rollDice() {
-      if (state.isRolling) return;
-
       const targetRolls = [];
       for (let i = 0; i < state.count; i++) {
         targetRolls.push(Math.floor(Math.random() * state.faces) + 1);
       }
 
       const total = targetRolls.reduce((a, b) => a + b, 0);
-      let authorName = "Usuario";
+      let authorName = t("you");
       if (window.OnicordWidgetAPI?.user) {
         const profile = window.OnicordWidgetAPI.user.getProfile();
         if (profile?.nickname) authorName = profile.nickname;
       }
 
       const specStr = state.count === 1 ? `d${state.faces}` : `${state.count}d${state.faces}`;
-      const summaryText = `${authorName} lanzó ${specStr} -> ${total}`;
+      const summaryText = `${authorName} ${t("rolled")} ${specStr} -> ${total}`;
 
       if (window.OnicordWidgetAPI?.island?.setSummary) {
         window.OnicordWidgetAPI.island.setSummary(summaryText);
@@ -877,14 +1019,8 @@
       }
     }
 
-    // ─── SETTINGS INTERACTION ──────────────────────────────────────────
-    btnSettingsEl.addEventListener("click", () => {
-      showView("settings");
-    });
-
-    closeSettingsEl.addEventListener("click", () => {
-      showView("main");
-    });
+    btnSettingsEl.addEventListener("click", () => showView("settings"));
+    closeSettingsEl.addEventListener("click", () => showView("main"));
 
     btnDecCountEl.addEventListener("click", () => {
       if (state.count > 1) {
@@ -955,7 +1091,7 @@
       saveConfigToStorage();
 
       const specStr = state.count === 1 ? `d${state.faces}` : `${state.count}d${state.faces}`;
-      const configSummary = `Configuración actualizada a ${specStr}`;
+      const configSummary = `${t("configUpdated")} ${specStr}`;
       if (window.OnicordWidgetAPI?.island?.setSummary) {
         window.OnicordWidgetAPI.island.setSummary(configSummary);
       }
@@ -970,20 +1106,14 @@
       }
     });
 
-    // ─── HISTORY INTERACTION ───────────────────────────────────────────
-    btnHistoryEl.addEventListener("click", () => {
-      showView("history");
-    });
-
-    closeHistoryEl.addEventListener("click", () => {
-      showView("main");
-    });
+    btnHistoryEl.addEventListener("click", () => showView("history"));
+    closeHistoryEl.addEventListener("click", () => showView("main"));
 
     btnClearHistoryEl.addEventListener("click", () => {
       state.history = [];
       renderHistory();
       saveHistoryToStorage();
-      const clearSummary = "Historial de tiradas reiniciado";
+      const clearSummary = t("historyCleared");
       if (window.OnicordWidgetAPI?.island?.setSummary) {
         window.OnicordWidgetAPI.island.setSummary(clearSummary);
       }
@@ -995,20 +1125,19 @@
       }
     });
 
-    // ─── AUDIO TOGGLE ──────────────────────────────────────────────────
     btnSoundEl.addEventListener("click", () => {
       state.soundEnabled = !state.soundEnabled;
       soundIconEl.textContent = state.soundEnabled ? "volume_up" : "volume_off";
-      btnSoundEl.title = state.soundEnabled ? "Silenciar Sonido" : "Activar Sonido";
+      saveConfigToStorage();
     });
 
-    // ─── STORAGE PERSISTENCE ───────────────────────────────────────────
     async function saveConfigToStorage() {
       if (window.OnicordWidgetAPI?.storage?.set) {
         await window.OnicordWidgetAPI.storage.set("dice_config", JSON.stringify({
           count: state.count,
           faces: state.faces,
-          configured: state.configured
+          configured: state.configured,
+          soundEnabled: state.soundEnabled
         }));
       }
     }
@@ -1021,6 +1150,10 @@
             const data = JSON.parse(raw);
             if (data.count) state.count = data.count;
             if (data.faces) state.faces = data.faces;
+            if (typeof data.soundEnabled === "boolean") {
+              state.soundEnabled = data.soundEnabled;
+              soundIconEl.textContent = state.soundEnabled ? "volume_up" : "volume_off";
+            }
             state.configured = Boolean(data.configured);
           }
         } catch (e) {}
@@ -1072,12 +1205,12 @@
       }
     }
 
-    // ─── INITIALIZATION & P2P LISTENERS ────────────────────────────────
     let isInitialized = false;
     async function initWidget() {
       if (isInitialized) return;
       isInitialized = true;
 
+      applyStaticI18n();
       await loadConfigFromStorage();
       await loadHistoryFromStorage();
 
@@ -1094,10 +1227,9 @@
           if (!data || typeof data !== "object") return;
 
           if (data.type === "DICE_STATE_REQUEST") {
-            // Un compañero solicita el estado actual de los dados en la sala
             if (state.configured && window.OnicordWidgetAPI?.p2p?.broadcast) {
               const last = state.history && state.history.length > 0 ? state.history[0] : null;
-              const lastSummary = last ? `${last.user} lanzó ${last.spec || "dados"} -> ${last.total}` : undefined;
+              const lastSummary = last ? `${last.user} ${t("rolled")} ${last.spec || t("dice")} -> ${last.total}` : undefined;
               window.OnicordWidgetAPI.p2p.broadcast({
                 type: "DICE_STATE_RESPONSE",
                 count: state.count,
@@ -1109,7 +1241,6 @@
               });
             }
           } else if (data.type === "DICE_STATE_RESPONSE") {
-            // Recibido el estado configurado por otro usuario de la sala
             if (data.configured) {
               const wasNotConfigured = !state.configured;
               state.count = data.count || 2;
@@ -1128,7 +1259,7 @@
                 if (data.history.length > 0 && window.OnicordWidgetAPI?.island?.setSummary) {
                   const last = data.history[0];
                   if (last && last.user && last.total) {
-                    window.OnicordWidgetAPI.island.setSummary(`${last.user} lanzó ${last.spec || "dados"} -> ${last.total}`);
+                    window.OnicordWidgetAPI.island.setSummary(`${last.user} ${t("rolled")} ${last.spec || t("dice")} -> ${last.total}`);
                   }
                 }
               }
@@ -1149,7 +1280,7 @@
               window.OnicordWidgetAPI.island.setSummary(data.summary);
             }
             showView("main");
-            executeRollAnimation(data.rolls || [1], data.authorName || "Compañero");
+            executeRollAnimation(data.rolls || [1], data.authorName || t("peer"));
           } else if (data.type === "DICE_CONFIG_UPDATE") {
             state.count = data.count || 2;
             state.faces = data.faces || 6;
@@ -1166,7 +1297,6 @@
         });
       }
 
-      // Solicitar el estado sincronizado de la sala de inmediato y tras 1.2 segundos
       broadcastStateRequest();
       setTimeout(broadcastStateRequest, 1200);
     }

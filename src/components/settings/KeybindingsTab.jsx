@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import Select from "../ui/Select";
+import { DEFAULT_KEYBINDINGS, isMac } from "../../lib/defaultKeybindings";
 
 export default function KeybindingsTab({
   keybindings = [],
@@ -13,6 +14,7 @@ export default function KeybindingsTab({
   const ACTIONS = [
     { value: "toggle_mute", label: t("keybindings.actions.toggleMute", "Alternar Silencio") },
     { value: "toggle_deafen", label: t("keybindings.actions.toggleDeafen", "Alternar Ensordecer") },
+    { value: "disconnect_voice", label: t("keybindings.actions.disconnectVoice", "Desconectar de la llamada") },
     { value: "focus_search", label: t("keybindings.actions.focusSearch", "Buscar en el chat") },
     { value: "push_to_talk", label: t("keybindings.actions.pushToTalk", "Apretar para Hablar (PTT)") },
     { value: "go_to_dashboard", label: t("keybindings.actions.goToDashboard", "Ir al Dashboard") },
@@ -33,8 +35,8 @@ export default function KeybindingsTab({
       const parts = [];
       if (e.ctrlKey) parts.push("Ctrl");
       if (e.shiftKey) parts.push("Shift");
-      if (e.altKey) parts.push("Alt");
-      if (e.metaKey) parts.push("Meta");
+      if (e.altKey) parts.push(isMac ? "Option" : "Alt");
+      if (e.metaKey) parts.push(isMac ? "Cmd" : "Meta");
 
       const modifierKeys = ["Control", "Shift", "Alt", "Meta"];
       const isModifier = modifierKeys.includes(e.key);
@@ -89,8 +91,8 @@ export default function KeybindingsTab({
         const parts = [];
         if (e.ctrlKey) parts.push("Ctrl");
         if (e.shiftKey) parts.push("Shift");
-        if (e.altKey) parts.push("Alt");
-        if (e.metaKey) parts.push("Meta");
+        if (e.altKey) parts.push(isMac ? "Option" : "Alt");
+        if (e.metaKey) parts.push(isMac ? "Cmd" : "Meta");
 
         const mouseName = e.button === 1 ? "Mouse3" : `Mouse${e.button + 1}`;
         parts.push(mouseName);
@@ -139,6 +141,22 @@ export default function KeybindingsTab({
     setKeybindings((prev) => prev.filter((kb) => kb.id !== id));
   };
 
+  const handleResetDefaults = () => {
+    const generateId = () => {
+      try {
+        return crypto.randomUUID();
+      } catch {
+        return `kb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      }
+    };
+    setKeybindings(
+      DEFAULT_KEYBINDINGS.map((kb) => ({
+        ...kb,
+        id: generateId(),
+      }))
+    );
+  };
+
   return (
     <div className="onicord-settings-container space-y-5 animate-fade-in">
       <div className="onicord-settings-card">
@@ -151,21 +169,40 @@ export default function KeybindingsTab({
               {t("keybindings.description", "Configura combinaciones de teclas para realizar acciones rápidas en la aplicación.")}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleAddKeybinding}
-            className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-onicord-accent text-onicord-dark hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
-          >
-            <MaterialIcon name="add" size={14} weight={700} />
-            <span>{t("keybindings.addShortcut", "Añadir atajo")}</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleResetDefaults}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 border border-white/10 text-onicord-muted hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-1.5"
+              title={t("keybindings.resetDefaults", "Restablecer atajos por defecto")}
+            >
+              <MaterialIcon name="restart_alt" size={14} />
+              <span>{t("keybindings.resetDefaults", "Restablecer por defecto")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleAddKeybinding}
+              className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-onicord-accent text-onicord-dark hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
+            >
+              <MaterialIcon name="add" size={14} weight={700} />
+              <span>{t("keybindings.addShortcut", "Añadir atajo")}</span>
+            </button>
+          </div>
         </div>
 
         {keybindings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center text-onicord-muted space-y-2">
+          <div className="flex flex-col items-center justify-center py-10 text-center text-onicord-muted space-y-3">
             <MaterialIcon name="keyboard" size={36} className="opacity-45" />
             <p className="text-xs font-semibold">{t("keybindings.noShortcuts", "No tienes atajos de teclado configurados.")}</p>
-            <p className="text-[10px] text-onicord-muted/70 max-w-xs">{t("keybindings.noShortcutsHint", "Haz clic en añadir atajo arriba para empezar.")}</p>
+            <p className="text-[10px] text-onicord-muted/70 max-w-xs">{t("keybindings.noShortcutsHint", "Haz clic en añadir atajo arriba para empezar o restablece los atajos por defecto.")}</p>
+            <button
+              type="button"
+              onClick={handleResetDefaults}
+              className="mt-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 border border-white/10 text-onicord-accent hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <MaterialIcon name="restart_alt" size={14} />
+              <span>{t("keybindings.resetDefaults", "Restablecer atajos por defecto")}</span>
+            </button>
           </div>
         ) : (
           <div className="pt-2 divide-y divide-white/5">

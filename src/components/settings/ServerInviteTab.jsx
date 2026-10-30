@@ -74,11 +74,11 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
 
   return (
     <div className="onicord-settings-container">
-      {/* ESTRUCTURA EN 2 COLUMNAS (6 y 6 DE ANCHO COMO PROFILE TAB) */}
+      {/* 2-COLUMN STRUCTURE (5/12 and 7/12 layout) */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-        {/* COLUMNA IZQUIERDA: MÉTODOS DE INVITACIÓN (6/12) */}
+        {/* LEFT COLUMN: INVITATION METHODS (5/12) */}
         <div className="md:col-span-5 space-y-4">
-          {/* TARJETA 1: CÓDIGO ALFANUMÉRICO CORTO */}
+          {/* CARD 1: SHORT ALPHANUMERIC CODE */}
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>
@@ -131,7 +131,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
             </div>
           </div>
 
-          {/* TARJETA 2: ENLACE UNIVERSAL WEB HTTPS */}
+          {/* Universal web HTTPS invite link */}
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>
@@ -193,17 +193,17 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: VISTA PREVIA IDÉNTICA A LA TARJETA INVITEMODAL REAL (6/12) */}
+        {/* RIGHT COLUMN: PREVIEW IDENTICAL TO ACTUAL INVITEMODAL CARD (7/12) */}
         <div className="md:col-span-7">
           <div className="onicord-settings-card flex flex-col items-center">
             <span className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted mb-3 flex items-center gap-1.5 self-start">
               <MaterialIcon name="visibility" size={14} />
               <span>{t("settings.theme.preview", "Vista Previa en Vivo")}</span>
             </span>
-            {/* REPLICACIÓN FIEL 1:1 DE INVITEMODAL.JSX */}
-            <div className="relative w-full max-w-sm rounded-2xl bg-onicord-surface border border-white/[0.06] shadow-2xl overflow-hidden animate-fade-in">
+            {/* Faithful 1:1 replication of InviteModal.jsx */}
+            <div className="relative w-full max-w-sm rounded-2xl bg-onicord-base/90 border border-onicord-island overflow-hidden animate-fade-in">
               <div className="relative flex flex-col items-center px-8 pt-10 pb-7">
-                {/* Server Avatar Redondeado (88px x 88px con ring) */}
+                {/* Rounded server avatar (88px x 88px with ring) */}
                 <div className="mb-5 relative">
                   <div className="w-[88px] h-[88px] rounded-full ring-4 ring-onicord-surface overflow-hidden shrink-0 shadow-lg bg-onicord-base">
                     {serverAvatar ? (
@@ -237,7 +237,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
                   {serverName}
                 </h2>
 
-                {/* Members / Online chips exactamente como InviteModal */}
+                {/* Members / Online chips mirroring InviteModal */}
                 <div className="flex items-center justify-center gap-2 mb-6 flex-wrap select-none">
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-onicord-success/10 border border-onicord-success/20 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-onicord-success shrink-0 animate-pulse" />

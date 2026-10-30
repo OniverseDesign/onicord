@@ -68,11 +68,16 @@ export default function RichPresenceCard({
 
   const isApp = type === "app";
   const isMusic = type === "music";
+  const isMovie =
+    type === "movie" ||
+    type === "cinema" ||
+    gameName === "Cinema" ||
+    (typeof details === "string" && details.toLowerCase().includes("cinema"));
 
   return (
     <div className="shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island py-3">
       <div className="flex items-center gap-4 px-4">
-        {/* Carátula / Portada / Icono */}
+        {/* Cover image / Icon */}
         <div className="relative w-14 h-14 shrink-0">
           <div className="w-full h-full rounded-[10px] overflow-hidden flex items-center justify-center bg-onicord-surface/40">
             {cover ? (
@@ -84,15 +89,15 @@ export default function RichPresenceCard({
             ) : (
               <div className="flex items-center justify-center w-full h-full">
                 <MaterialIcon
-                  name={isApp ? "apps" : isMusic ? "music_note" : "sports_esports"}
-                  size={26}
-                  className="text-onicord-muted"
+                  name={isApp ? "apps" : isMusic ? "music_note" : isMovie ? "movie" : "sports_esports"}
+                  size={28}
+                  className={isMovie ? "text-onicord-accent" : "text-onicord-muted"}
                 />
               </div>
             )}
           </div>
 
-          {/* Sub-icono de emulador o cliente */}
+          {/* Emulator / sub-client badge */}
           {smallCover && (
             <div
               className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full overflow-hidden border-2 border-onicord-base bg-onicord-surface shadow-sm flex items-center justify-center"
@@ -108,7 +113,7 @@ export default function RichPresenceCard({
         </div>
 
         <div className="flex flex-col min-w-0 flex-1">
-          {/* Título animado con marquee */}
+          {/* Animated marquee title */}
           <div
             ref={containerRef}
             className="relative w-full overflow-hidden whitespace-nowrap group"
@@ -138,27 +143,29 @@ export default function RichPresenceCard({
             </div>
           </div>
 
-          {/* Detalles de la actividad */}
+          {/* Activity details */}
           {details && (
             <p className="text-[12px] text-onicord-subtext truncate leading-snug mt-0.5">
               {details}
             </p>
           )}
 
-          {/* Estado dinámico de partida (Discord RPC) */}
+          {/* Dynamic session state (Discord RPC) */}
           {state && (
             <p className="text-[11px] text-onicord-muted truncate leading-snug">
               {state}
             </p>
           )}
 
-          {/* Timer y Badges */}
+          {/* Timer and badges */}
           <div className="flex items-center justify-between text-onicord-success gap-1.5 mt-1">
             <div className="flex items-center gap-1.5">
               {isApp ? (
-                <MaterialIcon name="apps" size={16} />
+                <MaterialIcon name="apps" size="lg" />
               ) : isMusic ? (
-                <MaterialIcon name="headphones" size={16} />
+                <MaterialIcon name="headphones" size="lg" />
+              ) : isMovie ? (
+                <MaterialIcon name="movie" size="lg" className="text-onicord-accent" />
               ) : (
                 <IconJoystick size="lg" />
               )}

@@ -310,6 +310,39 @@ function registerMediaFileHandlers() {
     global.roomManager?.sendWatchPartyCommand(channelId, command, roomCode);
     return { success: true };
   });
+
+  // === Motor Torrent Nativo P2P ===
+  const torrentService = require("../../services/torrentService.cjs");
+
+  ipcMain.handle("torrent:get-stream-url", async (_event, { infoHash, fileIdx = 0, trackers = [] } = {}) => {
+    const cleanHash = String(infoHash || "").trim().toLowerCase();
+    if (!/^[a-f0-9]{40}$/.test(cleanHash)) {
+      throw new Error("Invalid torrent infoHash");
+    }
+    const port = ytdlpService.streamPort || 42883;
+    const params = new URLSearchParams();
+    if (Array.isArray(trackers)) {
+      for (const tr of trackers) {
+        if (typeof tr === "string") {
+          const cleanTr = tr.replace(/^tracker:/i, "").trim();
+          if (cleanTr.startsWith("udp://") || cleanTr.startsWith("http://") || cleanTr.startsWith("https://") || cleanTr.startsWith("wss://")) {
+            params.append("tr", cleanTr);
+          }
+        }
+      }
+    }
+    const qs = params.toString();
+    return `http://127.0.0.1:${port}/torrent/${cleanHash}/${fileIdx}${qs ? `?${qs}` : ""}`;
+  });
+
+  ipcMain.handle("torrent:stop", async (_event, infoHash) => {
+    if (infoHash) {
+      torrentService.destroyEngine(infoHash);
+    } else {
+      torrentService.destroyAll();
+    }
+    return { success: true };
+  });
 }
 
 module.exports = { registerMediaFileHandlers };

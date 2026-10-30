@@ -3,6 +3,7 @@
  */
 
 const STORAGE_KEY = "onicord_game_playtime_v1";
+const LEGACY_CATALOG_NAMES = new Set(["Arcade", "Onicord Arcade", "Cinema"]);
 
 /**
  * Reads all stored game playtime records from localStorage.
@@ -16,8 +17,7 @@ export function getPlaytimeData() {
     let modified = false;
     for (const key of Object.keys(data)) {
       if (
-        key === "Arcade" ||
-        key === "Onicord Arcade" ||
+        LEGACY_CATALOG_NAMES.has(key) ||
         data[key]?.type === "launcher" ||
         data[key]?.isCatalog
       ) {
@@ -41,14 +41,14 @@ export function getPlaytimeData() {
  * @param {number} addedSeconds 
  * @param {string|null} cover 
  * @param {string} type 
+ * @param {boolean} isCatalog
  */
-export function addPlaytime(gameName, addedSeconds, cover = null, type = "game") {
+export function addPlaytime(gameName, addedSeconds, cover = null, type = "game", isCatalog = false) {
   if (
     !gameName ||
     addedSeconds <= 0 ||
-    gameName === "Arcade" ||
-    gameName === "Onicord Arcade" ||
-    type === "launcher"
+    type === "launcher" ||
+    isCatalog === true
   ) {
     return;
   }
@@ -74,7 +74,7 @@ export function addPlaytime(gameName, addedSeconds, cover = null, type = "game")
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
-    // Emitir evento para que cualquier widget montado actualice sus estadísticas en vivo
+    // Dispatch event so any mounted widgets refresh their live stats
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("onicord-playtime-updated", { detail: current }));
     }
@@ -104,7 +104,7 @@ export function formatPlaytime(totalSeconds = 0) {
 }
 
 /**
- * Formats a timestamp into a fuzzy relative date string (e.g. "Hoy", "Ayer", "Hace 3 días").
+ * Formats a timestamp into a fuzzy relative date string (e.g. "Today", "Yesterday", "3 days ago").
  * @param {number} timestamp 
  * @returns {string}
  */
@@ -121,8 +121,8 @@ export function formatRelativeDate(timestamp, t = null) {
 }
 
 /**
- * Inicializador de seguimiento global de tiempo.
- * Se ejecuta a nivel raíz de la aplicación para acumular tiempo independientemente de qué vista esté abierta.
+ * Global playtime tracking initializer.
+ * Runs at the application root to continuously accumulate gameplay duration across all views.
  */
 export function initGlobalPlaytimeTracker() {
   const api = window.electronAPI;
@@ -149,14 +149,12 @@ export function initGlobalPlaytimeTracker() {
   };
 
   const handleActivityChange = (activity) => {
-    // 1. Guardar cualquier segundo acumulado del juego previo antes de cambiar
+    // 1. Flush accumulated elapsed time for the previous game before switching
     flushElapsed();
 
     const isIgnored =
       !activity ||
       !activity.name ||
-      activity.name === "Arcade" ||
-      activity.name === "Onicord Arcade" ||
       activity.type === "music" ||
       activity.type === "launcher" ||
       activity.isCatalog === true;
@@ -170,18 +168,18 @@ export function initGlobalPlaytimeTracker() {
       return;
     }
 
-    // 2. Si es el mismo juego activo que ya está corriendo, NO reiniciar el temporizador
+    // 2. If already tracking this exact game, keep timer running without resetting
     if (currentActive && currentActive.name === activity.name) {
       if (activity.cover && !currentActive.cover) currentActive.cover = activity.cover;
       if (activity.type && !currentActive.type) currentActive.type = activity.type;
       return;
     }
 
-    // 3. Iniciar seguimiento del nuevo juego
+    // 3. Begin tracking newly activated game
     currentActive = { ...activity };
     lastTimestamp = Date.now();
 
-    // Acumular periódicamente cada 5 segundos
+    // Flush elapsed time periodically every 5 seconds
     if (!interval) {
       interval = setInterval(() => {
         flushElapsed();
@@ -189,17 +187,17 @@ export function initGlobalPlaytimeTracker() {
     }
   };
 
-  // Consultar estado inicial
+  // Query initial activity state
   api.getCurrentGame?.().then((game) => {
     if (game?.name) handleActivityChange(game);
   });
 
-  // Escuchar cambios de actividad
+  // Subscribe to game activity updates
   const unsub = api.onGameActivityChanged?.((game) => {
     handleActivityChange(game);
   });
 
-  // Guardar tiempo si se cierra o recarga la aplicación
+  // Flush playtime on window reload or unload
   const handleBeforeUnload = () => {
     flushElapsed();
   };

@@ -29,12 +29,41 @@ function parseDiceExpression(expr) {
   return null;
 }
 
+const DICE_I18N = {
+  es: {
+    title: "Dados",
+    rolled: "lanzó",
+    critSuccess: " [ÉXITO CRÍTICO (20)]",
+    critFail: " [PIFIA NATURAL (1)]",
+    total: "Total",
+  },
+  en: {
+    title: "Dices",
+    rolled: "rolled",
+    critSuccess: " [CRITICAL SUCCESS (20)]",
+    critFail: " [NATURAL FAILURE (1)]",
+    total: "Total",
+  },
+  pt: {
+    title: "Dados",
+    rolled: "lançou",
+    critSuccess: " [SUCESSO CRÍTICO (20)]",
+    critFail: " [FALHA NATURAL (1)]",
+    total: "Total",
+  },
+};
+
+function getDiceI18n() {
+  const code = String(Onicord.language || Onicord.getLanguage?.() || "es").split("-")[0].toLowerCase();
+  return DICE_I18N[code] || DICE_I18N.es;
+}
+
 // 1. Registro del Widget en la Isla de Complementos (Panel Lateral Derecho)
 if (typeof Onicord !== "undefined" && Onicord.ui?.registerPluginIslandWidget) {
-  const isEs = (Onicord.language || "es").startsWith("es");
+  const i18n = getDiceI18n();
   Onicord.ui.registerPluginIslandWidget({
     id: "dice-island-widget",
-    title: isEs ? "Dados" : "Dices",
+    title: i18n.title,
     entryPoint: "widgets/dice_island.html",
     height: 275,
   });
@@ -46,11 +75,24 @@ if (typeof Onicord !== "undefined" && Onicord.chat?.onCommand) {
     const authorName = context?.author?.nickname || "Usuario";
     const authorId = context?.author?.id || "local";
     const rawArg = Array.isArray(args) ? args.join(" ").trim() : "";
+    const L = getDiceI18n();
 
     let diceSpec = parseDiceExpression(rawArg);
     if (!diceSpec) {
-      // Default: 1d6 si no se especifica argumento
-      diceSpec = { count: 1, faces: 6, modifier: 0 };
+      // Intentar leer la configuración guardada por el widget en storage
+      let configuredCount = 2;
+      let configuredFaces = 6;
+      try {
+        if (Onicord.storage?.get) {
+          const stored = await Onicord.storage.get("dice_config");
+          if (stored) {
+            const parsed = typeof stored === "string" ? JSON.parse(stored) : stored;
+            if (parsed.count) configuredCount = parsed.count;
+            if (parsed.faces) configuredFaces = parsed.faces;
+          }
+        }
+      } catch (_) {}
+      diceSpec = { count: configuredCount, faces: configuredFaces, modifier: 0 };
     }
 
     const { count, faces, modifier } = diceSpec;
@@ -63,18 +105,18 @@ if (typeof Onicord !== "undefined" && Onicord.chat?.onCommand) {
 
     let critText = "";
     if (faces === 20 && count === 1) {
-      if (rolls[0] === 20) critText = " [ÉXITO CRÍTICO (20)]";
-      else if (rolls[0] === 1) critText = " [PIFIA NATURAL (1)]";
+      if (rolls[0] === 20) critText = L.critSuccess;
+      else if (rolls[0] === 1) critText = L.critFail;
     }
 
     let resultMsg = "";
     const specStr = count === 1 ? `d${faces}` : `${count}d${faces}`;
     if (count === 1) {
-      resultMsg = `**${authorName}** lanzó **d${faces}** -> **${total}**${critText}`;
+      resultMsg = `**${authorName}** ${L.rolled} **d${faces}** -> **${total}**${critText}`;
     } else {
       const rollsStr = `[${rolls.join(", ")}]`;
       const modStr = modifier !== 0 ? ` ${modifier > 0 ? "+" : ""}${modifier}` : "";
-      resultMsg = `**${authorName}** lanzó **${count}d${faces}**: ${rollsStr}${modStr} -> Total: **${total}**${critText}`;
+      resultMsg = `**${authorName}** ${L.rolled} **${count}d${faces}**: ${rollsStr}${modStr} -> ${L.total}: **${total}**${critText}`;
     }
 
     // Publicar en el chat de la sala
@@ -92,7 +134,7 @@ if (typeof Onicord !== "undefined" && Onicord.chat?.onCommand) {
         faces,
         rolls,
         total,
-        summary: `${authorName} lanzó ${specStr} -> ${total}`,
+        summary: `${authorName} ${L.rolled} ${specStr} -> ${total}`,
         timestamp: Date.now(),
       });
     }

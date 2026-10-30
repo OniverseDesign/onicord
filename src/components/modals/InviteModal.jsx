@@ -39,7 +39,6 @@ export default function InviteModal({
       className={cn("onicord-modal-backdrop", isClosing && "onicord-animate-backdrop-out")}
       onClick={triggerClose}
     >
-      {/* Card */}
       <div
         className={cn(
           "relative w-full max-w-sm rounded-2xl bg-onicord-surface border border-white/[0.06] shadow-2xl overflow-hidden onicord-animate-modal-in",
@@ -47,7 +46,6 @@ export default function InviteModal({
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Content */}
         <div className="relative flex flex-col items-center px-8 pt-10 pb-7 gap-0">
           {/* Server Avatar */}
           <div className="mb-5 relative">
@@ -106,7 +104,6 @@ export default function InviteModal({
             </div>
           ) : null}
 
-          {/* Buttons */}
           <div className="w-full flex flex-col gap-2.5">
             <button
               disabled={busy}

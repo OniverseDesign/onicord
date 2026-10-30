@@ -72,8 +72,10 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
           : (isHost && typeof hostPlaybackTimeRef.current === "number" ? hostPlaybackTimeRef.current : current.currentTime);
 
       const payload = {
+        type: overrides.type !== undefined ? overrides.type : (current.type || "youtube"),
         videoId: overrides.videoId !== undefined ? overrides.videoId : current.videoId,
         title: overrides.title !== undefined ? overrides.title : current.title,
+        details: overrides.details !== undefined ? overrides.details : current.details,
         url: overrides.url !== undefined ? overrides.url : current.url,
         isPlaying: overrides.isPlaying !== undefined ? overrides.isPlaying : current.isPlaying,
         currentTime: effectiveTime,
@@ -81,6 +83,14 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
         hostPeerId: overrides.hostPeerId !== undefined ? overrides.hostPeerId : current.hostPeerId,
         hostNickname: overrides.hostNickname !== undefined ? overrides.hostNickname : current.hostNickname,
         duration: overrides.duration !== undefined ? overrides.duration : current.duration,
+        streamUrl: overrides.streamUrl !== undefined ? overrides.streamUrl : current.streamUrl,
+        infoHash: overrides.infoHash !== undefined ? overrides.infoHash : current.infoHash,
+        fileIdx: overrides.fileIdx !== undefined ? overrides.fileIdx : current.fileIdx,
+        trackers: overrides.trackers !== undefined ? overrides.trackers : current.trackers,
+        cover: overrides.cover !== undefined ? overrides.cover : current.cover,
+        logo: overrides.logo !== undefined ? overrides.logo : current.logo,
+        banner: overrides.banner !== undefined ? overrides.banner : current.banner,
+        subtitles: overrides.subtitles !== undefined ? overrides.subtitles : current.subtitles,
       };
 
       window.electronAPI.broadcastWatchPartyState(currentChannelId, payload, currentRoomCode);
@@ -96,6 +106,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       if (!videoId) return;
 
       const newSession = {
+        type: "youtube",
         videoId,
         title: title || "Video de YouTube",
         url: rawUrl,
@@ -117,6 +128,46 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       }
     },
     [currentChannelId, currentRoomCode, localPeerId, profile?.nickname, inVoice]
+  );
+
+  // Start Cinema watch party (P2P Movie/Series stream)
+  const startCinemaWatchParty = useCallback(
+    (cinemaData) => {
+      if (!inVoice || !cinemaData) return;
+
+      const videoId = cinemaData.infoHash || cinemaData.streamUrl || cinemaData.id || "cinema-stream";
+      const newSession = {
+        type: "cinema",
+        videoId,
+        title: cinemaData.title || "Cinema",
+        details: cinemaData.details || "",
+        url: cinemaData.streamUrl || cinemaData.url || "",
+        streamUrl: cinemaData.streamUrl || cinemaData.url || "",
+        infoHash: cinemaData.infoHash || null,
+        fileIdx: cinemaData.fileIdx ?? 0,
+        trackers: cinemaData.trackers || [],
+        cover: cinemaData.cover || null,
+        logo: cinemaData.logo || null,
+        banner: cinemaData.banner || null,
+        subtitles: cinemaData.subtitles || [],
+        isPlaying: true,
+        currentTime: 0,
+        updatedAt: Date.now(),
+        hostPeerId: localPeerId,
+        hostNickname: profile?.nickname || profile?.username || "Anfitrión",
+        duration: cinemaData.duration || 0,
+      };
+
+      setSession(newSession);
+      sessionRef.current = newSession;
+      setHasJoined(true);
+      setJoinPrompt(null);
+
+      if (window.electronAPI?.broadcastWatchPartyState) {
+        window.electronAPI.broadcastWatchPartyState(currentChannelId, newSession, currentRoomCode);
+      }
+    },
+    [currentChannelId, currentRoomCode, localPeerId, profile?.nickname, profile?.username, inVoice]
   );
 
   // End watch party
@@ -162,6 +213,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
         setHasJoined(false);
         setIsFullscreen(false);
         setJoinPrompt(null);
+        window.dispatchEvent(new CustomEvent("onicord:watch-party-ended"));
         return;
       }
 
@@ -177,11 +229,13 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       setSession((prev) => {
         const isNewVideo = !prev || prev.videoId !== remoteState.videoId;
         if (isNewVideo) {
-          // If remote host started it and we are not host
-          if (remoteState.hostPeerId !== localPeerId) {
+          // If remote host started it and we are not host (cinema sessions join via interactive chat card)
+          if (remoteState.hostPeerId !== localPeerId && remoteState.type !== "cinema") {
             setJoinPrompt({
+              type: remoteState.type || "youtube",
               videoId: remoteState.videoId,
               title: remoteState.title,
+              details: remoteState.details,
               hostNickname: remoteState.hostNickname,
             });
           }
@@ -222,6 +276,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
           broadcastState(next);
           return next;
         });
+        window.dispatchEvent(new CustomEvent("onicord:watch-party-host-command", { detail: command }));
       } else if (command.type === "PAUSE") {
         setSession((prev) => {
           if (!prev) return prev;
@@ -235,6 +290,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
           broadcastState(next);
           return next;
         });
+        window.dispatchEvent(new CustomEvent("onicord:watch-party-host-command", { detail: command }));
       } else if (command.type === "SEEK") {
         setSession((prev) => {
           if (!prev) return prev;
@@ -247,6 +303,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
           broadcastState(next);
           return next;
         });
+        window.dispatchEvent(new CustomEvent("onicord:watch-party-host-command", { detail: command }));
       }
     });
 
@@ -330,6 +387,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
     volume,
     isMuted,
     startWatchParty,
+    startCinemaWatchParty,
     stopWatchParty,
     joinWatchParty,
     dismissPrompt,

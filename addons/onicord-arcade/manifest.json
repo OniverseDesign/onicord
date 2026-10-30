@@ -25,6 +25,15 @@
           "description": "Open Arcade games library."
         }
       }
+    },
+    "pt": {
+      "name": "Arcade",
+      "description": "Biblioteca de jogos web clássicos e portados com multijogador integrado, salas cooperativas e sincronização de perfis.",
+      "commands": {
+        "/arcade": {
+          "description": "Abre a biblioteca de jogos do Arcade."
+        }
+      }
     }
   },
   "permissions": [
@@ -43,6 +52,11 @@
       "id": "arcade_joystick",
       "icon": "sports_esports",
       "tooltip": "Arcade (Catálogo de Juegos)",
+      "tooltips": {
+        "es": "Arcade (Catálogo de Juegos)",
+        "en": "Arcade (Game Catalog)",
+        "pt": "Arcade (Catálogo de Jogos)"
+      },
       "action": "TOGGLE_ARCADE_STAGE"
     }
   ],

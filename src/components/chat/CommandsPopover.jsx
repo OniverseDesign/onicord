@@ -46,10 +46,10 @@ const CommandsPopover = memo(
       );
     };
 
-    // Filtrar comandos de plugins registrados por IPC que estén autorizados en este servidor
+    // Filter plugin commands registered via IPC that are authorized on this server
     const allowedPluginCommands = (pluginCommands || []).filter(isPluginAllowed);
 
-    // Mapa de comandos de plugins registrados por IPC o en ONICORD_COMMANDS
+    // Map of plugin commands registered via IPC or in ONICORD_COMMANDS
     const pluginMap = new Map();
     allowedPluginCommands.forEach((pc) => {
       const normalizedCmd = pc.command.startsWith("/")

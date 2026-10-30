@@ -1,7 +1,7 @@
 {
   "id": "onicord-dice",
   "name": "Dices",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scope": "server",
   "author": "Oniverse",
   "description": "Real-time configurable dice roller for the room.",
@@ -23,6 +23,15 @@
       "commands": {
         "/roll": {
           "description": "Roll configured dice directly from chat (e.g. /roll, /roll 2d6, /roll 1d20)."
+        }
+      }
+    },
+    "pt": {
+      "name": "Dados",
+      "description": "Dado virtual colaborativo e configurável em tempo real para o painel da sala.",
+      "commands": {
+        "/roll": {
+          "description": "Lança dados configurados diretamente do chat (ex: /roll, /roll 2d6, /roll 1d20)."
         }
       }
     }

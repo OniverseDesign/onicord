@@ -44,7 +44,7 @@ export default function ServerRolesTab({
 
   return (
     <div className="onicord-settings-container">
-      {/* TARJETA 1: CREAR ROL */}
+      {/* Create server role card */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("serverSettings.roles.createRoleLabel", "Crear Nuevo Rol de Servidor")}</span>
@@ -68,7 +68,7 @@ export default function ServerRolesTab({
         </div>
       </div>
 
-      {/* TARJETA 2: LISTA Y PERMISOS DE ROLES */}
+      {/* Role hierarchy and permissions list */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("serverSettings.roles.rolesCount", { count: roles.length + (ownerId ? 1 : 0) })}</span>
@@ -144,7 +144,7 @@ export default function ServerRolesTab({
                 </button>
               </div>
 
-              {/* PANEL DE PERMISOS DESPLEGABLE */}
+              {/* Role permissions breakdown */}
               {expandedRoleId === role.id && (
                 <div
                   onMouseDown={(e) => e.stopPropagation()}

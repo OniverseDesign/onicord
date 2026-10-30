@@ -142,19 +142,10 @@ export default function StickerPopover({
       }
     };
 
-    const handleScroll = (e) => {
-      if (popoverRef.current && popoverRef.current.contains(e.target)) {
-        return; // Ignore internal picker scroll
-      }
-      onClose();
-    };
-
     document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("scroll", handleScroll, true);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("scroll", handleScroll, true);
       if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, [onClose]);
@@ -470,7 +461,7 @@ export default function StickerPopover({
             </div>
           ))}
 
-          {/* Stickers Sueltos */}
+          {/* Loose stickers section */}
           {looseStickers.length > 0 && (
             <div
               key="loose"

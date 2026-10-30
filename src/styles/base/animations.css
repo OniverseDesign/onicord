@@ -528,4 +528,16 @@
   }
 }
 
+/* 8. Desactivar animaciones continuas */
+html[data-continuous-animations="false"] .animate-spin-reverse,
+html[data-continuous-animations="false"] .onicord-bounce-logo,
+html[data-continuous-animations="false"] .color-picker-cycle,
+html[data-continuous-animations="false"] .animate-rgb-glow,
+html[data-continuous-animations="false"] .animate-bounce-slow,
+html[data-continuous-animations="false"] .star-trajectory,
+html[data-continuous-animations="false"] .estrella-giratoria {
+  animation: none !important;
+}
+
+
 

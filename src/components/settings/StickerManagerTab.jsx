@@ -291,7 +291,7 @@ export default function StickerManagerTab() {
   return (
     <div className="onicord-settings-container">
 
-      {/* TARJETA 2: PAQUETES INSTALADOS */}
+      {/* Installed sticker packs */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title mb-3 flex items-center justify-between">
           <span>{t("settings.stickers.installedPacksCount", "Paquetes Instalados ({{count}})", { count: Object.keys(packs).length })}</span>
@@ -329,9 +329,9 @@ export default function StickerManagerTab() {
                   key={`pack-group-${packTitle}`}
                   className="flex flex-col bg-onicord-base/60 border border-white/5 p-3.5 rounded-2xl hover:border-white/10 transition-colors space-y-3"
                 >
-                  {/* Encabezado del Paquete Instalado */}
+                  {/* Installed Pack Header */}
                   <div className="flex items-center gap-3 w-full">
-                    {/* Icono del Pack */}
+                    {/* Pack Icon */}
                     <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden border border-white/5">
                       {firstStk ? (
                         <img
@@ -344,7 +344,7 @@ export default function StickerManagerTab() {
                       )}
                     </div>
 
-                    {/* Titulo, Versión, Cantidad y Creador */}
+                    {/* Title, Version, Count and Author */}
                     <div className="flex-1 min-w-0 text-left">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-xs text-onicord-text truncate">
@@ -420,7 +420,7 @@ export default function StickerManagerTab() {
         )}
       </div>
 
-      {/* TARJETA 3: PAQUETES DISPONIBLES */}
+      {/* Available catalog packs */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between mb-3">
           <h3 className="onicord-settings-section-title mb-0 flex items-center gap-2">
@@ -455,7 +455,7 @@ export default function StickerManagerTab() {
                   key={pack.id}
                   className="flex items-center gap-3 bg-onicord-base/60 border border-white/5 p-3.5 rounded-2xl hover:border-white/10 transition-colors"
                 >
-                  {/* Portada / Icono del pack */}
+                  {/* Pack Cover / Icon */}
                   <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden border border-white/5">
                     {pack.icon && !failedIcons[pack.id] ? (
                       <img
@@ -474,7 +474,7 @@ export default function StickerManagerTab() {
                     )}
                   </div>
 
-                  {/* Detalles: Nombre, Versión, Creador, Descripción */}
+                  {/* Details: Name, Version, Creator, Description */}
                   <div className="flex-1 min-w-0 text-left">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-xs text-onicord-text truncate">
@@ -497,7 +497,7 @@ export default function StickerManagerTab() {
                     </p>
                   </div>
 
-                  {/* Botón de Acción: Actualizar, Instalado o Descargar */}
+                  {/* Action Button: Update, Installed or Download */}
                   {hasUpdate ? (
                     <button
                       type="button"
@@ -561,7 +561,7 @@ export default function StickerManagerTab() {
         />
       </label>
 
-      {/* TARJETA 3: BIBLIOTECA GENERAL Y SELECCIÓN */}
+      {/* CARD 3: GENERAL LIBRARY AND SELECTION */}
       <div id="sticker-io-block" className="onicord-settings-card">
         <div className="flex items-center justify-between">
           <h3 className="onicord-settings-section-title !mb-0">
@@ -593,7 +593,7 @@ export default function StickerManagerTab() {
           )}
         </p>
 
-        {/* INPUT DE NOMBRE Y GUARDADO */}
+        {/* Pack name input and save button */}
         <div className="flex gap-2 pt-2">
           <ModalInput
             value={nuevoPackName}
@@ -617,7 +617,7 @@ export default function StickerManagerTab() {
           </ModalButton>
         </div>
 
-        {/* REJILLA GENERAL */}
+        {/* Sticker library grid */}
         <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 pt-2">
           {misStickers.map((stk) => {
             const isSelected = selectedStickerIds.includes(stk.id);
@@ -663,7 +663,7 @@ export default function StickerManagerTab() {
         </div>
       </div>
 
-      {/* MODALES DE CONFIRMACIÓN */}
+      {/* CONFIRMATION MODALS */}
       <ConfirmDialogModal
         isOpen={Boolean(packToDestroy)}
         title={t("common.delete", "Desarmar Paquete")}

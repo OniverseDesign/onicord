@@ -2,7 +2,7 @@
   "id": "onicord-google-search",
   "name": "Google Search",
   "icon": "assets/icon.png",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scope": "server",
   "author": "Oniverse",
   "description": "Search Google & AI and post formatted web results directly into chat.",
@@ -13,6 +13,24 @@
       "commands": {
         "/g": {
           "description": "Busca en la web o limpia el historial (/g clear)."
+        }
+      }
+    },
+    "en": {
+      "name": "Google Search",
+      "description": "Search Google & AI and post formatted web results directly into chat.",
+      "commands": {
+        "/g": {
+          "description": "Search the web or clear history (/g clear)."
+        }
+      }
+    },
+    "pt": {
+      "name": "Pesquisa Google",
+      "description": "Pesquise no Google e IA e publique o resultado formatado no chat.",
+      "commands": {
+        "/g": {
+          "description": "Pesquise na web ou limpe o histórico (/g clear)."
         }
       }
     }
@@ -26,7 +44,7 @@
   ],
   "defaultConfig": {
     "prefix": "/g",
-    "showInIsland": true,
+    "showInIsland": false,
     "language": "es"
   },
   "configSchema": [
@@ -35,7 +53,6 @@
   "permissions": [
     "chat.read",
     "chat.send",
-    "p2p.network",
     "network.outbound"
   ]
 }

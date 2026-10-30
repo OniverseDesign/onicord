@@ -35,7 +35,7 @@ export default function ServerChannelsTab({
 
   return (
     <div className="onicord-settings-container">
-      {/* HEADER DE PESTAÑA */}
+      {/* TAB HEADER */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title !mb-0">
           <span>{t("serverSettings.tabs.channels", "Estructura de Canales y Categorías")}</span>
@@ -45,7 +45,7 @@ export default function ServerChannelsTab({
         </p>
       </div>
 
-      {/* CANALES HUÉRFANOS */}
+      {/* UNCATEGORIZED / ORPHAN CHANNELS */}
       <div
         onDragOver={handleDragOver}
         onDrop={(e) => handleDropChannel(e, null, null)}
@@ -76,7 +76,7 @@ export default function ServerChannelsTab({
         )}
       </div>
 
-      {/* CATEGORÍAS */}
+      {/* CATEGORIES */}
       {categories.map((cat) => {
         const catChannels = channels.filter((c) => c.parentId === cat.id);
         return (
@@ -88,7 +88,7 @@ export default function ServerChannelsTab({
             onDrop={(e) => handleDropCategory(e, cat.id)}
             className="onicord-settings-card hover:border-white/10 transition-colors"
           >
-            {/* Cabecera de Categoría */}
+            {/* Category Header */}
             <div className="flex items-center gap-2 bg-onicord-base/60 border border-white/5 p-2.5 rounded-xl cursor-grab active:cursor-grabbing group">
               <div className="text-onicord-muted opacity-40 group-hover:opacity-80 px-1 py-1 select-none flex flex-col gap-[3px] shrink-0">
                 <div className="w-1 h-1 bg-current rounded-full" />
@@ -339,7 +339,7 @@ function ChannelGroupEditor({
                       );
                     })}
 
-                    {/* Botón Añadir Rol */}
+                    {/* Add Role Button */}
                     {roles.length > 0 && (
                       <div className="relative">
                         <button

@@ -108,7 +108,7 @@ export default function PluginWidgetAdapter({
         },
       },
 
-      // API de Apariencia y Fondos Dinámicos (Imagen Blureada / Color)
+      // Dynamic Appearance & Background API (Blurred Image / Solid Color)
       ui: {
         setBackground: (bgData) => {
           if (typeof setCustomBackground === "function") {
@@ -122,7 +122,7 @@ export default function PluginWidgetAdapter({
         },
       },
 
-      // Permiso: p2p.network (Sincronización P2P en tiempo real)
+      // Permission: p2p.network (Real-time collaborative P2P synchronization)
       p2p: {
         broadcast: (data) => {
           if (widgetMeta.type !== "collaborative" || !permissions.has("p2p.network")) {
@@ -138,11 +138,18 @@ export default function PluginWidgetAdapter({
           }
         },
         onMessage: (callback) => {
-          window.addEventListener("message", (e) => {
+          if (typeof callback !== "function") return () => {};
+          const handler = (e) => {
             if (e.data?.type === "ONICORD_P2P_RECEIVE") {
               callback(e.data.data, e.data.senderPeerId);
             }
-          });
+          };
+          iframeWin.addEventListener("message", handler);
+          return () => {
+            try {
+              iframeWin.removeEventListener("message", handler);
+            } catch (_) {}
+          };
         },
       },
 

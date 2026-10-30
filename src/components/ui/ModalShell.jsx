@@ -155,7 +155,6 @@ export default function ModalShell({
       onClick={handleClose}
       role="presentation"
     >
-      {/* CARD PRINCIPAL */}
       <div
         className={cn(
           "onicord-modal-card-settings",
@@ -163,7 +162,7 @@ export default function ModalShell({
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* BARRA LATERAL (SIDEBAR NAV) */}
+        {/* Sidebar navigation */}
         {Array.isArray(sections) && sections.length > 0 && (
           <aside className="flex w-[260px] shrink-0 flex-col bg-onicord-mantle py-4 px-2 m-3 rounded-2xl border border-onicord-island">
             <div className="mb-2 px-3">
@@ -177,7 +176,7 @@ export default function ModalShell({
               )}
             </div>
 
-            {/* BUSCADOR DE AJUSTES */}
+            {/* Settings search input */}
             {searchable && (
               <div className="px-1.5 mb-2.5">
                 <div className="relative flex items-center">
@@ -254,7 +253,7 @@ export default function ModalShell({
                         <span className="truncate">{section.label}</span>
                       </button>
 
-                      {/* SUB-ELEMENTOS ENCONTRADOS DENTRO DE LA PESTAÑA */}
+                      {/* Nested sub-features matching search query */}
                       {hasMatchedFeatures && (
                         <div className="ml-5 pl-2 border-l border-onicord-accent/30 space-y-0.5 py-0.5">
                           {section.matchedFeatures.map((feat) => (
@@ -288,7 +287,7 @@ export default function ModalShell({
           </aside>
         )}
 
-        {/* CONTENIDO PRINCIPAL */}
+        {/* Main content area */}
         <div className="flex min-w-0 flex-1 flex-col bg-onicord-surface rounded-2xl border border-onicord-island m-3 overflow-hidden">
           <header className="onicord-modal-content-header">
             <h3 className="text-xl font-semibold text-onicord-text">

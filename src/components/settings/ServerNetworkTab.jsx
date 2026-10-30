@@ -89,7 +89,7 @@ export default function ServerNetworkTab({
   return (
     <div className="onicord-settings-container space-y-4">
       
-      {/* TARJETA 1: CONEXIÓN DIRECTA (TCP / PORT FORWARDING) */}
+      {/* CARD 1: DIRECT CONNECTION (TCP / PORT FORWARDING) */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between pb-2">
           <h3 className="onicord-settings-section-title flex items-center gap-1.5 m-0">
@@ -114,7 +114,7 @@ export default function ServerNetworkTab({
           {t("serverSettings.network.directDesc", "Permite la conexión punto a punto por socket TCP directo. Al saltarse la DHT de Hyperswarm y los servidores de relay intermedios, reduce la latencia de voz a su mínimo físico absoluto.")}
         </p>
 
-        {/* BENEFICIOS DE CONEXIÓN DIRECTA */}
+        {/* DIRECT CONNECTION BENEFITS */}
         <div className="bg-black/25 border border-white/5 rounded-xl p-3.5 mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-center gap-1">
@@ -145,7 +145,7 @@ export default function ServerNetworkTab({
           </div>
         </div>
 
-        {/* CAMPOS DE CONFIGURACIÓN (Si está activado) */}
+        {/* CONFIGURATION FIELDS (When enabled) */}
         {directConnectionEnabled && (
           <div className="space-y-4 pt-4 border-t border-white/5 mt-4 animate-fade-in">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -196,7 +196,7 @@ export default function ServerNetworkTab({
               </div>
             )}
 
-            {/* DIAGNÓSTICO DE RED / ACCIÓN DE COMPROBACIÓN */}
+            {/* NETWORK DIAGNOSTIC / CONNECTIVITY CHECK */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-black/15 border border-white/5 rounded-xl gap-3">
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-bold text-onicord-muted tracking-wider block">
@@ -244,7 +244,7 @@ export default function ServerNetworkTab({
               </div>
             )}
 
-            {/* SI EL PUERTO ESTÁ ABIERTO: ENLACE INVITACIÓN DIRECTA */}
+            {/* IF PORT IS OPEN: DIRECT INVITATION LINK */}
             {portStatus === "open" && directInviteLink && (
               <div className="pt-3 border-t border-white/5 space-y-2 animate-slide-up">
                 <div className="flex items-center gap-1">
@@ -283,7 +283,7 @@ export default function ServerNetworkTab({
               </div>
             )}
 
-            {/* GUÍA RÁPIDA DE RESOLUCIÓN EN CASO DE PUERTO CERRADO */}
+            {/* QUICK TROUBLESHOOTING GUIDE IF PORT IS CLOSED */}
             {portStatus === "closed" && (
               <div className="p-3 bg-white/5 border border-white/5 rounded-xl space-y-2 text-[10px] text-onicord-muted animate-fade-in leading-relaxed">
                 <span className="font-semibold text-white flex items-center gap-1">
@@ -387,7 +387,7 @@ export default function ServerNetworkTab({
           </button>
         </div>
 
-        {/* LISTADO DE SERVIDORES CONFIGURADOS */}
+        {/* Configured ICE servers list */}
         <div className="pt-4 border-t border-white/5 mt-4 space-y-3">
           <h4 className="text-xs font-bold text-onicord-text uppercase tracking-wide flex items-center justify-between">
             <span>{t("serverSettings.network.configuredServers", "Servidores Configurados")}</span>

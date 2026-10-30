@@ -223,10 +223,10 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
   const [installedWidgets, setInstalledWidgets] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Estados de visibilidad dinámica: Inicia en modo cápsula (56px) por defecto
+  // Visibility state: defaults to capsule mode (56px)
   const [isPinned, setIsPinned] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  // Diccionario de resúmenes aislados por addon/widget ({ [widgetKey]: { text, updatedAt } })
+  // Isolated summaries dictionary per addon/widget ({ [widgetKey]: { text, updatedAt } })
   const [widgetSummaries, setWidgetSummaries] = useState({});
 
   const idleTimerRef = useRef(null);
@@ -265,7 +265,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
     }
   }, []);
 
-  // Filtrado reactivo en caliente según los complementos habilitados en este servidor
+  // Hot reactive filtering matching plugins enabled on active server
   const widgets = useMemo(() => {
     if (!Array.isArray(installedWidgets) || installedWidgets.length === 0) return [];
     const serverPlugins = server?.plugins;
@@ -281,8 +281,11 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
           (p.id && (p.id.includes(pluginId) || pluginId.includes(p.id))) ||
           (p.name && w.title && p.name.toLowerCase() === w.title.toLowerCase())
       );
-      // Solo mostrar si el servidor tiene explícitamente el complemento habilitado
-      return Boolean(sp && sp.enabled !== false);
+      // Only display if server explicitly enabled this addon and configured to show in island
+      if (!sp || sp.enabled === false) return false;
+      if (sp.config?.showInIsland === false) return false;
+      if (w.showInIsland === false && sp.config?.showInIsland === undefined) return false;
+      return true;
     });
   }, [installedWidgets, server?.plugins]);
 
@@ -328,7 +331,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
 
     if (!data || typeof data !== "object") return;
 
-    // Resumen genérico de actividad provisto por cualquier complemento
+    // Generic activity summary provided by any addon
     const genericText =
       data.summary ||
       data.description ||
@@ -422,13 +425,13 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
         }}
         className="w-full shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island overflow-hidden relative flex flex-col justify-between select-none shadow-sm transition-all duration-300 ease-out"
       >
-        {/* 1. MODO CÁPSULA (Visible cuando la isla está colapsada a 56px) */}
+        {/* 1. Capsule Mode (visible when collapsed to 56px) */}
         {!isExpanded && (
           <div
             onClick={handleCapsuleClick}
             className="w-full h-[56px] px-3 py-2 flex items-center gap-2.5 cursor-pointer select-none transition-colors hover:bg-white/[0.04]"
           >
-            {/* Avatar / Imagen de perfil del Addon */}
+            {/* Addon avatar / profile icon */}
             <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
               {displayWidget.icon ? (
                 <img
@@ -445,7 +448,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
               )}
             </div>
 
-            {/* Información: Nombre + Badge + Hora / Descripción de la última actividad */}
+            {/* Addon metadata: Name, badge, and latest activity summary */}
             <div className="flex-1 min-w-0 flex flex-col justify-center">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="font-bold text-xs text-onicord-text truncate leading-tight">
@@ -466,13 +469,13 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
                 )}
               </div>
 
-              {/* Descripción de la última actualización (SIN EMOJIS) */}
+              {/* Latest activity description */}
               <p className="text-[11px] text-onicord-subtext truncate mt-0.5 leading-tight">
                 {currentSummaryText}
               </p>
             </div>
 
-            {/* Indicador de carrusel en cápsula si hay más de 1 addon */}
+            {/* Capsule carousel indicator when multiple addons are active */}
             {hasMultipleWidgets && (
               <div className="flex items-center gap-1 shrink-0 ml-1">
                 {displayWidgets.map((_, idx) => (
@@ -490,7 +493,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
         </div>
       )}
 
-      {/* 2. MODO EXPANDIDO (Widget completo + carrusel) */}
+      {/* 2. Expanded Mode (full widget + carousel) */}
       <div
         className={`w-full flex-1 min-h-0 relative ${
           isExpanded ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none hidden"
@@ -516,16 +519,6 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
                 onIframeClick={handleIframeClick}
                 onSummaryChange={(text) => handleSummaryChange(text, idx)}
               />
-            ) : widget.render ? (
-              <div
-                dangerouslySetInnerHTML={{
-                  __html:
-                    typeof widget.render === "function"
-                      ? widget.render()
-                      : widget.render,
-                }}
-                className="p-4 text-onicord-text text-xs"
-              />
             ) : widget.content ? (
               <p className="p-4 text-onicord-subtext text-xs leading-relaxed">
                 {widget.content}
@@ -535,7 +528,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
         ))}
       </div>
 
-      {/* Indicadores de Paginación / Carrusel (SÓLO si está expandido y hay más de 1 addon) */}
+      {/* Pagination / Carousel controls (expanded mode with multiple addons) */}
       {isExpanded && hasMultipleWidgets && (
         <div className="flex items-center justify-center gap-2 pb-2.5 pt-0.5 shrink-0 select-none">
           <button
@@ -552,7 +545,6 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
                 key={idx}
                 onClick={() => {
                   setCurrentIndex(idx);
-                  setLatestDescription(displayWidgets[idx]?.description || "");
                   resetIdleTimer();
                 }}
                 className={`rounded-full transition-all duration-200 cursor-pointer ${

@@ -3,6 +3,12 @@ const { contextBridge, ipcRenderer, webUtils, clipboard } = require("electron");
 contextBridge.exposeInMainWorld("electronAPI", {
   minimizeWindow: () => ipcRenderer.send("window:minimize"),
   isWindowMinimized: () => ipcRenderer.invoke("window:isMinimized"),
+  isFullscreen: () => ipcRenderer.invoke("window:isFullscreen"),
+  onFullscreenChange: (callback) => {
+    const handler = (_event, isFull) => callback(isFull);
+    ipcRenderer.on("window:fullscreen-change", handler);
+    return () => ipcRenderer.removeListener("window:fullscreen-change", handler);
+  },
   maximizeWindow: () => ipcRenderer.send("window:maximize"),
   setFullscreen: (flag) => ipcRenderer.send("window:setFullscreen", flag),
   closeWindow: () => ipcRenderer.send("window:close"),
@@ -436,6 +442,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setStageActivity: (activityData) => ipcRenderer.invoke("plugins:set-stage-activity", activityData),
   setStageVolume: (volume, isMuted) => ipcRenderer.invoke("plugins:set-stage-volume", { volume, isMuted }),
   clearStageStorage: (origins) => ipcRenderer.invoke("plugins:clear-stage-storage", origins),
+  getTorrentStreamUrl: (params) => ipcRenderer.invoke("torrent:get-stream-url", params),
+  stopTorrent: (infoHash) => ipcRenderer.invoke("torrent:stop", infoHash),
   onOpenStageView: (callback) => {
     const handler = (_event, stageDef) => callback(stageDef);
     ipcRenderer.on("plugins:open-stage-view", handler);

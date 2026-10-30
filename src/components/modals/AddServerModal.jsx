@@ -128,7 +128,6 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
             placeholder="A1B2C3D4"
             className="onicord-input-code text-xl tracking-[0.3em] pl-[0.3em]"
           />
-          {/* MODIFICADO: Contador elástico font-mono acoplado */}
           <p className="mt-1.5 text-right font-mono text-[11px] text-onicord-muted font-bold tracking-tight select-none">
             {normalized.length} <span className="text-white/20">/</span> 8
           </p>

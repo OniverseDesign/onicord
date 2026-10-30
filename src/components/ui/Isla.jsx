@@ -7,7 +7,7 @@ export default function Isla({
   badgeText = "",
   badgeColor = "",
   bgVariant = "dark",
-  customBackground = null, // NUEVA PROP: { type: 'image' | 'color', value: '...' }
+  customBackground = null, // { type: 'image' | 'color', value: string }
   ...props
 }) {
   const isDarkBase = bgVariant === "dark";

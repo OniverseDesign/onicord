@@ -23,7 +23,15 @@ function packFolder(folderPath) {
       const fullPath = path.join(currentDir, entry.name);
       const relPath = path.relative(baseDir, fullPath).replace(/\\/g, "/");
 
-      if (entry.name === "manifest.json" || entry.name.startsWith(".") || entry.name.endsWith(".onipkg") || entry.name.endsWith(".onimod") || entry.name === "node_modules") continue;
+      if (
+        entry.name === "manifest.json" ||
+        entry.name.startsWith(".") ||
+        entry.name.endsWith(".onipkg") ||
+        entry.name.endsWith(".onimod") ||
+        entry.name === "node_modules"
+      ) {
+        continue;
+      }
 
       if (entry.isDirectory()) {
         readDirRecursive(fullPath, baseDir);
@@ -63,6 +71,16 @@ function packFolder(folderPath) {
 function buildAddonsRepo() {
   console.log("Packaging addons and updating index.json catalog...");
 
+  // Limpiar carpetas obsoletas en plugins/
+  if (fs.existsSync(pluginsDir)) {
+    const existing = fs.readdirSync(pluginsDir, { withFileTypes: true });
+    for (const item of existing) {
+      if (item.isDirectory() && (item.name === "com.oniverse.demo_dashboard_addon" || item.name === "google-search" || item.name === "youtube-search")) {
+        fs.rmSync(path.join(pluginsDir, item.name), { recursive: true, force: true });
+      }
+    }
+  }
+
   const entries = fs.readdirSync(addonsDir, { withFileTypes: true });
   const catalog = [];
 
@@ -75,27 +93,30 @@ function buildAddonsRepo() {
         const { manifest, compressed } = packed;
         const pluginId = manifest.id || entry.name;
 
+        // Skip developer example from public catalog
+        if (entry.name === "demo_dashboard_addon" || pluginId === "com.oniverse.demo_dashboard_addon") {
+          console.log(`[SKIP CATALOG] Example addon preserved locally: ${manifest.name} (${pluginId})`);
+          continue;
+        }
+
         const targetIdDir = path.join(pluginsDir, pluginId);
         if (!fs.existsSync(targetIdDir)) fs.mkdirSync(targetIdDir, { recursive: true });
-        
+
         fs.writeFileSync(path.join(targetIdDir, "package.onipkg"), compressed);
         // Clean legacy package if exists
         const legacyPath = path.join(targetIdDir, "package.onimod");
         if (fs.existsSync(legacyPath)) fs.unlinkSync(legacyPath);
         fs.writeFileSync(path.join(targetIdDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
-        // Copy assets folder if exists
-        const sourceAssetsDir = path.join(folderPath, "assets");
-        const targetAssetsDir = path.join(targetIdDir, "assets");
-        if (fs.existsSync(sourceAssetsDir)) {
-          if (!fs.existsSync(targetAssetsDir)) fs.mkdirSync(targetAssetsDir, { recursive: true });
-          const assetFiles = fs.readdirSync(sourceAssetsDir);
-          for (const assetFile of assetFiles) {
-            fs.copyFileSync(path.join(sourceAssetsDir, assetFile), path.join(targetAssetsDir, assetFile));
-          }
-        }
-
+        // Copy icon to packaged plugins/<id>/assets/
         const iconPath = manifest.icon || "assets/icon.png";
+        const srcIcon = path.join(folderPath, iconPath);
+        const destIcon = path.join(targetIdDir, iconPath);
+        if (fs.existsSync(srcIcon)) {
+          const destIconDir = path.dirname(destIcon);
+          if (!fs.existsSync(destIconDir)) fs.mkdirSync(destIconDir, { recursive: true });
+          fs.copyFileSync(srcIcon, destIcon);
+        }
 
         const catalogItem = {
           id: pluginId,
@@ -104,7 +125,7 @@ function buildAddonsRepo() {
           scope: manifest.scope || "client",
           author: manifest.author || "Oniverse",
           description: manifest.description || "",
-          icon: `https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/${entry.name}/${iconPath}`,
+          icon: `https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/${pluginId}/${iconPath}`,
           downloadUrl: `https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/plugins/${pluginId}/package.onipkg`
         };
 

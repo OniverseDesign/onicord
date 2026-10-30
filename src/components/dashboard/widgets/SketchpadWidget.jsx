@@ -3,21 +3,21 @@ import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 
 const COLORS = [
-  // Colores Clásicos Brillantes (Alta Legibilidad)
-  "#FFFFFF", // Blanco (Texto principal / Notas generales)
-  "#FF3366", // Rosa Neón / Rojo (Clásico para alertas o STOP)
-  "#FF9933", // Naranja (Clásico para tareas en progreso o advertencias)
-  "#FFFF00", // Amarillo (El color clásico de los Post-it)
-  "#33FF57", // Verde Lima (Clásico para aprobados o tareas listas)
-  "#33CCFF", // Azul Celeste (Clásico para lluvia de ideas o info)
-  "#CC66FF", // Morado / Violeta (Excelente para diferenciar categorías)
+  // Vibrant classic sticky note colors
+  "#FFFFFF", // White (General notes)
+  "#FF3366", // Neon pink/red (Alerts / high priority)
+  "#FF9933", // Orange (In-progress tasks / warnings)
+  "#FFFF00", // Yellow (Classic sticky note)
+  "#33FF57", // Lime green (Approved / completed tasks)
+  "#33CCFF", // Sky blue (Brainstorming / info)
+  "#CC66FF", // Purple / violet (Category grouping)
 
-  // Variantes Pastel / Suaves (Para no saturar la pantalla)
-  "#FFB8B1", // Coral Pastel
-  "#FFE5A3", // Crema / Amarillo Suave
-  "#B3F5BC", // Verde Menta Pastel
-  "#BCE6FF", // Azul Pastel
-  "#E8AEFF", // Lavanda Pastel
+  // Soft pastel variants
+  "#FFB8B1", // Pastel coral
+  "#FFE5A3", // Soft cream
+  "#B3F5BC", // Pastel mint green
+  "#BCE6FF", // Pastel blue
+  "#E8AEFF", // Pastel lavender
 ];
 
 export default function SketchpadWidget({ connectedServer, profile }) {

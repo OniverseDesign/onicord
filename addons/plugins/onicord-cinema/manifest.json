@@ -1,0 +1,70 @@
+{
+  "id": "onicord-cinema",
+  "name": "Cinema",
+  "version": "0.2.0",
+  "scope": "hybrid",
+  "author": "Oniverse",
+  "description": "Cine colaborativo sincronizado con soporte para addons de Stremio, catálogos enriquecidos y favoritos del servidor.",
+  "icon": "assets/icon.png",
+  "main": "index.js",
+  "locales": {
+    "es": {
+      "name": "Cinema",
+      "description": "Cine colaborativo sincronizado con soporte para addons de Stremio, catálogos enriquecidos y favoritos del servidor.",
+      "commands": {
+        "/cinema": {
+          "description": "Abre el catálogo y reproductor de películas/series de Onicord Cinema."
+        }
+      }
+    },
+    "en": {
+      "name": "Cinema",
+      "description": "Synchronized collaborative cinema with Stremio addons support, rich catalogs and server favorites.",
+      "commands": {
+        "/cinema": {
+          "description": "Open Onicord Cinema movie/series catalog and player."
+        }
+      }
+    },
+    "pt": {
+      "name": "Cinema",
+      "description": "Cinema colaborativo sincronizado com suporte para addons do Stremio, catálogos enriquecidos e favoritos do servidor.",
+      "commands": {
+        "/cinema": {
+          "description": "Abre o catálogo e reprodutor de filmes/séries do Onicord Cinema."
+        }
+      }
+    }
+  },
+  "permissions": [
+    "ui.voice_control_button",
+    "ui.stage_view",
+    "p2p.network",
+    "storage",
+    "user.profile",
+    "server.info",
+    "gaming.activity",
+    "network.outbound",
+    "chat.read",
+    "chat.send"
+  ],
+  "voiceControlButtons": [
+    {
+      "id": "cinema_clapperboard",
+      "icon": "movie",
+      "tooltip": "Cinema (Películas y Series)",
+      "tooltips": {
+        "es": "Cinema (Películas y Series)",
+        "en": "Cinema (Movies & Series)",
+        "pt": "Cinema (Filmes e Séries)"
+      },
+      "action": "TOGGLE_CINEMA_STAGE"
+    }
+  ],
+  "commands": [
+    {
+      "command": "/cinema",
+      "description": "Abre el catálogo y reproductor de películas y series de Cinema."
+    }
+  ]
+}

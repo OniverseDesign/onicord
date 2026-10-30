@@ -10,16 +10,23 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0..1,0" />
   <style>
     :root {
-      --bg-base: #07070c;
-      --accent: #10b981;
-      --accent-light: #34d399;
-      --accent-glow: rgba(16, 185, 129, 0.45);
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg-base: #11111b;
+      --bg-surface: #181825;
+      --bg-card: #1e1e2e;
+      --bg-overlay: #313244;
+      --accent: #a6e3a1;
+      --accent-light: #bbf2b6;
+      --accent-dark: #81c77d;
+      --accent-glow: rgba(166, 227, 161, 0.4);
+      --text-main: #cdd6f4;
+      --text-sub: #bac2de;
+      --text-muted: #7f849c;
       --pad-x: clamp(20px, 4.5vw, 64px);
-      --card-w: clamp(105px, 11vw, 150px);
-      --card-h: calc(var(--card-w) * 1.4);
-      --title-size: clamp(26px, 4vw, 50px);
+      --card-w: clamp(108px, 11vw, 150px);
+      --card-h: calc(var(--card-w) * 1.45);
+      --title-size: clamp(28px, 4.2vw, 52px);
+      --btn-h: clamp(42px, 5.2vh, 48px);
+      --topbar-h: 62px;
     }
 
     * {
@@ -30,24 +37,51 @@
       -webkit-user-drag: none;
     }
 
-    body {
+    html, body {
       background-color: var(--bg-base);
       color: var(--text-main);
-      font-family: 'Outfit', sans-serif;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
       height: 100dvh;
       width: 100vw;
       overflow: hidden;
       position: relative;
     }
 
+    /* SCROLLBAR CON DISEÑO OFICIAL DE ONICORD (UNIFICADO CON CINEMA) */
+    ::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      width: 8px !important;
+      height: 8px !important;
+    }
+
+    ::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-track {
+      background: transparent !important;
+    }
+
+    ::-webkit-scrollbar-thumb,
+    *::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.16) !important;
+      border-radius: 9999px !important;
+      border: 2px solid transparent !important;
+      background-clip: padding-box !important;
+      transition: background-color 0.15s ease-out !important;
+    }
+
+    ::-webkit-scrollbar-thumb:hover,
+    *::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255, 255, 255, 0.35) !important;
+    }
+
     /* ==========================================
        1. ATMOSPHERIC HERO BACKDROP (DUAL BUFFER)
        ========================================== */
     .hero-backdrop-container {
-      position: absolute;
+      position: fixed;
       inset: 0;
       z-index: 0;
       overflow: hidden;
+      pointer-events: none;
       background-color: var(--bg-base);
     }
 
@@ -57,11 +91,11 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center 22%;
-      filter: brightness(0.75) contrast(1.12) saturate(1.1);
+      object-position: center 18%;
+      filter: brightness(0.66) contrast(1.08) saturate(1.14);
       opacity: 0;
-      transform: scale(1.07);
-      transition: opacity 0.65s ease, transform 5s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: scale(1.06);
+      transition: opacity 0.65s ease, transform 6s cubic-bezier(0.16, 1, 0.3, 1);
       will-change: opacity, transform;
     }
 
@@ -70,15 +104,14 @@
       transform: scale(1);
     }
 
-    .hero-vignette-bottom {
+    .hero-vignette-radial {
       position: absolute;
       inset: 0;
-      background: linear-gradient(
-        to top,
-        var(--bg-base) 0%,
-        rgba(7, 7, 12, 0.96) 24%,
-        rgba(7, 7, 12, 0.65) 52%,
-        rgba(7, 7, 12, 0.2) 100%
+      background: radial-gradient(
+        circle at 72% 28%,
+        transparent 0%,
+        rgba(17, 17, 27, 0.45) 50%,
+        rgba(17, 17, 27, 0.94) 95%
       );
       pointer-events: none;
     }
@@ -87,52 +120,67 @@
       position: absolute;
       inset: 0;
       background: linear-gradient(
-        to right,
+        90deg,
         var(--bg-base) 0%,
-        rgba(7, 7, 12, 0.94) 30%,
-        rgba(7, 7, 12, 0.65) 55%,
+        rgba(17, 17, 27, 0.94) 30%,
+        rgba(17, 17, 27, 0.62) 58%,
+        rgba(17, 17, 27, 0.15) 85%,
         transparent 100%
       );
       pointer-events: none;
     }
 
-    .hero-vignette-radial {
+    .hero-vignette-bottom {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at 75% 25%, transparent 0%, rgba(7, 7, 12, 0.55) 90%);
+      background: linear-gradient(
+        0deg,
+        var(--bg-base) 0%,
+        var(--bg-base) 18%,
+        rgba(17, 17, 27, 0.92) 42%,
+        rgba(17, 17, 27, 0.35) 75%,
+        rgba(17, 17, 27, 0.5) 100%
+      );
       pointer-events: none;
     }
 
     /* ==========================================
-       2. LAYOUT PRINCIPAL (2 FILAS: HERO + DOCK)
+       2. LAYOUT PRINCIPAL (MISMA GEOMETRÍA Y TOPBAR LANE QUE CINEMA)
        ========================================== */
     .launcher-shell {
       position: relative;
       z-index: 10;
       width: 100%;
       height: 100%;
-      display: grid;
-      grid-template-rows: 1fr auto;
-      padding-top: clamp(20px, 4vh, 48px);
-      padding-bottom: clamp(10px, 2vh, 20px);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: clamp(4px, 1.2vh, 16px);
+      padding-top: var(--topbar-h);
+      padding-bottom: clamp(12px, 2vh, 20px);
     }
 
     /* ==========================================
-       3. HERO CONTENT (ALTURAS RESERVADAS SIN SALTOS)
+       3. HERO CONTENT (PADDINGS, MARGINS Y DIMENSIONES IDÉNTICOS A CINEMA)
        ========================================== */
     .hero-stage {
+      flex-shrink: 0;
+      width: 100%;
+      max-width: min(880px, 90vw);
+      padding: clamp(6px, 1.8vh, 18px) var(--pad-x) clamp(4px, 1vh, 10px) var(--pad-x);
       display: flex;
-      align-items: center;
-      padding: 0 var(--pad-x);
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
       min-height: 0;
     }
 
     .hero-content {
-      max-width: min(740px, 90vw);
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: clamp(10px, 1.6vh, 16px);
+      gap: clamp(8px, 1.4vh, 14px);
     }
 
     .game-tags {
@@ -140,30 +188,41 @@
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
-      min-height: 28px;
+      min-height: 26px;
     }
 
     .tag-item {
-      font-size: clamp(10px, 0.85vw, 12px);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: #38bdf8;
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      padding: 4px 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 26px;
+      padding: 0 10px;
       border-radius: 6px;
-      backdrop-filter: blur(4px);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: rgba(166, 227, 161, 0.16);
+      border: 1px solid rgba(166, 227, 161, 0.4);
+      color: var(--accent);
+      backdrop-filter: blur(8px);
     }
 
     .tag-platform {
-      font-size: clamp(11px, 0.9vw, 13px);
-      font-weight: 600;
-      color: #cbd5e1;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 26px;
+      padding: 0 10px;
       border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: #bac2de;
+      background: rgba(49, 50, 68, 0.45);
+      border: 1px solid rgba(88, 91, 112, 0.35);
+      backdrop-filter: blur(8px);
     }
 
     /* Caja de altura fija de 2 líneas para que nada de abajo se mueva */
@@ -172,42 +231,48 @@
       display: flex;
       align-items: flex-end;
       width: 100%;
+      overflow: hidden;
     }
 
     .game-title {
       font-size: var(--title-size);
       font-weight: 900;
       line-height: 1.08;
-      letter-spacing: -1px;
-      color: #ffffff;
+      letter-spacing: -0.02em;
+      color: #cdd6f4;
       text-transform: uppercase;
       text-shadow: 0 8px 28px rgba(0, 0, 0, 0.9);
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
     }
 
     /* Altura fija de 3 líneas para que el botón Jugar tampoco salte */
     .game-synopsis {
+      font-family: 'Roboto', sans-serif;
       font-size: clamp(13px, 1.05vw, 15.5px);
       line-height: 1.55;
       height: calc(1.55em * 3);
-      color: #cbd5e1;
-      font-family: 'Roboto', sans-serif;
+      color: #bac2de;
       text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95);
-      max-width: 62ch;
+      max-width: 65ch;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* BOTÓN JUGAR */
+    /* BOTÓN JUGAR (DIMENSIONES, ALTURA Y ANCHO FIJO IDÉNTICOS A CINEMA) */
     .hero-actions {
       display: flex;
       align-items: center;
-      margin-top: 4px;
+      gap: 12px;
+      margin-top: 2px;
+      flex-wrap: wrap;
     }
 
     .btn-play {
@@ -215,14 +280,19 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      background: linear-gradient(135deg, var(--accent) 0%, #059669 100%);
-      color: #ffffff;
-      padding: clamp(10px, 1.4vh, 14px) clamp(26px, 2.5vw, 36px);
+      width: auto;
+      min-width: 180px;
+      height: var(--btn-h);
+      flex-shrink: 0;
+      white-space: nowrap;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+      color: #11111b;
+      padding: 0 clamp(24px, 2.4vw, 34px);
       border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      font-family: 'Outfit', sans-serif;
-      font-size: clamp(14px, 1.1vw, 17px);
-      font-weight: 800;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      font-family: inherit;
+      font-size: clamp(13.5px, 1.05vw, 15.5px);
+      font-weight: 900;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       cursor: pointer;
@@ -232,21 +302,20 @@
 
     .btn-play:hover, .btn-play:focus-visible {
       background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
-      transform: scale(1.04) translateY(-2px);
-      box-shadow: 0 0 38px rgba(16, 185, 129, 0.7), 0 10px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 38px rgba(166, 227, 161, 0.7), 0 10px 24px rgba(0, 0, 0, 0.5);
       outline: none;
     }
 
     .btn-play:active {
-      transform: scale(0.98);
+      filter: brightness(0.92);
     }
 
     .btn-play .material-symbols-outlined {
-      font-size: 24px;
+      font-size: 21px;
     }
 
     /* ==========================================
-       4. DOCK INFERIOR (CARRUSEL SIN CORTES)
+       4. DOCK INFERIOR (CARRUSEL IDÉNTICO A CINEMA)
        ========================================== */
     .bottom-dock {
       display: flex;
@@ -261,7 +330,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 var(--pad-x);
-      margin-bottom: -8px; /* Compensa visualmente el espacio extra superior del carrusel */
+      margin-bottom: 2px;
       position: relative;
       z-index: 2;
     }
@@ -270,7 +339,7 @@
       font-size: 12px;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 1.2px;
+      letter-spacing: 1.4px;
       color: var(--text-muted);
       display: flex;
       align-items: center;
@@ -280,23 +349,23 @@
     .carousel-section-title::before {
       content: "";
       display: inline-block;
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
+      box-shadow: 0 0 10px var(--accent);
     }
 
     .carousel-counter {
-      font-size: 12px;
-      font-weight: 800;
-      color: #cbd5e1;
-      letter-spacing: 1px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #bac2de;
+      letter-spacing: 0.8px;
       font-variant-numeric: tabular-nums;
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(49, 50, 68, 0.5);
       padding: 3px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(88, 91, 112, 0.3);
     }
 
     .carousel-wrapper {
@@ -306,7 +375,7 @@
       align-items: center;
     }
 
-    /* Padding superior amplio (36px) para que la tarjeta en focus + su sombra nunca se corten */
+    /* Padding superior calibrado para que el carrusel se mantenga próximo a la zona hero */
     .carousel-container {
       width: 100%;
       overflow-x: auto;
@@ -314,32 +383,49 @@
       scroll-behavior: smooth;
       scrollbar-width: none;
       -ms-overflow-style: none;
-      padding: 36px var(--pad-x) 18px var(--pad-x);
-      -webkit-mask-image: linear-gradient(to right, transparent 0%, black var(--pad-x), black calc(100% - var(--pad-x)), transparent 100%);
-      mask-image: linear-gradient(to right, transparent 0%, black var(--pad-x), black calc(100% - var(--pad-x)), transparent 100%);
+      padding: 10px var(--pad-x) 16px var(--pad-x);
+      margin-top: 0;
+      -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black calc(var(--pad-x) * 0.55),
+        black calc(100% - (var(--pad-x) * 0.55)),
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black calc(var(--pad-x) * 0.55),
+        black calc(100% - (var(--pad-x) * 0.55)),
+        transparent 100%
+      );
     }
 
     .carousel-container::-webkit-scrollbar {
-      display: none;
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
     }
 
     .carousel-track {
       display: flex;
       align-items: flex-end;
-      gap: clamp(14px, 1.8vw, 24px);
+      gap: clamp(14px, 1.8vw, 22px);
       width: max-content;
     }
 
+    /* TARJETAS DE JUEGO (MISMO COMPORTAMIENTO Y ANIMACIÓN QUE CINEMA) */
     .game-card {
+      flex: 0 0 auto;
       width: var(--card-w);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 7px;
       cursor: pointer;
       position: relative;
-      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
-      opacity: 0.65;
+      opacity: 0.68;
       transform-origin: center bottom;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
     }
 
     .game-card-poster-wrapper {
@@ -348,19 +434,18 @@
       border-radius: 12px;
       overflow: hidden;
       position: relative;
-      border: 2px solid rgba(255, 255, 255, 0.08);
-      background-color: #161622;
+      border: 2px solid rgba(88, 91, 112, 0.25);
+      background-color: #181825;
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
-      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: border-color 0.28s ease, box-shadow 0.28s ease;
     }
 
+    /* Reflejo diagonal sutil tipo cristal igual a Cinema */
     .game-card-poster-wrapper::after {
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, transparent 45%);
-      opacity: 0;
-      transition: opacity 0.25s ease;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, transparent 45%);
       pointer-events: none;
     }
 
@@ -369,85 +454,93 @@
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: transform 0.4s ease;
+      transition: transform 0.35s ease;
     }
 
     .game-card-title {
-      font-size: clamp(11px, 0.85vw, 13px);
+      font-size: clamp(11px, 0.85vw, 12.5px);
       font-weight: 600;
       color: var(--text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       text-align: center;
-      transition: color 0.2s ease;
+      padding: 0 2px;
+      transition: color 0.2s ease, font-weight 0.2s ease;
     }
 
-    /* ESTADO ACTIVO / SELECCIONADO EN EL CARRUSEL */
+    /* ESTADO HOVER Y ACTIVO SIN MOVIMIENTO NI CAMBIO DE ESCALA */
+    .game-card:hover,
     .game-card.active {
       opacity: 1;
-      transform: scale(1.09) translateY(-6px);
-      z-index: 5;
+      z-index: 10;
     }
 
+    .game-card:hover .game-card-poster-wrapper,
     .game-card.active .game-card-poster-wrapper {
-      border-color: var(--accent-light);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.8), 0 0 20px var(--accent-glow);
+      border-color: var(--accent);
+      box-shadow:
+        0 14px 28px rgba(0, 0, 0, 0.85),
+        0 0 22px var(--accent-glow);
     }
 
-    .game-card.active .game-card-poster-wrapper::after {
-      opacity: 1;
-    }
-
+    .game-card:hover .game-card-title,
     .game-card.active .game-card-title {
-      color: #ffffff;
+      color: #cdd6f4;
       font-weight: 800;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     }
 
-    .game-card:hover:not(.active) {
-      opacity: 0.92;
-      transform: translateY(-4px);
-    }
-
-    .game-card:hover:not(.active) .game-card-poster-wrapper {
-      border-color: rgba(255, 255, 255, 0.35);
-    }
-
-    /* Flechas de navegación para ratón */
+    /* Flechas laterales de navegación igual a Cinema */
     .carousel-nav-btn {
       position: absolute;
-      top: 52%;
+      top: 50%;
       transform: translateY(-50%);
-      z-index: 20;
+      z-index: 25;
       width: 38px;
       height: 38px;
       border-radius: 50%;
-      background: rgba(15, 23, 42, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      color: #ffffff;
+      background: rgba(24, 24, 37, 0.88);
+      border: 1px solid rgba(88, 91, 112, 0.4);
+      color: #cdd6f4;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       backdrop-filter: blur(10px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-      transition: all 0.2s ease;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.65);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0;
+    }
+
+    .carousel-wrapper:hover .carousel-nav-btn:not(.hidden-nav) {
+      opacity: 1;
+    }
+
+    .carousel-nav-btn.hidden-nav {
+      opacity: 0 !important;
+      pointer-events: none;
     }
 
     .carousel-nav-btn:hover {
       background: var(--accent);
       border-color: var(--accent-light);
-      transform: translateY(-50%) scale(1.1);
-      box-shadow: 0 0 16px var(--accent-glow);
+      color: #11111b;
+      transform: translateY(-50%);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .carousel-nav-btn:active {
+      transform: translateY(-50%);
+      filter: brightness(0.9);
     }
 
     .carousel-nav-btn.prev {
-      left: max(10px, calc(var(--pad-x) - 24px));
+      left: max(8px, calc(var(--pad-x) - 20px));
     }
 
     .carousel-nav-btn.next {
-      right: max(10px, calc(var(--pad-x) - 24px));
+      right: max(8px, calc(var(--pad-x) - 20px));
     }
 
     /* ==========================================
@@ -459,7 +552,7 @@
       justify-content: space-between;
       padding: 0 var(--pad-x);
       font-size: 11.5px;
-      color: #64748b;
+      color: var(--text-muted);
       font-weight: 600;
     }
 
@@ -483,53 +576,61 @@
       min-width: 20px;
       height: 20px;
       padding: 0 6px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(49, 50, 68, 0.5);
+      border: 1px solid rgba(88, 91, 112, 0.4);
       border-bottom-width: 2px;
       border-radius: 5px;
       font-size: 10px;
       font-weight: 700;
-      color: #e2e8f0;
+      color: #cdd6f4;
     }
 
     /* ==========================================
-       6. MEDIA QUERIES (ALTURAS BAJAS Y MÓVILES)
+       6. MEDIA QUERIES UNIFICADAS CON CINEMA
        ========================================== */
-    @media (max-height: 700px) {
+    @media (max-height: 740px) {
       :root {
-        --card-w: clamp(86px, 9.5vw, 115px);
-        --title-size: clamp(22px, 3.4vw, 36px);
+        --card-w: clamp(92px, 9.5vw, 122px);
+        --title-size: clamp(24px, 3.4vw, 36px);
+        --topbar-h: 48px;
+      }
+      .hero-stage {
+        padding-top: 4px;
+        padding-bottom: 4px;
+      }
+      .hero-content {
+        gap: 6px;
       }
       .game-synopsis {
         -webkit-line-clamp: 2;
         height: calc(1.55em * 2);
       }
       .carousel-container {
-        padding-top: 28px;
-        padding-bottom: 10px;
+        padding-top: 32px;
+        padding-bottom: 12px;
       }
       .bottom-hud {
         display: none;
       }
     }
 
-    @media (max-width: 640px) {
+    @media (max-height: 600px) {
+      .game-synopsis {
+        display: none;
+      }
+    }
+
+    @media (max-width: 760px) {
       :root {
         --card-w: 102px;
-        --title-size: 26px;
+        --title-size: 24px;
+        --topbar-h: 50px;
       }
       .hero-vignette-left {
-        background: linear-gradient(to top, var(--bg-base) 15%, rgba(7, 7, 12, 0.78) 65%, rgba(7, 7, 12, 0.4) 100%);
+        background: linear-gradient(to top, var(--bg-base) 15%, rgba(17, 17, 27, 0.78) 65%, rgba(17, 17, 27, 0.4) 100%);
       }
       .hero-stage {
-        align-items: flex-end;
-        padding-bottom: 8px;
-      }
-      .btn-play {
-        width: 100%;
-      }
-      .hero-actions {
-        width: 100%;
+        align-items: flex-start;
       }
       .carousel-nav-btn {
         display: none;
@@ -551,7 +652,7 @@
     <div class="hero-vignette-bottom"></div>
   </div>
 
-  <!-- 2. CONTENEDOR GRID RESPONSIVO (SIN TOP HUD) -->
+  <!-- 2. CONTENEDOR PRINCIPAL -->
   <div class="launcher-shell">
 
     <!-- HERO CENTRAL -->
@@ -573,7 +674,7 @@
         <div class="hero-actions">
           <button id="btnPlay" class="btn-play" onclick="launchCurrentGame()">
             <span class="material-symbols-outlined">play_arrow</span>
-            <span>Jugar</span>
+            <span id="btnPlayLabel">Jugar</span>
           </button>
         </div>
       </div>
@@ -582,16 +683,13 @@
     <!-- DOCK INFERIOR: CARRUSEL + FOOTER -->
     <section class="bottom-dock">
       <div class="carousel-header">
-        <span class="carousel-section-title">Catálogo Disponible</span>
+        <span id="catalogSectionTitle" class="carousel-section-title">Catálogo Disponible</span>
         <span id="carouselCounter" class="carousel-counter">01 / 06</span>
       </div>
 
       <div class="carousel-wrapper">
-        <button class="carousel-nav-btn prev" onclick="moveSelection(-1)" aria-label="Anterior">
+        <button id="carouselPrevBtn" class="carousel-nav-btn prev hidden-nav" aria-label="Anterior">
           <span class="material-symbols-outlined">chevron_left</span>
-        </button>
-        <button class="carousel-nav-btn next" onclick="moveSelection(1)" aria-label="Siguiente">
-          <span class="material-symbols-outlined">chevron_right</span>
         </button>
 
         <div id="carouselContainer" class="carousel-container">
@@ -599,6 +697,10 @@
             <!-- Renderizado dinámico vía JavaScript -->
           </div>
         </div>
+
+        <button id="carouselNextBtn" class="carousel-nav-btn next hidden-nav" aria-label="Siguiente">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
       </div>
 
       <footer class="bottom-hud">
@@ -607,17 +709,17 @@
             <span class="key-badge">◄ ►</span>
             <span class="key-badge">A / D</span>
             <span class="key-badge">Stick</span>
-            <span>Explorar</span>
+            <span id="legendExplore">Explorar</span>
           </div>
-          <div class="legend-item" onclick="launchCurrentGame()" style="cursor: pointer;" title="Jugar">
+          <div id="legendPlayBtn" class="legend-item" onclick="launchCurrentGame()" style="cursor: pointer;" title="Jugar">
             <span class="key-badge">Enter</span>
             <span class="key-badge">Ⓐ</span>
-            <span>Jugar</span>
+            <span id="legendPlay">Jugar</span>
           </div>
-          <div class="legend-item" onclick="closeStage()" style="cursor: pointer;" title="Salir">
+          <div id="legendExitBtn" class="legend-item" onclick="closeStage()" style="cursor: pointer;" title="Salir">
             <span class="key-badge">Esc</span>
             <span class="key-badge">Ⓑ</span>
-            <span>Salir</span>
+            <span id="legendExit">Salir</span>
           </div>
         </div>
       </footer>
@@ -791,7 +893,7 @@
                   try {
                     const nameInputs = document.querySelectorAll('input#player-name, input#playerName, input[name="player"], input#nick');
                     nameInputs.forEach((inp) => {
-                      if (inp && inp.value !== nick) {
+                      if (inp && document.activeElement !== inp && (!inp.value || inp.value.trim() === '' || inp.value === 'PLAYER' || inp.value === 'Jugador')) {
                         inp.value = nick;
                         inp.dispatchEvent(new Event('input', { bubbles: true }));
                         inp.dispatchEvent(new Event('change', { bubbles: true }));
@@ -881,7 +983,34 @@
         fallbackCover: "../assets/tboi.jpg",
         banner: "https://tboi.online/og.jpg",
         url: "https://tboi.online/",
-        synopsis: "Desciende por los sótanos y catacumbas enfrentando abominaciones bizarras, combinando cientos de ítems con efectos impredecibles y desbloqueando finales secretos en cada aventura procedural."
+        synopsis: "Desciende por los sótanos y catacumbas enfrentando abominaciones bizarras, combinando cientos de ítems con efectos impredecibles y desbloqueando finales secretos en cada aventura procedural.",
+        frameScripts: [
+          `
+            (() => {
+              const focusCanvas = () => {
+                const canvas = document.getElementById("canvas") || document.querySelector("canvas");
+                if (canvas) {
+                  canvas.tabIndex = 0;
+                  canvas.focus();
+                }
+              };
+              focusCanvas();
+              window.addEventListener("load", focusCanvas);
+              setTimeout(focusCanvas, 500);
+              setTimeout(focusCanvas, 1500);
+              setTimeout(focusCanvas, 3000);
+
+              window.addEventListener("gamepadconnected", () => {
+                if (window.isaacPadReader && typeof window.isaacPadReader.wake === "function") {
+                  window.isaacPadReader.wake();
+                }
+              });
+              if (window.isaacPadReader && typeof window.isaacPadReader.wake === "function") {
+                window.isaacPadReader.wake();
+              }
+            })();
+          `
+        ]
       },
       {
         id: "minecraft",
@@ -1064,7 +1193,7 @@
                       if (match) {
                         const code = match[1];
                         const lang = (window.location && window.location.pathname && window.location.pathname.match(/^\\/([a-zA-Z]{2})/)) ? window.location.pathname.match(/^\\/([a-zA-Z]{2})/)[1] : 'es';
-                        window._onicordRoomLink = `https://garticphone.com/${lang}/${code}`;
+                        window._onicordRoomLink = 'https://garticphone.com/' + lang + '/' + code;
                       }
                     } catch (_) {}
                     ws.addEventListener('message', function(ev) {
@@ -1116,7 +1245,7 @@
                     const inputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"])'));
                     inputs.forEach((inp) => {
                       if (!inp.type || inp.type === 'text') {
-                        if (inp.value !== nick) {
+                        if (document.activeElement !== inp && (!inp.value || inp.value.trim() === '' || inp.value === 'PLAYER' || inp.value === 'Jugador')) {
                           setReactInputValue(inp, nick);
                         }
                       }
@@ -1431,7 +1560,7 @@
                   try {
                     const inputs = document.querySelectorAll('#input-name, input[name="name"], .input-name, input[placeholder*="Name" i], input[placeholder*="nombre" i]');
                     inputs.forEach((inp) => {
-                      if (inp && inp.value !== nick) {
+                      if (inp && document.activeElement !== inp && (!inp.value || inp.value.trim() === '' || inp.value === 'PLAYER' || inp.value === 'Jugador')) {
                         inp.value = nick;
                         inp.dispatchEvent(new Event('input', { bubbles: true }));
                         inp.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1597,6 +1726,8 @@
     // ==========================================
     const track = document.getElementById("carouselTrack");
     const carouselContainer = document.getElementById("carouselContainer");
+    const carouselPrevBtn = document.getElementById("carouselPrevBtn");
+    const carouselNextBtn = document.getElementById("carouselNextBtn");
     const backdropLayers = [
       document.getElementById("heroBackdropA"),
       document.getElementById("heroBackdropB")
@@ -1607,14 +1738,86 @@
     const gameSynopsis = document.getElementById("gameSynopsis");
     const carouselCounter = document.getElementById("carouselCounter");
 
+    let hasDraggedRecently = false;
+    let backdropLoadSeq = 0;
+
+    function updateCarouselArrows() {
+      if (!carouselContainer || !carouselPrevBtn || !carouselNextBtn) return;
+      const maxScroll = carouselContainer.scrollWidth - carouselContainer.clientWidth;
+      carouselPrevBtn.classList.toggle("hidden-nav", carouselContainer.scrollLeft <= 8);
+      carouselNextBtn.classList.toggle("hidden-nav", maxScroll <= 8 || carouselContainer.scrollLeft >= maxScroll - 8);
+    }
+
+    function setupCarouselScroll() {
+      if (!carouselContainer) return;
+
+      carouselContainer.addEventListener("wheel", (e) => {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+          e.preventDefault();
+          carouselContainer.scrollLeft += e.deltaY * 1.4;
+        }
+      }, { passive: false });
+
+      carouselContainer.addEventListener("scroll", updateCarouselArrows, { passive: true });
+      window.addEventListener("resize", updateCarouselArrows);
+
+      let isDown = false;
+      let startX = 0;
+      let scrollStart = 0;
+
+      carouselContainer.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+        isDown = true;
+        hasDraggedRecently = false;
+        startX = e.pageX;
+        scrollStart = carouselContainer.scrollLeft;
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (isDown) {
+          isDown = false;
+          setTimeout(() => { hasDraggedRecently = false; }, 80);
+        }
+      });
+
+      carouselContainer.addEventListener("mousemove", (e) => {
+        if (!isDown) return;
+        const delta = e.pageX - startX;
+        if (Math.abs(delta) > 6) {
+          hasDraggedRecently = true;
+        }
+        carouselContainer.scrollLeft = scrollStart - delta;
+      });
+
+      carouselPrevBtn?.addEventListener("click", () => {
+        const step = Math.max(carouselContainer.clientWidth * 0.72, 340);
+        carouselContainer.scrollBy({ left: -step, behavior: "smooth" });
+      });
+
+      carouselNextBtn?.addEventListener("click", () => {
+        const step = Math.max(carouselContainer.clientWidth * 0.72, 340);
+        carouselContainer.scrollBy({ left: step, behavior: "smooth" });
+      });
+    }
+
     function renderCarousel() {
       track.innerHTML = "";
       GAMES_CATALOG.forEach((game, idx) => {
         const card = document.createElement("div");
         card.className = `game-card ${idx === currentIndex ? "active" : ""}`;
         card.id = `card-${idx}`;
-        card.onclick = () => selectGame(idx);
-        card.ondblclick = () => launchCurrentGame();
+
+        // Hover en vivo igual que Cinema: resalta tarjeta y actualiza Hero sin mover el carrusel
+        card.addEventListener("mouseenter", () => {
+          selectGame(idx, { playSound: false, scrollIntoView: false });
+        });
+
+        // Click directo sobre carátula lanza la acción principal igual que Cinema (ignorando drag)
+        card.addEventListener("click", () => {
+          if (hasDraggedRecently) return;
+          selectGame(idx, { playSound: false, scrollIntoView: false });
+          launchCurrentGame();
+        });
 
         const posterWrap = document.createElement("div");
         posterWrap.className = "game-card-poster-wrapper";
@@ -1624,8 +1827,12 @@
         posterImg.src = game.cover;
         posterImg.alt = game.title;
         posterImg.loading = "lazy";
+        posterImg.onload = () => {
+          game.resolvedCover = posterImg.src;
+        };
         posterImg.onerror = () => {
-          if (game.fallbackCover && posterImg.src !== game.fallbackCover) {
+          if (game.fallbackCover && posterImg.src !== game.fallbackCover && !posterImg.dataset.triedFallback) {
+            posterImg.dataset.triedFallback = "1";
             posterImg.src = game.fallbackCover;
           } else {
             posterWrap.style.background = "linear-gradient(135deg, #1e1e2e, #313244)";
@@ -1646,50 +1853,332 @@
       });
 
       updateHeroDetails(true);
+      setTimeout(updateCarouselArrows, 120);
     }
 
-    function selectGame(index, playSound = true) {
+    function selectGame(index, options = true) {
+      const opts = typeof options === "boolean"
+        ? { playSound: options, scrollIntoView: true }
+        : { playSound: true, scrollIntoView: true, ...options };
+
       if (index < 0) index = GAMES_CATALOG.length - 1;
       if (index >= GAMES_CATALOG.length) index = 0;
-      if (index === currentIndex && playSound) return;
 
+      const changed = index !== currentIndex;
       currentIndex = index;
 
       const cards = track.querySelectorAll(".game-card");
       cards.forEach((c, idx) => {
         if (idx === currentIndex) {
           c.classList.add("active");
-          c.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+          if (opts.scrollIntoView) {
+            c.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
+          }
         } else {
           c.classList.remove("active");
         }
       });
 
-      updateHeroDetails(false);
-      if (playSound) playTick();
+      if (changed) {
+        updateHeroDetails(false);
+        if (opts.playSound) playTick();
+      }
     }
 
     function setBackdropCrossfade(url, fallback1, fallback2) {
-      const nextLayerIdx = activeBackdropLayer === 0 ? 1 : 0;
-      const nextImg = backdropLayers[nextLayerIdx];
+      const candidates = [url, fallback1, fallback2].filter(Boolean);
+      if (candidates.length === 0) return;
+
       const currentImg = backdropLayers[activeBackdropLayer];
+      if (currentImg.dataset.currentSrc === candidates[0] && currentImg.classList.contains("active")) {
+        return;
+      }
 
-      nextImg.onload = () => {
-        nextImg.classList.add("active");
-        currentImg.classList.remove("active");
-        activeBackdropLayer = nextLayerIdx;
+      const seq = ++backdropLoadSeq;
+      let attemptIdx = 0;
+
+      const tryLoad = () => {
+        if (seq !== backdropLoadSeq || attemptIdx >= candidates.length) return;
+        const candidateUrl = candidates[attemptIdx++];
+        const loader = new Image();
+        loader.onload = () => {
+          if (seq !== backdropLoadSeq) return;
+          const nextLayerIdx = activeBackdropLayer === 0 ? 1 : 0;
+          const nextImg = backdropLayers[nextLayerIdx];
+          const prevImg = backdropLayers[activeBackdropLayer];
+          nextImg.dataset.currentSrc = candidateUrl;
+          nextImg.src = candidateUrl;
+          nextImg.classList.add("active");
+          prevImg.classList.remove("active");
+          activeBackdropLayer = nextLayerIdx;
+        };
+        loader.onerror = () => {
+          tryLoad();
+        };
+        loader.src = candidateUrl;
       };
 
-      nextImg.onerror = () => {
-        if (fallback1 && nextImg.src !== fallback1) {
-          nextImg.src = fallback1;
-        } else if (fallback2 && nextImg.src !== fallback2) {
-          nextImg.src = fallback2;
-        }
-      };
-
-      nextImg.src = url;
+      tryLoad();
     }
+
+    // ==========================================
+    // SINCRONIZACIÓN DE IDIOMA CON ONICORD (ES / EN / PT)
+    // ==========================================
+    const ARCADE_I18N = {
+      es: {
+        play: "Jugar",
+        catalogAvailable: "Catálogo Disponible",
+        explore: "Explorar",
+        exit: "Salir",
+        prev: "Anterior",
+        next: "Siguiente",
+        inGame: "En partida",
+        clearStorageTooltip: "Borrar datos y caché de juegos web",
+        games: {
+          pes6: {
+            genre: "Deportes · Multijugador P2P · Clásico",
+            platform: "Konami · PS2 / PC Web · 2006",
+            synopsis: "El legendario simulador de fútbol de Konami con multijugador online P2P directo en el navegador. Crea tu sala, compite con tus amigos de Onicord y disputa los mejores partidos con respuesta inmediata y sonido fiel."
+          },
+          dbzbt3: {
+            genre: "Lucha 3D · Anime · Combate Aéreo",
+            platform: "Spike / Bandai Namco · PS2 Web",
+            synopsis: "Revive los combates más épicos del universo de Akira Toriyama con más de 160 luchadores, transformaciones en tiempo real, ataques definitivos y escenarios totalmente destruibles."
+          },
+          nfsu2: {
+            genre: "Carreras · Tuning Callejero · Mundo Abierto",
+            platform: "EA Black Box · 2004 · PC Web",
+            synopsis: "Explora la ciudad nocturna de Bayview en libertad total, personaliza hasta el último detalle óptico y mecánico de tus vehículos y domina las carreras callejeras al ritmo del soundtrack original."
+          },
+          doom: {
+            genre: "FPS · Acción Clásica · id Tech",
+            platform: "id Software · MS-DOS / WebAssembly",
+            synopsis: "El mítico shooter en primera persona que definió un género. Encarna al Marine espacial en las lunas de Fobos y Deimos y desata un arsenal demoledor contra las huestes del infierno."
+          },
+          tboi: {
+            genre: "Roguelike · Mazmorras · Acción RPG",
+            platform: "Edmund McMillen / Nicalis · Web Port",
+            synopsis: "Desciende por los sótanos y catacumbas enfrentando abominaciones bizarras, combinando cientos de ítems con efectos impredecibles y desbloqueando finales secretos en cada aventura procedural."
+          },
+          minecraft: {
+            genre: "Sandbox · Aventura · Supervivencia",
+            platform: "Mojang Studios · WebAssembly / WebGL",
+            synopsis: "Construye, explora y sobrevive en mundos infinitos hechos de bloques. Extrae recursos, levanta fortalezas épicas o aventúrate en el Nether directamente en tu navegador con soporte de teclado y mouse."
+          },
+          garticphone: {
+            genre: "Party Game · Teléfono Descompuesto · Dibujo",
+            platform: "Onsen · Web 2020 · Multijugador",
+            synopsis: "El mítico juego del teléfono descompuesto pero dibujando. Escribe una frase disparatada, un amigo la dibuja, el siguiente adivina qué es y al final se revelan las historias más delirantes."
+          },
+          skribbl: {
+            genre: "Pictionary · Adivinanza en Tiempo Real · Casual",
+            platform: "Web 2017 · Multijugador en Salas",
+            synopsis: "El clásico juego online de adivinar el dibujo. Un jugador dibuja en tiempo real mientras el resto de la sala compite por escribir la palabra secreta lo más rápido posible para ganar puntos."
+          }
+        }
+      },
+      en: {
+        play: "Play",
+        catalogAvailable: "Available Catalog",
+        explore: "Browse",
+        exit: "Exit",
+        prev: "Previous",
+        next: "Next",
+        inGame: "In game",
+        clearStorageTooltip: "Clear web games data & cache",
+        games: {
+          pes6: {
+            genre: "Sports · P2P Multiplayer · Classic",
+            platform: "Konami · PS2 / PC Web · 2006",
+            synopsis: "Konami's legendary football simulator with online P2P multiplayer right in your browser. Create a room, compete with your Onicord friends, and enjoy responsive gameplay with authentic audio."
+          },
+          dbzbt3: {
+            genre: "3D Arena Fighter · Anime · Aerial Combat",
+            platform: "Spike / Bandai Namco · PS2 Web",
+            synopsis: "Relive the most iconic battles of Akira Toriyama's universe featuring over 160 fighters, real-time transformations, ultimate attacks, and destructible arenas."
+          },
+          nfsu2: {
+            genre: "Racing · Street Tuning · Open World",
+            platform: "EA Black Box · 2004 · PC Web",
+            synopsis: "Roam the nocturnal streets of Bayview freely, customize every visual and mechanical detail of your rides, and rule the underground racing scene to the original soundtrack."
+          },
+          doom: {
+            genre: "FPS · Classic Action · id Tech",
+            platform: "id Software · MS-DOS / WebAssembly",
+            synopsis: "The legendary first-person shooter that defined a genre. Step into the boots of the Space Marine across Phobos and Deimos and unleash devastating firepower against Hell's legions."
+          },
+          tboi: {
+            genre: "Roguelike · Dungeon Crawler · Action RPG",
+            platform: "Edmund McMillen / Nicalis · Web Port",
+            synopsis: "Descend through procedurally generated basements and catacombs battling bizarre abominations, combining hundreds of unpredictable items, and unlocking secret endings."
+          },
+          minecraft: {
+            genre: "Sandbox · Adventure · Survival",
+            platform: "Mojang Studios · WebAssembly / WebGL",
+            synopsis: "Build, explore, and survive across infinite blocky worlds. Mine resources, craft epic fortresses, or venture into the Nether right in your browser with full keyboard and mouse support."
+          },
+          garticphone: {
+            genre: "Party Game · Telephone Game · Drawing",
+            platform: "Onsen · Web 2020 · Multiplayer",
+            synopsis: "The hilarious drawing telephone party game. Write a quirky prompt, a friend sketches it, the next player guesses what it is, and watch the wildest chains unfold together."
+          },
+          skribbl: {
+            genre: "Pictionary · Real-Time Guessing · Casual",
+            platform: "Web 2017 · Multiplayer Rooms",
+            synopsis: "The classic online drawing and guessing game. One player sketches in real time while everyone else races to type the secret word as fast as possible to score points."
+          }
+        }
+      },
+      pt: {
+        play: "Jogar",
+        catalogAvailable: "Catálogo Disponível",
+        explore: "Explorar",
+        exit: "Sair",
+        prev: "Anterior",
+        next: "Próximo",
+        inGame: "Em partida",
+        clearStorageTooltip: "Limpar dados e cache dos jogos web",
+        games: {
+          pes6: {
+            genre: "Esportes · Multijogador P2P · Clássico",
+            platform: "Konami · PS2 / PC Web · 2006",
+            synopsis: "O lendário simulador de futebol da Konami com multijogador online P2P direto no navegador. Crie sua sala, compita com seus amigos do Onicord e dispute partidas com resposta imediata."
+          },
+          dbzbt3: {
+            genre: "Luta 3D · Anime · Combate Aéreo",
+            platform: "Spike / Bandai Namco · PS2 Web",
+            synopsis: "Reviva os combates mais épicos do universo de Akira Toriyama com mais de 160 lutadores, transformações em tempo real, ataques supremos e cenários totalmente destrutíveis."
+          },
+          nfsu2: {
+            genre: "Corrida · Tuning de Rua · Mundo Aberto",
+            platform: "EA Black Box · 2004 · PC Web",
+            synopsis: "Explore a cidade noturna de Bayview em total liberdade, personalize cada detalhe visual e mecânico dos seus carros e domine as corridas de rua ao som da trilha sonora original."
+          },
+          doom: {
+            genre: "FPS · Ação Clássica · id Tech",
+            platform: "id Software · MS-DOS / WebAssembly",
+            synopsis: "O lendário shooter em primeira pessoa que definiu um gênero. Assuma o papel do fuzileiro espacial nas luas de Phobos e Deimos e enfrente as hordas do inferno."
+          },
+          tboi: {
+            genre: "Roguelike · Masmorras · RPG de Ação",
+            platform: "Edmund McMillen / Nicalis · Web Port",
+            synopsis: "Desça pelos porões e catacumbas enfrentando criaturas bizarras, combinando centenas de itens com efeitos imprevisíveis e desbloqueando finais secretos a cada partida."
+          },
+          minecraft: {
+            genre: "Sandbox · Aventura · Sobrevivência",
+            platform: "Mojang Studios · WebAssembly / WebGL",
+            synopsis: "Construa, explore e sobreviva em mundos infinitos feitos de blocos. Minere recursos, erga fortalezas épicas ou aventure-se no Nether diretamente no navegador."
+          },
+          garticphone: {
+            genre: "Party Game · Telefone sem Fio · Desenho",
+            platform: "Onsen · Web 2020 · Multijogador",
+            synopsis: "O divertido jogo de telefone sem fio com desenhos. Escreva uma frase maluca, um amigo desenha, o próximo tenta adivinhar e no final as histórias mais hilárias são reveladas."
+          },
+          skribbl: {
+            genre: "Pictionary · Adivinhação em Tempo Real · Casual",
+            platform: "Web 2017 · Salas Multijogador",
+            synopsis: "O clássico jogo online de desenhar e adivinhar. Um jogador desenha em tempo real enquanto o restante da sala compete para digitar a palavra secreta o mais rápido possível."
+          }
+        }
+      }
+    };
+
+    function detectInitialLang() {
+      try {
+        const stored = localStorage.getItem("onicord_language");
+        if (stored) {
+          const clean = stored.split("-")[0].toLowerCase();
+          if (ARCADE_I18N[clean]) return clean;
+        }
+      } catch (_) {}
+      const nav = (navigator.language || "es").split("-")[0].toLowerCase();
+      return ARCADE_I18N[nav] ? nav : "es";
+    }
+
+    let currentLang = detectInitialLang();
+
+    function t(key) {
+      const dict = ARCADE_I18N[currentLang] || ARCADE_I18N.es;
+      return dict[key] || ARCADE_I18N.es[key] || key;
+    }
+
+    function getLocalizedGameMeta(game) {
+      const dict = ARCADE_I18N[currentLang] || ARCADE_I18N.es;
+      const loc = dict.games?.[game.id];
+      return {
+        genre: loc?.genre || game.genre,
+        platform: loc?.platform || game.platform,
+        synopsis: loc?.synopsis || game.synopsis,
+      };
+    }
+
+    function registerStageActions() {
+      if (window.parent) {
+        window.parent.postMessage({
+          type: "ONICORD_STAGE_SET_ACTIONS",
+          actions: [
+            {
+              id: "clear_storage",
+              icon: "delete_sweep",
+              title: t("clearStorageTooltip"),
+              danger: true
+            }
+          ]
+        }, "*");
+      }
+    }
+
+    function applyLanguage(lang) {
+      if (!lang) return;
+      const normalized = String(lang).split("-")[0].toLowerCase();
+      const targetLang = ARCADE_I18N[normalized] ? normalized : "es";
+      const changed = targetLang !== currentLang;
+      currentLang = targetLang;
+      document.documentElement.lang = currentLang;
+
+      const btnPlayLabel = document.getElementById("btnPlayLabel");
+      const catalogSectionTitle = document.getElementById("catalogSectionTitle");
+      const legendExplore = document.getElementById("legendExplore");
+      const legendPlay = document.getElementById("legendPlay");
+      const legendExit = document.getElementById("legendExit");
+      const legendPlayBtn = document.getElementById("legendPlayBtn");
+      const legendExitBtn = document.getElementById("legendExitBtn");
+
+      if (btnPlayLabel) btnPlayLabel.textContent = t("play");
+      if (catalogSectionTitle) catalogSectionTitle.textContent = t("catalogAvailable");
+      if (legendExplore) legendExplore.textContent = t("explore");
+      if (legendPlay) legendPlay.textContent = t("play");
+      if (legendExit) legendExit.textContent = t("exit");
+      if (legendPlayBtn) legendPlayBtn.title = t("play");
+      if (legendExitBtn) legendExitBtn.title = t("exit");
+      if (carouselPrevBtn) carouselPrevBtn.setAttribute("aria-label", t("prev"));
+      if (carouselNextBtn) carouselNextBtn.setAttribute("aria-label", t("next"));
+
+      const game = GAMES_CATALOG[currentIndex];
+      if (game) {
+        const meta = getLocalizedGameMeta(game);
+        gameGenre.innerText = meta.genre;
+        gamePlatform.innerText = meta.platform;
+        gameSynopsis.innerText = meta.synopsis;
+      }
+
+      if (changed) {
+        registerStageActions();
+      }
+    }
+
+    window.addEventListener("message", (ev) => {
+      if (!ev.data || typeof ev.data !== "object") return;
+      if (ev.data.type === "ONICORD_STAGE_CONTEXT" && ev.data.language) {
+        applyLanguage(ev.data.language);
+      }
+    });
+
+    window.addEventListener("storage", (ev) => {
+      if (ev.key === "onicord_language" && ev.newValue) {
+        applyLanguage(ev.newValue);
+      }
+    });
 
     function updateHeroDetails(immediate = false) {
       const game = GAMES_CATALOG[currentIndex];
@@ -1700,28 +2189,26 @@
       carouselCounter.innerText = `${current} / ${total}`;
 
       if (immediate) {
-        backdropLayers[0].src = game.banner || game.cover;
+        const initialBg = game.banner || game.cover || "";
+        backdropLayers[0].dataset.currentSrc = initialBg;
+        backdropLayers[0].src = initialBg;
         backdropLayers[0].classList.add("active");
       } else {
         setBackdropCrossfade(game.banner, game.cover, game.fallbackCover);
       }
 
-      gameGenre.innerText = game.genre;
-      gamePlatform.innerText = game.platform;
+      const meta = getLocalizedGameMeta(game);
+      gameGenre.innerText = meta.genre;
+      gamePlatform.innerText = meta.platform;
       gameTitle.innerText = game.title;
-      gameSynopsis.innerText = game.synopsis;
+      gameSynopsis.innerText = meta.synopsis;
     }
 
     function moveSelection(direction) {
-      selectGame(currentIndex + direction, true);
+      selectGame(currentIndex + direction, { playSound: true, scrollIntoView: true });
     }
 
-    carouselContainer.addEventListener("wheel", (e) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        carouselContainer.scrollLeft += e.deltaY * 1.5;
-      }
-    }, { passive: false });
+    setupCarouselScroll();
 
     // ==========================================
     // LANZAMIENTO Y CIERRE DEL STAGE
@@ -1742,19 +2229,27 @@
         } catch (_) {}
       }
 
+      let targetUrl = game.url;
+      if (game.id === "garticphone") {
+        targetUrl = `https://garticphone.com/${currentLang === "pt" ? "pt" : currentLang === "en" ? "en" : "es"}/`;
+      }
+
+      const meta = getLocalizedGameMeta(game);
+      const stateLabel = t("inGame");
+
       if (window.parent) {
         window.parent.postMessage({
           type: "ONICORD_STAGE_LAUNCH_GAME",
           game: {
             id: game.id,
             title: game.title,
-            url: game.url,
+            url: targetUrl,
             cover: effectiveCover,
             banner: game.banner || effectiveCover,
             details: "Arcade",
-            state: "En partida",
-            genre: game.genre,
-            platform: game.platform,
+            state: stateLabel,
+            genre: meta.genre,
+            platform: meta.platform,
             shareCapture: game.shareCapture || null,
             frameScripts: game.frameScripts || [],
             userNick: window._onicordUserNick || "",
@@ -1764,7 +2259,7 @@
             activity: {
               name: game.title,
               details: "Arcade",
-              state: "En partida",
+              state: stateLabel,
               cover: effectiveCover,
               type: "game",
               isCatalog: false,
@@ -1859,7 +2354,9 @@
     });
 
     // Iniciar
+    applyLanguage(currentLang);
     renderCarousel();
+    registerStageActions();
     requestAnimationFrame(checkGamepadState);
   </script>
 </body>

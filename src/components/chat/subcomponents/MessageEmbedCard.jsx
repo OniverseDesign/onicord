@@ -139,7 +139,7 @@ export default function MessageEmbedCard({ url }) {
 
   const isYouTube = Boolean(ytId || ogData.mediaType === "youtube");
 
-  // CASO AUDIO: Pista de audio directa
+  // Direct audio track player
   if (ogData.mediaType === "audio" && (ogData.audio || ogData.url)) {
     return (
       <div
@@ -163,7 +163,7 @@ export default function MessageEmbedCard({ url }) {
     );
   }
 
-  // CASO SPOTIFY: Tarjeta temática con carátula y reproductor
+  // Spotify embed card with artwork and playback launcher
   if (ogData.mediaType === "spotify") {
     return (
       <div
@@ -197,7 +197,7 @@ export default function MessageEmbedCard({ url }) {
     );
   }
 
-  // CASO PINTEREST: Tarjeta con imagen de proporción vertical/natural y estilo estándar
+  // Pinterest embed card with natural vertical proportion
   if (ogData.mediaType === "pinterest" || (ogData.siteName === "Pinterest" && ogData.image)) {
     return (
       <div
@@ -257,7 +257,7 @@ export default function MessageEmbedCard({ url }) {
         url.includes("/reel/") ||
         url.includes("/reels/")));
 
-  // CASO 1: Previsualización Multimedia (Video o GIF)
+  // Multimedia preview (Video or GIF)
   if (isVideoContent) {
     const ytThumb = ogData.image || (ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : null);
 
@@ -270,12 +270,10 @@ export default function MessageEmbedCard({ url }) {
           !isYouTube ? "cursor-pointer hover:border-onicord-accent/40 transition-colors" : ""
         }`}
       >
-        {/* Site Name */}
         <span className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted truncate">
           {ogData.siteName || (ytId ? "YouTube" : ttId ? "TikTok" : igInfo ? "Instagram" : isGifOrTenor ? "GIF" : "Video")}
         </span>
 
-        {/* Title */}
         <span
           onClick={handleOpenExternal}
           className="text-[14px] font-bold text-onicord-text hover:underline line-clamp-2 cursor-pointer leading-snug"
@@ -283,7 +281,6 @@ export default function MessageEmbedCard({ url }) {
           {ogData.title || url}
         </span>
 
-        {/* Description */}
         {ogData.description && !isGifOrTenor && (
           <p
             onClick={handleOpenExternal}
@@ -293,7 +290,6 @@ export default function MessageEmbedCard({ url }) {
           </p>
         )}
 
-        {/* Video / Media Box con bordes redondeados */}
         <div
           className={`w-full relative bg-black/40 ${
             isVertical ? "aspect-[9/16]" : isGifOrTenor && !ogData.video ? "aspect-auto max-h-[360px]" : "aspect-video"
@@ -388,7 +384,7 @@ export default function MessageEmbedCard({ url }) {
     );
   }
 
-  // CASO 2: Enlace Web / Imagen Estándar (Diseño Original Restaurado)
+  // Standard web link preview with side thumbnail
   return (
     <div
       onClick={handleOpenExternal}
@@ -408,7 +404,7 @@ export default function MessageEmbedCard({ url }) {
         </p>
       </div>
 
-      {/* Imagen Lateral Fija de 150px (Diseño Original) */}
+      {/* Fixed lateral thumbnail (150px) */}
       {ogData.image && (
         <div className="w-[150px] min-h-[100px] shrink-0 bg-onicord-mantle/30 flex overflow-hidden rounded-onicord-button">
           <img

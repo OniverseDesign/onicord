@@ -1,3 +1,16 @@
+# Onicord v0.2.1
+
+## Changes
+
+- **Native P2P Media Streaming Engine**: Integrated local HTTP chunking server for peer-to-peer torrent and magnet streams with native range-request buffering, automatic audio/video codec probing, and real-time transcoding fallbacks for browser-incompatible media formats.
+- **Agnostic Addon Stage Framework**: Standardized plugin host lifecycle protocols, resume-time synchronization, and isolated per-addon stage progression storage, enabling seamless theater and Picture-in-Picture modes for third-party media and game addons.
+- **Chat Input & Text Caret Stability**: Resolved text caret position jumps and selection offset loss during markdown formatting, emoji insertion, and text composition within the chat input area.
+- **Reply Formatting & Quote Sanitization**: Cleaned up message reply previews by eliminating raw system placeholders, binary attachment flags, and formatting artifacts across quoted message bubbles and thread cards.
+- **Keybinding Collision Safeguards**: Added strict input-focus guards to the global and local keybinding engines, preventing accidental triggers of Push-to-Talk, deafen, mute, or search shortcuts while typing in message fields or textareas.
+- **Continuous Animation Freezing**: Full integration of the reduced-motion and continuous-animation accessibility toggles, freezing infinite CSS keyframe loops and pausing animated avatars, stickers, and brand icons to eliminate background CPU and GPU overhead.
+- **Interactive Chat Embed Theming**: Aligned interactive addon card action buttons with the atomic dark-accent contrast standards, ensuring readability and visual consistency across all active themes.
+- **PiP Stage Layout Decoupling**: Fixed chat room visibility being suppressed when an active video or game addon stage transitions into floating Picture-in-Picture mode.
+
 # Onicord v0.2.0
 
 ## Changes

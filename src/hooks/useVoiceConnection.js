@@ -54,10 +54,12 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     }
   }, [serverIceServers]);
 
+  // Network topology state: defaults to full-mesh P2P (direct RTCPeerConnection between all peers).
+  // Dynamically switches to SFU (Selective Forwarding Unit) mode if swarm scale exceeds mesh threshold.
   const [networkTopology, setNetworkTopology] = useState("mesh"); // 'mesh' | 'sfu'
   const [sfuHostId, setSfuHostId] = useState(null);
   const [isLocalHost, setIsLocalHost] = useState(false);
-  // Map of peerId -> string[] of LAN IPs, used for WebRTC LAN audio optimization
+  // Map of peerId -> string[] of LAN IPs, used for WebRTC LAN audio route prioritization
   const lanPeerIPsRef = useRef(new Map());
 
 

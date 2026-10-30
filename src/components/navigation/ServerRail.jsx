@@ -148,9 +148,8 @@ function ServerFolderItem({
         } catch {}
       }}
     >
-      {/* UNIFIED CONTAINER */}
       {!expanded ? (
-        /* CLOSED STATE: 2x2 grid preview button */
+        /* Closed state: 2x2 grid preview button */
         <button
           type="button"
           onClick={() => {
@@ -248,7 +247,7 @@ function ServerFolderItem({
                 }}
                 className="w-full relative group flex items-center"
               >
-                {/* Indicator pill ON THE FAR-LEFT EDGE OF THE RAIL, OUTSIDE THE CONTAINER */}
+                {/* Left rail active indicator pill */}
                 <span
                   className={`onicord-rail-indicator absolute -left-[9px] z-20 ${
                     isVoiceActive
@@ -445,9 +444,8 @@ export default function ServerRail({
 
       <div className="mb-2 h-0.5 w-8 rounded-full bg-onicord-overlay" />
 
-      {/* Servers/Folders Scroll Area */}
+      {/* Servers/Folders scroll area */}
       <div className="flex w-full flex-1 flex-col items-center gap-2.5 overflow-y-auto no-scrollbar">
-        {/* Render Folders */}
         {folders.map((folder) => (
           <ServerFolderItem
             key={folder.id}

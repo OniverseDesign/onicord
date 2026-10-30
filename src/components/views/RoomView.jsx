@@ -74,16 +74,16 @@ export default function RoomView({
     return () => clearTimeout(timer);
   }, [inputValue]);
 
-  // Keyboard shortcut Ctrl+F to focus search input
+  // Focus search input on onicord:focus-search custom event
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
+    const handleFocusSearch = () => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+        searchInputRef.current.select?.();
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("onicord:focus-search", handleFocusSearch);
+    return () => window.removeEventListener("onicord:focus-search", handleFocusSearch);
   }, []);
 
   const [activeDmUser, setActiveDmUser] = useState(null);
@@ -133,7 +133,11 @@ export default function RoomView({
   }, []);
 
   const watchParty = useWatchParty();
-  const hasActiveWatchParty = Boolean(watchParty?.session?.videoId && watchParty?.hasJoined);
+  const hasActiveWatchParty = Boolean(
+    watchParty?.session?.videoId &&
+    watchParty?.hasJoined &&
+    watchParty?.session?.type !== "cinema"
+  );
   const isWatchPartyFloating = Boolean(watchParty?.isFloating);
   const isWatchPartyFullscreen = Boolean(watchParty?.isFullscreen);
 
@@ -168,11 +172,11 @@ export default function RoomView({
 
     const currentStage = activeAddonStageRef.current;
     if (currentStage && currentStage.pluginId === enrichedStageDef.pluginId) {
-      // Si se abre un juego con URL diferente al actual, cargar el nuevo juego
+      // If opening a game stage with a different URL, load the new stage
       const isDifferentTarget = (enrichedStageDef.url && enrichedStageDef.url !== currentStage.url) ||
         (enrichedStageDef.activity?.name && enrichedStageDef.activity.name !== currentStage.activity?.name);
       if (!isDifferentTarget) {
-        // Solo alternar PiP sin recargar si es exactamente la misma vista
+        // Only toggle PiP without reloading if targeting exact same stage
         setIsStageFloating((prevFloating) => !prevFloating);
         return;
       }
@@ -182,7 +186,11 @@ export default function RoomView({
     setActiveAddonStage(enrichedStageDef);
     setIsStageFloating(Boolean(enrichedStageDef.isFloating));
 
-    // Si viene de un evento DOM local (como clic en invitación del chat), sincronizar con Electron
+    if (enrichedStageDef.isChannel) {
+      watchParty?.joinWatchParty?.();
+    }
+
+    // If triggered by a local DOM event (such as chat invite click), sync with Electron
     if (!fromIpc) {
       window.electronAPI?.openStageView?.(enrichedStageDef);
     }
@@ -310,7 +318,7 @@ export default function RoomView({
 
     setUserPopout((prev) => {
       const prevId = getMemberId(prev?.member);
-      // Si ya está abierto para este usuario y no está en proceso de salida: cerrar con animación
+      // If menu is open for this user and not animating out, trigger exit animation
       if (prev && prevId === clickedId && !prev.isClosing) {
         if (closingPopoutTimerRef.current) clearTimeout(closingPopoutTimerRef.current);
         closingPopoutTimerRef.current = setTimeout(() => {
@@ -318,7 +326,7 @@ export default function RoomView({
         }, 110);
         return { ...prev, isClosing: true };
       }
-      // Si estaba cerrándose o es un usuario distinto: abrirlo fresco
+      // If menu was closing or targeting a different user, open fresh popout
       if (closingPopoutTimerRef.current) clearTimeout(closingPopoutTimerRef.current);
       return { x: e.clientX, y: e.clientY, member, isClosing: false };
     });
@@ -983,7 +991,7 @@ export default function RoomView({
         setActiveStreamUserId(null);
         activeStreamUserIdRef.current = null;
       }
-      // Si el usuario sale del chat de voz, cerrar automáticamente cualquier escenario de addon abierto
+      // If user leaves voice chat, automatically dismiss active addon stage
       if (wasInVoice && !selectedVoiceChannelId && activeAddonStageRef.current) {
         handleCloseStage(false);
       }
@@ -1017,7 +1025,7 @@ export default function RoomView({
     }
   };
 
-  // Expulsión automática de voz si se revoca el permiso connect_voice en tiempo real
+  // Force voice disconnect if connect_voice permission is revoked in real time
   useEffect(() => {
     if (selectedVoiceChannelId && profile?.id && server) {
       const canConnect = checkPermission(server, profile.id, "connect_voice");
@@ -1027,7 +1035,7 @@ export default function RoomView({
     }
   }, [server?.roles, server?.userRoles, selectedVoiceChannelId, profile?.id]);
 
-  // Detención automática de transmisión de pantalla si se revoca el permiso share_video en tiempo real
+  // Stop screen share if share_video permission is revoked in real time
   useEffect(() => {
     if (localStream && profile?.id && server) {
       const canShare = checkPermission(server, profile.id, "share_video");
@@ -1215,22 +1223,6 @@ export default function RoomView({
             </div>
           </header>
 
-          {activeAddonStage && isStageFloating && (
-            <button
-              type="button"
-              onClick={() => {
-                soundEngine.playNav("open");
-                setIsStageFloating(false);
-              }}
-              className="h-12 px-3.5 rounded-full bg-onicord-accent/15 hover:bg-onicord-accent/25 text-onicord-accent border border-onicord-accent/30 flex items-center gap-2 text-xs font-semibold shadow-sm transition-all cursor-pointer shrink-0 animate-fade-in"
-              title="Volver a la vista del juego"
-            >
-              <MaterialIcon name={activeAddonStage.icon || "sports_esports"} size={18} />
-              <span className="truncate max-w-[130px]">{activeAddonStage.title || "Juego"}</span>
-              <MaterialIcon name="open_in_full" size={14} />
-            </button>
-          )}
-
           <div className="h-12 flex-1 min-w-0 flex items-center gap-4 px-4 bg-onicord-base rounded-full border border-onicord-island relative">
             <IconSearch size="lg" />
             <input
@@ -1240,6 +1232,13 @@ export default function RoomView({
               onChange={(e) => setInputValue(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setInputValue("");
+                  setSearchQuery("");
+                  e.target.blur();
+                }
+              }}
               placeholder={
                 isSearchFocused
                   ? t("chat.searchPlaceholderActive", "Prueba: from:usuario, has:file, has:image, in:canal...")
@@ -1452,19 +1451,35 @@ export default function RoomView({
                   }
                 } catch (_) {}
 
+                const isCinema = effectiveStage.pluginId === "onicord-cinema" || effectiveStage.type === "movie";
                 const embedPayload = {
-                  pluginId: effectiveStage.pluginId,
-                  type: effectiveStage.embedType || "game_lobby",
-                  data: {
-                    gameTitle: effectiveStage.title || "Partida Multijugador",
-                    gameIcon: effectiveStage.icon || "sports_esports",
-                    roomCode,
-                    authorName: profile?.nickname || profile?.username || "Jugador",
-                    joinUrl,
-                    coverUrl: effectiveStage.cover || null,
-                    shareCapture: effectiveStage.shareCapture,
-                    frameScripts: effectiveStage.frameScripts,
-                  },
+                  pluginId: effectiveStage.pluginId || "onicord-cinema",
+                  type: isCinema ? "cinema_watch_party" : (effectiveStage.embedType || "game_lobby"),
+                  data: isCinema
+                    ? {
+                        title: effectiveStage.title || "Cinema",
+                        details: effectiveStage.details || "",
+                        cover: effectiveStage.cover || effectiveStage.activity?.cover || null,
+                        logo: effectiveStage.logo || null,
+                        banner: effectiveStage.banner || null,
+                        streamUrl: effectiveStage.streamUrl || effectiveStage.url,
+                        infoHash: effectiveStage.infoHash || null,
+                        fileIdx: effectiveStage.fileIdx ?? 0,
+                        trackers: effectiveStage.trackers || [],
+                        authorName: profile?.nickname || profile?.username || "Anfitrión",
+                        duration: effectiveStage.duration || 0,
+                        subtitles: effectiveStage.subtitles || [],
+                      }
+                    : {
+                        gameTitle: effectiveStage.title || "Partida Multijugador",
+                        gameIcon: effectiveStage.icon || "sports_esports",
+                        roomCode,
+                        authorName: profile?.nickname || profile?.username || "Jugador",
+                        joinUrl,
+                        coverUrl: effectiveStage.cover || null,
+                        shareCapture: effectiveStage.shareCapture,
+                        frameScripts: effectiveStage.frameScripts,
+                      },
                 };
                 window.electronAPI.sendChatMessage(
                   server.roomCode,
@@ -1538,7 +1553,7 @@ export default function RoomView({
         }}
         className="h-full shrink-0 flex-shrink-0 flex flex-col"
       >
-        {/* Isla de Rich Presence con animación de arrastre */}
+        {/* Draggable Rich Presence island */}
         <div
           className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
             hasActiveGame
@@ -1559,22 +1574,17 @@ export default function RoomView({
                 displayGame.details ||
                 (displayGame.type === "music"
                   ? t("userPanel.listeningTo", "Escuchando a")
-                  : displayGame.type === "app"
-                    ? t("gamesTab.usingNow", "Usando ahora")
-                    : displayGame.type === "client"
-                      ? t("userPopout.inMenus", "En los menús")
-                      : t("userPanel.playing", "Jugando a"))
+                  : displayGame.type === "movie" || displayGame.type === "cinema" || displayGame.name === "Cinema" || displayGame.source === "addon:onicord-cinema"
+                    ? (displayGame.isCatalog ? t("userPanel.exploring", "Explorando") : t("userPanel.watching", "Viendo"))
+                    : displayGame.type === "app"
+                      ? t("gamesTab.usingNow", "Usando ahora")
+                      : displayGame.type === "client"
+                        ? t("userPopout.inMenus", "En los menús")
+                        : t("userPanel.playing", "Jugando a"))
               }
             />
           )}
         </div>
-
-        <PluginIsland
-          roomCode={server?.roomCode}
-          profile={profile}
-          server={server}
-          voice={voice}
-        />
 
         <MembersSidebar
           members={sanitizedMembersList}
@@ -1591,6 +1601,13 @@ export default function RoomView({
           disableFlameSystem={server?.disableFlameSystem}
           ownerId={server?.ownerId}
           server={server}
+        />
+
+        <PluginIsland
+          roomCode={server?.roomCode}
+          profile={profile}
+          server={server}
+          voice={voice}
         />
       </div>
 
