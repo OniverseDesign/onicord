@@ -38,3 +38,6 @@ extract-comments.js
 src/fix_homeview.cjs
 scripts/restore_servers.cjs
 src/components/plugins/PluginViewHost.jsx
+
+# Repositorio dedicado externo (onicord-addons)
+addons/
