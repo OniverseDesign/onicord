@@ -6,6 +6,7 @@
 @import "./tokens/radius.css";
 @import "./tokens/shadows.css";
 @import "./tokens/motion.css";
+@import "./tokens/z-index.css";
 
 /* 🧱 BASE STYLES */
 @import "./base/reset.css";

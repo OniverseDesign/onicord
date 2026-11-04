@@ -118,7 +118,9 @@ export default function SmartAnimatedImage({
   }, []);
 
   const handleImageLoad = () => {
-    drawStaticFrame();
+    if (!enableContinuousAnimations) {
+      drawStaticFrame();
+    }
   };
 
   // When continuous animations are disabled, ensure we have drawn the static canvas frame
@@ -131,6 +133,7 @@ export default function SmartAnimatedImage({
   // Re-draw when src changes, and retry to catch race conditions (cached images/ref mount timing)
   useEffect(() => {
     setShowCanvas(false);
+    if (enableContinuousAnimations) return;
 
     let active = true;
     let attempts = 0;
@@ -152,7 +155,14 @@ export default function SmartAnimatedImage({
       active = false;
       clearInterval(interval);
     };
-  }, [src]);
+  }, [src, enableContinuousAnimations, drawStaticFrame]);
+
+  const isContain = className.includes("object-contain");
+  const fitClass = isContain ? "object-contain" : "object-cover";
+  const cleanClassName = className
+    .replace(/\bobject-cover\b/g, "")
+    .replace(/\bobject-contain\b/g, "")
+    .trim();
 
   return (
     <div
@@ -165,16 +175,16 @@ export default function SmartAnimatedImage({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Static frame canvas always rendered below */}
+      {/* Static frame canvas rendered below when continuous animations are disabled */}
       <canvas
         ref={canvasRef}
-        className={className}
+        className={`${cleanClassName} ${fitClass}`}
         style={{
           ...style,
-          display: showCanvas ? "block" : "none",
+          display: !enableContinuousAnimations && showCanvas ? "block" : "none",
           width: "100%",
           height: "100%",
-          objectFit: "cover",
+          objectFit: isContain ? "contain" : "cover",
         }}
       />
 
@@ -183,10 +193,11 @@ export default function SmartAnimatedImage({
         ref={imgRef}
         src={src}
         alt={alt}
-        className={`${className} absolute inset-0 w-full h-full object-cover`}
+        className={`${cleanClassName} absolute inset-0 w-full h-full ${fitClass}`}
         style={{
           ...style,
           opacity: shouldAnimate || !showCanvas ? 1 : 0,
+          zIndex: shouldAnimate || !showCanvas ? 1 : 0,
           transition: "opacity 0.25s ease-in-out",
           pointerEvents: "none",
         }}

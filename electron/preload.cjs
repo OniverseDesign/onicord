@@ -20,6 +20,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   getProfile: () => ipcRenderer.invoke("profile:get"),
   saveProfile: (profile) => ipcRenderer.invoke("profile:save", profile),
+  saveServerProfile: (serverId, data) =>
+    ipcRenderer.invoke("profile:save-server-profile", serverId, data),
+  deleteServerProfile: (serverId) =>
+    ipcRenderer.invoke("profile:delete-server-profile", serverId),
   deleteAccount: () => ipcRenderer.invoke("profile:delete"),
   onProfileUpdated: (callback) => {
     const handler = (_event, data) => callback(data);
@@ -84,6 +88,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("servers:setChannel", serverId, channelId),
   updateServerSettings: (serverId, settings) =>
     ipcRenderer.invoke("servers:updateSettings", serverId, settings),
+  getServerAuditLog: (serverIdOrRoomCode) =>
+    ipcRenderer.invoke("servers:getAuditLog", serverIdOrRoomCode),
   checkDirectPort: (port) =>
     ipcRenderer.invoke("servers:checkDirectPort", port),
   setLastServer: (serverId) =>
@@ -151,6 +157,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       "plugins:commands-updated", "plugins:chat-message-outbound",
       "plugins:chat-clear-outbound", "onicord:widget-p2p-data",
       "plugins:dashboard-widgets-updated", "drive:progress", "update:status",
+      "plugins:rail-actions-updated", "plugins:server-settings-tabs-updated", "plugins:custom-views-updated",
+      "plugins:discover-servers-updated",
       "game-activity-changed", "profile:updated", "onicord:mcp-trigger-action",
       "onicord:global-keybind",
       "voice:join-channel", "voice:leave-channel", "voice:toggle-media"
@@ -176,6 +184,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("keybinds:update", keybindings),
 
   saveStickerLocal: (data) => ipcRenderer.invoke("save-sticker-local", data),
+  saveStickerLocally: (data) => ipcRenderer.invoke("save-sticker-local", data),
   getStickerPath: (id) => ipcRenderer.invoke("get-sticker-path", id),
   requestSticker: (data) => ipcRenderer.invoke("request-sticker", data),
   exportStickerPack: (data) => ipcRenderer.invoke("export-sticker-pack", data),
@@ -337,8 +346,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("files:processDroppedMeta", roomCode, filePath),
   selectFileMeta: (roomCode) =>
     ipcRenderer.invoke("files:selectFileMeta", roomCode),
-  downloadFile: (roomCode, fileId, fileName, fileSize) =>
-    ipcRenderer.invoke("files:download", roomCode, fileId, fileName, fileSize),
+  selectDownloadDirectory: () =>
+    ipcRenderer.invoke("files:selectDownloadDirectory"),
+  getDefaultDownloadDirectory: () =>
+    ipcRenderer.invoke("files:getDefaultDownloadDirectory"),
+  downloadFile: (roomCode, fileId, fileName, fileSize, options) =>
+    ipcRenderer.invoke("files:download", roomCode, fileId, fileName, fileSize, options),
   cancelDownload: (fileId) => ipcRenderer.invoke("files:cancel", fileId),
   onFileProgress: (callback) => {
     const subscription = (_event, data) => callback(data);
@@ -355,8 +368,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   openExternalLink: (url) => ipcRenderer.send("window:open-external", url),
   fetchOpenGraph: (url) => ipcRenderer.invoke("opengraph:fetch", url),
-  fetchMediaLocalPath: (fileId) =>
-    ipcRenderer.invoke("files:getLocalPath", fileId),
+  fetchMediaLocalPath: (fileId, roomCode) =>
+    ipcRenderer.invoke("files:getLocalPath", fileId, roomCode),
   getAudioCover: (filePath) =>
     ipcRenderer.invoke("storage:getAudioCover", filePath),
 
@@ -389,6 +402,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // --- Complementos (Plugins) API ---
   listPlugins: () => ipcRenderer.invoke("plugins:list"),
+  checkPluginUpdates: () => ipcRenderer.invoke("plugins:checkUpdates"),
+  updatePlugin: (pluginId) => ipcRenderer.invoke("plugins:updatePlugin", pluginId),
+  updateAllPlugins: () => ipcRenderer.invoke("plugins:updateAll"),
   installPluginDialog: () => ipcRenderer.invoke("plugins:install-dialog"),
   downloadAndInstallPlugin: (pluginId) => ipcRenderer.invoke("plugins:download-install", pluginId),
   downloadAndInstallStickerPack: (downloadUrl) => ipcRenderer.invoke("stickers:download-install", downloadUrl),
@@ -432,6 +448,33 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("plugins:voice-control-buttons-updated", handler);
     return () => ipcRenderer.removeListener("plugins:voice-control-buttons-updated", handler);
   },
+  getRailActions: () => ipcRenderer.invoke("plugins:get-rail-actions"),
+  onRailActionsUpdated: (callback) => {
+    const handler = (_event, actions) => callback(actions);
+    ipcRenderer.on("plugins:rail-actions-updated", handler);
+    return () => ipcRenderer.removeListener("plugins:rail-actions-updated", handler);
+  },
+  getServerSettingsTabs: () => ipcRenderer.invoke("plugins:get-server-settings-tabs"),
+  onServerSettingsTabsUpdated: (callback) => {
+    const handler = (_event, tabs) => callback(tabs);
+    ipcRenderer.on("plugins:server-settings-tabs-updated", handler);
+    return () => ipcRenderer.removeListener("plugins:server-settings-tabs-updated", handler);
+  },
+  getCustomViews: () => ipcRenderer.invoke("plugins:get-custom-views"),
+  onCustomViewsUpdated: (callback) => {
+    const handler = (_event, views) => callback(views);
+    ipcRenderer.on("plugins:custom-views-updated", handler);
+    return () => ipcRenderer.removeListener("plugins:custom-views-updated", handler);
+  },
+  getDiscoveredServers: () => ipcRenderer.invoke("discover:get-servers"),
+  sendKnockRequest: (payload) => ipcRenderer.invoke("discover:send-knock", payload),
+  approveKnockRequest: (roomCode, applicant) => ipcRenderer.invoke("discover:approve-knock", roomCode, applicant),
+  rejectKnockRequest: (roomCode, applicant) => ipcRenderer.invoke("discover:reject-knock", roomCode, applicant),
+  onDiscoveredServersUpdated: (callback) => {
+    const handler = (_event, servers) => callback(servers);
+    ipcRenderer.on("plugins:discover-servers-updated", handler);
+    return () => ipcRenderer.removeListener("plugins:discover-servers-updated", handler);
+  },
   onVoiceControlButtonTriggered: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("plugins:voice-control-button-triggered", handler);
@@ -466,7 +509,29 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("plugins:dashboard-widgets-updated", handler);
   },
 
-  // ─── Google Drive Backup ──────────────────────────────────────────────────
+  // ─── Native Backup (.onipkg) System ─────────────────────────────────────────
+  backupEstimateSize:  (cats) => ipcRenderer.invoke("backup:estimateSize", cats),
+  backupExportDialog:  (cats) => ipcRenderer.invoke("backup:exportDialog", cats),
+  backupOpenDialog:    () => ipcRenderer.invoke("backup:openDialog"),
+  backupInspect:       (filePath) => ipcRenderer.invoke("backup:inspect", filePath),
+  backupRestore:       (filePath, cats) => ipcRenderer.invoke("backup:restore", filePath, cats),
+  backupListLocal:     () => ipcRenderer.invoke("backup:listLocal"),
+  backupCreateLocal:   (cats) => ipcRenderer.invoke("backup:createLocalVaultBackup", cats),
+  backupDeleteLocal:   (filename) => ipcRenderer.invoke("backup:deleteLocal", filename),
+  backupGetSettings:   () => ipcRenderer.invoke("backup:getSettings"),
+  backupSaveSettings:  (settings) => ipcRenderer.invoke("backup:saveSettings", settings),
+  onBackupProgress: (cb) => {
+    const h = (_event, data) => cb(data);
+    ipcRenderer.on("backup:progress", h);
+    return () => ipcRenderer.removeListener("backup:progress", h);
+  },
+  onBackupPackageDropped: (cb) => {
+    const h = (_event, filePath) => cb(filePath);
+    ipcRenderer.on("backup:package-dropped", h);
+    return () => ipcRenderer.removeListener("backup:package-dropped", h);
+  },
+
+  // ─── Google Drive Backup (Deprecated) ──────────────────────────────────────
   driveIsConnected:    () => ipcRenderer.invoke("drive:isConnected"),
   driveGetEmail:       () => ipcRenderer.invoke("drive:getEmail"),
   driveGetUser:        () => ipcRenderer.invoke("drive:getUser"),
@@ -487,6 +552,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // ─── Updater API ──────────────────────────────────────────────────────────
   checkForUpdates: () => ipcRenderer.invoke("update:check"),
+  getUpdateState: () => ipcRenderer.invoke("update:getState"),
+  getReleaseNotes: (version) => ipcRenderer.invoke("update:getReleaseNotes", version),
   downloadUpdate: () => ipcRenderer.invoke("update:download"),
   installUpdate: () => ipcRenderer.invoke("update:install"),
   isPortableBuild: () => ipcRenderer.invoke("update:isPortable"),

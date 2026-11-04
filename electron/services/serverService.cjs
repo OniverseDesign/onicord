@@ -9,8 +9,19 @@ class ServerService {
   }
 
   async enterServer(serverId, profile, roomManager, startLocalStreamServer) {
+    if (!serverId) throw new Error("Server ID is required");
+    const cleanId = String(serverId).trim();
     const store = this.getServerStore();
-    const server = await store.get(serverId);
+    let server = await store.get(cleanId);
+    if (!server) {
+      server = await store.getByRoomCode(cleanId.toUpperCase());
+    }
+    if (!server) {
+      console.warn(`[ServerService] enterServer: Server ${cleanId} not found in store, attempting recovery...`);
+      const data = await store._read();
+      await store.recoverMissingServersFromRoomMeta(data);
+      server = store._findServer(data, cleanId) || store._findServer(data, cleanId.toUpperCase());
+    }
     if (!server) throw new Error("Server not found");
 
     const profileService = require("./profileService.cjs");
@@ -134,7 +145,7 @@ class ServerService {
 
               await roomManager.publishServerMeta({
                 ownerId: newOwnerId
-              }).catch(() => {});
+              }, server.roomCode).catch(() => {});
             }
           }
         }
@@ -226,6 +237,35 @@ class ServerService {
         log("update_settings", "File Security", data.allowExecutableFiles ? "Allowed executable files sending and downloading" : "Restricted executable files sending");
       }
 
+      if (data.defaultRoleSettings !== undefined) {
+        const bDef = before.defaultRoleSettings || {};
+        const nDef = data.defaultRoleSettings || {};
+        if (Boolean(bDef.enabled) !== Boolean(nDef.enabled)) {
+          log("update_settings", "Default Role", nDef.enabled ? "Enabled automatic default role assignment for new members" : "Disabled automatic default role assignment");
+        }
+        if (nDef.roleId && bDef.roleId !== nDef.roleId) {
+          const allRoles = [...(data.roles || []), ...(before.roles || [])];
+          const rName = allRoles.find((r) => r.id === nDef.roleId)?.name || nDef.roleId;
+          log("update_settings", "Default Role", `Set default member role to "${rName}"`);
+        }
+      }
+
+      if (data.welcomeSettings !== undefined) {
+        const bWel = before.welcomeSettings || {};
+        const nWel = data.welcomeSettings || {};
+        if (Boolean(bWel.enabled) !== Boolean(nWel.enabled)) {
+          log("update_settings", "Welcome Messages", nWel.enabled ? "Enabled welcome messages for new members" : "Disabled welcome messages");
+        }
+        if (nWel.channelId && bWel.channelId !== nWel.channelId) {
+          const allChannels = [...(data.channels || []), ...(before.channels || [])];
+          const chName = allChannels.find((c) => c.id === nWel.channelId)?.name || nWel.channelId;
+          log("update_settings", "Welcome Messages", `Set welcome channel to "#${chName}"`);
+        }
+        if (nWel.template && bWel.template !== nWel.template) {
+          log("update_settings", "Welcome Messages", `Updated welcome message template to: "${nWel.template.slice(0, 100)}"`);
+        }
+      }
+
       if (Array.isArray(data.channels)) {
         const beforeChs = before.channels || [];
         const newChs = data.channels || [];
@@ -233,7 +273,7 @@ class ServerService {
         for (const bc of beforeChs) {
           if (!newChs.some((nc) => nc.id === bc.id)) {
             const isCat = bc.type === "category" || String(bc.id).startsWith("cat-");
-            const chTypeLabel = isCat ? "category" : bc.type === "voice" ? "voice channel" : "text channel";
+            const chTypeLabel = isCat ? "category" : bc.type === "voice" ? "voice channel" : bc.type === "forum" ? "forum channel" : "text channel";
             log("delete_channel", bc.name, `Deleted ${chTypeLabel} "${bc.name}"`);
           }
         }
@@ -241,7 +281,7 @@ class ServerService {
         for (const nc of newChs) {
           const bc = beforeChs.find((c) => c.id === nc.id);
           const isCat = nc.type === "category" || String(nc.id).startsWith("cat-");
-          const chTypeLabel = isCat ? "category" : nc.type === "voice" ? "voice channel" : "text channel";
+          const chTypeLabel = isCat ? "category" : nc.type === "voice" ? "voice channel" : nc.type === "forum" ? "forum channel" : "text channel";
 
           if (!bc) {
             log("create_channel", nc.name, `Created ${chTypeLabel} "${nc.name}"`);
@@ -257,6 +297,43 @@ class ServerService {
               const oldCatName = bc.parentId ? (beforeChs.find((c) => c.id === bc.parentId)?.name || "Category") : "Uncategorized";
               const newCatName = nc.parentId ? (newChs.find((c) => c.id === nc.parentId)?.name || "Category") : "Uncategorized";
               log("update_channel", nc.name, `Moved channel "${nc.name}" from category "${oldCatName}" to "${newCatName}"`);
+            }
+            if (Boolean(bc.isPrivate) !== Boolean(nc.isPrivate)) {
+              log("update_channel", nc.name, nc.isPrivate ? `Changed channel "${nc.name}" to private` : `Changed channel "${nc.name}" to public`);
+            }
+
+            const beforeAllowed = Array.isArray(bc.allowedRoles) ? bc.allowedRoles : [];
+            const newAllowed = Array.isArray(nc.allowedRoles) ? nc.allowedRoles : [];
+            if (JSON.stringify(beforeAllowed) !== JSON.stringify(newAllowed)) {
+              const allRoles = [...(data.roles || []), ...(before.roles || [])];
+              const added = newAllowed.filter((id) => !beforeAllowed.includes(id)).map((id) => allRoles.find((r) => r.id === id)?.name || id);
+              const removed = beforeAllowed.filter((id) => !newAllowed.includes(id)).map((id) => allRoles.find((r) => r.id === id)?.name || id);
+              if (added.length > 0) {
+                log("update_channel", nc.name, `Granted private access in "${nc.name}" to: ${added.join(", ")}`);
+              }
+              if (removed.length > 0) {
+                log("update_channel", nc.name, `Removed private access in "${nc.name}" from: ${removed.join(", ")}`);
+              }
+            }
+
+            if (Boolean(bc.hasSpeakRestrictions) !== Boolean(nc.hasSpeakRestrictions)) {
+              const modeLabel = nc.type === "voice" ? "speak restrictions (listeners-only mode)" : "writing restrictions (read-only mode)";
+              log("update_channel", nc.name, nc.hasSpeakRestrictions ? `Enabled ${modeLabel} on "${nc.name}"` : `Disabled ${modeLabel} on "${nc.name}"`);
+            }
+
+            const beforeDisallowed = Array.isArray(bc.disallowedSpeakRoles) ? bc.disallowedSpeakRoles : [];
+            const newDisallowed = Array.isArray(nc.disallowedSpeakRoles) ? nc.disallowedSpeakRoles : [];
+            if (JSON.stringify(beforeDisallowed) !== JSON.stringify(newDisallowed)) {
+              const allRoles = [...(data.roles || []), ...(before.roles || [])];
+              const getRoleName = (id) => id === "@everyone" ? "@everyone" : (allRoles.find((r) => r.id === id)?.name || id);
+              const newlyRestricted = newDisallowed.filter((id) => !beforeDisallowed.includes(id)).map(getRoleName);
+              const newlyUnrestricted = beforeDisallowed.filter((id) => !newDisallowed.includes(id)).map(getRoleName);
+              if (newlyRestricted.length > 0) {
+                log("update_channel", nc.name, `Restricted communication in "${nc.name}" for: ${newlyRestricted.join(", ")}`);
+              }
+              if (newlyUnrestricted.length > 0) {
+                log("update_channel", nc.name, `Authorized communication in "${nc.name}" for: ${newlyUnrestricted.join(", ")}`);
+              }
             }
           }
         }
@@ -428,10 +505,11 @@ class ServerService {
     }
 
     const targetServerRoomCode = before?.roomCode || before?.id || updated?.roomCode || updated?.id || roomManager?.roomCode;
-    if (targetServerRoomCode && roomManager?.roomMetaStore) {
-      let mergedAuditLog = [];
+    let mergedAuditLog = [];
+    if (targetServerRoomCode) {
       try {
-        const meta = await roomManager.roomMetaStore.load(targetServerRoomCode);
+        const metaStore = roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
+        const meta = await metaStore.load(targetServerRoomCode, true);
         const existingLog = Array.isArray(meta.auditLog) ? meta.auditLog : [];
         const logMap = new Map();
         for (const entry of [...existingLog, ...auditLogs]) {
@@ -444,29 +522,41 @@ class ServerService {
         mergedAuditLog = auditLogs;
       }
 
-      roomManager
-        .publishServerMeta({
-          name: updated.name,
-          icon: updated.icon,
-          banner: updated.banner ?? null,
-          channels: updated.channels,
-          roles: updated.roles || [],
-          userRoles: updated.userRoles || {},
-          plugins: updated.plugins || [],
-          iceServers: updated.iceServers || [],
-          bannedUsers: updated.bannedUsers || [],
-          kickedUsers: updated.kickedUsers || {},
-          disableFlameSystem: updated.disableFlameSystem || false,
-          groupByRoles: updated.groupByRoles || false,
-          allowExecutableFiles: updated.allowExecutableFiles || false,
-          directConnectionEnabled: updated.directConnectionEnabled || false,
-          directIP: updated.directIP || "",
-          directPort: updated.directPort || 7777,
-          auditLog: mergedAuditLog,
-        })
-        .catch(() => {});
+      const metaPayload = {
+        name: updated.name,
+        icon: updated.icon,
+        banner: updated.banner ?? null,
+        channels: updated.channels,
+        roles: updated.roles || [],
+        userRoles: updated.userRoles || {},
+        plugins: updated.plugins || [],
+        iceServers: updated.iceServers || [],
+        bannedUsers: updated.bannedUsers || [],
+        kickedUsers: updated.kickedUsers || {},
+        disableFlameSystem: updated.disableFlameSystem || false,
+        groupByRoles: updated.groupByRoles || false,
+        allowExecutableFiles: updated.allowExecutableFiles || false,
+        directConnectionEnabled: updated.directConnectionEnabled || false,
+        directIP: updated.directIP || "",
+        directPort: updated.directPort || 7777,
+        auditLog: mergedAuditLog,
+        discoverConfig: updated.discoverConfig || null,
+        defaultRoleSettings: updated.defaultRoleSettings ?? { enabled: false, roleId: null },
+        welcomeSettings: updated.welcomeSettings ?? { enabled: false, channelId: null, template: "¡Bienvenido {user} a {server}! 🎉" },
+      };
+
+      if (roomManager?.publishServerMeta) {
+        roomManager.publishServerMeta(metaPayload, targetServerRoomCode).catch(() => {});
+      } else {
+        const metaStore = new RoomMetaStore(app.getPath("userData"));
+        metaStore.bump(targetServerRoomCode, metaPayload).catch(() => {});
+      }
     }
-    return updated;
+    try {
+      const discoverService = require("./discoverService.cjs");
+      discoverService.syncAndAnnounceLocalServers().catch(() => {});
+    } catch (_) {}
+    return { ...updated, auditLog: mergedAuditLog };
   }
 
   async setChannel(serverId, channelId) {

@@ -17,6 +17,7 @@ import ServerNetworkTab from "../settings/ServerNetworkTab";
 import ServerAuditTab from "../settings/ServerAuditTab";
 import ServerPluginsTab from "../settings/ServerPluginsTab";
 import ServerWebhooksTab from "../settings/ServerWebhooksTab";
+import ServerDiscoverTab from "../settings/ServerDiscoverTab";
 
 function slugId(prefix, name) {
   const base = name
@@ -140,6 +141,15 @@ export default function ServerSettingsModal({
           ],
         },
         {
+          id: "discover",
+          label: "Descubrimiento",
+          icon: "explore",
+          keywords: ["descubrir", "discover", "comunidad", "publico", "aprobacion"],
+          features: [
+            { id: "discoverSettings", label: "Publicar en Onicord Discover", keywords: ["discover", "publico", "explorar"] },
+          ],
+        },
+        {
           id: "storage",
           label: t("serverSettings.tabs.storage", "Almacenamiento"),
           icon: "folder",
@@ -205,10 +215,26 @@ export default function ServerSettingsModal({
   const [bannedUsers, setBannedUsers] = useState(server.bannedUsers ?? []);
   const [kickedUsers, setKickedUsers] = useState(server.kickedUsers ?? {});
   const [serverPlugins, setServerPlugins] = useState(server.plugins ?? []);
+  const [discoverConfig, setDiscoverConfig] = useState(
+    server.discoverConfig ?? {
+      enabled: false,
+      accessMode: "public",
+      category: "General",
+      description: "",
+      tags: [],
+      pendingRequests: [],
+    }
+  );
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [defaultRoleSettings, setDefaultRoleSettings] = useState(
+    server.defaultRoleSettings ?? { enabled: false, roleId: null }
+  );
+  const [welcomeSettings, setWelcomeSettings] = useState(
+    server.welcomeSettings ?? { enabled: false, channelId: null, template: "" }
+  );
 
   useEffect(() => {
     if (server) {
@@ -228,6 +254,18 @@ export default function ServerSettingsModal({
       setBannedUsers(server.bannedUsers ?? []);
       setKickedUsers(server.kickedUsers ?? {});
       setServerPlugins(server.plugins ?? []);
+      setDefaultRoleSettings(server.defaultRoleSettings ?? { enabled: false, roleId: null });
+      setWelcomeSettings(server.welcomeSettings ?? { enabled: false, channelId: null, template: "" });
+      setDiscoverConfig(
+        server.discoverConfig ?? {
+          enabled: false,
+          accessMode: "public",
+          category: "General",
+          description: "",
+          tags: [],
+          pendingRequests: [],
+        }
+      );
     }
   }, [server]);
 
@@ -243,19 +281,23 @@ export default function ServerSettingsModal({
         ? t("serverSettings.channels.defaultCategoryName", "Category")
         : type === "text"
           ? t("serverSettings.channels.defaultTextChannelName", "general")
-          : t("serverSettings.channels.defaultVoiceChannelName", "Voice Lounge");
+          : type === "forum"
+            ? t("serverSettings.channels.defaultForumChannelName", "foro")
+            : t("serverSettings.channels.defaultVoiceChannelName", "Voice Lounge");
 
     setChannels((prev) => [
       ...prev,
       {
         id: slugId(
-          type === "category" ? "cat" : type === "text" ? "ch" : "voice",
+          type === "category" ? "cat" : type === "text" ? "ch" : type === "forum" ? "forum" : "voice",
           defaultName,
         ),
         type,
         name: defaultName,
         isPrivate: false,
         allowedRoles: [],
+        hasSpeakRestrictions: false,
+        disallowedSpeakRoles: [],
         ...(parentId ? { parentId } : {}),
       },
     ]);
@@ -484,6 +526,9 @@ export default function ServerSettingsModal({
         bannedUsers,
         kickedUsers,
         plugins: serverPlugins,
+        discoverConfig,
+        defaultRoleSettings,
+        welcomeSettings,
         ownerId: serverWithCopy.ownerId,
         channels: channels.map((c) => {
           const isCat =
@@ -493,10 +538,12 @@ export default function ServerSettingsModal({
             type: isCat ? "category" : c.type,
             name:
               c.name.trim() ||
-              (isCat ? "Category" : c.type === "text" ? "general" : "voice"),
+              (isCat ? "Category" : c.type === "text" ? "general" : c.type === "forum" ? "foro" : "voice"),
             parentId: c.parentId || null,
             isPrivate: Boolean(c.isPrivate),
             allowedRoles: Array.isArray(c.allowedRoles) ? c.allowedRoles : [],
+            hasSpeakRestrictions: Boolean(c.hasSpeakRestrictions),
+            disallowedSpeakRoles: Array.isArray(c.disallowedSpeakRoles) ? c.disallowedSpeakRoles : [],
           };
         }),
       });
@@ -641,6 +688,8 @@ export default function ServerSettingsModal({
           readOnly={!hasAdvanced}
           channels={channels}
           server={server}
+          welcomeSettings={welcomeSettings}
+          setWelcomeSettings={setWelcomeSettings}
         />
       )}
 
@@ -675,6 +724,9 @@ export default function ServerSettingsModal({
           handleRemoveUserRole={handleRemoveUserRole}
           profile={profile}
           ownerId={serverWithCopy?.ownerId}
+          hasAdmin={hasAdmin}
+          defaultRoleSettings={defaultRoleSettings}
+          setDefaultRoleSettings={setDefaultRoleSettings}
         />
       )}
 
@@ -707,6 +759,16 @@ export default function ServerSettingsModal({
           server={{ ...serverWithCopy, plugins: serverPlugins }}
           onUpdateServer={(updated) => setServerPlugins(updated.plugins || [])}
           onCloseSettings={onClose}
+        />
+      )}
+
+      {section === "discover" && (
+        <ServerDiscoverTab
+          server={serverWithCopy}
+          profile={profile}
+          peers={peers}
+          discoverConfig={discoverConfig}
+          setDiscoverConfig={setDiscoverConfig}
         />
       )}
 

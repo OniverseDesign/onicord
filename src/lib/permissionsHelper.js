@@ -67,3 +67,33 @@ export function hasChannelAccess(server, channel, userId) {
   const roleIds = Array.isArray(uRoles) ? uRoles : [uRoles];
   return roleIds.some((rId) => channel.allowedRoles.includes(rId));
 }
+
+export function canSpeakInChannel(server, channel, userId) {
+  // 1. Channel not defined or no speak restrictions -> everyone can speak by default
+  if (!channel || !channel.hasSpeakRestrictions) return true;
+
+  const disallowed = Array.isArray(channel.disallowedSpeakRoles)
+    ? channel.disallowedSpeakRoles
+    : [];
+  if (disallowed.length === 0) return true;
+
+  // 2. Owner has bypass
+  if (server?.ownerId && server.ownerId === userId) return true;
+
+  // 3. Admin permission has bypass
+  if (checkPermission(server, userId, "admin")) return true;
+
+  // 4. Retrieve user roles
+  const uRoles = server?.userRoles?.[userId];
+  const roleIds = uRoles ? (Array.isArray(uRoles) ? uRoles : [uRoles]) : [];
+
+  // If user has no custom roles, check if "@everyone" is restricted
+  if (roleIds.length === 0) {
+    return !disallowed.includes("@everyone");
+  }
+
+  // If user has roles, check if all of them are disallowed
+  const allDisallowed = roleIds.every((rId) => disallowed.includes(rId));
+  return !allDisallowed;
+}
+

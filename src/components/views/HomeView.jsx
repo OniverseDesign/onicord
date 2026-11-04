@@ -8,6 +8,7 @@ import ServerSettingsModal from "../modals/ServerSettingsModal";
 import DeleteServerModal from "../modals/DeleteServerModal";
 import HomeDashboard from "../dashboard/HomeDashboard";
 import AppSettingsModal from "../modals/AppSettingsModal";
+import DiscoverView from "../discover/DiscoverView";
 import { IconSettings, Delete } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import { CONFIG_ISLAS, STORAGE_KEY, getCombinedConfigs } from "../dashboard/dashboardConfig";
@@ -38,10 +39,13 @@ export default function HomeView({
   const [serverToDelete, setServerToDelete] = useState(null);
   const [isAppSettingsOpen, setIsAppSettingsOpen] = useState(false);
   const [appSettingsInitialSection, setAppSettingsInitialSection] = useState("general");
+  const [appSettingsInitialServerScope, setAppSettingsInitialServerScope] = useState(null);
   const [activeChannelId, setActiveChannelId] = useState(null);
 
-  const handleOpenAppSettings = useCallback((section = "general") => {
-    const targetSection = typeof section === "string" ? section : "general";
+  const handleOpenAppSettings = useCallback((section = "general", context = null) => {
+    const targetSection = typeof section === "string" ? section : (section?.section || "general");
+    const targetScope = typeof section === "object" && section?.serverId ? section.serverId : (context?.serverId || null);
+    setAppSettingsInitialServerScope(targetScope);
     setAppSettingsInitialSection(targetSection);
     setIsAppSettingsOpen(true);
   }, []);
@@ -49,7 +53,7 @@ export default function HomeView({
   useEffect(() => {
     const handleOpenAppSettingsEvent = (e) => {
       const targetSection = e.detail?.section || "general";
-      handleOpenAppSettings(targetSection);
+      handleOpenAppSettings(targetSection, { serverId: e.detail?.serverId || null });
     };
     window.addEventListener("onicord:open-app-settings", handleOpenAppSettingsEvent);
     window.addEventListener("onicord:open-settings", handleOpenAppSettingsEvent);
@@ -58,6 +62,7 @@ export default function HomeView({
       window.removeEventListener("onicord:open-settings", handleOpenAppSettingsEvent);
     };
   }, [handleOpenAppSettings]);
+
   const [activeView, setActiveView] = useState(() =>
     activeServer ? "server" : "home",
   );
@@ -299,11 +304,11 @@ export default function HomeView({
         const userKb = normalizeKeybindings(profile?.keybindings);
         let match = userKb.find(
           (kb) => canonicalizeShortcut(kb.shortcut) === pressedCanonical
-      );
-      if (!match && isMac && pressedCanonical.includes("meta")) {
-        const asCtrl = pressedCanonical.replace("meta", "ctrl");
-        match = userKb.find((kb) => canonicalizeShortcut(kb.shortcut) === asCtrl);
-      }
+        );
+        if (!match && isMac && pressedCanonical.includes("meta")) {
+          const asCtrl = pressedCanonical.replace("meta", "ctrl");
+          match = userKb.find((kb) => canonicalizeShortcut(kb.shortcut) === asCtrl);
+        }
 
         if (match) {
           e.preventDefault();
@@ -581,6 +586,16 @@ export default function HomeView({
     setActiveView("home");
   };
 
+  const handleSelectView = (viewName) => {
+    if (
+      document.activeElement &&
+      typeof document.activeElement.blur === "function"
+    ) {
+      document.activeElement.blur();
+    }
+    setActiveView(viewName);
+  };
+
   const handleServerContextMenu = (e, targetServer) => {
     if (e) e.preventDefault();
     setContextMenu({
@@ -599,7 +614,6 @@ export default function HomeView({
     setActiveServer(null);
     setActiveView("home");
   };
-
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -622,8 +636,6 @@ export default function HomeView({
     };
   }, [refreshServers, setActiveServer]);
 
-
-
   const handleUpdateFolders = async (nextFolders) => {
     if (window.electronAPI?.saveProfile) {
       try {
@@ -638,6 +650,10 @@ export default function HomeView({
     }
   };
 
+  const isServerActive = activeView === "server" && Boolean(activeServer);
+  const isDiscoverActive = activeView === "discover";
+  const isHomeActive = !isServerActive && !isDiscoverActive;
+
   return (
     <div className="flex h-full w-full overflow-hidden bg-onicord-mantle p-3 gap-onicord-gap flex-row font-sans box-border select-none">
       <div className="h-full shrink-0 flex flex-col bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island overflow-hidden">
@@ -645,8 +661,10 @@ export default function HomeView({
           servers={servers}
           folders={profile?.serverFolders || []}
           onUpdateFolders={handleUpdateFolders}
-          activeServerId={activeView === "server" && activeServer ? activeServer.id : null}
+          activeServerId={isServerActive && activeServer ? activeServer.id : null}
           currentVoiceServerId={currentVoiceServerId}
+          activeView={activeView}
+          onSelectView={handleSelectView}
           onSelectHome={handleSelectHome}
           onSelectServer={handleSelectServer}
           onAdd={() => setShowAddModal(true)}
@@ -660,7 +678,7 @@ export default function HomeView({
       <div className="flex-1 min-w-0 h-full relative flex-shrink overflow-hidden">
         <div
           className={`w-full h-full transition-opacity duration-200 ease-out ${
-            activeView === "server" && activeServer
+            isServerActive
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none absolute inset-0 invisible"
           }`}
@@ -684,7 +702,7 @@ export default function HomeView({
         </div>
         <div
           className={`w-full h-full pl-[var(--gap)] box-border overflow-hidden transition-opacity duration-200 ease-out ${
-            activeView === "home" || !activeServer
+            isHomeActive
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none absolute inset-0 invisible"
           }`}
@@ -701,9 +719,22 @@ export default function HomeView({
             activeGame={activeGame}
           />
         </div>
+
+        {/* Native Discover View */}
+        <div
+          className={`w-full h-full pl-[var(--gap)] box-border overflow-hidden transition-opacity duration-200 ease-out ${
+            isDiscoverActive
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none absolute inset-0 invisible"
+          }`}
+        >
+          <DiscoverView
+            profile={profile}
+            servers={servers}
+            onSelectServer={handleSelectServer}
+          />
+        </div>
       </div>
-
-
 
       {isAppSettingsOpen && (
         <AppSettingsModal
@@ -713,9 +744,11 @@ export default function HomeView({
           onSaved={onProfileChange}
           onClose={() => setIsAppSettingsOpen(false)}
           servers={servers}
+          currentServer={activeServer}
           activeServerId={activeServer?.id}
           onDeleteAccount={onDeleteAccount}
           initialSection={appSettingsInitialSection}
+          initialServerScope={appSettingsInitialServerScope}
         />
       )}
 

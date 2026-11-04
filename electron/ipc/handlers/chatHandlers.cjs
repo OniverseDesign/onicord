@@ -49,6 +49,8 @@ function registerChatHandlers() {
         fileSize: r.fileSize,
         fileType: r.fileType,
         isSystemMessage: r.isSystemMessage,
+        systemType: r.systemType,
+        systemData: r.systemData,
         isComplement: r.isComplement,
         complementName: r.complementName,
         isWebhook: r.isWebhook,

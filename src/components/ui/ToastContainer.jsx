@@ -147,7 +147,7 @@ export default function ToastContainer() {
   return (
     <div
       className="fixed bottom-6 right-6 flex flex-col gap-3 pointer-events-none select-none"
-      style={{ zIndex: 999999999 }}
+      style={{ zIndex: "var(--z-toast, 90)" }}
     >
       {toasts.map((toast) => {
         const isClickable = Boolean(toast.action);

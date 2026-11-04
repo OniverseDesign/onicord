@@ -1,3 +1,19 @@
+# Onicord v0.2.2
+
+## Changes
+
+- **Enhanced Auto-Updater & Native Changelog System**: Integrated silent background downloads for packaged installer updates, automatic installation upon app quit, and a dedicated `ChangelogModal` with live markdown formatting accessible from the About tab for both current and incoming versions. Added automated update verification, hot-reloading in the sandbox, and update notifications for installed community addons.
+- **Public P2P Server Discovery & Community Exploration (Discover)**: Introduced a decentralized peer-to-peer discovery engine with zero central servers, allowing public communities to advertise across the DHT swarm with custom tags, categories, descriptions, and banners, complete with a "Knock to Join" approval and rate-limiting system.
+- **Dedicated Forum Channels & Thread Discussion System**: Native forum channel architecture (`type: "forum"`) with structured `ForumPostCard` layouts, interactive `ForumTagsBar` topic filtering, expandable post composer with title and `#tag` extraction, top-anchored descending scroll, and deep thread panel integration.
+- **Native Backup & Vault System (.onipkg / .onibackup)**: Comprehensive local archive vault engine enabling encrypted, category-granular export and restoration (profile, servers, chats, plugins, and stickers), automated scheduled vault backups with retention policies, and first-run restoration directly on the Profile Setup onboarding screen.
+- **Per-Server Profiles & Custom Identity**: Full support for server-specific identities, allowing members to customize their nickname, avatar, banner color, status, and custom link per server without altering their global profile, synchronized in real time across peer swarms.
+- **Discord-Style Mosaic Media Gallery & Multi-File Uploads**: Dynamic responsive image grids for multi-attachment messages (1-image, 2-column, 3-tile mosaic, and 4+ 2x2 grids with remaining counters), combined with multi-file composition staging and interactive lightbox carousel navigation.
+- **Contextual Skeleton Loading & Anti-Flicker Transitions**: Staggered breathing wireframe animations (`onicord-skeleton-breath`) tailored for both text and forum channels, featuring smooth cross-fade exits that eliminate layout shifts during message hydration while respecting reduced-motion accessibility preferences.
+- **Automated Server Welcomes & Default Role Assignment**: Configurable server welcome system dispatching localized greetings to designated channels upon peer arrival with dynamic translation of default templates, alongside automated assignment of base member roles.
+- **Granular Channel Communication & Read-Only Restrictions**: Configurable channel-level speak/write permissions for text and forum channels, allowing administrators to establish read-only announcement channels and restrict messaging by role, backed by real-time audit log tracking.
+- **Background Auto-Download of Shared Media & Custom Download Directory**: Optional background downloading of shared media attachments with configurable file size limits (10 MB to 10 GB or unlimited), custom download directory selection, and local deduplication against existing files.
+- **Server Rail & Database Stability Polish**: Active voice indicators with green glow on collapsed server folders, standardized z-index design tokens, serialized database write queues, and automatic recovery of corrupted or missing servers from `room-meta` archives.
+
 # Onicord v0.2.1
 
 ## Changes

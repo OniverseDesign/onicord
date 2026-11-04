@@ -6,6 +6,7 @@ const cryptoService = require("../../services/cryptoService.cjs");
 const ytdlpService = require("../../services/ytdlpService.cjs");
 const { RoomMetaStore } = require("../../p2p/roomMetaStore.cjs");
 const { ServerStore } = require("../../p2p/serverStore.cjs");
+const discoverService = require("../../services/discoverService.cjs");
 
 function createRoomManager() {
   if (global.roomManager) return global.roomManager;
@@ -275,6 +276,23 @@ function registerP2PServerHandlers() {
     return serverService.updateServer(serverId, settings, global.roomManager);
   });
 
+  ipcMain.handle("servers:getAuditLog", async (_event, serverIdOrRoomCode) => {
+    try {
+      const serverStore = serverService.getServerStore();
+      let roomCode = serverIdOrRoomCode;
+      const server = (await serverStore.get(serverIdOrRoomCode)) || (await serverStore.getByRoomCode(serverIdOrRoomCode));
+      if (server?.roomCode) {
+        roomCode = server.roomCode;
+      }
+      const roomMetaStore = global.roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
+      const meta = await roomMetaStore.load(roomCode, true);
+      return Array.isArray(meta?.auditLog) ? meta.auditLog : [];
+    } catch (e) {
+      console.error("[IPC servers:getAuditLog Error]:", e);
+      return [];
+    }
+  });
+
   ipcMain.handle("servers:checkDirectPort", async (_event, port) => {
     const targetPort = parseInt(port, 10);
     if (isNaN(targetPort) || targetPort < 1 || targetPort > 65535) {
@@ -398,6 +416,28 @@ function registerP2PServerHandlers() {
     if (!global.roomManager) return { success: false };
     global.roomManager.updateVoiceStreamIds(audioStreamId, videoStreamId, bandwidth);
     return { success: true };
+  });
+
+  // === Discover P2P Service Handlers ===
+  discoverService.init();
+
+  ipcMain.handle("discover:get-servers", async () => {
+    try {
+      await discoverService.syncAndAnnounceLocalServers();
+    } catch (_) {}
+    return discoverService.getDiscoveredServers();
+  });
+
+  ipcMain.handle("discover:send-knock", async (_event, payload) => {
+    return discoverService.sendKnockRequest(payload);
+  });
+
+  ipcMain.handle("discover:approve-knock", async (_event, roomCode, applicant) => {
+    return discoverService.approveKnock(roomCode, applicant);
+  });
+
+  ipcMain.handle("discover:reject-knock", async (_event, roomCode, applicant) => {
+    return discoverService.rejectKnock(roomCode, applicant);
   });
 }
 

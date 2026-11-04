@@ -12,13 +12,14 @@ import PluginIsland from "../plugins/PluginIsland";
 import PluginBannerNotice from "../plugins/PluginBannerNotice";
 import MaterialIcon from "../icons/MaterialIcon";
 import ThreadSidePanel from "../chat/subcomponents/ThreadSidePanel";
+import ForumTagsBar from "../chat/subcomponents/ForumTagsBar";
 import ContextMenu from "../ui/ContextMenu";
 import { notificationManager } from "../../lib/notificationManager";
 import { evaluateServerFlame } from "../../lib/flameService";
 import { checkPermission, hasChannelAccess } from "../../lib/permissionsHelper";
 import UserProfilePopout from "../ui/UserProfilePopout";
 import { IconSearch, IconClose, IconTag } from "../icons/StreamIcons";
-import { buildPeerLookup } from "../../lib/profileUtils";
+import { buildPeerLookup, getEffectiveProfile } from "../../lib/profileUtils";
 
 import { useRoomResizers } from "../../hooks/useRoomResizers";
 import ChannelsSidebar from "../navigation/ChannelsSidebar";
@@ -112,8 +113,17 @@ export default function RoomView({
     }
   }, [shouldRenderThread]);
 
+  const [channelMessages, setChannelMessages] = useState([]);
+  const [selectedTagFilter, setSelectedTagFilter] = useState(null);
+
+  useEffect(() => {
+    setSelectedTagFilter(null);
+    setChannelMessages([]);
+  }, [textChannelId]);
+
   const handleMessagesUpdate = useCallback((msgs) => {
     roomMessagesRef.current = msgs;
+    setChannelMessages(msgs);
     if (activeThreadRef.current) {
       setThreadMessages(msgs);
     }
@@ -439,7 +449,7 @@ export default function RoomView({
   const textChannels =
     server.channels?.filter(
       (c) =>
-        (c.type === "text" || !c.type) &&
+        (c.type === "text" || c.type === "forum" || !c.type) &&
         !isCategoryNode(c) &&
         hasChannelAccess(server, c, profile?.id),
     ) ?? [];
@@ -526,18 +536,24 @@ export default function RoomView({
     [server.roles, server.userRoles],
   );
 
+  const serverKey = server?.roomCode || server?.id;
+  const localEffective = useMemo(() => {
+    return getEffectiveProfile(profile, serverKey, servers) || profile;
+  }, [profile, serverKey, servers]);
+
   const sanitizedMembersList = useMemo(() => {
     const seen = new Set();
     const localUser = {
       id: profile?.id || "self",
       peerId: null,
-      nickname: profile?.nickname ?? t("common.you"),
-      avatar: profile?.avatar,
+      nickname: localEffective?.nickname ?? profile?.nickname ?? t("common.you"),
+      avatar: localEffective?.avatar ?? profile?.avatar,
       isSelf: true,
       online: true,
-      customLink: profile?.customLink,
-      profileColor: profile?.profileColor,
-      customStatus: profile?.customStatus,
+      customLink: localEffective?.customLink ?? profile?.customLink,
+      profileColor: localEffective?.profileColor ?? profile?.profileColor,
+      customStatus: localEffective?.customStatus ?? profile?.customStatus,
+      globalNickname: profile?.nickname || null,
       flame: profile?.flame,
       activity:
         profile?.showRichPresence !== false && activeGame?.name
@@ -563,9 +579,16 @@ export default function RoomView({
       if (p.userId) seen.add(p.userId);
       if (p.peerId) seen.add(p.peerId);
 
+      const savedInfo = server?.savedMembers?.[actualId];
       list.push({
         ...p,
         id: actualId,
+        nickname: savedInfo?.nickname || p.nickname,
+        avatar: savedInfo?.avatar !== undefined ? savedInfo.avatar : p.avatar,
+        customLink: savedInfo?.customLink !== undefined ? savedInfo.customLink : (p.customLink || ""),
+        profileColor: savedInfo?.profileColor || p.profileColor,
+        customStatus: savedInfo?.customStatus !== undefined ? savedInfo.customStatus : (p.customStatus || ""),
+        globalNickname: savedInfo?.globalNickname || p.globalNickname || (savedInfo?.nickname && savedInfo?.nickname !== p.nickname ? p.nickname : null),
         online: p.online !== false,
         role: getHighestRoleForUser(actualId),
         activity: p.showRichPresence !== false ? p.activity || null : null,
@@ -684,13 +707,14 @@ export default function RoomView({
           return {
             ...m,
             id: profile?.id,
-            nickname: profile?.nickname ?? m.nickname,
-            avatar: profile?.avatar ?? m.avatar,
+            nickname: localEffective?.nickname ?? profile?.nickname ?? m.nickname,
+            avatar: localEffective?.avatar ?? profile?.avatar ?? m.avatar,
             isSpeaking: amISpeaking,
             isStreaming: Boolean(voice.isStreaming),
-            customLink: profile?.customLink,
-            profileColor: profile?.profileColor,
-            customStatus: profile?.customStatus,
+            customLink: localEffective?.customLink ?? profile?.customLink,
+            profileColor: localEffective?.profileColor ?? profile?.profileColor,
+            customStatus: localEffective?.customStatus ?? profile?.customStatus,
+            globalNickname: profile?.nickname || null,
             flame: profile?.flame,
             activity:
               profile?.showRichPresence !== false && activeGame?.name
@@ -711,22 +735,24 @@ export default function RoomView({
           Boolean(m.isSpeaking) ||
           speakingPeers.has(m.peerId) ||
           speakingPeers.has(finalUserId);
+        const savedInfo = server?.savedMembers?.[finalUserId];
 
         return {
           ...m,
           id: finalUserId,
           peerId: m.peerId,
-          nickname: m.nickname || peerProfile?.nickname || "User",
-          avatar: m.avatar ?? peerProfile?.avatar ?? null,
+          nickname: savedInfo?.nickname || m.nickname || peerProfile?.nickname || "User",
+          avatar: savedInfo?.avatar !== undefined ? savedInfo.avatar : (m.avatar ?? peerProfile?.avatar ?? null),
           isSpeaking: isPeerSpeaking,
           isStreaming: Boolean(m.isStreaming),
           activity:
             peerProfile?.showRichPresence !== false
               ? peerProfile?.activity || null
               : null,
-          customLink: peerProfile?.customLink || "",
-          profileColor: peerProfile?.profileColor || "",
-          customStatus: peerProfile?.customStatus || "",
+          customLink: savedInfo?.customLink !== undefined ? savedInfo.customLink : (peerProfile?.customLink || ""),
+          profileColor: savedInfo?.profileColor || peerProfile?.profileColor || "",
+          customStatus: savedInfo?.customStatus !== undefined ? savedInfo.customStatus : (peerProfile?.customStatus || ""),
+          globalNickname: savedInfo?.globalNickname || peerProfile?.nickname || null,
           flame: peerProfile?.flame || m.flame || null,
           role: getHighestRoleForUser(finalUserId),
         };
@@ -857,6 +883,15 @@ export default function RoomView({
     );
 
     const unsubJoin = api.onPeerJoined((peer) => {
+      const uid = peer.id || peer.peerId || peer.userId;
+      if (uid && profile?.id && uid !== profile.id) {
+        const nick = peer.nickname || "Un usuario";
+        notificationManager.showToast(
+          t("server.newMemberJoined", "Nuevo Miembro"),
+          t("server.memberJoinedText", { name: nick, defaultValue: `${nick} se ha unido al servidor.` }),
+          "info"
+        );
+      }
       setPeers((prev) => {
         const uid = peer.id || peer.peerId || peer.userId;
         const index = prev.findIndex(
@@ -1143,6 +1178,8 @@ export default function RoomView({
       <ChannelsSidebar
         server={server}
         profile={profile}
+        effectiveProfile={localEffective}
+        servers={servers}
         leftWidth={leftWidth}
         textChannelId={textChannelId}
         selectTextChannel={selectTextChannel}
@@ -1212,7 +1249,11 @@ export default function RoomView({
                 </>
               ) : (
                 <>
-                  <IconTag size="lg" className="text-onicord-accent" />
+                  {activeTextChannel?.type === "forum" ? (
+                    <MaterialIcon name="forum" size={20} className="text-onicord-accent" />
+                  ) : (
+                    <IconTag size="lg" className="text-onicord-accent" />
+                  )}
                   <h2 className="font-semibold text-onicord-text">
                     {activeTextChannel?.name === "general"
                       ? t("serverSettings.channels.defaultTextChannelName", "general")
@@ -1354,6 +1395,17 @@ export default function RoomView({
           </button>
         </div>
 
+        {/* Barra de Hashtags para Canales de Foro */}
+        {activeTextChannel?.type === "forum" && (
+          <div className="w-full px-1">
+            <ForumTagsBar
+              messages={channelMessages}
+              activeTag={selectedTagFilter}
+              onSelectTag={(tag) => setSelectedTagFilter((prev) => (prev === tag ? null : tag))}
+            />
+          </div>
+        )}
+
         {/* Contenedor Central: ChatPanel + StreamStage + ThreadSidePanel */}
         <div ref={centralContainerRef} className="flex-1 min-h-0 flex gap-1 overflow-x-clip overflow-y-hidden">
           <div className="flex-1 min-w-0 h-full flex flex-col relative overflow-hidden bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island">
@@ -1382,12 +1434,15 @@ export default function RoomView({
                 server={server}
                 onProfileChange={onProfileChange}
                 searchQuery={searchQuery}
+                tagFilter={selectedTagFilter}
+                onSelectTag={(tag) => setSelectedTagFilter((prev) => (prev === tag ? null : tag))}
                 onOpenThread={handleOpenThread}
                 onMessagesUpdate={handleMessagesUpdate}
                 onSelectChannel={selectTextChannel}
                 onToggleReactionReady={(fn) => {
                   toggleReactionRef.current = fn;
                 }}
+                isForum={activeTextChannel?.type === "forum"}
               />
             </div>
 
@@ -1523,6 +1578,7 @@ export default function RoomView({
                 peers={peers}
                 server={server}
                 searchQuery={searchQuery}
+                isForum={activeTextChannel?.type === "forum"}
                 onClose={() => {
                   soundEngine.playNav("close");
                   setActiveThreadMessage(null);
@@ -1596,6 +1652,9 @@ export default function RoomView({
           profile={profile}
           roomCode={server.roomCode}
           serverId={server.roomCode || server.id}
+          onEditProfile={() => {
+            onOpenAppSettings?.("profile", { serverId: server.roomCode || server.id });
+          }}
           getChannelUnreadCount={getChannelUnreadCount}
           onMessageUser={handleMessageUser}
           disableFlameSystem={server?.disableFlameSystem}
@@ -1640,6 +1699,9 @@ export default function RoomView({
           onClose={handleCloseUserPopout}
           disableFlameSystem={server?.disableFlameSystem}
           serverId={server.roomCode || server.id}
+          onEditProfile={() => {
+            onOpenAppSettings?.("profile", { serverId: server.roomCode || server.id });
+          }}
           userRolesList={(() => {
             const mId =
               userPopout.member.id ||

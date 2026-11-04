@@ -3,6 +3,7 @@ const pluginService = require("../../services/pluginService.cjs");
 const pluginSandboxService = require("../../services/pluginSandboxService.cjs");
 const driveAuthService = require("../../services/driveAuthService.cjs");
 const driveService = require("../../services/driveService.cjs");
+const backupService = require("../../services/backupService.cjs");
 const updateService = require("../../services/updateService.cjs");
 const overlayService = require("../../services/overlayService.cjs");
 const profileService = require("../../services/profileService.cjs");
@@ -109,6 +110,18 @@ function registerPluginDriveHandlers() {
     return { success: false, error: "Plugin not found" };
   });
 
+  ipcMain.handle("plugins:checkUpdates", async () => {
+    return await pluginService.checkPluginUpdates();
+  });
+
+  ipcMain.handle("plugins:updatePlugin", async (_event, pluginId) => {
+    return await pluginService.updatePlugin(pluginId);
+  });
+
+  ipcMain.handle("plugins:updateAll", async () => {
+    return await pluginService.updateAllPlugins();
+  });
+
   ipcMain.handle("plugins:get-widgets", async () => {
     return pluginSandboxService.getAllPluginIslandWidgets();
   });
@@ -131,6 +144,42 @@ function registerPluginDriveHandlers() {
       }
     } catch (_) {}
     return pluginSandboxService.getAllVoiceControlButtons();
+  });
+
+  ipcMain.handle("plugins:get-rail-actions", async () => {
+    try {
+      const plugins = await pluginService.listPlugins();
+      for (const p of plugins) {
+        if (p.enabled !== false && !pluginSandboxService.activeSandboxes.has(p.id)) {
+          pluginSandboxService.runPlugin(p, broadcastToAll, defaultP2PBroadcaster);
+        }
+      }
+    } catch (_) {}
+    return pluginSandboxService.getAllRailActions();
+  });
+
+  ipcMain.handle("plugins:get-server-settings-tabs", async () => {
+    try {
+      const plugins = await pluginService.listPlugins();
+      for (const p of plugins) {
+        if (p.enabled !== false && !pluginSandboxService.activeSandboxes.has(p.id)) {
+          pluginSandboxService.runPlugin(p, broadcastToAll, defaultP2PBroadcaster);
+        }
+      }
+    } catch (_) {}
+    return pluginSandboxService.getAllServerSettingsTabs();
+  });
+
+  ipcMain.handle("plugins:get-custom-views", async () => {
+    try {
+      const plugins = await pluginService.listPlugins();
+      for (const p of plugins) {
+        if (p.enabled !== false && !pluginSandboxService.activeSandboxes.has(p.id)) {
+          pluginSandboxService.runPlugin(p, broadcastToAll, defaultP2PBroadcaster);
+        }
+      }
+    } catch (_) {}
+    return pluginSandboxService.getAllCustomViews();
   });
 
   ipcMain.handle("plugins:trigger-voice-control-button", async (_event, pluginId, buttonId, data) => {
@@ -578,23 +627,98 @@ function registerPluginDriveHandlers() {
   // Run enabled plugins on boot
   pluginSandboxService.loadAndRunPlugins(defaultBroadcaster, defaultP2PBroadcaster);
 
-  // === Google Drive ===
-  ipcMain.handle("drive:isConnected", () => driveAuthService.isConnected());
-  ipcMain.handle("drive:getEmail", () => driveAuthService.getConnectedEmail());
-  ipcMain.handle("drive:getUser", () => driveAuthService.getConnectedUser());
-  ipcMain.handle("drive:authorize", () => driveAuthService.authorize());
-  ipcMain.handle("drive:disconnect", () => driveAuthService.disconnect());
-  ipcMain.handle("drive:listBackups", () => driveService.listBackups());
-  ipcMain.handle("drive:estimateSize", (_, cats) => driveService.estimateBackupSize(cats));
-  ipcMain.handle("drive:createBackup", (_, cats, name) => driveService.createBackup(cats, name));
-  ipcMain.handle("drive:downloadBackup", (_, fileId, cats) => driveService.downloadBackup(fileId, cats));
-  ipcMain.handle("drive:deleteBackup", (_, fileId) => driveService.deleteBackup(fileId));
-  ipcMain.handle("drive:getSettings", () => driveService.getBackupSettings());
-  ipcMain.handle("drive:saveSettings", (_, settings) => driveService.saveBackupSettings(settings));
+  // === Google Drive (Legacy Fallback) ===
+  ipcMain.handle("drive:isConnected", () => false);
+  ipcMain.handle("drive:getEmail", () => null);
+  ipcMain.handle("drive:getUser", () => null);
+  ipcMain.handle("drive:authorize", () => ({ connected: false }));
+  ipcMain.handle("drive:disconnect", () => ({ disconnected: true }));
+  ipcMain.handle("drive:listBackups", () => []);
+  ipcMain.handle("drive:estimateSize", (_, cats) => backupService.estimateBackupSize(cats));
+  ipcMain.handle("drive:createBackup", () => { throw new Error("Google Drive ha sido reemplazado por copias .onipkg locales."); });
+  ipcMain.handle("drive:downloadBackup", () => { throw new Error("Google Drive ha sido reemplazado por copias .onipkg locales."); });
+  ipcMain.handle("drive:deleteBackup", () => ({ deleted: true }));
+  ipcMain.handle("drive:getSettings", () => backupService.getBackupSettings());
+  ipcMain.handle("drive:saveSettings", (_, settings) => backupService.saveBackupSettings(settings));
+
+  // === Native Backup (.onipkg) System ===
+  ipcMain.handle("backup:estimateSize", (_, cats) => {
+    return backupService.estimateBackupSize(cats);
+  });
+
+  ipcMain.handle("backup:exportDialog", async (event, cats) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    const date = new Date();
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const defaultFilename = `onicord-backup-${dateStr}.onipkg`;
+
+    const result = await dialog.showSaveDialog(window, {
+      title: "Exportar Copia de Seguridad Onicord (.onipkg)",
+      defaultPath: defaultFilename,
+      filters: [{ name: "Copia de Seguridad Onicord (*.onipkg)", extensions: ["onipkg"] }],
+    });
+
+    if (result.canceled || !result.filePath) {
+      return { canceled: true };
+    }
+
+    return await backupService.createBackupFile(cats, result.filePath);
+  });
+
+  ipcMain.handle("backup:openDialog", async (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(window, {
+      title: "Seleccionar Copia de Seguridad Onicord (.onipkg)",
+      filters: [{ name: "Copia de Seguridad Onicord (*.onipkg)", extensions: ["onipkg"] }],
+      properties: ["openFile"],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { canceled: true };
+    }
+
+    const filePath = result.filePaths[0];
+    const info = await backupService.inspectBackup(filePath);
+    return { canceled: false, ...info };
+  });
+
+  ipcMain.handle("backup:inspect", async (_, filePath) => {
+    return await backupService.inspectBackup(filePath);
+  });
+
+  ipcMain.handle("backup:restore", async (_, filePath, cats) => {
+    return await backupService.restoreBackup(filePath, cats);
+  });
+
+  ipcMain.handle("backup:listLocal", async () => {
+    return await backupService.listLocalBackups();
+  });
+
+  ipcMain.handle("backup:createLocalVaultBackup", async (_, cats) => {
+    return await backupService.createBackupFile(cats);
+  });
+
+  ipcMain.handle("backup:deleteLocal", async (_, filename) => {
+    return await backupService.deleteLocalBackup(filename);
+  });
+
+  ipcMain.handle("backup:getSettings", () => {
+    return backupService.getBackupSettings();
+  });
+
+  ipcMain.handle("backup:saveSettings", (_, settings) => {
+    return backupService.saveBackupSettings(settings);
+  });
 
   // === Auto Updater ===
   ipcMain.handle("update:check", async () => {
     return await updateService.checkForUpdates();
+  });
+  ipcMain.handle("update:getState", () => {
+    return updateService.getUpdateState();
+  });
+  ipcMain.handle("update:getReleaseNotes", async (_event, targetVersion) => {
+    return await updateService.getReleaseNotes(targetVersion);
   });
   ipcMain.handle("update:download", async () => {
     return await updateService.startDownload();

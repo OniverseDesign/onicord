@@ -390,7 +390,7 @@ export default function ThemeManagerTab({ profile }) {
             <button
               type="button"
               onClick={handleResetBgDefaults}
-              className="text-[10px] font-bold text-onicord-accent hover:underline bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+              className="text-[10px] font-bold text-onicord-accent bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
             >
               {t("settings.theme.resetThemeDefaults", "Restablecer Fondo")}
             </button>

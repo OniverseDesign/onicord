@@ -25,15 +25,18 @@ class StickerService {
       const filePath = path.join(this.stickersDir, `${id}.${ext}`);
       if (fs.existsSync(filePath)) return true;
 
-      if (!base64Data || typeof base64Data !== "string" || !base64Data.includes(",")) {
+      if (!base64Data || typeof base64Data !== "string") {
         console.warn(`[Sticker Service] Se intentó guardar el sticker ${id} pero la data Base64 es inválida.`);
         return false;
       }
 
-      const parts = base64Data.split(",");
-      if (!parts[1]) return false;
+      let rawBase64 = base64Data;
+      if (base64Data.includes(",")) {
+        rawBase64 = base64Data.split(",")[1];
+      }
+      if (!rawBase64) return false;
 
-      const buffer = Buffer.from(parts[1], "base64");
+      const buffer = Buffer.from(rawBase64, "base64");
       await fsPromises.writeFile(filePath, buffer);
       return true;
     } catch (err) {

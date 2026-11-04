@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useVoiceConnection } from "../hooks/useVoiceConnection";
-import { checkPermission } from "../lib/permissionsHelper";
+import { checkPermission, canSpeakInChannel } from "../lib/permissionsHelper";
+import { notificationManager } from "../lib/notificationManager";
 
 const VoiceContext = createContext(null);
 const VoiceChannelContext = createContext(null);
@@ -21,12 +22,41 @@ export function VoiceProvider({ profile, children }) {
     leaveVoiceRef.current = voice.leaveVoice;
   }, [voice.leaveVoice]);
 
-  const toggleMuteRef = useRef(voice.toggleMute);
+  const canSpeak = useMemo(() => {
+    if (!currentVoiceServer || !currentVoiceChannelId) return true;
+    const ch = currentVoiceServer.channels?.find((c) => c.id === currentVoiceChannelId);
+    return canSpeakInChannel(currentVoiceServer, ch, profile?.id);
+  }, [currentVoiceServer, currentVoiceChannelId, profile?.id]);
+
+  const safeToggleMute = useCallback(() => {
+    if (!canSpeak) {
+      notificationManager.showToast(
+        "Modo solo escucha",
+        "No tienes permisos para hablar en este canal de voz.",
+        "warning"
+      );
+      return;
+    }
+    toggleMuteRef.current?.();
+  }, [canSpeak]);
+
+  useEffect(() => {
+    if (voice.inVoice && !canSpeak && !voice.muted) {
+      voice.toggleMute?.();
+      notificationManager.showToast(
+        "Modo solo escucha",
+        "Este canal de voz está restringido para tu rol. Tu micrófono se mantendrá silenciado.",
+        "info"
+      );
+    }
+  }, [voice.inVoice, canSpeak, voice.muted, voice.toggleMute]);
+
+  const toggleMuteRef = useRef(safeToggleMute);
   const toggleDeafenRef = useRef(voice.toggleDeafen);
   useEffect(() => {
-    toggleMuteRef.current = voice.toggleMute;
+    toggleMuteRef.current = safeToggleMute;
     toggleDeafenRef.current = voice.toggleDeafen;
-  }, [voice.toggleMute, voice.toggleDeafen]);
+  }, [safeToggleMute, voice.toggleDeafen]);
 
   const joinVoiceChannel = useCallback((server, channelId) => {
     if (!server || !channelId) return;
@@ -108,8 +138,10 @@ export function VoiceProvider({ profile, children }) {
     () => ({
       ...voice,
       ...channelInfoValue,
+      toggleMute: safeToggleMute,
+      canSpeak,
     }),
-    [voice, channelInfoValue]
+    [voice, channelInfoValue, safeToggleMute, canSpeak]
   );
 
   return (

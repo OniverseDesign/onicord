@@ -1,6 +1,31 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { notificationManager } from "../lib/notificationManager";
 import { soundEngine } from "../lib/soundEngine";
+import { getStoredGeneralSettings, normalizeGeneralSettings } from "../lib/generalSettings";
+
+export function extractAttachmentsFromText(rawText) {
+  if (typeof rawText !== "string" || !rawText.includes("[FILE_ATTACHMENT]:")) {
+    return [];
+  }
+  let targetText = rawText;
+  if (rawText.trim().startsWith("{")) {
+    try {
+      const parsed = JSON.parse(rawText);
+      if (typeof parsed?.body === "string") {
+        targetText = parsed.body;
+      }
+    } catch {}
+  }
+  const attachments = [];
+  const parts = targetText.split("[FILE_ATTACHMENT]:");
+  for (let i = 1; i < parts.length; i++) {
+    try {
+      const parsed = JSON.parse(parts[i]);
+      if (parsed && parsed.id) attachments.push(parsed);
+    } catch {}
+  }
+  return attachments;
+}
 export function normalizeChatMessage(msg) {
   if (!msg || typeof msg !== "object") return msg;
   if (msg._normalized) return msg;
@@ -8,6 +33,8 @@ export function normalizeChatMessage(msg) {
   let text = msg.text || "";
   let threadParentId = msg.threadParentId || null;
   let replyTo = msg.replyTo || null;
+  let title = msg.title || null;
+  let tags = Array.isArray(msg.tags) ? msg.tags : null;
   let isNudge = false;
   const rawText = msg.rawText || (typeof msg.text === "string" ? msg.text : "");
 
@@ -16,12 +43,16 @@ export function normalizeChatMessage(msg) {
       const parsed = JSON.parse(text);
       if (parsed.threadParentId) threadParentId = parsed.threadParentId;
       if (parsed.replyTo) replyTo = parsed.replyTo;
+      if (parsed.title) title = parsed.title;
+      if (Array.isArray(parsed.tags)) tags = parsed.tags;
       if (typeof parsed.body === "string") {
         if (parsed.body.trim().startsWith("{")) {
           try {
             const inner = JSON.parse(parsed.body);
             if (inner.threadParentId) threadParentId = inner.threadParentId;
             if (inner.replyTo) replyTo = inner.replyTo;
+            if (inner.title) title = inner.title;
+            if (Array.isArray(inner.tags)) tags = inner.tags;
             text = inner.body || inner.text || parsed.body;
           } catch {
             text = parsed.body;
@@ -45,6 +76,8 @@ export function normalizeChatMessage(msg) {
     rawText,
     replyTo: replyTo || msg.replyTo || null,
     threadParentId: threadParentId || msg.threadParentId || null,
+    title,
+    tags,
     isNudge,
     _normalized: true,
   };
@@ -202,9 +235,35 @@ export function useChatMessages({
   const [historicalSearchResults, setHistoricalSearchResults] = useState([]);
   const focusTimeoutRef = useRef(null);
   const checkedAttachmentIdsRef = useRef(new Set());
+  const autoDownloadingIdsRef = useRef(new Set());
+  const generalSettingsRef = useRef(
+    profile?.general ? normalizeGeneralSettings(profile.general) : getStoredGeneralSettings()
+  );
+
+  useEffect(() => {
+    if (profile?.general) {
+      generalSettingsRef.current = normalizeGeneralSettings(profile.general);
+    }
+  }, [profile?.general]);
+
+  useEffect(() => {
+    const handleSettingsUpdate = (e) => {
+      if (e.detail) {
+        generalSettingsRef.current = normalizeGeneralSettings({
+          ...generalSettingsRef.current,
+          ...e.detail,
+        });
+      }
+    };
+    window.addEventListener("onicord:general-settings-updated", handleSettingsUpdate);
+    return () => {
+      window.removeEventListener("onicord:general-settings-updated", handleSettingsUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     checkedAttachmentIdsRef.current.clear();
+    autoDownloadingIdsRef.current.clear();
   }, [channelId, roomCode]);
 
   const onMessagesUpdateRef = useRef(onMessagesUpdate);
@@ -217,8 +276,10 @@ export function useChatMessages({
   }, [messages]);
 
   useEffect(() => {
+    setLoading(true);
+    setMessages([]);
     if (messagesCountRef) messagesCountRef.current = 0;
-  }, [channelId, roomCode, messagesCountRef]);
+  }, [channelId, roomCode]);
 
   // Track file progress from Electron
   useEffect(() => {
@@ -294,41 +355,68 @@ export function useChatMessages({
     }
   }, []);
 
-  // Historical file downloads check
+  // Historical file downloads and background auto-download check
   useEffect(() => {
     if (!messages || messages.length === 0) return;
 
-    const checkHistoricalDownloads = async () => {
+    const checkDownloadsAndAutoDownload = async () => {
       const updatedProgressUpdates = {};
       const newAttachmentsToCheck = [];
 
       for (const msg of messages) {
-        if (msg.text?.includes("[FILE_ATTACHMENT]:")) {
-          try {
-            const parts = msg.text.split("[FILE_ATTACHMENT]:");
-            const fileData = JSON.parse(parts[1]);
+        const atts = extractAttachmentsFromText(msg.text);
+        const isMyMessage = Boolean(
+          (profile?.id && (msg.authorId === profile.id || msg.authorId === "self")) ||
+          msg.authorId === "self" ||
+          (profile?.nickname && (msg.authorName === profile.nickname || msg.user?.nickname === profile.nickname))
+        );
 
-            if (fileData && fileData.id && !checkedAttachmentIdsRef.current.has(fileData.id)) {
-              checkedAttachmentIdsRef.current.add(fileData.id);
-              newAttachmentsToCheck.push(fileData.id);
-            }
-          } catch (e) {
-            console.error("Error procesando meta histórico:", e);
+        for (const att of atts) {
+          if (att && att.id && !checkedAttachmentIdsRef.current.has(att.id)) {
+            checkedAttachmentIdsRef.current.add(att.id);
+            newAttachmentsToCheck.push({ ...att, isMyMessage });
           }
         }
       }
 
       if (newAttachmentsToCheck.length === 0) return;
 
-      for (const fileId of newAttachmentsToCheck) {
+      const currentGen = generalSettingsRef.current;
+      const isAutoEnabled = currentGen?.autoDownloadFiles !== false;
+      const maxMB = currentGen?.autoDownloadMaxSizeMB ?? 500;
+      const maxBytes = maxMB === -1 ? Infinity : maxMB * 1024 * 1024;
+      const downloadDir = currentGen?.downloadDirectory || undefined;
+
+      const pendingAutoDownloads = [];
+      for (const att of newAttachmentsToCheck) {
         try {
-          const savedPath = await window.electronAPI.fetchMediaLocalPath(fileId);
+          let savedPath = null;
+          // Si el archivo fue enviado por el propio usuario, buscar en su índice de subidas locales
+          if (att.isMyMessage && window.electronAPI?.fetchUploadedLocalPath && roomCode) {
+            savedPath = await window.electronAPI.fetchUploadedLocalPath(roomCode, att.id);
+          }
+          // Si no o si es de otro usuario, consultar registro de descargas e índice compartido
+          if (!savedPath && window.electronAPI?.fetchMediaLocalPath) {
+            savedPath = await window.electronAPI.fetchMediaLocalPath(att.id, roomCode);
+          }
+
           if (savedPath) {
-            updatedProgressUpdates[fileId] = {
+            updatedProgressUpdates[att.id] = {
               progress: 100,
               done: true,
               localPath: savedPath,
             };
+          } else if (
+            !att.isMyMessage && // NUNCA auto-descargar archivos propios que ya están en el disco
+            isAutoEnabled &&
+            window.electronAPI?.downloadFile &&
+            roomCode &&
+            !autoDownloadingIdsRef.current.has(att.id)
+          ) {
+            const fileSize = typeof att.size === "number" ? att.size : 0;
+            if (fileSize <= maxBytes) {
+              pendingAutoDownloads.push(att);
+            }
           }
         } catch (e) {
           console.error("Error consultando ruta local de adjunto:", e);
@@ -341,10 +429,26 @@ export function useChatMessages({
           ...updatedProgressUpdates,
         }));
       }
+
+      if (pendingAutoDownloads.length > 0) {
+        for (const att of pendingAutoDownloads) {
+          if (autoDownloadingIdsRef.current.has(att.id)) continue;
+          autoDownloadingIdsRef.current.add(att.id);
+          try {
+            await window.electronAPI.downloadFile(roomCode, att.id, att.name, att.size, {
+              autoDownload: true,
+              customDir: downloadDir,
+            });
+          } catch (e) {
+            console.warn("[AutoDownload] Error auto-descargando archivo:", att.name, e);
+            autoDownloadingIdsRef.current.delete(att.id);
+          }
+        }
+      }
     };
 
-    checkHistoricalDownloads();
-  }, [messages]);
+    checkDownloadsAndAutoDownload();
+  }, [messages, roomCode, profile?.id, profile?.nickname]);
 
   // Main chat synchronization and history loading
   useEffect(() => {
@@ -474,9 +578,7 @@ export function useChatMessages({
     };
 
     const fetchFreshHistory = () => {
-      if (messagesCountRef && messagesCountRef.current === 0) {
-        setLoading(true);
-      }
+      setLoading(true);
 
       api
         .getChatHistory(roomCode, channelId)
@@ -487,19 +589,8 @@ export function useChatMessages({
             (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
           );
           setMessages(sortedHistory);
-
           setVisibleCount?.(Math.min(40, historialMensajes.length));
-
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              if (chatContainerRef?.current) {
-                chatContainerRef.current.scrollTop =
-                  chatContainerRef.current.scrollHeight;
-              }
-              setLoading(false);
-              if (messagesCountRef) messagesCountRef.current = historialMensajes.length;
-            }, 250);
-          });
+          setLoading(false);
         })
         .catch((err) => {
           console.error("Error cargando historial", err);
@@ -780,9 +871,6 @@ export function useChatMessages({
             (a, b) => a.timestamp - b.timestamp,
           );
           setVisibleCount?.((v) => v + 1);
-          requestAnimationFrame(() => {
-            bottomRef?.current?.scrollIntoView({ behavior: "smooth" });
-          });
         }
 
         if (messagesCountRef) messagesCountRef.current = nuevoFeed.length;

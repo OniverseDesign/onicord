@@ -34,7 +34,7 @@ export default function FloatingMediaBar({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      style={{ zIndex: 999999, transform: "translate3d(0, 0, 50px)", ...style }}
+      style={{ zIndex: 45, transform: "translate3d(0, 0, 50px)", ...style }}
       className={cn(
         "onicord-media-control-bar-wrapper transition-all duration-300",
         !visible
@@ -332,7 +332,7 @@ FloatingMediaBar.Menu = function FloatingMenu({
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
-            zIndex: 9999999,
+            zIndex: 55,
             scrollbarWidth: "none",
             msOverflowStyle: "none",
           }}

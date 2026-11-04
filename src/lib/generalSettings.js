@@ -11,6 +11,11 @@ export const DEFAULT_GENERAL = {
   enableQuickSuggestions: true,
   enableContinuousAnimations: true,
   enableOpenGraph: true,
+  autoDownloadAppUpdates: true,
+  autoUpdatePlugins: true,
+  autoDownloadFiles: true,
+  autoDownloadMaxSizeMB: 500,
+  downloadDirectory: "",
 };
 
 export function normalizeGeneralSettings(general) {
@@ -45,5 +50,24 @@ export function normalizeGeneralSettings(general) {
     enableQuickSuggestions: general?.enableQuickSuggestions !== undefined ? Boolean(general.enableQuickSuggestions) : true,
     enableContinuousAnimations: general?.enableContinuousAnimations !== undefined ? Boolean(general.enableContinuousAnimations) : true,
     enableOpenGraph: general?.enableOpenGraph !== undefined ? Boolean(general.enableOpenGraph) : true,
+    autoDownloadAppUpdates: general?.autoDownloadAppUpdates !== undefined ? Boolean(general.autoDownloadAppUpdates) : true,
+    autoUpdatePlugins: general?.autoUpdatePlugins !== undefined ? Boolean(general.autoUpdatePlugins) : true,
+    autoDownloadFiles: general?.autoDownloadFiles !== undefined ? Boolean(general.autoDownloadFiles) : true,
+    autoDownloadMaxSizeMB:
+      general?.autoDownloadMaxSizeMB !== undefined
+        ? Number(general.autoDownloadMaxSizeMB)
+        : 500,
+    downloadDirectory: typeof general?.downloadDirectory === "string" ? general.downloadDirectory : "",
   };
+}
+
+export function getStoredGeneralSettings() {
+  try {
+    if (typeof localStorage === "undefined") return { ...DEFAULT_GENERAL };
+    const raw = localStorage.getItem("onicord_general_settings");
+    if (!raw) return { ...DEFAULT_GENERAL };
+    return normalizeGeneralSettings(JSON.parse(raw));
+  } catch {
+    return { ...DEFAULT_GENERAL };
+  }
 }

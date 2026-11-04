@@ -158,24 +158,35 @@ class RoomManager {
     this._callbacks.onVoiceStateUpdated?.(this.getVoiceSnapshot());
   }
 
+  _getEffectiveVoiceProfile() {
+    const profile = this.p2pService?.profile;
+    if (!profile) return null;
+    try {
+      const profileService = require("../services/profileService.cjs");
+      return profileService.getEffectiveProfile(profile, this.roomCode) || profile;
+    } catch {
+      return profile;
+    }
+  }
+
   setStreamingState(isStreaming) {
-    this.voiceService.setStreamingState(isStreaming, this.p2pService.profile, () => this._emitVoiceState());
+    this.voiceService.setStreamingState(isStreaming, this._getEffectiveVoiceProfile(), () => this._emitVoiceState());
   }
 
   joinVoice(channelId, options = {}) {
-    this.voiceService.joinVoice(channelId, this.p2pService.profile, () => this._emitVoiceState(), options);
+    this.voiceService.joinVoice(channelId, this._getEffectiveVoiceProfile(), () => this._emitVoiceState(), options);
   }
 
   leaveVoice() {
-    this.voiceService.leaveVoice(this.p2pService.profile, () => this._emitVoiceState());
+    this.voiceService.leaveVoice(this._getEffectiveVoiceProfile(), () => this._emitVoiceState());
   }
 
   setVoiceMuted(muted) {
-    this.voiceService.setVoiceMuted(muted, this.p2pService.profile, () => this._emitVoiceState());
+    this.voiceService.setVoiceMuted(muted, this._getEffectiveVoiceProfile(), () => this._emitVoiceState());
   }
 
   setVoiceDeafened(deafened) {
-    this.voiceService.setVoiceDeafened(deafened, this.p2pService.profile, () => this._emitVoiceState());
+    this.voiceService.setVoiceDeafened(deafened, this._getEffectiveVoiceProfile(), () => this._emitVoiceState());
   }
 
   relayVoiceSignal(toPeerId, channelId, signal) {
@@ -187,7 +198,7 @@ class RoomManager {
   }
 
   updateVoiceStreamIds(audioStreamId, videoStreamId, bandwidth) {
-    this.voiceService.updateVoiceStreamIds(audioStreamId, videoStreamId, bandwidth, this.p2pService.profile, () => this._emitVoiceState());
+    this.voiceService.updateVoiceStreamIds(audioStreamId, videoStreamId, bandwidth, this._getEffectiveVoiceProfile(), () => this._emitVoiceState());
   }
 
   async publishServerMeta(patch, roomCode) {
@@ -294,12 +305,74 @@ class RoomManager {
 
   setProfile(profile) {
     this.p2pService.setProfile(profile, this.fileService.fileServerPort);
+    if (this.roomCode) {
+      this.onServerProfileUpdated(this.roomCode, profile).catch(console.error);
+    }
     if (this.voiceService.localVoice?.channelId) {
-      this.voiceService._broadcastLocalVoiceState(profile);
+      this.voiceService._broadcastLocalVoiceState(this._getEffectiveVoiceProfile());
       this._emitVoiceState();
     }
     if (this.localActivity !== undefined) {
       this.setLocalActivity(this.localActivity);
+    }
+  }
+
+  async onServerProfileUpdated(targetRoomCode, updatedFullProfile) {
+    const code = String(targetRoomCode).trim().toUpperCase();
+    if (!this.p2pService) return;
+    const currentCode = this.roomCode ? String(this.roomCode).trim().toUpperCase() : null;
+
+    if (currentCode === code || (this.rooms && this.rooms.has(code))) {
+      let effective = updatedFullProfile;
+      try {
+        const profileService = require("../services/profileService.cjs");
+        effective = profileService.getEffectiveProfile(updatedFullProfile, code) || updatedFullProfile;
+      } catch (e) {
+        console.error("[RoomManager] Error resolving effective profile:", e);
+      }
+
+      if (this.roomMetaStore && effective?.id) {
+        try {
+          const meta = await this.roomMetaStore.load(code);
+          if (!meta.savedMembers) meta.savedMembers = {};
+          const oldMember = meta.savedMembers[effective.id];
+          meta.savedMembers[effective.id] = {
+            ...(oldMember || {}),
+            id: effective.id,
+            nickname: effective.nickname,
+            avatar: effective.avatar,
+            customLink: effective.customLink || "",
+            profileColor: effective.profileColor || "",
+            customStatus: effective.customStatus || "",
+            globalNickname: updatedFullProfile.nickname || null,
+            updatedAt: Date.now(),
+            joinedAt: oldMember?.joinedAt || Date.now(),
+          };
+          await this.roomMetaStore.updateSavedMembers(code, meta.savedMembers);
+          this._callbacks.onServerMetaUpdated?.(code, meta);
+        } catch (err) {
+          console.error("[RoomManager] Error saving server profile in savedMembers:", err.message);
+        }
+      }
+
+      this.p2pService._broadcast("member-profile-update", {
+        roomCode: code,
+        memberData: {
+          id: effective.id,
+          nickname: effective.nickname,
+          avatar: effective.avatar,
+          customLink: effective.customLink || "",
+          profileColor: effective.profileColor || "",
+          customStatus: effective.customStatus || "",
+          globalNickname: updatedFullProfile.nickname || null,
+          updatedAt: Date.now(),
+        },
+      }, code);
+
+      if (this.voiceService.localVoice?.channelId) {
+        this.voiceService._broadcastLocalVoiceState(effective);
+        this._emitVoiceState();
+      }
     }
   }
 
@@ -424,12 +497,22 @@ class RoomManager {
           bannedUsers: Array.isArray(meta.bannedUsers) ? meta.bannedUsers : [],
           kickedUsers: meta.kickedUsers || {},
         };
+        let effective = profile;
+        try {
+          const profileService = require("../services/profileService.cjs");
+          effective = profileService.getEffectiveProfile(profile, this.roomCode) || profile;
+        } catch {}
+
         if (!meta.savedMembers) meta.savedMembers = {};
         const oldMember = meta.savedMembers[profile.id];
         meta.savedMembers[profile.id] = {
           id: profile.id,
-          nickname: profile.nickname,
-          avatar: profile.avatar,
+          nickname: effective.nickname,
+          avatar: effective.avatar,
+          customLink: effective.customLink || "",
+          profileColor: effective.profileColor || "",
+          customStatus: effective.customStatus || "",
+          globalNickname: profile.nickname || null,
           updatedAt: Date.now(),
           joinedAt: oldMember?.joinedAt || oldMember?.updatedAt || Date.now(),
         };
@@ -438,6 +521,22 @@ class RoomManager {
           await this.roomMetaStore.bump(this.roomCode, patch, "local");
         } else {
           await this.roomMetaStore.updateSavedMembers(this.roomCode, meta.savedMembers);
+        }
+
+        if (effective.isServerProfile) {
+          this.p2pService._broadcast("member-profile-update", {
+            roomCode: this.roomCode,
+            memberData: {
+              id: effective.id,
+              nickname: effective.nickname,
+              avatar: effective.avatar,
+              customLink: effective.customLink || "",
+              profileColor: effective.profileColor || "",
+              customStatus: effective.customStatus || "",
+              globalNickname: profile.nickname || null,
+              updatedAt: Date.now(),
+            },
+          }, this.roomCode);
         }
       }
     } catch (e) {
@@ -705,6 +804,7 @@ class RoomManager {
           .then(async (meta) => {
             if (!meta.savedMembers) meta.savedMembers = {};
             const antiguo = meta.savedMembers[payload.id];
+            const isFirstJoin = !antiguo || !antiguo.joinedAt;
             if (
               !antiguo ||
               antiguo.nickname !== payload.nickname ||
@@ -722,6 +822,75 @@ class RoomManager {
                 this.roomCode,
                 meta.savedMembers
               );
+            }
+
+            if (isFirstJoin) {
+              const { checkAdminPermission } = require("./roomMetaStore.cjs");
+              const myId = this.profile?.id;
+              const hasAuthority = this.isHost || (myId && (meta.ownerId === myId || checkAdminPermission(meta, myId)));
+
+              // 1. Auto-assign default role if enabled
+              if (meta.defaultRoleSettings?.enabled && meta.defaultRoleSettings?.roleId && hasAuthority) {
+                const defRoleId = meta.defaultRoleSettings.roleId;
+                if (!meta.userRoles) meta.userRoles = {};
+                if (!meta.userRoles[payload.id] || meta.userRoles[payload.id].length === 0) {
+                  meta.userRoles[payload.id] = [defRoleId];
+                  await this.roomMetaStore.save(this.roomCode, meta);
+                  const { ServerStore } = require("./serverStore.cjs");
+                  const serverStore = new ServerStore(this.userDataPath);
+                  await serverStore.applySyncedMeta(this.roomCode, meta);
+                  this.publishServerMeta({ userRoles: meta.userRoles }, this.roomCode).catch(() => {});
+                }
+              }
+
+              // 2. Send welcome message if configured
+              if (meta.welcomeSettings?.enabled && meta.welcomeSettings?.channelId) {
+                if (!this._welcomedUsers) this._welcomedUsers = new Set();
+                const welcomeKey = `${this.roomCode}:${payload.id}`;
+                if (!this._welcomedUsers.has(welcomeKey)) {
+                  this._welcomedUsers.add(welcomeKey);
+                  if (hasAuthority) {
+                    const rawTemplate = (meta.welcomeSettings.template || "").trim();
+                    const KNOWN_DEFAULT_TEMPLATES = [
+                      "",
+                      "¡Bienvenido {user} a {server}! 🎉",
+                      "Welcome {user} to {server}! 🎉",
+                      "Boas-vindas {user} ao {server}! 🎉",
+                      "¡Bienvenido {user} a {server}!",
+                      "Welcome {user} to {server}!",
+                      "Boas-vindas {user} ao {server}!",
+                    ];
+                    const isDefault = KNOWN_DEFAULT_TEMPLATES.some(
+                      (dt) => dt.toLowerCase() === rawTemplate.toLowerCase()
+                    );
+                    const template = isDefault
+                      ? "¡Bienvenido {user} a {server}! 🎉"
+                      : (rawTemplate || "¡Bienvenido {user} a {server}! 🎉");
+                    const serverName = meta.name || "Servidor";
+                    const userNick = payload.nickname || "Usuario";
+                    const formattedText = template
+                      .replace(/\{user\}/g, userNick)
+                      .replace(/\{server\}/g, serverName);
+                    const welcomeMsgId = `sys_welcome_${this.roomCode}_${payload.id}`;
+                    this.chatService.sendSystemMessage(
+                      meta.welcomeSettings.channelId,
+                      formattedText,
+                      this.roomCode,
+                      {
+                        id: welcomeMsgId,
+                        systemType: "welcome",
+                        systemData: {
+                          userId: payload.id,
+                          nickname: userNick,
+                          avatar: payload.avatar || null,
+                          serverName: serverName,
+                          isDefaultTemplate: isDefault,
+                        },
+                      }
+                    ).catch((err) => console.error("[RoomManager] Error sending welcome message:", err.message));
+                  }
+                }
+              }
             }
           })
           .catch((err) => console.error("[RoomManager] Error:", err.message));
@@ -745,6 +914,51 @@ class RoomManager {
           flame: peer.flame,
           ping: peer.averagePing !== undefined ? Math.round(peer.averagePing) : (peer.ping !== undefined ? Math.round(peer.ping) : null),
         });
+      }
+    } else if (type === "member-profile-update" && payload && payload.roomCode && payload.memberData) {
+      const targetRoom = String(payload.roomCode).trim().toUpperCase();
+      const currentCode = this.roomCode ? String(this.roomCode).trim().toUpperCase() : null;
+      if (currentCode === targetRoom || (this.rooms && this.rooms.has(targetRoom))) {
+        const m = payload.memberData;
+        if (peer.userId && m.id && peer.userId === m.id) {
+          if (this.roomMetaStore) {
+            this.roomMetaStore.load(targetRoom).then(async (meta) => {
+              if (!meta.savedMembers) meta.savedMembers = {};
+              const antiguo = meta.savedMembers[m.id];
+              meta.savedMembers[m.id] = {
+                ...(antiguo || {}),
+                id: m.id,
+                nickname: m.nickname || antiguo?.nickname || peer.nickname,
+                avatar: m.avatar !== undefined ? m.avatar : (antiguo?.avatar ?? peer.avatar),
+                customLink: m.customLink !== undefined ? m.customLink : (antiguo?.customLink ?? ""),
+                profileColor: m.profileColor !== undefined ? m.profileColor : (antiguo?.profileColor ?? ""),
+                customStatus: m.customStatus !== undefined ? m.customStatus : (antiguo?.customStatus ?? ""),
+                globalNickname: m.globalNickname || antiguo?.globalNickname || peer.nickname,
+                updatedAt: m.updatedAt || Date.now(),
+                joinedAt: antiguo?.joinedAt || Date.now(),
+              };
+              await this.roomMetaStore.updateSavedMembers(targetRoom, meta.savedMembers);
+              this._callbacks.onServerMetaUpdated?.(targetRoom, meta);
+
+              if (this._callbacks.onPeerUpdated) {
+                this._callbacks.onPeerUpdated({
+                  id: peer.userId,
+                  peerId: peer.id,
+                  nickname: meta.savedMembers[m.id].nickname,
+                  avatar: meta.savedMembers[m.id].avatar,
+                  customLink: meta.savedMembers[m.id].customLink,
+                  profileColor: meta.savedMembers[m.id].profileColor,
+                  customStatus: meta.savedMembers[m.id].customStatus,
+                  online: true,
+                  activity: peer.activity || null,
+                  showRichPresence: peer.showRichPresence,
+                  flame: peer.flame,
+                  ping: peer.averagePing !== undefined ? Math.round(peer.averagePing) : null,
+                });
+              }
+            }).catch((err) => console.error("[RoomManager] Error en member-profile-update:", err.message));
+          }
+        }
       }
     } else if (type === "voice-state" && payload) {
       this.voiceService.handleVoiceState(peerId, payload, () => this._emitVoiceState());
@@ -785,9 +999,11 @@ class RoomManager {
       );
     } else if (type === "meta-update" && payload) {
       const metaRoomCode = payload?.roomCode || this.roomCode;
-      this.chatService.applyRemoteMeta(payload, peerId, metaRoomCode).catch((err) =>
-        console.error("[p2p] meta error", err.message)
-      );
+      if (metaRoomCode) {
+        this.chatService.applyRemoteMeta(payload, peerId, metaRoomCode).catch((err) =>
+          console.error("[p2p] meta error", err.message)
+        );
+      }
     } else if (type === "webrtc-signal" && payload) {
       if (!payload?.signal) return;
       this._callbacks.onVoiceSignal?.({

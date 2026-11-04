@@ -16,7 +16,7 @@ import {
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import { ONICORD_COMMANDS } from "../../lib/commands";
 import { getSelectionCharacterOffsets, setSelectionOffsets, renderHTMLForInput, applyMarkdownFormat } from "../../lib/inputFormatter";
-import { checkPermission } from "../../lib/permissionsHelper";
+import { checkPermission, canSpeakInChannel } from "../../lib/permissionsHelper";
 import { copyTextToClipboard, readTextFromClipboard } from "../../lib/clipboard";
 import MediaPreviewModal from "../modals/MediaPreviewModal";
 import ForwardMessageModal from "../modals/ForwardMessageModal";
@@ -55,18 +55,28 @@ export default function ChatPanel({
   server,
   onProfileChange,
   searchQuery = "",
+  tagFilter = null,
+  onSelectTag = () => {},
   onOpenThread,
   onMessagesUpdate,
   onSelectChannel,
   onToggleReactionReady,
+  isForum: isForumProp,
 }) {
   const { t } = useTranslation();
   const { inVoice } = useVoiceChannelInfo();
   const [stickersTargetRect, setStickersTargetRect] = useState(null);
   const [emojisTargetRect, setEmojisTargetRect] = useState(null);
   const [input, setInput] = useState("");
+  const [postTitle, setPostTitle] = useState("");
   const [showCommandsPopup, setShowCommandsPopup] = useState(false);
   const [showMentionsPopup, setShowMentionsPopup] = useState(false);
+
+  const currentChannel = useMemo(
+    () => server?.channels?.find((c) => c.id === channelId),
+    [server?.channels, channelId],
+  );
+  const isForum = isForumProp !== undefined ? isForumProp : currentChannel?.type === "forum";
 
   const [visibleCount, setVisibleCount] = useState(40);
   const chatContainerRef = useRef(null);
@@ -74,6 +84,20 @@ export default function ChatPanel({
   const messagesCountRef = useRef(0);
   const tyrannyInputRef = useRef(null);
   const isLocalTypingRef = useRef(false);
+
+  useEffect(() => {
+    setPostTitle("");
+    if (messagesCountRef.current !== undefined) {
+      messagesCountRef.current = 0;
+    }
+    if (chatContainerRef.current) {
+      if (isForum) {
+        chatContainerRef.current.scrollTop = 0;
+      } else {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    }
+  }, [channelId, isForum]);
 
   // Hook for P2P messages and real-time synchronization
   const {
@@ -100,29 +124,58 @@ export default function ChatPanel({
     chatContainerRef,
   });
 
+  // Filter messages by tag in forum channels
+  const filteredForumMessages = useMemo(() => {
+    if (!tagFilter || !isForum) return mainStreamMessages;
+    const cleanFilter = tagFilter.toLowerCase().trim();
+    return mainStreamMessages.filter((msg) => {
+      if (!msg) return false;
+      if (
+        Array.isArray(msg.tags) &&
+        msg.tags.some((t) => String(t).toLowerCase() === cleanFilter)
+      ) {
+        return true;
+      }
+      const textToScan = `${msg.title || ""} ${msg.text || ""} ${msg.rawText || ""}`.toLowerCase();
+      return textToScan.includes(`#${cleanFilter}`);
+    });
+  }, [mainStreamMessages, tagFilter, isForum]);
+
   // Hook for scrolling logic with incremental reverse pagination
   const {
     isScrollingUpLoading,
     showScrollBottom,
     scrollToBottom,
+    scrollToTop,
     handleChatScroll,
   } = useChatScroll({
-    messages: mainStreamMessages,
+    messages: isForum && tagFilter ? filteredForumMessages : mainStreamMessages,
     loading,
     visibleCount,
     setVisibleCount,
     chatContainerRef,
     bottomRef,
     messagesCountRef,
+    isForum,
   });
 
   // Virtualized window: only render visible messages to prevent DOM saturation with large histories
   const visibleMainStreamMessages = useMemo(() => {
-    if (searchQuery?.trim() || !visibleCount || mainStreamMessages.length <= visibleCount) {
-      return mainStreamMessages;
+    const source = isForum && tagFilter ? filteredForumMessages : mainStreamMessages;
+    if (isForum) {
+      // In forum channels, newest posts appear at the top (sorted newest first)
+      const sortedNewestFirst = [...source].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      if (searchQuery?.trim() || tagFilter || !visibleCount || sortedNewestFirst.length <= visibleCount) {
+        return sortedNewestFirst;
+      }
+      return sortedNewestFirst.slice(0, visibleCount);
     }
-    return mainStreamMessages.slice(-visibleCount);
-  }, [mainStreamMessages, visibleCount, searchQuery]);
+
+    if (searchQuery?.trim() || tagFilter || !visibleCount || source.length <= visibleCount) {
+      return source;
+    }
+    return source.slice(-visibleCount);
+  }, [mainStreamMessages, filteredForumMessages, visibleCount, searchQuery, tagFilter, isForum]);
 
   const [previewMedia, setPreviewMedia] = useState({
     isOpen: false,
@@ -373,8 +426,41 @@ export default function ChatPanel({
 
   const [sending, setSending] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [pendingFile, setPendingFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null); 
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const pendingFile = pendingFiles[0] || null;
+  const previewUrl = pendingFiles[0]?.previewUrl || null;
+  const setPendingFile = useCallback((file) => {
+    if (!file) {
+      setPendingFiles((prev) => {
+        prev.forEach((pf) => {
+          if (pf.previewUrl) URL.revokeObjectURL(pf.previewUrl);
+        });
+        return [];
+      });
+    } else {
+      setPendingFiles([file]);
+    }
+  }, []);
+  const setPreviewUrl = useCallback(() => {}, []);
+
+  const removePendingFile = useCallback((indexToRemove) => {
+    setPendingFiles((prev) => {
+      const target = prev[indexToRemove];
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((_, idx) => idx !== indexToRemove);
+    });
+  }, []);
+
+  const clearPendingFiles = useCallback(() => {
+    setPendingFiles((prev) => {
+      prev.forEach((pf) => {
+        if (pf.previewUrl) URL.revokeObjectURL(pf.previewUrl);
+      });
+      return [];
+    });
+  }, []); 
   const fileInputRef = useRef(null); 
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [replyTarget, setReplyTarget] = useState(null);
@@ -527,10 +613,12 @@ export default function ChatPanel({
       }
     }
 
-    if ((!text && !pendingFile) || sending) return;
+    const trimmedTitle = postTitle.trim();
+    if ((!text && pendingFiles.length === 0 && !trimmedTitle) || sending) return;
 
     setSending(true);
     setInput("");
+    if (isForum) setPostTitle("");
 
     try {
       let replyData = null;
@@ -561,40 +649,74 @@ export default function ChatPanel({
         };
       }
 
-      if (pendingFile) {
-        const userText = text ? `${text} ` : "";
-        let finalFileId = pendingFile.id;
+      // Extract hashtags from title and body
+      const allText = `${trimmedTitle} ${text}`;
+      const matches = allText.matchAll(/#([a-zA-Z0-9_\u00C0-\u017F]+)/g);
+      const extractedTags = Array.from(new Set(Array.from(matches, (m) => m[1].toLowerCase())));
 
-        if (!finalFileId) {
-          let meta;
-          if (pendingFile.path && window.electronAPI?.processDroppedMeta) {
-            meta = await window.electronAPI.processDroppedMeta(
-              roomCode,
-              pendingFile.path,
-            );
-          } else if (
-            pendingFile.fileObj &&
-            window.electronAPI?.uploadClipboardImage
-          ) {
-            const arrayBuffer = await pendingFile.fileObj.arrayBuffer();
-            meta = await window.electronAPI.uploadClipboardImage(
-              roomCode,
-              arrayBuffer,
-            );
+      if (pendingFiles.length > 0) {
+        const userText = text ? `${text} ` : "";
+        const processedAttachments = [];
+
+        for (const pf of pendingFiles) {
+          let finalFileId = pf.id;
+          let pfName = pf.name;
+          let pfSize = pf.size;
+
+          if (!finalFileId) {
+            let meta;
+            if (pf.path && window.electronAPI?.processDroppedMeta) {
+              meta = await window.electronAPI.processDroppedMeta(
+                roomCode,
+                pf.path,
+              );
+            } else if (
+              pf.fileObj &&
+              window.electronAPI?.uploadClipboardImage
+            ) {
+              const arrayBuffer = await pf.fileObj.arrayBuffer();
+              meta = await window.electronAPI.uploadClipboardImage(
+                roomCode,
+                arrayBuffer,
+              );
+            }
+
+            if (meta) {
+              finalFileId = meta.id;
+              pfName = meta.name;
+              pfSize = meta.size;
+            }
           }
 
-          if (meta) {
-            finalFileId = meta.id;
-            pendingFile.name = meta.name;
-            pendingFile.size = meta.size;
+          if (finalFileId) {
+            processedAttachments.push({
+              id: finalFileId,
+              name: pfName,
+              size: pfSize,
+            });
           }
         }
 
-        if (finalFileId) {
-          const fileContent = `${userText}[FILE_ATTACHMENT]:${JSON.stringify({ id: finalFileId, name: pendingFile.name, size: pendingFile.size })}`;
-          const payloadMensaje = replyData
-            ? JSON.stringify({ body: fileContent, replyTo: replyData })
-            : fileContent;
+        if (processedAttachments.length > 0) {
+          const attachmentsPayload = processedAttachments
+            .map((att) => `[FILE_ATTACHMENT]:${JSON.stringify(att)}`)
+            .join("");
+          const fileContent = `${userText}${attachmentsPayload}`;
+
+          let payloadMensaje;
+          if (isForum || trimmedTitle || extractedTags.length > 0) {
+            payloadMensaje = JSON.stringify({
+              title: trimmedTitle || undefined,
+              body: fileContent,
+              tags: extractedTags.length > 0 ? extractedTags : undefined,
+              replyTo: replyData || undefined,
+            });
+          } else {
+            payloadMensaje = replyData
+              ? JSON.stringify({ body: fileContent, replyTo: replyData })
+              : fileContent;
+          }
+
           await window.electronAPI.sendChatMessage(
             roomCode,
             channelId,
@@ -602,13 +724,21 @@ export default function ChatPanel({
           );
         }
 
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-        setPendingFile(null);
+        clearPendingFiles();
       } else {
-        const payloadMensaje = replyData
-          ? JSON.stringify({ body: text, replyTo: replyData })
-          : text;
+        let payloadMensaje;
+        if (isForum || trimmedTitle || extractedTags.length > 0) {
+          payloadMensaje = JSON.stringify({
+            title: trimmedTitle || undefined,
+            body: text,
+            tags: extractedTags.length > 0 ? extractedTags : undefined,
+            replyTo: replyData || undefined,
+          });
+        } else {
+          payloadMensaje = replyData
+            ? JSON.stringify({ body: text, replyTo: replyData })
+            : text;
+        }
 
         const optimisticMsg = normalizeChatMessage({
           id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -617,6 +747,8 @@ export default function ChatPanel({
           authorId: profile?.id || "self",
           authorNickname: profile?.nickname || "Yo",
           authorAvatar: profile?.avatar || null,
+          title: trimmedTitle || undefined,
+          tags: extractedTags.length > 0 ? extractedTags : undefined,
           text: payloadMensaje,
           rawText: payloadMensaje,
           replyTo: replyData,
@@ -627,7 +759,11 @@ export default function ChatPanel({
         setMessages((prev) => [...prev, optimisticMsg]);
         setVisibleCount?.((v) => v + 1);
         requestAnimationFrame(() => {
-          bottomRef?.current?.scrollIntoView({ behavior: "smooth" });
+          if (isForum) {
+            chatContainerRef?.current?.scrollTo({ top: 0, behavior: "smooth" });
+          } else {
+            bottomRef?.current?.scrollIntoView({ behavior: "smooth" });
+          }
         });
 
         await window.electronAPI.sendChatMessage(
@@ -659,12 +795,10 @@ export default function ChatPanel({
     }
   };
 
-  const processFileSelection = async (file) => {
-    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
-    } else {
-      setPreviewUrl(null);
+  const processSingleFile = async (file) => {
+    let preview = null;
+    if (file.type?.startsWith("image/") || file.type?.startsWith("video/")) {
+      preview = URL.createObjectURL(file);
     }
 
     const realPath =
@@ -673,49 +807,52 @@ export default function ChatPanel({
         ? await window.electronAPI.getNativePath(file)
         : null);
 
-    setPendingFile({
+    return {
       path: realPath,
       name: file.name,
       size: file.size,
       type: file.type,
       fileObj: file,
-    });
+      previewUrl: preview,
+    };
   };
 
-  const handleFileSelection = async (file) => {
-    if (!file) return;
+  const handleFilesSelection = async (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    const filesArray = Array.from(fileList);
 
-    const fileExt = "." + (file.name?.split(".").pop()?.toLowerCase() || "");
     const executableBlacklist = [
       ".exe", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".cjs", ".mjs", ".sh", ".lnk", ".html"
     ];
 
-    const isExecutable = executableBlacklist.includes(fileExt);
+    const safeFiles = [];
+    for (const file of filesArray) {
+      const fileExt = "." + (file.name?.split(".").pop()?.toLowerCase() || "");
+      const isExecutable = executableBlacklist.includes(fileExt);
 
-    if (isExecutable) {
-      const allowExec = server?.allowExecutableFiles ?? false;
-      if (!allowExec) {
-        setExecSecurityModal({
-          isOpen: true,
-          mode: "blocked",
-          file,
-          onConfirm: null,
-        });
-        return;
-      } else {
-        setExecSecurityModal({
-          isOpen: true,
-          mode: "confirm",
-          file,
-          onConfirm: async () => {
-            await processFileSelection(file);
-          },
-        });
-        return;
+      if (isExecutable) {
+        const allowExec = server?.allowExecutableFiles ?? false;
+        if (!allowExec) {
+          setExecSecurityModal({
+            isOpen: true,
+            mode: "blocked",
+            file,
+            onConfirm: null,
+          });
+          continue;
+        }
       }
+      const processed = await processSingleFile(file);
+      if (processed) safeFiles.push(processed);
     }
 
-    await processFileSelection(file);
+    if (safeFiles.length > 0) {
+      setPendingFiles((prev) => [...prev, ...safeFiles]);
+    }
+  };
+
+  const handleFileSelection = async (file) => {
+    if (file) await handleFilesSelection([file]);
   };
 
   const handleDragOver = (e) => {
@@ -745,7 +882,7 @@ export default function ChatPanel({
 
     soundEngine.playCue("drop");
 
-    await handleFileSelection(files[0]);
+    await handleFilesSelection(files);
 
     setTimeout(() => {
       tyrannyInputRef.current?.focus();
@@ -756,18 +893,18 @@ export default function ChatPanel({
     const clipboardItems = e.clipboardData?.items;
     if (!clipboardItems) return;
 
-    let hasImage = false;
+    const filesToUpload = [];
     for (const item of clipboardItems) {
       if (item.type.indexOf("image") !== -1) {
-        e.preventDefault();
         const fileBlob = item.getAsFile();
-        if (fileBlob) await handleFileSelection(fileBlob);
-        hasImage = true;
-        break;
+        if (fileBlob) filesToUpload.push(fileBlob);
       }
     }
 
-    if (!hasImage) {
+    if (filesToUpload.length > 0) {
+      e.preventDefault();
+      await handleFilesSelection(filesToUpload);
+    } else {
       e.preventDefault();
       const text = e.clipboardData.getData("text/plain");
       document.execCommand("insertText", false, text);
@@ -781,7 +918,7 @@ export default function ChatPanel({
   const handleFileInputChange = async (e) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      await handleFileSelection(files[0]);
+      await handleFilesSelection(files);
       setTimeout(() => {
         tyrannyInputRef.current?.focus();
       }, 50);
@@ -1072,7 +1209,9 @@ export default function ChatPanel({
     [roomCode, channelId, setPinnedMsgIds]
   );
 
-  const hasSendMessages = checkPermission(server, profile?.id, "send_messages");
+  const hasSendMessages =
+    checkPermission(server, profile?.id, "send_messages") &&
+    canSpeakInChannel(server, currentChannel, profile?.id);
 
   return (
     <div
@@ -1089,6 +1228,7 @@ export default function ChatPanel({
         mainStreamMessages={visibleMainStreamMessages}
         messages={messages}
         loading={loading}
+        isForum={isForum}
         channelId={channelId}
         channelName={channelName}
         roomCode={roomCode}
@@ -1101,7 +1241,7 @@ export default function ChatPanel({
         handleChatScroll={handleChatScroll}
         isScrollingUpLoading={isScrollingUpLoading}
         showScrollBottom={showScrollBottom}
-        onScrollToBottom={() => scrollToBottom("smooth")}
+        onScrollToBottom={isForum ? scrollToTop : () => scrollToBottom("smooth")}
         onDownloadFile={handleDownloadFile}
         onCancelDownload={handleCancelDownload}
         onOpenDeleteModal={handleOpenDeleteModal}
@@ -1118,16 +1258,23 @@ export default function ChatPanel({
           setReplyTarget(target);
           tyrannyInputRef.current?.focus();
         }}
+        onSelectTag={onSelectTag}
         searchQuery={searchQuery}
       />
 
       <ChatInputArea
         channelName={channelName}
         hasSendMessages={hasSendMessages}
+        isForum={isForum}
+        postTitle={postTitle}
+        setPostTitle={setPostTitle}
         input={input}
         setInput={setInput}
         pendingFile={pendingFile}
         setPendingFile={setPendingFile}
+        pendingFiles={pendingFiles}
+        onRemovePendingFile={removePendingFile}
+        onClearPendingFiles={clearPendingFiles}
         previewUrl={previewUrl}
         setPreviewUrl={setPreviewUrl}
         replyTarget={replyTarget}
@@ -1599,6 +1746,20 @@ export default function ChatPanel({
         isVideo={previewMedia.isVideo}
         initialTime={previewMedia.initialTime}
         formatBytes={formatBytes}
+        filesList={previewMedia.filesList || []}
+        currentIndex={previewMedia.currentIndex || 0}
+        onNavigate={(newIdx) => {
+          setPreviewMedia((prev) => {
+            const nextItem = prev.filesList?.[newIdx];
+            return {
+              ...prev,
+              currentIndex: newIdx,
+              localPath: nextItem?.localPath || prev.localPath,
+              fileName: nextItem?.name || prev.fileName,
+              fileSize: nextItem?.size || prev.fileSize,
+            };
+          });
+        }}
       />
     </div>
   );

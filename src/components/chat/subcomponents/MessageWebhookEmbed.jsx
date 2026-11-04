@@ -20,12 +20,18 @@ function SingleWebhookEmbed({ embed }) {
   const title = embed.title;
   const description = embed.description;
   const fields = Array.isArray(embed.fields) ? embed.fields : [];
-  const thumbnail = embed.thumbnail?.url || (typeof embed.thumbnail === "string" ? embed.thumbnail : null);
-  const image = embed.image?.url || (typeof embed.image === "string" ? embed.image : null);
+  const rawThumbnail = embed.thumbnail?.url || (typeof embed.thumbnail === "string" ? embed.thumbnail : null);
+  const rawImage = embed.image?.url || (typeof embed.image === "string" ? embed.image : null);
+
+  // Si tiene título o descripción, las imágenes únicas se muestran de forma compacta
+  // a la derecha (estilo OpenGraph/preview). Solo se muestra abajo a pantalla completa
+  // si es un banner secundario o si el embed no tiene texto descriptivo.
+  const sideThumbnail = rawThumbnail || (rawImage && (title || description) ? rawImage : null);
+  const bottomImage = rawThumbnail ? rawImage : (!title && !description ? rawImage : null);
 
   return (
     <div
-      className="flex flex-col max-w-[500px] mt-2 rounded-onicord-inner overflow-hidden bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 p-3.5 gap-2 text-left transition-all duration-200 select-none shadow-none"
+      className="flex flex-col max-w-[520px] mt-2 rounded-onicord-inner overflow-hidden bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 p-3.5 gap-2 text-left transition-all duration-200 select-none shadow-none"
       style={
         accentColor
           ? { borderLeftWidth: "3px", borderLeftColor: accentColor }
@@ -87,11 +93,22 @@ function SingleWebhookEmbed({ embed }) {
           )}
         </div>
 
-        {/* Thumbnail fijo con estilo OpenGraph */}
-        {thumbnail && (
-          <div className="w-16 h-16 shrink-0 bg-black/20 overflow-hidden rounded-onicord-button border border-white/5 flex items-center justify-center">
+        {/* Thumbnail lateral compacto con estilo OpenGraph */}
+        {sideThumbnail && (
+          <div
+            className="w-[120px] sm:w-[140px] h-[92px] shrink-0 bg-black/20 overflow-hidden rounded-onicord-button border border-white/5 flex items-center justify-center cursor-pointer hover:opacity-95 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (embed.url) {
+                window.open(embed.url, "_blank");
+              } else {
+                window.open(sideThumbnail, "_blank");
+              }
+            }}
+            title={embed.url ? "Abrir enlace" : "Ver imagen"}
+          >
             <img
-              src={thumbnail}
+              src={sideThumbnail}
               alt=""
               className="w-full h-full object-cover animate-fade-in"
               onError={(e) => { e.currentTarget.style.display = "none"; }}
@@ -117,13 +134,13 @@ function SingleWebhookEmbed({ embed }) {
       )}
 
       {/* 4. Large Image Box */}
-      {image && (
+      {bottomImage && (
         <div className="w-full relative bg-black/40 overflow-hidden rounded-xl border border-white/5 flex items-center justify-center max-h-[360px] mt-1">
           <img
-            src={image}
+            src={bottomImage}
             alt=""
             className="w-full max-h-[360px] object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity"
-            onClick={() => window.open(image, "_blank")}
+            onClick={() => window.open(bottomImage, "_blank")}
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
         </div>

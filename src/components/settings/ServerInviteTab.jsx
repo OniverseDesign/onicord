@@ -205,7 +205,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
               <div className="relative flex flex-col items-center px-8 pt-10 pb-7">
                 {/* Rounded server avatar (88px x 88px with ring) */}
                 <div className="mb-5 relative">
-                  <div className="w-[88px] h-[88px] rounded-full ring-4 ring-onicord-surface overflow-hidden shrink-0 shadow-lg bg-onicord-base">
+                  <div className="w-[88px] h-[88px] rounded-full ring-4 ring-onicord-surface overflow-hidden shrink-0 bg-onicord-base">
                     {serverAvatar ? (
                       <SmartAnimatedImage
                         src={serverAvatar}

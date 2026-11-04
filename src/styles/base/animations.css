@@ -535,9 +535,41 @@ html[data-continuous-animations="false"] .color-picker-cycle,
 html[data-continuous-animations="false"] .animate-rgb-glow,
 html[data-continuous-animations="false"] .animate-bounce-slow,
 html[data-continuous-animations="false"] .star-trajectory,
-html[data-continuous-animations="false"] .estrella-giratoria {
+html[data-continuous-animations="false"] .estrella-giratoria,
+html[data-continuous-animations="false"] .onicord-skeleton-breath {
   animation: none !important;
 }
+
+/* ==========================================================
+   ANIMACIÓN OFICIAL DE SKELETONS CONTEXTUALES (BREATH WAVE)
+   ========================================================== */
+@keyframes onicord-skeleton-breath {
+  0%, 100% {
+    opacity: 0.45;
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+  50% {
+    opacity: 0.95;
+    background-color: rgba(255, 255, 255, 0.10);
+  }
+}
+
+.onicord-skeleton-breath {
+  background-color: rgba(255, 255, 255, 0.06);
+  animation: onicord-skeleton-breath 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: opacity, background-color;
+}
+
+/* Desfases negativos: los elementos aparecen al 100% de inmediato a t=0 (cero retraso), pero con fases desfasadas */
+.onicord-skeleton-stagger-1 { animation-delay: 0s; }
+.onicord-skeleton-stagger-2 { animation-delay: -0.35s; }
+.onicord-skeleton-stagger-3 { animation-delay: -0.70s; }
+.onicord-skeleton-stagger-4 { animation-delay: -1.05s; }
+.onicord-skeleton-stagger-5 { animation-delay: -1.40s; }
+.onicord-skeleton-stagger-6 { animation-delay: -1.75s; }
+.onicord-skeleton-stagger-7 { animation-delay: -2.10s; }
+.onicord-skeleton-stagger-8 { animation-delay: -2.45s; }
+
 
 
 

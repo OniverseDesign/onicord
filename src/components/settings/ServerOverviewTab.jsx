@@ -3,8 +3,10 @@ import { useTranslation } from "react-i18next";
 import { ModalInput } from "../ui/ModalShell";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
 import MaterialIcon from "../icons/MaterialIcon";
+import Select from "../ui/Select";
 import FlameBadge from "../ui/FlameBadge";
 import { evaluateServerFlame } from "../../lib/flameService";
+import { isDefaultWelcomeTemplate } from "../../lib/welcomeUtils";
 
 export default function ServerOverviewTab({
   name,
@@ -23,6 +25,8 @@ export default function ServerOverviewTab({
   readOnly = false,
   channels = [],
   server = null,
+  welcomeSettings = { enabled: false, channelId: null, template: "" },
+  setWelcomeSettings,
 }) {
   const { t } = useTranslation();
   const iconInputRef = useRef(null);
@@ -38,11 +42,11 @@ export default function ServerOverviewTab({
     if (readOnly) return;
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
-    if (file.size > 512 * 1024) {
+    if (file.size > 8 * 1024 * 1024) {
       setError(
         t(
           "serverSettings.overview.iconSizeError",
-          "El icono no puede superar 512 KB",
+          "El icono no puede superar 8 MB",
         ),
       );
       return;
@@ -77,11 +81,11 @@ export default function ServerOverviewTab({
       e.target.value = "";
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 8 * 1024 * 1024) {
       setError(
         t(
           "serverSettings.overview.bannerSizeError",
-          "La imagen de portada no puede superar 5 MB",
+          "La imagen de portada no puede superar 8 MB",
         ),
       );
       e.target.value = "";
@@ -255,6 +259,136 @@ export default function ServerOverviewTab({
               </div>
             </div>
           </div>
+
+          {/* CARD 3: WELCOME MESSAGES */}
+          <div className="onicord-settings-card">
+            <h3 className="onicord-settings-section-title">
+              <span className="flex items-center gap-2">
+                <span>{t("serverSettings.overview.welcomeTitle", "Mensajes de Bienvenida")}</span>
+              </span>
+            </h3>
+
+            <div>
+              {/* Toggle Enable Welcome Messages */}
+              <div className="onicord-settings-row !border-b-0 !p-0">
+                <div className="min-w-0 pr-4">
+                  <p className="onicord-settings-row-title">
+                    {t(
+                      "serverSettings.overview.welcomeEnable",
+                      "Enviar mensaje de bienvenida cuando alguien se une",
+                    )}
+                  </p>
+                  <p className="onicord-settings-row-desc">
+                    {t(
+                      "serverSettings.overview.welcomeEnableHint",
+                      "Publica un mensaje automático personalizable en el canal elegido cada vez que un miembro nuevo ingresa al servidor.",
+                    )}
+                  </p>
+                </div>
+                <label
+                  className={`relative inline-flex items-center select-none shrink-0 ${readOnly ? "cursor-default opacity-50" : "cursor-pointer"}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={Boolean(welcomeSettings?.enabled)}
+                    disabled={readOnly}
+                    onChange={(e) =>
+                      setWelcomeSettings?.((prev) => ({
+                        ...(prev || {}),
+                        enabled: e.target.checked,
+                      }))
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="onicord-toggle-slider" />
+                </label>
+              </div>
+
+              {/* Conditional Options */}
+              {welcomeSettings?.enabled && (
+                <div className="mt-4 pt-4 border-t border-white/5 space-y-4 animate-fade-in">
+                  {/* Channel Selector */}
+                  <div>
+                    <label className="text-xs font-semibold text-onicord-text block mb-1.5">
+                      {t("serverSettings.overview.welcomeChannel", "Canal de Bienvenida")}
+                    </label>
+                    <Select
+                      value={welcomeSettings?.channelId || ""}
+                      disabled={readOnly}
+                      onChange={(e) =>
+                        setWelcomeSettings?.((prev) => ({
+                          ...(prev || {}),
+                          channelId: e.target.value || null,
+                        }))
+                      }
+                      className="w-full"
+                      placeholder={t("serverSettings.overview.selectChannel", "-- Seleccionar canal de texto --")}
+                      options={[
+                        {
+                          value: "",
+                          label: t("serverSettings.overview.selectChannel", "-- Seleccionar canal de texto --"),
+                        },
+                        ...channels
+                          .filter((c) => c.type === "text" || !c.type)
+                          .map((c) => ({
+                            value: c.id,
+                            label: `#${c.name}`,
+                          })),
+                      ]}
+                    />
+                  </div>
+
+                  {/* Template Textarea */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-onicord-text block">
+                        {t("serverSettings.overview.welcomeTemplate", "Plantilla del Mensaje de Bienvenida")}
+                      </label>
+                      {welcomeSettings?.template && !isDefaultWelcomeTemplate(welcomeSettings?.template) && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setWelcomeSettings?.((prev) => ({
+                              ...(prev || {}),
+                              template: "",
+                            }))
+                          }
+                          className="text-[10px] text-onicord-accent hover:underline cursor-pointer"
+                        >
+                          {t("serverSettings.overview.restoreDefaultTemplate", "Restablecer a plantilla por defecto")}
+                        </button>
+                      )}
+                    </div>
+                    <textarea
+                      value={isDefaultWelcomeTemplate(welcomeSettings?.template) ? "" : (welcomeSettings?.template || "")}
+                      disabled={readOnly}
+                      onChange={(e) =>
+                        setWelcomeSettings?.((prev) => ({
+                          ...(prev || {}),
+                          template: e.target.value,
+                        }))
+                      }
+                      placeholder={t("serverSettings.overview.defaultWelcomeTemplate", "¡Bienvenido {user} a {server}! 🎉")}
+                      rows={3}
+                      className="w-full bg-onicord-base border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-onicord-accent resize-none"
+                    />
+                    <div className="flex flex-col gap-1 mt-1.5">
+                      <p className="text-[10px] text-onicord-muted">
+                        {t("serverSettings.overview.welcomeVariablesHint", "Variables disponibles: {user} (nombre del usuario) y {server} (nombre del servidor).")}
+                      </p>
+                      {isDefaultWelcomeTemplate(welcomeSettings?.template) && (
+                        <p className="text-[10px] text-onicord-accent flex items-center gap-1 font-medium">
+                          <span>
+                            {t("serverSettings.overview.multilingualNotice", "Plantilla por defecto activa: cada miembro verá el mensaje en su propio idioma.")}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* COLUMNA DERECHA: VISTA PREVIA DEL SIDEBAR REAL (ROOMVIEW CHANNELS) (6/12) */}
@@ -281,7 +415,7 @@ export default function ServerOverviewTab({
                         alt=""
                         className="absolute inset-0 w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
 
                       {!readOnly && (
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -414,7 +548,7 @@ export default function ServerOverviewTab({
                     </div>
                   )}
 
-                  <div className="h-[52px] border-b border-white/[0.04] px-3.5 flex items-center justify-between bg-black/10">
+                  <div className="h-[52px] px-3.5 flex items-center justify-between">
                     <div className="flex items-center min-w-0">
                       {/* Server Icon ROUNDED IN CIRCLE with interactive overlay */}
                       <div

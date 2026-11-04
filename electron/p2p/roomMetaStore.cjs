@@ -61,7 +61,10 @@ class RoomMetaStore {
         }
       }
       if (!meta) meta = JSON.parse(raw);
-      if (meta) this._cache.set(safeCode, meta);
+      if (meta) {
+        meta.roomCode = safeCode;
+        this._cache.set(safeCode, meta);
+      }
       return meta;
     } catch {
       const defaultMeta = {
@@ -90,6 +93,9 @@ class RoomMetaStore {
         kickedUsers: {},
         auditLog: [],
         webhooks: [],
+        discoverConfig: null,
+        defaultRoleSettings: { enabled: false, roleId: null },
+        welcomeSettings: { enabled: false, channelId: null, template: "¡Bienvenido {user} a {server}! 🎉" },
       };
       this._cache.set(safeCode, defaultMeta);
       return defaultMeta;
@@ -266,6 +272,10 @@ class RoomMetaStore {
         kickedUsers: remote.kickedUsers ?? local.kickedUsers ?? {},
         auditLog: mergedAuditLog,
         webhooks: Array.isArray(remote.webhooks) ? remote.webhooks : (local.webhooks ?? []),
+        discoverConfig: remote.discoverConfig !== undefined ? remote.discoverConfig : (local.discoverConfig ?? null),
+        defaultRoleSettings: remote.defaultRoleSettings !== undefined ? remote.defaultRoleSettings : (local.defaultRoleSettings ?? { enabled: false, roleId: null }),
+        welcomeSettings: remote.welcomeSettings !== undefined ? remote.welcomeSettings : (local.welcomeSettings ?? { enabled: false, channelId: null, template: "¡Bienvenido {user} a {server}! 🎉" }),
+        roomCode: safeCode,
       };
       await this.save(roomCode, merged);
       return { applied: true, meta: merged };
@@ -282,10 +292,12 @@ class RoomMetaStore {
    * @returns {Promise<Object>} The newly bumped metadata object.
    */
   async bump(roomCode, patch, updatedByUserId) {
+    const safeCode = String(roomCode).trim().toUpperCase().replace(/[^A-F0-9]/g, "");
     const local = await this.load(roomCode);
     const next = {
       ...local,
       ...patch,
+      roomCode: safeCode,
       version: local.version + 1,
       updatedAt: Date.now(),
       updatedBy: updatedByUserId || null,
@@ -423,4 +435,4 @@ function getAuthorityLevel(meta, userId) {
   return 0; // Guest
 }
 
-module.exports = { RoomMetaStore };
+module.exports = { RoomMetaStore, checkAdminPermission, getAuthorityLevel };

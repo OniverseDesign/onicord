@@ -1,7 +1,7 @@
 @layer components {
   /* MODAL SHELL & STRUCTURE STYLES */
   .onicord-modal-backdrop {
-    @apply fixed inset-0 z-[10000000] flex items-center justify-center bg-onicord-mantle/90 p-4 backdrop-blur-[2px] onicord-animate-backdrop-in pointer-events-auto;
+    @apply fixed inset-0 z-modal flex items-center justify-center bg-onicord-mantle/90 p-4 backdrop-blur-[2px] onicord-animate-backdrop-in pointer-events-auto;
   }
   .onicord-modal-warning-box {
     @apply text-[13px] leading-[1.3] text-onicord-muted mt-4 select-none;
@@ -36,10 +36,10 @@
 
   /* FLOATING & CONTEXT MENUS */
   .onicord-floating-menu {
-    @apply absolute z-[100] bg-onicord-mantle border border-onicord-island rounded-onicord-inner p-1.5 onicord-animate-popup-in text-left select-none;
+    @apply absolute z-popover bg-onicord-mantle border border-onicord-island rounded-onicord-inner p-1.5 onicord-animate-popup-in text-left select-none;
   }
   .onicord-context-menu {
-    @apply z-[99999] w-52 p-1.5 text-xs font-medium text-onicord-subtext bg-onicord-mantle border border-onicord-island rounded-onicord-inner select-none pointer-events-auto onicord-animate-popup-in;
+    @apply z-popover w-52 p-1.5 text-xs font-medium text-onicord-subtext bg-onicord-mantle border border-onicord-island rounded-onicord-inner select-none pointer-events-auto onicord-animate-popup-in;
   }
   .onicord-context-menu-title {
     @apply px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-onicord-muted truncate;

@@ -71,7 +71,7 @@ export default function RoomStreamStage({
 
       {/* 3. Fullscreen Layer */}
       {isStreamFullscreen && (
-        <div className="fixed inset-0 z-[999999] w-screen h-screen bg-black flex items-center justify-center select-none">
+        <div className="fixed inset-0 z-40 w-screen h-screen bg-black flex items-center justify-center select-none">
           <StreamDisplay
             localStream={currentStream}
             isLocal={!activeStreamUserId}

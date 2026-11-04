@@ -255,7 +255,7 @@ class FeedPollerService {
     };
 
     if (item.image) {
-      embed.image = { url: item.image };
+      embed.thumbnail = { url: item.image };
     }
 
     const content = "";

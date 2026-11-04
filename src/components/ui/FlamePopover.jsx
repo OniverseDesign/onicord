@@ -7,13 +7,18 @@ const calculateFlameCoords = (rect) => {
 
   const popoverWidth = 260;
   const popoverHeight = 160;
-  const windowWidth = window.innerWidth;
+  const windowWidth = window.innerWidth || 1200;
+  const windowHeight = window.innerHeight || 800;
 
   let left = rect.left + rect.width / 2 - popoverWidth / 2;
   let top = rect.top - popoverHeight - 10;
 
   if (top < 10) {
     top = rect.bottom + 10;
+  }
+
+  if (top + popoverHeight > windowHeight - 10) {
+    top = windowHeight - popoverHeight - 10;
   }
 
   if (left < 10) left = 10;
@@ -43,6 +48,7 @@ export default function FlamePopover({ rect, tier, currentDays, isServer, onClos
         position: "fixed",
         top: `${coords.top}px`,
         left: `${coords.left}px`,
+        zIndex: "var(--z-tooltip, 80)",
       }}
       className="onicord-popover-card w-64 p-3 pointer-events-none text-left"
     >

@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { getEffectiveProfile } from "../../lib/profileUtils";
 
 const MentionsPopover = memo(
   ({
@@ -7,6 +8,7 @@ const MentionsPopover = memo(
     setInput,
     peers,
     profile,
+    server,
     roles = [],
     setShowMentionsPopup,
     tyrannyInputRef,
@@ -20,14 +22,47 @@ const MentionsPopover = memo(
       ? ultimaPalabra.substring(1).toLowerCase()
       : "";
 
-    const allUsers = [
-      ...(profile ? [{ id: profile.id, nickname: profile.nickname, isMe: true }] : []),
-      ...Object.values(peers || {}).map((p) => ({
-        id: p.id,
-        nickname: p.nickname,
+    const serverKey = server?.roomCode || server?.id;
+    const myEffectiveNick = (profile ? getEffectiveProfile(profile, serverKey)?.nickname : null) || profile?.nickname;
+
+    const usersMap = new Map();
+    if (profile && profile.id) {
+      usersMap.set(profile.id, {
+        id: profile.id,
+        nickname: myEffectiveNick,
+        isMe: true,
+      });
+    }
+
+    const peerList = Array.isArray(peers) ? peers : Object.values(peers || {});
+    for (const p of peerList) {
+      const uId = p.id || p.userId;
+      if (!uId) continue;
+      const saved = server?.savedMembers?.[uId];
+      usersMap.set(uId, {
+        id: uId,
+        nickname: saved?.nickname || p.nickname,
         isMe: false,
-      })),
-    ];
+      });
+    }
+
+    if (server?.savedMembers) {
+      const savedEntries = Array.isArray(server.savedMembers)
+        ? server.savedMembers
+        : Object.values(server.savedMembers);
+      for (const sm of savedEntries) {
+        if (!sm || !sm.id) continue;
+        if (!usersMap.has(sm.id)) {
+          usersMap.set(sm.id, {
+            id: sm.id,
+            nickname: sm.nickname,
+            isMe: sm.id === profile?.id,
+          });
+        }
+      }
+    }
+
+    const allUsers = Array.from(usersMap.values());
 
     const filteredUsers = allUsers
       .filter((u) => u.nickname?.toLowerCase().startsWith(busqueda))

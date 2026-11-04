@@ -2,6 +2,10 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 import ChatMessageItem from "../ChatMessageItem";
+import ForumPostCard from "./ForumPostCard";
+import ChatLoadingSkeleton, { TopHistoryLoadingSkeleton } from "./ChatLoadingSkeleton";
+import { buildPeerLookup } from "../../../lib/profileUtils";
+import { useAnimatedMount } from "../../../hooks/useAnimatedMount";
 
 export function isSameDay(ts1, ts2) {
   if (!ts1 || !ts2) return false;
@@ -22,32 +26,11 @@ export function formatDateDivider(ts) {
   });
 }
 
-function RenderChatSkeleton() {
-  return (
-    <div className="w-full h-auto min-h-full p-4 flex flex-col gap-6 select-none animate-pulse">
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
-        <div key={i} className="flex items-start gap-4 w-full">
-          <div className="h-10 w-10 rounded-full bg-white/10 shrink-0" />
-          <div className="flex-1 space-y-2 min-w-0">
-            <div className="flex items-center gap-3">
-              <div className="h-3.5 w-24 bg-white/10 rounded-md" />
-              <div className="h-2.5 w-14 bg-white/5 rounded-md" />
-            </div>
-            <div className="h-3 w-[85%] bg-white/10 rounded-md" />
-            {i % 2 === 0 && (
-              <div className="h-3 w-[50%] bg-white/5 rounded-md" />
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function ChatMessageList({
   mainStreamMessages = [],
   messages = [],
   loading = false,
+  isForum = false,
   channelId,
   channelName,
   roomCode,
@@ -73,9 +56,11 @@ export default function ChatMessageList({
   onJumpToMessage,
   onPluginAction,
   onReplyClick,
+  onSelectTag,
   searchQuery,
 }) {
   const { t } = useTranslation();
+  const { shouldRender: showSkeleton, isAnimatingOut: isSkeletonFadingOut } = useAnimatedMount(loading, 200);
 
   const userRoleColorMap = useMemo(() => {
     if (!server?.roles || !server?.userRoles) return new Map();
@@ -94,6 +79,37 @@ export default function ChatMessageList({
     return colorMap;
   }, [server?.roles, server?.userRoles]);
 
+  const peersLookup = useMemo(() => buildPeerLookup(peers), [peers]);
+
+  // Precompute thread replies count map in a single pass O(M) across messages
+  // to avoid O(N * M) JSON parse loops inside each card
+  const threadRepliesCountMap = useMemo(() => {
+    const map = new Map();
+    if (!Array.isArray(messages) || messages.length === 0) return map;
+
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      if (!m) continue;
+
+      let parentId = m.threadParentId || null;
+      if (!parentId && typeof m.text === "string" && m.text.includes('"threadParentId"')) {
+        try {
+          const parsed = JSON.parse(m.text);
+          parentId = parsed?.threadParentId || null;
+          if (!parentId && typeof parsed?.body === "string" && parsed.body.includes('"threadParentId"')) {
+            const inner = JSON.parse(parsed.body);
+            parentId = inner?.threadParentId || null;
+          }
+        } catch {}
+      }
+
+      if (parentId) {
+        map.set(parentId, (map.get(parentId) || 0) + 1);
+      }
+    }
+    return map;
+  }, [messages]);
+
   return (
     <div className="flex-1 min-h-0 relative flex w-full overflow-hidden">
       <div className="flex-1 min-h-0 relative flex flex-col w-full">
@@ -104,60 +120,76 @@ export default function ChatMessageList({
           key={channelId || "default-channel"}
           ref={chatContainerRef}
           onScroll={handleChatScroll}
-          className="w-full h-full overflow-y-auto minimal-scrollbar onicord-animate-view-in"
+          className="w-full h-full overflow-y-auto minimal-scrollbar onicord-animate-view-in relative"
         >
-          {loading ? (
-            <RenderChatSkeleton />
-          ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-8 py-16 text-center select-none">
-              {channelId?.startsWith("dm_") ? (
-                <>
-                  <div className="onicord-channel-welcome-icon">
-                    <MaterialIcon name="person" size="3xl" className="text-onicord-text" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-onicord-text">
-                    {t("chat.dmWelcomeTitle", { name: channelName })}
-                  </h3>
-                  <p className="mt-2 max-w-md text-sm text-onicord-muted">
-                    {t("chat.dmWelcomeDesc", { name: channelName })}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="onicord-channel-welcome-icon">
-                    <span className="text-3xl font-semibold text-onicord-text">
-                      #
-                    </span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-onicord-text">
-                    {t("chat.channelWelcomeTitle", { name: channelName || "general" })}
-                  </h3>
-                  <p className="mt-2 max-w-md text-sm text-onicord-muted">
-                    {t("chat.channelWelcomeDesc")}{" "}
-                    <span className="font-mono text-onicord-text">{roomCode}</span>
-                  </p>
-                </>
-              )}
+          {showSkeleton && (
+            <div
+              className={`w-full ${
+                isSkeletonFadingOut
+                  ? "absolute inset-0 z-10 pointer-events-none transition-opacity duration-200 opacity-0 bg-onicord-base"
+                  : "min-h-full"
+              }`}
+            >
+              <ChatLoadingSkeleton isForum={isForum} isFadingOut={isSkeletonFadingOut} />
             </div>
-          ) : (
-            <ul className="py-4">
-              {/* Top skeleton when scrolling up */}
-              {isScrollingUpLoading && (
-                <div className="w-full px-4 py-2 flex flex-col gap-4 opacity-50 animate-pulse select-none">
-                  <div className="flex items-start gap-4 w-full">
-                    <div className="h-10 w-10 rounded-full bg-white/10 shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 w-24 bg-white/10 rounded-md" />
-                      <div className="h-3 w-[70%] bg-white/5 rounded-md" />
+          )}
+
+          {(!loading || isSkeletonFadingOut) && (
+            messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-8 py-16 text-center select-none animate-fade-in">
+                {channelId?.startsWith("dm_") ? (
+                  <>
+                    <div className="onicord-channel-welcome-icon">
+                      <MaterialIcon name="person" size="3xl" className="text-onicord-text" />
                     </div>
-                  </div>
-                </div>
-              )}
+                    <h3 className="text-2xl font-bold text-onicord-text">
+                      {t("chat.dmWelcomeTitle", { name: channelName })}
+                    </h3>
+                    <p className="mt-2 max-w-md text-sm text-onicord-muted">
+                      {t("chat.dmWelcomeDesc", { name: channelName })}
+                    </p>
+                  </>
+                ) : isForum ? (
+                  <>
+                    <div className="onicord-channel-welcome-icon">
+                      <MaterialIcon name="forum" size="3xl" className="text-onicord-accent" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-onicord-text">
+                      {t("chat.forumWelcomeTitle", {
+                        defaultValue: `¡Te damos la bienvenida al foro #${channelName || "foro"}!`,
+                        name: channelName || "foro",
+                      })}
+                    </h3>
+                    <p className="mt-2 max-w-md text-sm text-onicord-muted">
+                      {t("chat.forumWelcomeDesc", "Crea la primera publicación o debate usando el compositor inferior.")}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="onicord-channel-welcome-icon">
+                      <span className="text-3xl font-semibold text-onicord-text">
+                        #
+                      </span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-onicord-text">
+                      {t("chat.channelWelcomeTitle", { name: channelName || "general" })}
+                    </h3>
+                    <p className="mt-2 max-w-md text-sm text-onicord-muted">
+                      {t("chat.channelWelcomeDesc")}{" "}
+                      <span className="font-mono text-onicord-text">{roomCode}</span>
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <ul className={`${isForum ? "py-6 px-2 sm:px-4 md:px-6 max-w-6xl mx-auto w-full" : "py-4"} animate-fade-in`}>
+                {/* Top skeleton when scrolling up */}
+                {isScrollingUpLoading && <TopHistoryLoadingSkeleton />}
 
               {mainStreamMessages.map((msg, idx) => {
                 const prevMsg = idx > 0 ? mainStreamMessages[idx - 1] : null;
                 const showDivider =
-                  !prevMsg || !isSameDay(msg.timestamp, prevMsg.timestamp);
+                  !isForum && (!prevMsg || !isSameDay(msg.timestamp, prevMsg.timestamp));
 
                 return (
                   <li key={msg.id || idx}>
@@ -171,36 +203,63 @@ export default function ChatMessageList({
                         </span>
                       </div>
                     )}
-                    <ChatMessageItem
-                      msg={msg}
-                      index={idx}
-                      messages={mainStreamMessages}
-                      allMessages={messages}
-                      showDivider={showDivider}
-                      profile={profile}
-                      peers={peers}
-                      server={server}
-                      fileProgress={fileProgress}
-                      nameColor={userRoleColorMap.get(msg.authorId) || null}
-                      onDownloadFile={onDownloadFile}
-                      onCancelDownload={onCancelDownload}
-                      onOpenDeleteModal={onOpenDeleteModal}
-                      onContextMenu={onContextMenu}
-                      onShowAlert={onShowAlert}
-                      onOpenPreview={onOpenPreview}
-                      onToggleReaction={onToggleReaction}
-                      onForwardClick={onForwardClick}
-                      onOpenThread={onOpenThread}
-                      onJumpToMessage={onJumpToMessage}
-                      onPluginAction={onPluginAction}
-                      onReplyClick={onReplyClick}
-                      searchQuery={searchQuery}
-                    />
+
+                    {isForum ? (
+                      <ForumPostCard
+                        msg={msg}
+                        allMessages={messages}
+                        threadRepliesCount={threadRepliesCountMap.get(msg.id) || 0}
+                        peersLookup={peersLookup}
+                        profile={profile}
+                        peers={peers}
+                        server={server}
+                        nameColor={userRoleColorMap.get(msg.authorId) || null}
+                        fileProgress={fileProgress}
+                        onDownloadFile={onDownloadFile}
+                        onCancelDownload={onCancelDownload}
+                        onOpenDeleteModal={onOpenDeleteModal}
+                        onContextMenu={onContextMenu}
+                        onOpenPreview={onOpenPreview}
+                        onToggleReaction={onToggleReaction}
+                        onForwardClick={onForwardClick}
+                        onOpenThread={onOpenThread}
+                        onSelectTag={onSelectTag}
+                        searchQuery={searchQuery}
+                      />
+                    ) : (
+                      <ChatMessageItem
+                        msg={msg}
+                        index={idx}
+                        messages={mainStreamMessages}
+                        allMessages={messages}
+                        threadRepliesCount={threadRepliesCountMap.get(msg.id) || 0}
+                        peersLookup={peersLookup}
+                        showDivider={showDivider}
+                        profile={profile}
+                        peers={peers}
+                        server={server}
+                        fileProgress={fileProgress}
+                        nameColor={userRoleColorMap.get(msg.authorId) || null}
+                        onDownloadFile={onDownloadFile}
+                        onCancelDownload={onCancelDownload}
+                        onOpenDeleteModal={onOpenDeleteModal}
+                        onContextMenu={onContextMenu}
+                        onShowAlert={onShowAlert}
+                        onOpenPreview={onOpenPreview}
+                        onToggleReaction={onToggleReaction}
+                        onForwardClick={onForwardClick}
+                        onOpenThread={onOpenThread}
+                        onJumpToMessage={onJumpToMessage}
+                        onPluginAction={onPluginAction}
+                        onReplyClick={onReplyClick}
+                        searchQuery={searchQuery}
+                      />
+                    )}
                   </li>
                 );
               })}
             </ul>
-          )}
+          ))}
           <div ref={bottomRef} className="h-4" />
         </div>
 
@@ -208,22 +267,22 @@ export default function ChatMessageList({
 
         <button
           type="button"
-          onClick={onScrollToBottom}
+          onClick={() => onScrollToBottom?.("smooth")}
           tabIndex={showScrollBottom ? 0 : -1}
           className={`absolute bottom-4 right-6 z-30 inline-flex items-center gap-2 pl-3 pr-2.5 py-1 rounded-full bg-onicord-accent/10 hover:bg-onicord-accent/20 border border-onicord-accent/30 text-onicord-accent text-xs font-bold transition-all duration-300 ease-out cursor-pointer select-none shadow-xs ${
             showScrollBottom
               ? "opacity-100 translate-y-0 pointer-events-auto"
               : "opacity-0 translate-y-2 pointer-events-none"
           }`}
-          title={t("chat.jumpToPresent", "Volver abajo")}
-          aria-label={t("chat.jumpToPresent", "Volver abajo")}
+          title={isForum ? t("chat.jumpToTop", "Volver arriba") : t("chat.jumpToPresent", "Volver abajo")}
+          aria-label={isForum ? t("chat.jumpToTop", "Volver arriba") : t("chat.jumpToPresent", "Volver abajo")}
         >
           <MaterialIcon
-            name="arrow_downward"
+            name={isForum ? "arrow_upward" : "arrow_downward"}
             size={16}
             className="text-onicord-accent shrink-0"
           />
-          <span>{t("chat.jumpToPresent", "Volver abajo")}</span>
+          <span>{isForum ? t("chat.jumpToTop", "Volver arriba") : t("chat.jumpToPresent", "Volver abajo")}</span>
         </button>
       </div>
     </div>

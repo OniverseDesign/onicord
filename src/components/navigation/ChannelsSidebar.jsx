@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
 import FlameBadge from "../ui/FlameBadge";
@@ -11,6 +11,7 @@ import {
   IconTag,
 } from "../icons/StreamIcons";
 import { hasChannelAccess, checkPermission } from "../../lib/permissionsHelper";
+import { getEffectiveProfile } from "../../lib/profileUtils";
 
 export function VoiceChannelTimer({ startTime }) {
   const [, setTick] = useState(0);
@@ -112,6 +113,8 @@ export function ChannelButton({
 export default function ChannelsSidebar({
   server,
   profile,
+  effectiveProfile: propEffectiveProfile = null,
+  servers = [],
   leftWidth,
   textChannelId,
   selectTextChannel,
@@ -145,6 +148,12 @@ export default function ChannelsSidebar({
   const { t } = useTranslation();
   const [, setMuteToggleTick] = useState(0);
 
+  const effectiveProfile = useMemo(() => {
+    if (propEffectiveProfile) return propEffectiveProfile;
+    const serverKey = server?.roomCode || server?.id;
+    return getEffectiveProfile(profile, serverKey, servers) || profile;
+  }, [propEffectiveProfile, profile, server, servers]);
+
   useEffect(() => {
     const handleMuteChange = () => setMuteToggleTick((t) => t + 1);
     window.addEventListener("onicord:channel-mute-changed", handleMuteChange);
@@ -157,7 +166,7 @@ export default function ChannelsSidebar({
   const textChannels =
     server.channels?.filter(
       (c) =>
-        (c.type === "text" || !c.type) &&
+        (c.type === "text" || c.type === "forum" || !c.type) &&
         !isCategoryNode(c) &&
         hasChannelAccess(server, c, profile?.id),
     ) ?? [];
@@ -193,7 +202,7 @@ export default function ChannelsSidebar({
   const renderChannelNode = (ch) => {
     const isChMuted = localStorage.getItem(`channel_notif_mode_${ch.id}`) === "nothing";
 
-    if (ch.type === "text") {
+    if (ch.type === "text" || ch.type === "forum") {
       return (
         <ChannelButton
           key={ch.id}
@@ -201,7 +210,13 @@ export default function ChannelsSidebar({
           onClick={() => selectTextChannel(ch.id)}
           onContextMenu={(e) => handleChannelContextMenu(e, ch)}
           isMuted={isChMuted}
-          icon={<IconTag size="lg" />}
+          icon={
+            ch.type === "forum" ? (
+              <MaterialIcon name="forum" size="lg" />
+            ) : (
+              <IconTag size="lg" />
+            )
+          }
           label={getLocalizedChannelName(ch)}
           unreadCount={getChannelUnreadCount?.(server.roomCode, ch.id)}
         />
@@ -229,7 +244,7 @@ export default function ChannelsSidebar({
             isMuted={isChMuted}
             icon={
               !canConnectVoice ? (
-                <MaterialIcon name="lock" size={16} className="text-onicord-muted opacity-70 shrink-0" />
+                <MaterialIcon name="lock" size="lg" className="text-onicord-muted opacity-70 shrink-0" />
               ) : (
                 <IconVolumeUp size="lg" />
               )
@@ -308,7 +323,7 @@ export default function ChannelsSidebar({
                     alt=""
                     className="absolute inset-0 w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                 </div>
               </div>
               {/* Avatar grande solapando el borde inferior del banner */}
@@ -496,7 +511,8 @@ export default function ChannelsSidebar({
 
       <UserPanel
         profile={profile}
-        activeGame={activeGame}
+        effectiveProfile={effectiveProfile}
+        activeGame={profile?.showRichPresence !== false ? activeGame : null}
         canShareVideo={checkPermission(server, profile?.id, "share_video")}
         inVoice={Boolean(voice.inVoice && globalVoice.currentVoiceServerId)}
         muted={voice.muted}
@@ -509,7 +525,7 @@ export default function ChannelsSidebar({
         onOpenAppSettings={onOpenAppSettings}
         onOpenServerSettings={() => setShowSettings(true)}
         localStream={localStream}
-        customStatus={profile?.customStatus}
+        customStatus={effectiveProfile?.customStatus ?? profile?.customStatus}
         networkTopology={voice.networkTopology}
         sfuHostId={voice.sfuHostId}
         localPeerId={voice.localPeerId}

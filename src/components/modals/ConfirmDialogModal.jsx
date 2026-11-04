@@ -32,9 +32,9 @@ export default function ConfirmDialogModal({
   const isAlert = type === "alert";
 
   return createPortal(
-    <div className={cn("onicord-modal-backdrop !z-[10000000]", isAnimatingOut && "onicord-animate-backdrop-out")}>
+    <div className={cn("onicord-modal-backdrop !z-modal-nested", isAnimatingOut && "onicord-animate-backdrop-out")}>
       {}
-      <div className={cn("onicord-modal-card !z-[10000001]", isAnimatingOut && "onicord-animate-modal-out")}>
+      <div className={cn("onicord-modal-card !z-modal-nested-card", isAnimatingOut && "onicord-animate-modal-out")}>
         {}
         <div className="mb-3">
           <h2 className="text-[18px] font-bold text-onicord-text leading-tight text-left">

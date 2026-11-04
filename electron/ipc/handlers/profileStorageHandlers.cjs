@@ -25,6 +25,14 @@ function registerProfileStorageHandlers() {
     return profileService.getProfile();
   });
 
+  ipcMain.handle("profile:save-server-profile", async (_event, serverId, data) => {
+    return profileService.saveServerProfile(serverId, data, global.roomManager);
+  });
+
+  ipcMain.handle("profile:delete-server-profile", async (_event, serverId) => {
+    return profileService.deleteServerProfile(serverId, global.roomManager);
+  });
+
   ipcMain.handle("keybinds:update", async (_event, keybindings) => {
     if (typeof global.updateGlobalShortcuts === "function") {
       global.updateGlobalShortcuts(keybindings);

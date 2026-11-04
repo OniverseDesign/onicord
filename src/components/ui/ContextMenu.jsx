@@ -75,7 +75,7 @@ export default function ContextMenu({ x, y, title, items, onClose }) {
         position: "fixed",
         top: `${coords.top}px`,
         left: `${coords.left}px`,
-        zIndex: 999999,
+        zIndex: "var(--z-popover, 50)",
       }}
       className={cn(
         "onicord-context-menu",

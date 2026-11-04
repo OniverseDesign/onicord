@@ -386,7 +386,7 @@ export default function StreamDisplay({
 
       {/* Top left overlay badge - Se oculta tras 3s de inactividad en fullscreen */}
       <div
-        style={{ zIndex: 999999, transform: "translate3d(0, 0, 50px)" }}
+        style={{ zIndex: 45, transform: "translate3d(0, 0, 50px)" }}
         className={`absolute top-4 left-4 flex items-center gap-2 bg-black/80 border border-white/10 px-3.5 py-1.5 rounded-full text-xs backdrop-blur-md select-none transition-all duration-300 pointer-events-auto ${
           isFullscreen && !showControls
             ? "opacity-0 -translate-y-4 pointer-events-none"

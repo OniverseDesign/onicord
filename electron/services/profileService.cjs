@@ -174,6 +174,9 @@ class ProfileService {
       serverFolders: Array.isArray(profile.serverFolders)
         ? profile.serverFolders
         : (existing?.serverFolders || []),
+      serverProfiles: (profile.serverProfiles && typeof profile.serverProfiles === "object")
+        ? profile.serverProfiles
+        : (existing?.serverProfiles || {}),
 
       overlay: {
         enabled: profile.overlay?.enabled ?? existing?.overlay?.enabled ?? true,
@@ -209,11 +212,131 @@ class ProfileService {
     if (roomManager && typeof roomManager.setProfile === "function") {
       roomManager.setProfile(saved);
     }
+    if (roomManager && roomManager.roomCode && typeof roomManager.onServerProfileUpdated === "function") {
+      await roomManager.onServerProfileUpdated(roomManager.roomCode, saved).catch(console.error);
+    }
     if (typeof global.updateGlobalShortcuts === "function") {
       global.updateGlobalShortcuts(saved.keybindings);
     }
     global.mainWindow?.webContents.send("profile:updated", saved);
     return saved;
+  }
+
+  getEffectiveProfile(profile, serverIdOrRoomCode) {
+    if (!profile) return null;
+    if (!serverIdOrRoomCode) return profile;
+    const rawKey = String(serverIdOrRoomCode).trim();
+    const safeKey = rawKey.toUpperCase();
+    const serverProfiles = profile.serverProfiles || {};
+    let override = serverProfiles[rawKey] || serverProfiles[safeKey];
+    if (!override) {
+      for (const [key, val] of Object.entries(serverProfiles)) {
+        if (key && (key === rawKey || key.toUpperCase() === safeKey)) {
+          override = val;
+          break;
+        }
+      }
+    }
+    if (!override) {
+      try {
+        const { ServerStore } = require("../p2p/serverStore.cjs");
+        const store = new ServerStore(app.getPath("userData"));
+        const sList = store._readServers ? store._readServers() : [];
+        const s = sList.find(
+          (srv) =>
+            (srv.id && String(srv.id).toUpperCase() === safeKey) ||
+            (srv.roomCode && String(srv.roomCode).toUpperCase() === safeKey)
+        );
+        if (s) {
+          const codeKey = s.roomCode ? String(s.roomCode).trim().toUpperCase() : null;
+          const idKey = s.id ? String(s.id).trim() : null;
+          override = (codeKey && serverProfiles[codeKey]) || (idKey && serverProfiles[idKey]);
+        }
+      } catch (e) {}
+    }
+    if (!override) return profile;
+
+    return {
+      ...profile,
+      nickname: (override.nickname && override.nickname.trim()) || profile.nickname,
+      avatar: override.avatar !== undefined && override.avatar !== null && override.avatar !== "" ? override.avatar : profile.avatar,
+      customLink: override.customLink !== undefined ? override.customLink : "",
+      profileColor: override.profileColor !== undefined && override.profileColor !== "" ? override.profileColor : profile.profileColor,
+      customStatus: override.customStatus !== undefined ? override.customStatus : "",
+      isServerProfile: true,
+      serverProfileRoomCode: safeKey,
+    };
+  }
+
+  async _resolveRoomCode(serverIdOrRoomCode) {
+    if (!serverIdOrRoomCode) return null;
+    const raw = String(serverIdOrRoomCode).trim();
+    try {
+      const { ServerStore } = require("../p2p/serverStore.cjs");
+      const store = new ServerStore(app.getPath("userData"));
+      const server = (await store.get(raw)) || (await store.getByRoomCode(raw.toUpperCase()));
+      if (server?.roomCode) {
+        return server.roomCode.toUpperCase();
+      }
+    } catch (e) {}
+    return raw.toUpperCase();
+  }
+
+  async saveServerProfile(serverId, data, roomManager) {
+    if (!serverId) throw new Error("Server ID is required");
+    const current = (await this.loadProfile()) || {};
+    if (!current.serverProfiles) current.serverProfiles = {};
+
+    const safeKey = (await this._resolveRoomCode(serverId)) || String(serverId).trim().toUpperCase();
+    const existing = current.serverProfiles[safeKey] || {};
+
+    current.serverProfiles[safeKey] = {
+      ...existing,
+      nickname: data.nickname !== undefined ? (data.nickname ? data.nickname.trim() : null) : (existing.nickname || null),
+      avatar: data.avatar !== undefined ? data.avatar : (existing.avatar || null),
+      customLink: data.customLink !== undefined ? data.customLink : (existing.customLink || ""),
+      profileColor: data.profileColor !== undefined ? data.profileColor : (existing.profileColor || ""),
+      customStatus: data.customStatus !== undefined ? data.customStatus : (existing.customStatus || ""),
+      updatedAt: Date.now(),
+    };
+
+    // If completely empty, clean it up
+    const entry = current.serverProfiles[safeKey];
+    if (!entry.nickname && !entry.avatar && !entry.customLink && !entry.profileColor && !entry.customStatus) {
+      delete current.serverProfiles[safeKey];
+    }
+
+    current.updatedAt = Date.now();
+    await this.saveProfileToDisk(current);
+    this.activeProfile = current;
+
+    if (roomManager && typeof roomManager.onServerProfileUpdated === "function") {
+      await roomManager.onServerProfileUpdated(safeKey, current);
+    }
+
+    global.mainWindow?.webContents.send("profile:updated", current);
+    return current;
+  }
+
+  async deleteServerProfile(serverId, roomManager) {
+    if (!serverId) return null;
+    const current = await this.loadProfile();
+    if (!current || !current.serverProfiles) return current;
+
+    const safeKey = (await this._resolveRoomCode(serverId)) || String(serverId).trim().toUpperCase();
+    delete current.serverProfiles[safeKey];
+    delete current.serverProfiles[serverId];
+
+    current.updatedAt = Date.now();
+    await this.saveProfileToDisk(current);
+    this.activeProfile = current;
+
+    if (roomManager && typeof roomManager.onServerProfileUpdated === "function") {
+      await roomManager.onServerProfileUpdated(safeKey, current);
+    }
+
+    global.mainWindow?.webContents.send("profile:updated", current);
+    return current;
   }
 }
 

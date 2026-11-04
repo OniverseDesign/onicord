@@ -195,19 +195,21 @@ export function parseMessageText(
 
 export default function MessageTextContent({
   textContent,
+  text,
   peers,
   profile,
   searchQuery = "",
   roles = [],
 }) {
-  if (!textContent || textContent.length === 0) return null;
+  const content = textContent || text;
+  if (!content || content.length === 0) return null;
 
   return (
     <div
       className="whitespace-pre-wrap break-words text-[15px] text-onicord-subtext select-text cursor-text"
       style={{ lineHeight: "var(--onicord-chat-line-height, 1.5)" }}
     >
-      {parseMessageText(textContent, peers, profile, searchQuery, false, roles)}
+      {parseMessageText(content, peers, profile, searchQuery, false, roles)}
     </div>
   );
 }

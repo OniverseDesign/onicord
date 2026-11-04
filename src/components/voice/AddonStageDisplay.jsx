@@ -1626,7 +1626,7 @@ export default function AddonStageDisplay({
     };
   } else if (isFullscreen) {
     containerClasses =
-      "fixed inset-0 z-[999999] w-screen h-screen bg-black flex flex-col select-none overflow-hidden";
+      "fixed inset-0 z-40 w-screen h-screen bg-black flex flex-col select-none overflow-hidden";
   } else {
     // Modo Normal / Inline
     containerClasses =

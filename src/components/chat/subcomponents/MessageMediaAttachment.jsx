@@ -98,7 +98,7 @@ export default function MessageMediaAttachment({
       !overrideRemotePath
     ) {
       window.electronAPI
-        ?.fetchMediaLocalPath?.(fileData.id)
+        ?.fetchMediaLocalPath?.(fileData.id, msg.roomCode)
         .then((diskPath) => {
           if (diskPath) setOverrideRemotePath(diskPath);
         });
@@ -107,6 +107,7 @@ export default function MessageMediaAttachment({
     isMyMessage,
     status?.done,
     fileData?.id,
+    msg.roomCode,
     status?.localPath,
     overrideRemotePath,
   ]);
@@ -121,7 +122,7 @@ export default function MessageMediaAttachment({
         pathStr = await window.electronAPI.fetchUploadedLocalPath(msg.roomCode, fileData.id);
       }
       if (!pathStr && fileData?.id && window.electronAPI?.fetchMediaLocalPath) {
-        pathStr = await window.electronAPI.fetchMediaLocalPath(fileData.id);
+        pathStr = await window.electronAPI.fetchMediaLocalPath(fileData.id, msg.roomCode);
       }
       if (pathStr) {
         setOverrideRemotePath(pathStr);

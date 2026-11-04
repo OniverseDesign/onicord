@@ -113,7 +113,7 @@ class FileService {
     });
   }
 
-  async requestFileDownload(fileId, targetPath, fileName, fileSize) {
+  async requestFileDownload(fileId, targetPath, fileName, fileSize, options = {}) {
     if (!this.roomCode) return;
 
     try {
@@ -125,9 +125,17 @@ class FileService {
         fs.existsSync(localFileMeta.realPath)
       ) {
         console.log(
-          `[ARES LOCAL] Auto-descarga detectada: ${localFileMeta.realPath}`
+          `[ARES LOCAL] Archivo local detectado: ${localFileMeta.realPath}`
         );
-        fs.copyFileSync(localFileMeta.realPath, targetPath);
+        const isAuto = Boolean(options?.autoDownload);
+        const finalPath = (isAuto || targetPath === localFileMeta.realPath)
+          ? localFileMeta.realPath
+          : targetPath;
+
+        // Solo copiar físicamente si es una descarga manual explícita hacia otra ruta elegida
+        if (finalPath !== localFileMeta.realPath) {
+          fs.copyFileSync(localFileMeta.realPath, finalPath);
+        }
 
         try {
           const registryPath = path.join(this.userDataPath, "downloads.json");
@@ -137,7 +145,7 @@ class FileService {
           }
 
           registry[String(fileId)] = {
-            localPath: String(targetPath),
+            localPath: String(finalPath),
             savedAt: Date.now(),
           };
           fs.writeFileSync(
@@ -159,9 +167,9 @@ class FileService {
           fileId,
           progress: 100,
           done: true,
-          localPath: targetPath,
+          localPath: finalPath,
         });
-        return;
+        return { done: true, filePath: finalPath };
       }
     } catch (localErr) {
       console.error(

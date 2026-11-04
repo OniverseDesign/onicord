@@ -108,6 +108,7 @@ function ServerFolderItem({
   folder,
   servers,
   activeServerId,
+  currentVoiceServerId = null,
   onSelectServer,
   onServerContextMenu,
   getServerUnreadCount,
@@ -128,6 +129,9 @@ function ServerFolderItem({
   });
 
   const isFolderActive = folderServers.some((s) => s.id === activeServerId);
+  const isFolderVoiceActive = Boolean(
+    currentVoiceServerId && folderServers.some((s) => s.id === currentVoiceServerId)
+  );
 
   return (
     <div
@@ -161,11 +165,13 @@ function ServerFolderItem({
         >
           <span
             className={`onicord-rail-indicator ${
-              isFolderActive
-                ? "h-10 opacity-100"
-                : hasUnread
-                  ? "h-2 opacity-100 bg-white"
-                  : "h-0 opacity-0 group-hover:h-5 group-hover:opacity-100"
+              isFolderVoiceActive
+                ? "h-8 opacity-100 bg-onicord-success shadow-[0_0_10px_rgba(34,197,94,0.7)]"
+                : isFolderActive
+                  ? "h-10 opacity-100"
+                  : hasUnread
+                    ? "h-2 opacity-100 bg-white"
+                    : "h-0 opacity-0 group-hover:h-5 group-hover:opacity-100"
             }`}
           />
 
@@ -285,6 +291,8 @@ export default function ServerRail({
   folders = [],
   activeServerId,
   currentVoiceServerId = null,
+  activeView = null,
+  onSelectView = null,
   onSelectHome,
   onSelectServer,
   onAdd,
@@ -295,7 +303,8 @@ export default function ServerRail({
   onUpdateFolders,
 }) {
   const { t } = useTranslation();
-  const homeActive = activeServerId === null;
+
+  const homeActive = activeView ? activeView === "home" : activeServerId === null;
 
   // Automatically delete folders if they have no valid servers inside
   useEffect(() => {
@@ -452,6 +461,7 @@ export default function ServerRail({
             folder={folder}
             servers={servers}
             activeServerId={activeServerId}
+            currentVoiceServerId={currentVoiceServerId}
             onSelectServer={onSelectServer}
             onServerContextMenu={onServerContextMenu}
             getServerUnreadCount={getServerUnreadCount}
@@ -480,6 +490,34 @@ export default function ServerRail({
 
       {/* Rail Bottom Action Buttons */}
       <div className="flex flex-col items-center gap-2 mt-auto w-full shrink-0 pt-2">
+        {/* Native Discover Button (Above Add Server) */}
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playNav("select");
+            onSelectView?.("discover");
+          }}
+          title={t("discover.heroTitle", "Explorar Servidores")}
+          className="group relative flex w-full justify-center"
+        >
+          <span
+            className={`onicord-rail-indicator ${
+              activeView === "discover"
+                ? "h-10 opacity-100 bg-white"
+                : "h-0 opacity-0 group-hover:h-5 group-hover:opacity-100"
+            }`}
+          />
+          <span
+            className={`onicord-rail-btn ${
+              activeView === "discover"
+                ? "onicord-rail-btn-active bg-onicord-accent text-white"
+                : "onicord-rail-btn-accent text-onicord-accent hover:text-white"
+            }`}
+          >
+            <MaterialIcon name="explore" size={24} />
+          </span>
+        </button>
+
         <button
           type="button"
           onClick={() => {

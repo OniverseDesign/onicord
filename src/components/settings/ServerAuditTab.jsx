@@ -1,44 +1,89 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 
 export default function ServerAuditTab({ server }) {
   const { t } = useTranslation();
-  const auditLog = Array.isArray(server?.auditLog) ? server.auditLog : [];
+  const [auditLog, setAuditLog] = useState(
+    Array.isArray(server?.auditLog) ? server.auditLog : []
+  );
+  const [loading, setLoading] = useState(false);
+
+  const fetchAuditLogs = useCallback(async () => {
+    const codeOrId = server?.roomCode || server?.id;
+    if (!codeOrId || !window.electronAPI?.getServerAuditLog) return;
+    try {
+      setLoading(true);
+      const logs = await window.electronAPI.getServerAuditLog(codeOrId);
+      if (Array.isArray(logs)) {
+        setAuditLog(logs);
+      }
+    } catch (err) {
+      console.error("[ServerAuditTab] Error fetching audit log:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [server?.roomCode, server?.id]);
+
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [fetchAuditLogs]);
+
+  useEffect(() => {
+    if (Array.isArray(server?.auditLog) && server.auditLog.length > 0) {
+      setAuditLog(server.auditLog);
+    }
+  }, [server?.auditLog]);
+
+  useEffect(() => {
+    if (!window.electronAPI?.onServerUpdated) return;
+    const unsub = window.electronAPI.onServerUpdated((updatedServer) => {
+      const codeOrId = server?.roomCode || server?.id;
+      if (
+        updatedServer &&
+        (updatedServer.id === codeOrId || updatedServer.roomCode === codeOrId)
+      ) {
+        fetchAuditLogs();
+      }
+    });
+    return () => unsub?.();
+  }, [fetchAuditLogs, server?.id, server?.roomCode]);
 
   const getActionBadgeStyle = (action) => {
     switch (action) {
       case "create_channel":
         return {
           bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-          icon: "add_circle_outline"
+          icon: "add_circle_outline",
         };
       case "delete_channel":
         return {
           bg: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
-          icon: "remove_circle_outline"
+          icon: "remove_circle_outline",
         };
       case "update_channel":
       case "update_settings":
         return {
           bg: "bg-sky-500/10 text-sky-400 border border-sky-500/20",
-          icon: "edit"
+          icon: "edit",
         };
+      case "create_role":
+      case "delete_role":
       case "update_role":
       case "assign_role":
         return {
           bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
-          icon: "shield"
+          icon: "shield",
         };
       case "update_plugin":
         return {
           bg: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
-          icon: "extension"
+          icon: "extension",
         };
       default:
         return {
           bg: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
-          icon: "info"
+          icon: "info",
         };
     }
   };
@@ -53,6 +98,10 @@ export default function ServerAuditTab({ server }) {
         return t("serverSettings.audit.action.updateChannel", "Canal Editado");
       case "update_settings":
         return t("serverSettings.audit.action.updateSettings", "Ajuste Modificado");
+      case "create_role":
+        return t("serverSettings.audit.action.createRole", "Rol Creado");
+      case "delete_role":
+        return t("serverSettings.audit.action.deleteRole", "Rol Eliminado");
       case "update_role":
         return t("serverSettings.audit.action.updateRole", "Rol Modificado");
       case "assign_role":
@@ -68,24 +117,69 @@ export default function ServerAuditTab({ server }) {
     <div className="onicord-settings-container">
       {/* Audit log records container */}
       <div className="onicord-settings-card space-y-4">
-        <div>
-          <h3 className="onicord-settings-section-title !mb-1">
-            <span>{t("serverSettings.audit.title", "Registro de Auditoría")}</span>
-          </h3>
-          <p className="onicord-settings-row-desc">
-            {t("serverSettings.audit.subtitle", "Historial de los cambios de canales, roles y configuraciones del servidor.")}
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="onicord-settings-section-title !mb-1">
+              <span>{t("serverSettings.audit.title", "Registro de Auditoría")}</span>
+            </h3>
+            <p className="onicord-settings-row-desc">
+              {t(
+                "serverSettings.audit.subtitle",
+                "Historial de los cambios de canales, roles y configuraciones del servidor."
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={fetchAuditLogs}
+            disabled={loading}
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-onicord-muted hover:text-white transition-colors flex items-center gap-1.5 text-xs border border-white/5 disabled:opacity-50 shrink-0"
+            title={t("common.refresh", "Actualizar")}
+          >
+            <MaterialIcon
+              name="refresh"
+              size={16}
+              className={loading ? "animate-spin" : ""}
+            />
+            <span className="text-[11px] font-medium hidden sm:inline">
+              {t("common.refresh", "Actualizar")}
+            </span>
+          </button>
         </div>
 
         <div>
-          {auditLog.length === 0 ? (
+          {loading && auditLog.length === 0 ? (
             <div className="p-8 rounded-xl bg-onicord-base/30 border border-white/5 flex flex-col items-center justify-center text-center space-y-2">
-              <MaterialIcon name="history" size={36} className="text-onicord-muted opacity-40" />
+              <MaterialIcon
+                name="sync"
+                size={32}
+                className="text-onicord-accent animate-spin opacity-80"
+              />
+              <h4 className="text-xs font-bold text-white">
+                {t("serverSettings.audit.loading", "Cargando registros...")}
+              </h4>
+              <p className="text-[11px] text-onicord-muted max-w-sm leading-relaxed">
+                {t(
+                  "serverSettings.audit.loadingHelp",
+                  "Obteniendo el historial de eventos del servidor..."
+                )}
+              </p>
+            </div>
+          ) : auditLog.length === 0 ? (
+            <div className="p-8 rounded-xl bg-onicord-base/30 border border-white/5 flex flex-col items-center justify-center text-center space-y-2">
+              <MaterialIcon
+                name="history"
+                size={36}
+                className="text-onicord-muted opacity-40"
+              />
               <h4 className="text-xs font-bold text-white">
                 {t("serverSettings.audit.noLogs", "No hay registros disponibles")}
               </h4>
               <p className="text-[11px] text-onicord-muted max-w-sm leading-relaxed">
-                {t("serverSettings.audit.noLogsHelp", "Los cambios que realicen los administradores en el servidor aparecerán en esta lista.")}
+                {t(
+                  "serverSettings.audit.noLogsHelp",
+                  "Los cambios que realicen los administradores en el servidor aparecerán en esta lista."
+                )}
               </p>
             </div>
           ) : (
@@ -95,7 +189,8 @@ export default function ServerAuditTab({ server }) {
                 const firstChar = String(log.nickname || "U").charAt(0).toUpperCase();
 
                 // Dynamic avatar resolution (checks log record first, then member database)
-                const avatarUrl = log.avatar || server?.savedMembers?.[log.userId]?.avatar;
+                const avatarUrl =
+                  log.avatar || server?.savedMembers?.[log.userId]?.avatar;
 
                 return (
                   <div
@@ -106,7 +201,11 @@ export default function ServerAuditTab({ server }) {
                       {/* Avatar circular */}
                       <div className="relative w-8 h-8 rounded-full bg-onicord-accent overflow-hidden flex items-center justify-center shrink-0 border border-white/10 shadow-sm">
                         {avatarUrl ? (
-                          <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={avatarUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <span className="text-white font-bold text-xs">
                             {firstChar}
@@ -119,8 +218,10 @@ export default function ServerAuditTab({ server }) {
                           <span className="text-xs font-bold text-white truncate">
                             {log.nickname}
                           </span>
-                          
-                          <div className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${badge.bg}`}>
+
+                          <div
+                            className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${badge.bg}`}
+                          >
                             <MaterialIcon name={badge.icon} size={10} />
                             <span>{formatActionName(log.action)}</span>
                           </div>

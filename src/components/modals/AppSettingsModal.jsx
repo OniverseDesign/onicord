@@ -21,7 +21,7 @@ import PluginsTab from "../settings/PluginsTab";
 import KeybindingsTab from "../settings/KeybindingsTab";
 import { normalizeKeybindings } from "../../lib/defaultKeybindings";
 import { normalizeGeneralSettings, DEFAULT_GENERAL } from "../../lib/generalSettings";
-import CloudBackupTab from "../settings/CloudBackupTab";
+import BackupTab from "../settings/BackupTab";
 import OverlayTab from "../settings/OverlayTab";
 import GamesActivityTab from "../settings/GamesActivityTab";
 import { soundEngine } from "../../lib/soundEngine";
@@ -33,9 +33,11 @@ export default function AppSettingsModal({
   currentLayout,
   onUpdateLayout,
   servers = [],
+  currentServer = null,
   activeServerId = null,
   onDeleteAccount,
   initialSection = "general",
+  initialServerScope = null,
 }) {
   const { t, i18n } = useTranslation();
   const initialLanguageRef = useRef(i18n.language || "es");
@@ -173,6 +175,17 @@ export default function AppSettingsModal({
         ],
       },
       {
+        id: "backup",
+        label: t("settings.tabs.backup", "Copias de Seguridad"),
+        icon: "settings_backup_restore",
+        keywords: ["backup", "copia", "respaldo", "onipkg", "restaurar", "exportar", "seguridad"],
+        features: [
+          { id: "exportBackup", label: t("settings.backup.exportTitle", "Exportar copia en formato .onipkg"), keywords: ["exportar", "guardar", "onipkg", "backup"] },
+          { id: "importBackup", label: t("settings.backup.importTitle", "Restaurar desde paquete .onipkg"), keywords: ["importar", "restaurar", "cargar", "backup"] },
+          { id: "vaultBackup", label: t("settings.backup.vaultTitle", "Bóveda local y copias automáticas"), keywords: ["boveda", "auto", "programacion", "frecuencia"] },
+        ],
+      },
+      {
         id: "about",
         label: t("settings.tabs.about", "Acerca de"),
         icon: "info",
@@ -205,17 +218,13 @@ export default function AppSettingsModal({
       setSection(initialSection);
     }
   }, [initialSection]);
+
   const [nickname, setNickname] = useState(profile?.nickname ?? "");
   const [avatar, setAvatar] = useState(profile?.avatar ?? null);
-  const [audio, setAudio] = useState(() =>
-    normalizeAudioSettings(profile?.audio),
-  );
-  const [general, setGeneral] = useState(() =>
-    normalizeGeneralSettings(profile?.general),
-  );
-  const [keybindings, setKeybindings] = useState(() =>
-    normalizeKeybindings(profile?.keybindings)
-  );
+  const [audio, setAudio] = useState(() => normalizeAudioSettings(profile?.audio));
+  const [general, setGeneral] = useState(() => normalizeGeneralSettings(profile?.general));
+  const [keybindings, setKeybindings] = useState(() => normalizeKeybindings(profile?.keybindings));
+
   const [overlay, setOverlay] = useState(() => ({
     enabled: profile?.overlay?.enabled ?? true,
     position: profile?.overlay?.position ?? "top-left",
@@ -227,13 +236,60 @@ export default function AppSettingsModal({
 
   const [customLink, setCustomLink] = useState(profile?.customLink ?? "");
   const [profileColor, setProfileColor] = useState(profile?.profileColor ?? "");
-  const [showRichPresence, setShowRichPresence] = useState(
-    profile?.showRichPresence ?? true,
-  );
+  const [showRichPresence, setShowRichPresence] = useState(profile?.showRichPresence ?? true);
   const [customStatus, setCustomStatus] = useState(profile?.customStatus ?? "");
-  const [customGames, setCustomGames] = useState(() =>
-    Array.isArray(profile?.customGames) ? profile.customGames : []
-  );
+  const [customGames, setCustomGames] = useState(() => (Array.isArray(profile?.customGames) ? profile.customGames : []));
+
+  const resolvedCurrentServer = useMemo(() => {
+    if (currentServer) return currentServer;
+    if (activeServerId && servers.length > 0) {
+      return servers.find((s) => s.id === activeServerId || s.roomCode === activeServerId) || null;
+    }
+    return null;
+  }, [currentServer, activeServerId, servers]);
+
+  const [serverProfiles, setServerProfiles] = useState(() => ({
+    ...(profile?.serverProfiles || {}),
+  }));
+  const [selectedServerScope, setSelectedServerScope] = useState(() => {
+    if (initialServerScope) {
+      const match = servers.find((s) => s.id === initialServerScope || s.roomCode === initialServerScope);
+      return (match?.roomCode || initialServerScope).toUpperCase();
+    }
+    return "global";
+  });
+
+  useEffect(() => {
+    if (initialServerScope) {
+      const match = servers.find((s) => s.id === initialServerScope || s.roomCode === initialServerScope);
+      setSelectedServerScope((match?.roomCode || initialServerScope).toUpperCase());
+    }
+  }, [initialServerScope, servers]);
+
+  const handleUpdateServerProfile = (scope, patch) => {
+    const safeKey = String(scope).trim().toUpperCase();
+    setServerProfiles((prev) => {
+      const existing = prev[safeKey] || prev[scope] || {};
+      return {
+        ...prev,
+        [safeKey]: {
+          ...existing,
+          ...patch,
+          updatedAt: Date.now(),
+        },
+      };
+    });
+  };
+
+  const handleResetServerProfile = (scope) => {
+    const safeKey = String(scope).trim().toUpperCase();
+    setServerProfiles((prev) => {
+      const next = { ...prev };
+      delete next[safeKey];
+      delete next[scope];
+      return next;
+    });
+  };
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -304,7 +360,6 @@ export default function AppSettingsModal({
         return packed;
       };
 
-      // 1. Poblamos con las posiciones actuales de los widgets activos
       getCombinedConfigs().forEach((meta) => {
         if (nuevoEstado[meta.id]) {
           if (currentLayout[meta.id]) {
@@ -313,7 +368,6 @@ export default function AppSettingsModal({
         }
       });
 
-      // 2. If activating a new widget, find an available placement ensuring it fits
       if (nuevoEstado[widgetId] && !currentLayout[widgetId]) {
         const meta = getCombinedConfigs().find((m) => m.id === widgetId);
         if (meta) {
@@ -321,17 +375,14 @@ export default function AppSettingsModal({
           const minW = Comp?.minW || meta.defaultGeo?.w || 1;
           const minH = Comp?.minH || meta.defaultGeo?.h || 1;
 
-          // Attempt placement at default size
           let slot = reubicarEnEspacioVacio(meta.defaultGeo || { w: 2, h: 2 }, nuevoLayout);
           if (slot) {
             nuevoLayout[widgetId] = slot;
           } else {
-            // Attempt placement at minimum size
             slot = reubicarEnEspacioVacio({ w: minW, h: minH }, nuevoLayout);
             if (slot) {
               nuevoLayout[widgetId] = slot;
             } else {
-              // If minimum size fails to fit, progressively shrink largest active widget
               let conseguido = false;
 
               while (true) {
@@ -483,6 +534,7 @@ export default function AppSettingsModal({
         return true;
     }
 
+    if (JSON.stringify(serverProfiles) !== JSON.stringify(profile?.serverProfiles || {})) return true;
     return false;
   })();
 
@@ -519,6 +571,7 @@ export default function AppSettingsModal({
         keybindings,
         overlay,
         customGames,
+        serverProfiles,
       });
       if (window.electronAPI?.setOverlaySettings) {
         await window.electronAPI.setOverlaySettings(overlay);
@@ -609,6 +662,13 @@ export default function AppSettingsModal({
           customStatus={customStatus}
           setCustomStatus={setCustomStatus}
           setError={setError}
+          servers={servers}
+          currentServer={resolvedCurrentServer}
+          serverProfiles={serverProfiles}
+          selectedScope={selectedServerScope}
+          onScopeChange={setSelectedServerScope}
+          onUpdateServerProfile={handleUpdateServerProfile}
+          onResetServerProfile={handleResetServerProfile}
         />
       )}
 
@@ -659,9 +719,11 @@ export default function AppSettingsModal({
         />
       )}
 
-      {section === "plugins" && <PluginsTab />}
+      {section === "plugins" && (
+        <PluginsTab profile={profile} onSaved={onSaved} />
+      )}
 
-      {section === "cloud" && <CloudBackupTab />}
+      {(section === "backup" || section === "cloud") && <BackupTab />}
 
       {section === "about" && <AboutTab />}
 

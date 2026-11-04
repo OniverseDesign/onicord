@@ -92,6 +92,7 @@ export default function UserProfilePopout({
   isInlinePreview = false,
   onAvatarClick = null,
   onRemoveAvatar = null,
+  onEditProfile = null,
 }) {
   const { t } = useTranslation();
   const popoutRef = useRef(null);
@@ -148,7 +149,7 @@ export default function UserProfilePopout({
         transformOrigin: isRightSide ? "top right" : "top left",
         backgroundColor: member.profileColor || undefined,
         position: "fixed",
-        zIndex: 999999,
+        zIndex: "var(--z-popover, 50)",
       };
 
   const isOffline = member.online === false || member.status === "offline" || member.status === "invisible";
@@ -221,11 +222,25 @@ export default function UserProfilePopout({
       ref={popoutRef}
       style={style}
       className={cn(
-        "onicord-popover-card w-[280px] p-3.5 flex flex-col overflow-hidden",
+        "onicord-popover-card w-[280px] p-3.5 flex flex-col overflow-hidden relative",
         !isInlinePreview && (isClosing ? "onicord-animate-popup-out" : "onicord-animate-popup-in"),
         !member.profileColor ? "bg-onicord-mantle" : ""
       )}
     >
+      {!isInlinePreview && member.isSelf && onEditProfile && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose?.();
+            onEditProfile();
+          }}
+          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 p-0 bg-black/35 hover:bg-black/55 text-onicord-text transition-all z-20 cursor-pointer group"
+          title={t("profileTab.editServerProfile", "Editar perfil del servidor")}
+        >
+          <MaterialIcon name="edit" size={14} className="transition-transform flex items-center justify-center" />
+        </button>
+      )}
       <div className="flex flex-col items-center w-full">
         <div className="relative mb-2 group">
           <div
@@ -248,7 +263,7 @@ export default function UserProfilePopout({
               initial
             )}
             {onAvatarClick && (
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full">
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full pointer-events-none">
                 <MaterialIcon name="photo_camera" size={24} className="text-white" />
               </div>
             )}
@@ -282,6 +297,12 @@ export default function UserProfilePopout({
         >
           {member.nickname || t("common.user")}
         </h3>
+
+        {member.globalNickname && member.globalNickname !== member.nickname && (
+          <span className={`text-[11px] font-medium ${textMutedClass} truncate max-w-[200px] text-center -mt-0.5 mb-1`}>
+            @{member.globalNickname}
+          </span>
+        )}
 
         <p className={`text-[11px] mb-2 text-center ${textMutedClass}`}>
           {member.customStatus ||

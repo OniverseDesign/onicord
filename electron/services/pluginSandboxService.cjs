@@ -38,6 +38,9 @@ class PluginSandboxService {
       broadcaster("plugins:commands-updated", this.getAllPluginCommands());
       broadcaster("plugins:dashboard-widgets-updated", this.getRegisteredDashboardWidgets());
       broadcaster("plugins:voice-control-buttons-updated", this.getAllVoiceControlButtons());
+      broadcaster("plugins:rail-actions-updated", this.getAllRailActions());
+      broadcaster("plugins:server-settings-tabs-updated", this.getAllServerSettingsTabs());
+      broadcaster("plugins:custom-views-updated", this.getAllCustomViews());
     }
   }
 
@@ -59,15 +62,10 @@ class PluginSandboxService {
       this.unloadPlugin(pluginId);
     }
 
-    const pluginDir = pluginService.getPluginPath(pluginId);
+    const pluginDir = (pluginService.findPluginDir && pluginService.findPluginDir(pluginId)) || pluginService.getPluginPath(pluginId);
     const mainFile = path.join(pluginDir, manifest.main || "index.js");
 
-    if (!fs.existsSync(mainFile)) {
-      console.warn(`[SANDBOX] El complemento ${pluginId} no tiene archivo principal: ${mainFile}`);
-      return;
-    }
-
-    const code = fs.readFileSync(mainFile, "utf-8");
+    const code = fs.existsSync(mainFile) ? fs.readFileSync(mainFile, "utf-8") : "";
 
     const widgets = [];
     const voiceButtons = [];
@@ -75,6 +73,42 @@ class PluginSandboxService {
     const commandHandlers = new Map();
     const p2pListeners = new Set();
     const stageResolvers = [];
+    const railActions = [];
+    const serverSettingsTabs = [];
+    const customViews = [];
+
+    if (Array.isArray(manifest.railActions)) {
+      for (const act of manifest.railActions) {
+        railActions.push({
+          ...act,
+          id: act.id || `rail_${Date.now()}`,
+          pluginId,
+          pluginName: manifest.name,
+        });
+      }
+    }
+
+    if (Array.isArray(manifest.serverSettingsTabs)) {
+      for (const tab of manifest.serverSettingsTabs) {
+        serverSettingsTabs.push({
+          ...tab,
+          id: tab.id || `tab_${Date.now()}`,
+          pluginId,
+          pluginName: manifest.name,
+        });
+      }
+    }
+
+    if (Array.isArray(manifest.customViews)) {
+      for (const v of manifest.customViews) {
+        customViews.push({
+          ...v,
+          id: v.id || `view_${Date.now()}`,
+          pluginId,
+          pluginName: manifest.name,
+        });
+      }
+    }
 
     if (Array.isArray(manifest.voiceControlButtons)) {
       for (const btn of manifest.voiceControlButtons) {
@@ -303,6 +337,45 @@ class PluginSandboxService {
             }
           } else {
             console.warn(`[SANDBOX] ${pluginId} bloqueado: falta permiso ui.voice_control_button`);
+          }
+        },
+        registerRailAction: (actionDef) => {
+          if (manifest.permissions?.includes("ui.rail_actions") || manifest.permissions?.includes("ui.custom_widget")) {
+            railActions.push({
+              ...actionDef,
+              id: actionDef.id || `rail_${Date.now()}`,
+              pluginId,
+              pluginName: manifest.name,
+            });
+            if (ipcBroadcaster) {
+              ipcBroadcaster("plugins:rail-actions-updated", this.getAllRailActions());
+            }
+          }
+        },
+        registerServerSettingsTab: (tabDef) => {
+          if (manifest.permissions?.includes("ui.server_settings_tabs") || manifest.permissions?.includes("ui.custom_widget")) {
+            serverSettingsTabs.push({
+              ...tabDef,
+              id: tabDef.id || `tab_${Date.now()}`,
+              pluginId,
+              pluginName: manifest.name,
+            });
+            if (ipcBroadcaster) {
+              ipcBroadcaster("plugins:server-settings-tabs-updated", this.getAllServerSettingsTabs());
+            }
+          }
+        },
+        registerCustomView: (viewDef) => {
+          if (manifest.permissions?.includes("ui.custom_views") || manifest.permissions?.includes("ui.custom_widget")) {
+            customViews.push({
+              ...viewDef,
+              id: viewDef.id || `view_${Date.now()}`,
+              pluginId,
+              pluginName: manifest.name,
+            });
+            if (ipcBroadcaster) {
+              ipcBroadcaster("plugins:custom-views-updated", this.getAllCustomViews());
+            }
           }
         },
         openStageView: (stageDef) => {
@@ -587,6 +660,9 @@ class PluginSandboxService {
         p2pListeners,
         stageResolvers,
         activeTimers,
+        railActions,
+        serverSettingsTabs,
+        customViews,
       });
       console.log(`[SANDBOX] Complemento ${manifest.name} iniciado correctamente.`);
       if (ipcBroadcaster) {
@@ -594,6 +670,9 @@ class PluginSandboxService {
         ipcBroadcaster("plugins:commands-updated", this.getAllPluginCommands());
         ipcBroadcaster("plugins:dashboard-widgets-updated", this.getRegisteredDashboardWidgets());
         ipcBroadcaster("plugins:voice-control-buttons-updated", this.getAllVoiceControlButtons());
+        ipcBroadcaster("plugins:rail-actions-updated", this.getAllRailActions());
+        ipcBroadcaster("plugins:server-settings-tabs-updated", this.getAllServerSettingsTabs());
+        ipcBroadcaster("plugins:custom-views-updated", this.getAllCustomViews());
       }
     } catch (err) {
       console.error(`[SANDBOX] Error ejecutando complemento ${manifest.name}:`, err);
@@ -786,6 +865,72 @@ class PluginSandboxService {
       }
     }
     return allButtons;
+  }
+
+  getAllRailActions() {
+    const allActions = [];
+    const seen = new Set();
+    for (const [pluginId, sandbox] of this.activeSandboxes) {
+      const actions = sandbox.railActions || sandbox.manifest?.railActions || [];
+      if (Array.isArray(actions)) {
+        for (const act of actions) {
+          const key = `${pluginId}:${act.id || act.targetView}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            allActions.push({
+              ...act,
+              pluginId,
+              pluginName: sandbox.manifest?.name || pluginId,
+            });
+          }
+        }
+      }
+    }
+    return allActions;
+  }
+
+  getAllServerSettingsTabs() {
+    const allTabs = [];
+    const seen = new Set();
+    for (const [pluginId, sandbox] of this.activeSandboxes) {
+      const tabs = sandbox.serverSettingsTabs || sandbox.manifest?.serverSettingsTabs || [];
+      if (Array.isArray(tabs)) {
+        for (const tab of tabs) {
+          const key = `${pluginId}:${tab.id}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            allTabs.push({
+              ...tab,
+              pluginId,
+              pluginName: sandbox.manifest?.name || pluginId,
+            });
+          }
+        }
+      }
+    }
+    return allTabs;
+  }
+
+  getAllCustomViews() {
+    const allViews = [];
+    const seen = new Set();
+    for (const [pluginId, sandbox] of this.activeSandboxes) {
+      const views = sandbox.customViews || sandbox.manifest?.customViews || [];
+      if (Array.isArray(views)) {
+        for (const view of views) {
+          const key = `${pluginId}:${view.id}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            allViews.push({
+              ...view,
+              pluginId,
+              pluginName: sandbox.manifest?.name || pluginId,
+            });
+          }
+        }
+      }
+    }
+    return allViews;
   }
 
   async triggerVoiceControlButton(pluginId, buttonId, data, broadcastToAll) {

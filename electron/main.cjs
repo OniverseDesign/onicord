@@ -73,19 +73,36 @@ global.pendingDeepLink = null;
 global.pendingDirectLink = null;
 global.pendingOnipkgPath = null;
 
+function checkOnipkgType(cleanPath) {
+  try {
+    const AdmZip = require("adm-zip");
+    const zip = new AdmZip(cleanPath);
+    const m = zip.getEntry("manifest.json");
+    if (m) {
+      const parsed = JSON.parse(m.getData().toString("utf8"));
+      if (parsed.type === "backup") {
+        return "backup";
+      }
+    }
+  } catch {}
+  return "plugin";
+}
+
 function handleOnipkgFile(filePath) {
   try {
     if (!filePath || typeof filePath !== "string") return;
     const cleanPath = filePath.replace(/^["']|["']$/g, "").trim();
     if (!cleanPath.endsWith(".onipkg") || !fs.existsSync(cleanPath)) return;
-    console.log(`[Plugin Package] Archivo .onipkg detectado: ${cleanPath}`);
+    const pkgType = checkOnipkgType(cleanPath);
+    console.log(`[Package System] Archivo .onipkg detectado (${pkgType}): ${cleanPath}`);
+    const channel = pkgType === "backup" ? "backup:package-dropped" : "plugins:package-dropped";
     if (global.mainWindow && !global.mainWindow.webContents.isDestroyed()) {
-      global.mainWindow.webContents.send("plugins:package-dropped", cleanPath);
+      global.mainWindow.webContents.send(channel, cleanPath);
     } else {
-      global.pendingOnipkgPath = cleanPath;
+      global.pendingOnipkgPath = { path: cleanPath, type: pkgType };
     }
   } catch (err) {
-    console.error("[Plugin Package Error] Fallo al procesar archivo:", err.message);
+    console.error("[Package System Error] Fallo al procesar archivo:", err.message);
   }
 }
 
@@ -608,8 +625,14 @@ function createWindow() {
       global.pendingDirectLink = null;
     }
     if (global.pendingOnipkgPath) {
-      global.mainWindow.webContents.send("plugins:package-dropped", global.pendingOnipkgPath);
-      console.log(`[Plugin Package] Paquete .onipkg pendiente enviado al frontend: ${global.pendingOnipkgPath}`);
+      const targetChannel = typeof global.pendingOnipkgPath === "object" && global.pendingOnipkgPath.type === "backup"
+        ? "backup:package-dropped"
+        : "plugins:package-dropped";
+      const targetPath = typeof global.pendingOnipkgPath === "object"
+        ? global.pendingOnipkgPath.path
+        : global.pendingOnipkgPath;
+      global.mainWindow.webContents.send(targetChannel, targetPath);
+      console.log(`[Package Manager] Paquete .onipkg pendiente enviado (${targetChannel}): ${targetPath}`);
       global.pendingOnipkgPath = null;
     }
   });

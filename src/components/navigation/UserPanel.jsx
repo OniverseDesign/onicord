@@ -19,6 +19,7 @@ import { useStreamerMode } from "../../context/StreamerModeContext";
 
 export default function UserPanel({
   profile,
+  effectiveProfile = null,
   inVoice,
   muted,
   deafened,
@@ -219,6 +220,12 @@ export default function UserPanel({
     }
   };
 
+  const displayProfile = effectiveProfile || profile;
+  const displayActivity =
+    (displayProfile?.showRichPresence ?? profile?.showRichPresence) !== false
+      ? activeGame
+      : null;
+
   const avatarStatus = !connected
     ? "offline"
     : isStreamerMode
@@ -244,7 +251,7 @@ export default function UserPanel({
     subtitleText = detectedApp
       ? t("settings.general.streamerModeStreaming", "Transmitiendo ({{app}})", { app: detectedApp })
       : t("settings.general.streamerMode", "Modo Streamer");
-  } else if (!activeGame?.name) {
+  } else if (!displayActivity?.name) {
     subtitleText = t("userPanel.online");
   }
 
@@ -430,12 +437,12 @@ export default function UserPanel({
             as="button"
             type="button"
             className="onicord-user-panel-profile-btn w-full min-w-0 text-left cursor-pointer"
-            nickname={profile?.nickname ?? t("common.user")}
-            avatar={profile?.avatar}
+            nickname={displayProfile?.nickname ?? t("common.user")}
+            avatar={displayProfile?.avatar}
             status={avatarStatus}
             isSelf={true}
-            activity={activeGame}
-            customStatus={customStatus ? undefined : null}
+            activity={displayActivity}
+            customStatus={customStatus || null}
             fallbackSubtitle={subtitleText}
             avatarSize="md"
             showStatusDot={true}

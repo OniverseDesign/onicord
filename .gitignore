@@ -34,3 +34,7 @@ client_secret_*.json
 stickers/
 comments-report.json
 extract-comments.js
+
+src/fix_homeview.cjs
+scripts/restore_servers.cjs
+src/components/plugins/PluginViewHost.jsx

@@ -73,7 +73,7 @@ export default function MessageHeader({
   const { t, i18n } = useTranslation();
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-baseline gap-1.5">
       <span
         className="cursor-default text-[15px] font-semibold text-onicord-text hover:underline"
         style={nameColor ? { color: nameColor } : {}}
@@ -91,15 +91,16 @@ export default function MessageHeader({
         />
       )}
       {isWebhook && (
-        <span
-          className="inline-flex items-center gap-0.5 px-1.5 py-[1px] rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-400 border border-indigo-500/25 shrink-0 select-none"
+        <MaterialIcon
+          name="hub"
+          size={15}
+          fill={true}
+          weight={400}
+          className="text-indigo-400 shrink-0 inline"
           title="Webhook P2P"
-        >
-          <MaterialIcon name="hub" size={11} className="inline mr-0.5" />
-          Webhook
-        </span>
+        />
       )}
-      <time className="text-[11px] text-onicord-muted opacity-60 font-medium ml-1">
+      <time className="text-[12px] text-onicord-muted opacity-60 font-medium ml-1">
         {formatFriendlyDate(timestamp, t, i18n.language || "es")}
         {edited && (
           <span className="ml-1.5 italic text-[10px] text-onicord-muted">

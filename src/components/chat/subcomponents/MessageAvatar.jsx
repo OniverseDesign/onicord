@@ -2,8 +2,11 @@ import React from "react";
 import SmartAnimatedImage from "../../ui/SmartAnimatedImage";
 import IconEstrella from "../../icons/Estrella.svg?react";
 
-export default function MessageAvatar({ src, name, nameColor, timestamp, isComplement }) {
-  if (src === "bot-star" || (isComplement && !src)) {
+export default function MessageAvatar({ src, avatar, name, nickname, nameColor, timestamp, isComplement }) {
+  const finalSrc = src || avatar;
+  const finalName = name || nickname;
+
+  if (finalSrc === "bot-star" || (isComplement && !finalSrc)) {
     return (
       <div className="mt-0.5 h-10 w-10 shrink-0 flex items-center justify-center rounded-full bg-onicord-accent text-white">
         <IconEstrella
@@ -18,15 +21,15 @@ export default function MessageAvatar({ src, name, nameColor, timestamp, isCompl
     );
   }
 
-  const initial = (name || "?").charAt(0).toUpperCase();
+  const initial = (finalName || "?").charAt(0).toUpperCase();
   return (
     <div
       className="onicord-message-avatar"
-      style={src ? { backgroundColor: "transparent" } : {}}
+      style={finalSrc ? { backgroundColor: "transparent" } : {}}
     >
-      {src ? (
+      {finalSrc ? (
         <SmartAnimatedImage
-          src={src}
+          src={finalSrc}
           alt=""
           className="h-full w-full object-cover rounded-full"
           timestamp={timestamp}

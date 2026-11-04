@@ -89,7 +89,7 @@ export default function MediaPreviewModal({
   return createPortal(
     <div
       className={cn(
-        "onicord-modal-backdrop fixed inset-0 z-[999999] select-none pointer-events-auto bg-onicord-mantle/90 backdrop-blur-md flex items-center justify-center p-4",
+        "onicord-modal-backdrop fixed inset-0 !z-modal-nested select-none pointer-events-auto bg-onicord-mantle/90 backdrop-blur-md flex items-center justify-center p-4",
         isClosing && "onicord-animate-backdrop-out"
       )}
       onClick={triggerClose}
@@ -97,7 +97,7 @@ export default function MediaPreviewModal({
       {/* Top right close button */}
       <button
         type="button"
-        className="onicord-icon-btn absolute top-4 right-4 h-10 w-10 rounded-full border border-onicord-island text-lg font-bold onicord-icon-btn-danger z-[999999] shadow-2xl cursor-pointer"
+        className="onicord-icon-btn absolute top-4 right-4 h-10 w-10 rounded-full border border-onicord-island text-lg font-bold onicord-icon-btn-danger z-modal-controls shadow-2xl cursor-pointer"
         onClick={triggerClose}
         title={t("common.close", "Cerrar (Esc)")}
       >
@@ -106,7 +106,7 @@ export default function MediaPreviewModal({
 
       {/* Counter Badge if list has multiple files */}
       {filesList.length > 1 && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 border border-white/10 text-xs font-mono font-bold text-white backdrop-blur-md z-[999999] shadow-lg">
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 border border-white/10 text-xs font-mono font-bold text-white backdrop-blur-md z-modal-controls shadow-lg">
           {currentIndex + 1} / {filesList.length}
         </div>
       )}
@@ -119,7 +119,7 @@ export default function MediaPreviewModal({
             e.stopPropagation();
             onNavigate(currentIndex - 1);
           }}
-          className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-mantle text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-[999999] group"
+          className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-mantle text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-modal-controls group"
           title={t("common.previous", "Anterior (←)")}
         >
           <MaterialIcon name="chevron_left" size="lg" />
@@ -134,7 +134,7 @@ export default function MediaPreviewModal({
             e.stopPropagation();
             onNavigate(currentIndex + 1);
           }}
-          className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-mantle text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-[999999] group"
+          className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-mantle text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-modal-controls group"
           title={t("common.next", "Siguiente (→)")}
         >
           <MaterialIcon name="chevron_right" size="lg" />
@@ -144,58 +144,60 @@ export default function MediaPreviewModal({
       {/* Preview Card */}
       <div
         className={cn(
-          "onicord-media-preview-card max-w-5xl w-full flex flex-col items-center select-none z-[999998]",
+          "onicord-media-preview-card max-w-5xl max-h-[90vh] w-auto flex flex-col items-center select-none z-modal-nested-card overflow-hidden",
           isClosing && "onicord-animate-modal-out"
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {isImg && (
-          <img
-            src={formatMediaUrl(currentPath)}
-            alt={currentName}
-            className="max-w-full max-h-[82vh] object-contain rounded shadow-lg select-text"
-          />
-        )}
+        <div className="flex-1 min-h-0 min-w-0 w-full flex items-center justify-center overflow-hidden">
+          {isImg && (
+            <img
+              src={formatMediaUrl(currentPath)}
+              alt={currentName}
+              className="max-w-full max-h-[calc(90vh-110px)] w-auto h-auto object-contain rounded shadow-lg select-text"
+            />
+          )}
 
-        {isVid && (
-          <NativeVideoPlayer
-            key={currentPath}
-            src={formatMediaUrl(currentPath)}
-            initialTime={activeItem?.initialTime || initialTime || 0}
-          />
-        )}
+          {isVid && (
+            <NativeVideoPlayer
+              key={currentPath}
+              src={formatMediaUrl(currentPath)}
+              initialTime={activeItem?.initialTime || initialTime || 0}
+            />
+          )}
 
-        {isAud && (
-          <NativeAudioPlayer
-            key={currentPath}
-            src={formatMediaUrl(currentPath)}
-            fileName={currentName}
-            fileSize={currentSize}
-            audioCover={audioCover}
-            formatBytes={formatBytes}
-          />
-        )}
+          {isAud && (
+            <NativeAudioPlayer
+              key={currentPath}
+              src={formatMediaUrl(currentPath)}
+              fileName={currentName}
+              fileSize={currentSize}
+              audioCover={audioCover}
+              formatBytes={formatBytes}
+            />
+          )}
 
-        {isPdf && (
-          <PdfViewer key={currentPath} filePath={currentPath} />
-        )}
+          {isPdf && (
+            <PdfViewer key={currentPath} filePath={currentPath} />
+          )}
 
-        {isTxt && (
-          <div className="w-full max-h-[60vh] bg-onicord-mantle p-4 rounded-xl border border-onicord-island overflow-auto font-mono text-xs text-onicord-text select-text whitespace-pre-wrap leading-relaxed shadow-inner">
-            {textContent !== null
-              ? textContent
-              : t("common.loading", "Cargando contenido...")}
-          </div>
-        )}
+          {isTxt && (
+            <div className="w-full max-h-[60vh] bg-onicord-mantle p-4 rounded-xl border border-onicord-island overflow-auto font-mono text-xs text-onicord-text select-text whitespace-pre-wrap leading-relaxed shadow-inner">
+              {textContent !== null
+                ? textContent
+                : t("common.loading", "Cargando contenido...")}
+            </div>
+          )}
 
-        {!isImg && !isVid && !isAud && !isPdf && !isTxt && (
-          <div className="flex flex-col items-center justify-center p-8 bg-onicord-mantle rounded-2xl border border-onicord-island gap-3">
-            <MaterialIcon name="insert_drive_file" size="xl" className="text-onicord-muted" />
-            <p className="text-sm font-semibold text-onicord-text">{currentName}</p>
-          </div>
-        )}
+          {!isImg && !isVid && !isAud && !isPdf && !isTxt && (
+            <div className="flex flex-col items-center justify-center p-8 bg-onicord-mantle rounded-2xl border border-onicord-island gap-3">
+              <MaterialIcon name="insert_drive_file" size="xl" className="text-onicord-muted" />
+              <p className="text-sm font-semibold text-onicord-text">{currentName}</p>
+            </div>
+          )}
+        </div>
 
-        <div className="mt-4 w-full flex items-center justify-between border-t border-white/10 pt-3 select-none gap-4">
+        <div className="mt-3 w-full shrink-0 flex items-center justify-between border-t border-white/10 pt-3 select-none gap-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-onicord-text truncate">
               {currentName}

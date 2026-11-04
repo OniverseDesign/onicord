@@ -102,7 +102,7 @@ export default function VoiceUserVolumeMenu({
     <>
       {/* Transparent fullscreen backdrop: dismisses menu on outside click */}
       <div
-        className="fixed inset-0 z-[99998] cursor-default bg-transparent"
+        className="fixed inset-0 z-[49] cursor-default bg-transparent"
         onPointerDown={(e) => {
           e.stopPropagation();
           triggerClose();
@@ -120,7 +120,7 @@ export default function VoiceUserVolumeMenu({
           position: "fixed",
           top: `${coords.top}px`,
           left: `${coords.left}px`,
-          zIndex: 999999,
+          zIndex: "var(--z-popover, 50)",
         }}
         className={cn(
           "onicord-context-menu w-64 p-3 shadow-2xl",

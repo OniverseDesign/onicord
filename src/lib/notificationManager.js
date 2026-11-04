@@ -112,6 +112,27 @@ class NotificationManager {
     }
   }
 
+  async notifyUpdateDownloaded(version) {
+    const title = i18n.t("notifications.updateDownloadedTitle", "Actualización lista");
+    const message = i18n.t("notifications.updateDownloadedMsg", {
+      version,
+      defaultValue: `Onicord v${version} se descargó y se instalará al reiniciar. Haz clic para ver novedades o reiniciar ahora.`,
+    });
+
+    this.showToast(title, message, "info", 20000, {
+      type: "open_settings",
+      section: "about",
+    });
+
+    if (this.settings && this.settings.enableNotifications !== false) {
+      try {
+        await this.notifySystem(title, message);
+      } catch (err) {
+        console.warn("[NotificationManager] Error sending system update notification:", err);
+      }
+    }
+  }
+
   trigger(actionType, data = {}) {
     switch (actionType) {
       case "LOCAL_JOIN_VOICE":

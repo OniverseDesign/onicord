@@ -4,6 +4,23 @@ const path = require("path");
 const crypto = require("crypto");
 const zlib = require("zlib");
 
+function isNewerVersion(latest, current) {
+  if (!latest || !current) return false;
+  const clean = (v) =>
+    String(v)
+      .replace(/^v/, "")
+      .trim()
+      .split(".")
+      .map((n) => parseInt(n, 10) || 0);
+  const [lMaj = 0, lMin = 0, lPatch = 0] = clean(latest);
+  const [cMaj = 0, cMin = 0, cPatch = 0] = clean(current);
+  if (lMaj > cMaj) return true;
+  if (lMaj < cMaj) return false;
+  if (lMin > cMin) return true;
+  if (lMin < cMin) return false;
+  return lPatch > cPatch;
+}
+
 class PluginService {
   getPluginsDir() {
     const dir = path.join(app.getPath("userData"), "plugins");
@@ -14,7 +31,10 @@ class PluginService {
   }
 
   getPluginPath(pluginId) {
-    const safeId = pluginId.replace(/[^a-zA-Z0-9._-]/g, "");
+    if (!pluginId) return this.getPluginsDir();
+    const safeId = String(pluginId).replace(/[^a-zA-Z0-9._-]/g, "");
+    const found = this.findPluginDir(safeId);
+    if (found) return found;
     return path.join(this.getPluginsDir(), safeId);
   }
 
@@ -113,7 +133,47 @@ class PluginService {
     return null;
   }
 
+  _getUninstalledPluginsPath() {
+    return path.join(app.getPath("userData"), "uninstalled-plugins.json");
+  }
+
+  _getUninstalledPlugins() {
+    try {
+      const p = this._getUninstalledPluginsPath();
+      if (fs.existsSync(p)) {
+        const raw = fs.readFileSync(p, "utf-8");
+        const list = JSON.parse(raw);
+        return Array.isArray(list) ? list : [];
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  _addUninstalledPlugin(pluginId) {
+    if (!pluginId) return;
+    const target = String(pluginId).trim().toLowerCase();
+    const list = this._getUninstalledPlugins();
+    if (!list.some((id) => id && String(id).trim().toLowerCase() === target)) {
+      list.push(pluginId);
+      try {
+        fs.writeFileSync(this._getUninstalledPluginsPath(), JSON.stringify(list, null, 2), "utf-8");
+      } catch (_) {}
+    }
+  }
+
+  _removeUninstalledPlugin(pluginId) {
+    if (!pluginId) return;
+    const target = String(pluginId).trim().toLowerCase();
+    const list = this._getUninstalledPlugins().filter(
+      (id) => !id || String(id).trim().toLowerCase() !== target
+    );
+    try {
+      fs.writeFileSync(this._getUninstalledPluginsPath(), JSON.stringify(list, null, 2), "utf-8");
+    } catch (_) {}
+  }
+
   async listPlugins() {
+    const uninstalledList = this._getUninstalledPlugins().map((id) => String(id).trim().toLowerCase());
     const pluginsDir = this.getPluginsDir();
     const entries = fs.readdirSync(pluginsDir, { withFileTypes: true });
     const plugins = [];
@@ -121,6 +181,8 @@ class PluginService {
     for (const entry of entries) {
       if (entry.isDirectory()) {
         let activeDirName = entry.name;
+        if (uninstalledList.includes(activeDirName.toLowerCase())) continue;
+
         let currentDirPath = path.join(pluginsDir, entry.name);
         const manifestPath = path.join(currentDirPath, "manifest.json");
 
@@ -131,6 +193,8 @@ class PluginService {
 
             // AUTO-UNIFICATION: Force directory name on disk to strictly match manifest.id
             const cleanId = manifest.id ? manifest.id.replace(/[^a-zA-Z0-9._-]/g, "") : activeDirName;
+            if (uninstalledList.includes(cleanId.toLowerCase()) || (manifest.id && uninstalledList.includes(String(manifest.id).trim().toLowerCase()))) continue;
+
             if (cleanId && activeDirName !== cleanId) {
               const targetDirPath = path.join(pluginsDir, cleanId);
               try {
@@ -170,6 +234,51 @@ class PluginService {
       }
     }
 
+    // Auto-discover development addons from local workspace addons/ folder
+    try {
+      const workspaceAddonsDir = path.join(app.getAppPath(), "addons");
+      if (fs.existsSync(workspaceAddonsDir)) {
+        const workspaceEntries = fs.readdirSync(workspaceAddonsDir, { withFileTypes: true });
+        for (const entry of workspaceEntries) {
+          if (
+            entry.isDirectory() &&
+            entry.name !== "plugins" &&
+            entry.name !== "docs"
+          ) {
+            const manifestPath = path.join(workspaceAddonsDir, entry.name, "manifest.json");
+            if (fs.existsSync(manifestPath)) {
+              try {
+                const raw = fs.readFileSync(manifestPath, "utf-8");
+                const manifest = JSON.parse(raw);
+                const pluginId = manifest.id || entry.name;
+                if (
+                  uninstalledList.includes(String(pluginId).trim().toLowerCase()) ||
+                  uninstalledList.includes(String(entry.name).trim().toLowerCase())
+                ) {
+                  continue;
+                }
+                const alreadyIncluded = plugins.some((p) => p.id === pluginId);
+                if (!alreadyIncluded) {
+                  const rawIcon = manifest.icon || manifest.avatar || null;
+                  const resolvedIcon = this.resolvePluginIcon(rawIcon, entry.name);
+                  plugins.push({
+                    ...manifest,
+                    icon: resolvedIcon,
+                    rawIcon,
+                    dirName: entry.name,
+                    hash: "dev-addon",
+                    installedAt: fs.statSync(manifestPath).mtimeMs,
+                    enabled: manifest.enabled !== false,
+                    isWorkspaceDev: true,
+                  });
+                }
+              } catch (_) {}
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
     return plugins;
   }
 
@@ -193,7 +302,7 @@ class PluginService {
 
     const manifest = packageData.manifest;
     const pluginId = manifest.id.replace(/[^a-zA-Z0-9._-]/g, "");
-    const targetDir = this.getPluginPath(pluginId);
+    const targetDir = path.join(this.getPluginsDir(), pluginId);
 
     if (fs.existsSync(targetDir)) {
       fs.rmSync(targetDir, { recursive: true, force: true });
@@ -248,6 +357,8 @@ class PluginService {
       }
     }
 
+    this._removeUninstalledPlugin(manifest.id);
+    this._removeUninstalledPlugin(pluginId);
     console.log(`[PLUGIN SERVICE] Complemento instalado con éxito: ${manifest.name} (${pluginId})`);
     return { success: true, manifest };
   }
@@ -286,10 +397,13 @@ class PluginService {
         const workspaceAddonDir = path.join(app.getAppPath(), "addons", cleanId);
         if (fs.existsSync(workspaceAddonDir) && fs.existsSync(path.join(workspaceAddonDir, "manifest.json"))) {
           console.log(`[PLUGIN SERVICE] Fallback: cargando directorio de complemento local '${cleanId}'`);
-          const targetDir = this.getPluginPath(cleanId);
+          const targetDir = path.join(this.getPluginsDir(), cleanId);
           if (fs.existsSync(targetDir)) fs.rmSync(targetDir, { recursive: true, force: true });
           fs.cpSync(workspaceAddonDir, targetDir, { recursive: true });
           const manifest = JSON.parse(fs.readFileSync(path.join(targetDir, "manifest.json"), "utf-8"));
+          this._removeUninstalledPlugin(cleanId);
+          this._removeUninstalledPlugin(pluginId);
+          if (manifest.id) this._removeUninstalledPlugin(manifest.id);
           return { success: true, manifest };
         }
         if (err.name === "AbortError") {
@@ -313,7 +427,7 @@ class PluginService {
       }
 
       const manifest = packageData.manifest;
-      const targetDir = this.getPluginPath(cleanId);
+      const targetDir = path.join(this.getPluginsDir(), cleanId);
 
       if (fs.existsSync(targetDir)) {
         fs.rmSync(targetDir, { recursive: true, force: true });
@@ -364,6 +478,9 @@ class PluginService {
         }
       }
 
+      this._removeUninstalledPlugin(cleanId);
+      this._removeUninstalledPlugin(pluginId);
+      if (manifest.id) this._removeUninstalledPlugin(manifest.id);
       console.log(`[PLUGIN SERVICE] Complemento descargado e instalado con éxito desde GitHub: ${manifest.name} (${cleanId})`);
       return { success: true, manifest };
     } catch (err) {
@@ -437,40 +554,60 @@ class PluginService {
   findPluginDir(pluginIdOrDirName) {
     if (!pluginIdOrDirName) return null;
     const pluginsDir = this.getPluginsDir();
-    if (!fs.existsSync(pluginsDir)) return null;
 
-    // 1. Direct directory match
-    const directPath = path.join(pluginsDir, pluginIdOrDirName);
-    if (fs.existsSync(directPath)) return directPath;
+    // 1. Direct directory match in pluginsDir
+    if (fs.existsSync(pluginsDir)) {
+      const directPath = path.join(pluginsDir, pluginIdOrDirName);
+      if (fs.existsSync(directPath)) return directPath;
 
-    const safeId = String(pluginIdOrDirName).replace(/[^a-zA-Z0-9._-]/g, "");
-    const safePath = path.join(pluginsDir, safeId);
-    if (fs.existsSync(safePath)) return safePath;
+      const safeId = String(pluginIdOrDirName).replace(/[^a-zA-Z0-9._-]/g, "");
+      const safePath = path.join(pluginsDir, safeId);
+      if (fs.existsSync(safePath)) return safePath;
 
-    // 2. Scan all subdirectories to find directory whose manifest.json has matching id
-    try {
-      const entries = fs.readdirSync(pluginsDir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const manifestPath = path.join(pluginsDir, entry.name, "manifest.json");
-          if (fs.existsSync(manifestPath)) {
-            try {
-              const raw = fs.readFileSync(manifestPath, "utf-8");
-              const manifest = JSON.parse(raw);
-              if (manifest.id === pluginIdOrDirName || entry.name === pluginIdOrDirName) {
-                return path.join(pluginsDir, entry.name);
-              }
-            } catch (e) {}
+      // 2. Scan all subdirectories to find directory whose manifest.json has matching id
+      try {
+        const entries = fs.readdirSync(pluginsDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const manifestPath = path.join(pluginsDir, entry.name, "manifest.json");
+            if (fs.existsSync(manifestPath)) {
+              try {
+                const raw = fs.readFileSync(manifestPath, "utf-8");
+                const manifest = JSON.parse(raw);
+                if (manifest.id === pluginIdOrDirName || entry.name === pluginIdOrDirName) {
+                  return path.join(pluginsDir, entry.name);
+                }
+              } catch (e) {}
+            }
           }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    }
 
     // 3. Fallback to local workspace addons directory if present
     try {
-      const workspaceAddonDir = path.join(app.getAppPath(), "addons", pluginIdOrDirName);
-      if (fs.existsSync(workspaceAddonDir) && fs.existsSync(path.join(workspaceAddonDir, "manifest.json"))) {
-        return workspaceAddonDir;
+      const workspaceAddonsDir = path.join(app.getAppPath(), "addons");
+      if (fs.existsSync(workspaceAddonsDir)) {
+        const directWorkspace = path.join(workspaceAddonsDir, pluginIdOrDirName);
+        if (fs.existsSync(directWorkspace) && fs.existsSync(path.join(directWorkspace, "manifest.json"))) {
+          return directWorkspace;
+        }
+
+        const entries = fs.readdirSync(workspaceAddonsDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const manifestPath = path.join(workspaceAddonsDir, entry.name, "manifest.json");
+            if (fs.existsSync(manifestPath)) {
+              try {
+                const raw = fs.readFileSync(manifestPath, "utf-8");
+                const manifest = JSON.parse(raw);
+                if (manifest.id === pluginIdOrDirName || entry.name === pluginIdOrDirName) {
+                  return path.join(workspaceAddonsDir, entry.name);
+                }
+              } catch (e) {}
+            }
+          }
+        }
       }
     } catch (_) {}
 
@@ -484,32 +621,23 @@ class PluginService {
       } catch (e) {}
     }
 
+    this._addUninstalledPlugin(pluginId);
+
     const targetDir = this.findPluginDir(pluginId);
-    const pluginsDir = path.resolve(this.getPluginsDir());
     if (targetDir && fs.existsSync(targetDir)) {
-      const resolvedTarget = path.resolve(targetDir);
-      // Only delete from disk if located inside the installed plugins directory (never wipe workspace source)
-      if (resolvedTarget.startsWith(pluginsDir) && resolvedTarget !== pluginsDir) {
-        try {
-          fs.rmSync(targetDir, { recursive: true, force: true });
-          console.log(`[PLUGIN SERVICE] Complemento desinstalado de ${targetDir}`);
-          return { success: true };
-        } catch (err) {
-          console.error(`[PLUGIN SERVICE] Error desinstalando complemento ${targetDir}:`, err);
-          try {
-            await new Promise((resolve) => setTimeout(resolve, 150));
-            fs.rmSync(targetDir, { recursive: true, force: true });
-            return { success: true };
-          } catch (retryErr) {
-            return { success: false, error: retryErr.message };
-          }
-        }
-      } else {
-        console.warn(`[PLUGIN SERVICE] Se omitió borrado en disco de ${pluginId}: es un plugin fuente del workspace (${targetDir}).`);
-        return { success: true, workspacePreserved: true };
+      const dirName = path.basename(targetDir);
+      this._addUninstalledPlugin(dirName);
+
+      try {
+        fs.rmSync(targetDir, { recursive: true, force: true });
+        console.log(`[PLUGIN SERVICE] Complemento desinstalado de ${targetDir}`);
+      } catch (err) {
+        console.warn(`[PLUGIN SERVICE] No se pudo borrar ${targetDir} en disco (posible archivo en uso), pero se marcó desinstalado:`, err.message);
       }
+      return { success: true };
     }
-    return { success: false, error: "Plugin not found on disk" };
+
+    return { success: true };
   }
 
   getPlugin(id) {
@@ -589,6 +717,83 @@ class PluginService {
     } catch (err) {
       console.error(`[PLUGIN SERVICE] Error writing storage for ${pluginId}:`, err);
     }
+  }
+
+  async checkPluginUpdates() {
+    const REPO_CATALOG = "https://raw.githubusercontent.com/OniverseDesign/onicord-addons/main/index.json";
+    try {
+      const resp = await fetch(REPO_CATALOG, {
+        headers: { "User-Agent": "Onicord-App" },
+      });
+      if (!resp.ok) {
+        return { success: false, error: `HTTP ${resp.status}`, updates: [] };
+      }
+      const data = await resp.json();
+      const catalogPlugins = Array.isArray(data?.plugins) ? data.plugins : [];
+      const localPlugins = await this.listPlugins();
+
+      const updates = [];
+      for (const local of localPlugins) {
+        const catalogEntry = catalogPlugins.find((cp) => cp.id === local.id);
+        if (catalogEntry && isNewerVersion(catalogEntry.version, local.version)) {
+          updates.push({
+            id: local.id,
+            name: catalogEntry.name || local.name,
+            currentVersion: local.version || "1.0",
+            latestVersion: catalogEntry.version,
+            description: catalogEntry.description || local.description,
+            icon: catalogEntry.icon || local.icon,
+          });
+        }
+      }
+      return { success: true, updates };
+    } catch (err) {
+      console.warn("[PLUGIN SERVICE] Error comprobando actualizaciones de complementos:", err.message);
+      return { success: false, error: err.message, updates: [] };
+    }
+  }
+
+  async updatePlugin(pluginId) {
+    if (!pluginId) throw new Error("ID de complemento no válido");
+    console.log(`[PLUGIN SERVICE] Iniciando actualización del complemento: ${pluginId}`);
+    const installResult = await this.downloadAndInstallPlugin(pluginId);
+
+    // Hot-reload the plugin in sandbox
+    if (global.pluginSandboxService) {
+      try {
+        global.pluginSandboxService.unloadPlugin(pluginId);
+        const updatedPlugins = await this.listPlugins();
+        const updated = updatedPlugins.find((p) => p.id === pluginId);
+        if (updated && updated.enabled !== false) {
+          global.pluginSandboxService.runPlugin(updated);
+        }
+      } catch (reloadErr) {
+        console.error(`[PLUGIN SERVICE] Error reiniciando complemento ${pluginId} en sandbox:`, reloadErr);
+      }
+    }
+
+    return installResult;
+  }
+
+  async updateAllPlugins() {
+    const checkResult = await this.checkPluginUpdates();
+    if (!checkResult.success || !checkResult.updates || checkResult.updates.length === 0) {
+      return { success: true, updatedCount: 0, updates: [] };
+    }
+
+    const results = [];
+    for (const update of checkResult.updates) {
+      try {
+        await this.updatePlugin(update.id);
+        results.push({ id: update.id, success: true, version: update.latestVersion });
+      } catch (err) {
+        console.error(`[PLUGIN SERVICE] Error actualizando complemento ${update.id}:`, err);
+        results.push({ id: update.id, success: false, error: err.message });
+      }
+    }
+
+    const updatedCount = results.filter((r) => r.success).length;
+    return { success: true, updatedCount, results };
   }
 }
 

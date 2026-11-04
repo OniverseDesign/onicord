@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import OnicordLogo from "../icons/Onicord.svg?react";
 import MaterialIcon from "../icons/MaterialIcon";
 import { copyTextToClipboard } from "../../lib/clipboard";
+import ChangelogModal from "../modals/ChangelogModal";
 
 export default function AboutTab() {
   const { t } = useTranslation();
@@ -18,6 +19,18 @@ export default function AboutTab() {
     bytesPerSecond: 0,
     error: null,
     isPortable: false,
+    releaseNotes: null,
+    releaseDate: null,
+  });
+
+  // Changelog modal state
+  const [changelogModal, setChangelogModal] = useState({
+    isOpen: false,
+    version: null,
+    notes: null,
+    loading: false,
+    error: null,
+    isNewVersion: false,
   });
 
   const APP_VERSION = diagInfo?.version || "0.1.0";
@@ -103,6 +116,18 @@ export default function AboutTab() {
   useEffect(() => {
     let isMounted = true;
 
+    // 1. Fetch current update state from background service immediately
+    if (window.electronAPI?.getUpdateState) {
+      window.electronAPI.getUpdateState().then((state) => {
+        if (isMounted && state && state.status && state.status !== "idle") {
+          setUpdateState((prev) => ({
+            ...prev,
+            ...state,
+          }));
+        }
+      });
+    }
+
     if (window.electronAPI?.isPortableBuild) {
       window.electronAPI.isPortableBuild().then((isPortable) => {
         if (isMounted) setUpdateState((prev) => ({ ...prev, isPortable }));
@@ -124,6 +149,47 @@ export default function AboutTab() {
       isMounted = false;
     };
   }, []);
+
+  const handleOpenChangelog = async (targetVersion, isNew = false) => {
+    const cleanVer = String(targetVersion || APP_VERSION).replace(/^v/, "").trim();
+    const hasPreloadedNotes = isNew && updateState.releaseNotes;
+
+    setChangelogModal({
+      isOpen: true,
+      version: cleanVer,
+      notes: hasPreloadedNotes ? updateState.releaseNotes : null,
+      loading: !hasPreloadedNotes,
+      error: null,
+      isNewVersion: isNew,
+    });
+
+    if (hasPreloadedNotes) return;
+
+    if (window.electronAPI?.getReleaseNotes) {
+      try {
+        const res = await window.electronAPI.getReleaseNotes(cleanVer);
+        setChangelogModal((prev) => ({
+          ...prev,
+          notes: res?.releaseNotes || "Sin notas de lanzamiento disponibles para esta versión.",
+          loading: false,
+          error: null,
+        }));
+      } catch (err) {
+        setChangelogModal((prev) => ({
+          ...prev,
+          loading: false,
+          error: err.message || "No se pudieron obtener las notas de lanzamiento.",
+        }));
+      }
+    } else {
+      setChangelogModal((prev) => ({
+        ...prev,
+        notes: `Notas de lanzamiento para Onicord v${cleanVer}.\nPara más información visita https://github.com/OniverseDesign/onicord/releases`,
+        loading: false,
+        error: null,
+      }));
+    }
+  };
 
   const handleCheckUpdates = async () => {
     setUpdateState((prev) => ({ ...prev, status: "checking", error: null }));
@@ -338,16 +404,40 @@ export default function AboutTab() {
           </div>
 
           {/* State-dependent actions */}
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2">
             {(updateState.status === "idle" || updateState.status === "not-available" || updateState.status === "error" || updateState.status === "dev-mode") && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleOpenChangelog(APP_VERSION, false)}
+                  className="h-9 px-3.5 rounded-onicord-button bg-white/5 hover:bg-white/10 border border-white/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  title={t("settings.about.viewCurrentNotesTooltip", "Ver las notas de lanzamiento de la versión instalada")}
+                >
+                  <MaterialIcon name="history_edu" size={16} />
+                  <span>{t("settings.about.viewChangelogBtn", "Ver Novedades")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCheckUpdates}
+                  disabled={updateState.status === "checking"}
+                  className="h-9 px-4 rounded-onicord-button bg-onicord-accent/20 hover:bg-onicord-accent/30 border border-onicord-accent/40 text-onicord-accent text-xs font-bold transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <MaterialIcon name="refresh" size={16} />
+                  <span>{t("settings.about.checkBtn", "Buscar Actualizaciones")}</span>
+                </button>
+              </>
+            )}
+
+            {(updateState.status === "available" || updateState.status === "downloading" || updateState.status === "downloaded") && (
               <button
                 type="button"
-                onClick={handleCheckUpdates}
-                disabled={updateState.status === "checking"}
-                className="h-9 px-4 rounded-onicord-button bg-onicord-accent/20 hover:bg-onicord-accent/30 border border-onicord-accent/40 text-onicord-accent text-xs font-bold transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                onClick={() => handleOpenChangelog(updateState.version, true)}
+                className="h-9 px-3.5 rounded-onicord-button bg-white/5 hover:bg-white/10 border border-white/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                title={t("settings.about.viewNewNotesTooltip", "Ver notas de la nueva versión")}
               >
-                <MaterialIcon name="refresh" size={16} />
-                <span>{t("settings.about.checkBtn", "Buscar Actualizaciones")}</span>
+                <MaterialIcon name="article" size={16} />
+                <span>{t("settings.about.viewNewChangelogBtn", "Ver Novedades")}</span>
               </button>
             )}
 
@@ -385,6 +475,35 @@ export default function AboutTab() {
             )}
           </div>
         </div>
+
+        {/* New version changelog preview card */}
+        {Boolean(updateState.version && (updateState.status === "available" || updateState.status === "downloading" || updateState.status === "downloaded")) && (
+          <div className="mt-3.5 p-3 rounded-xl bg-onicord-base/60 border border-white/10 text-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <MaterialIcon name="campaign" size={16} className="text-emerald-400" />
+                <span className="font-bold text-onicord-text">Novedades de v{updateState.version}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleOpenChangelog(updateState.version, true)}
+                className="text-[11px] text-onicord-accent hover:underline flex items-center gap-1 font-medium cursor-pointer"
+              >
+                <span>Ver notas completas</span>
+                <MaterialIcon name="open_in_new" size={12} />
+              </button>
+            </div>
+            {updateState.releaseNotes ? (
+              <p className="text-onicord-muted line-clamp-3 whitespace-pre-line text-[11px] leading-relaxed">
+                {updateState.releaseNotes}
+              </p>
+            ) : (
+              <p className="text-onicord-muted/70 text-[11px]">
+                {t("settings.about.notesReady", "Haz clic en 'Ver Novedades' para leer el registro completo de cambios de esta versión.")}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Download progress bar */}
         {updateState.status === "downloading" && (
@@ -643,6 +762,16 @@ export default function AboutTab() {
           </p>
         </div>
       </div>
+
+      <ChangelogModal
+        isOpen={changelogModal.isOpen}
+        onClose={() => setChangelogModal((prev) => ({ ...prev, isOpen: false }))}
+        version={changelogModal.version}
+        notes={changelogModal.notes}
+        loading={changelogModal.loading}
+        error={changelogModal.error}
+        isNewVersion={changelogModal.isNewVersion}
+      />
     </div>
   );
 }

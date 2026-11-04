@@ -9,10 +9,25 @@ import { useStreamerMode } from "../../context/StreamerModeContext";
 
 const STORAGE_LINE_HEIGHT_KEY = "onicord_chat_line_height";
 
+export const AUTO_DOWNLOAD_SIZE_STEPS = [
+  { value: 10, label: "10 MB" },
+  { value: 25, label: "25 MB" },
+  { value: 50, label: "50 MB" },
+  { value: 100, label: "100 MB" },
+  { value: 250, label: "250 MB" },
+  { value: 500, label: "500 MB" },
+  { value: 1024, label: "1 GB" },
+  { value: 2048, label: "2 GB" },
+  { value: 5120, label: "5 GB" },
+  { value: 10240, label: "10 GB" },
+  { value: -1, label: "Sin límite" },
+];
+
 export default function GeneralTab({ general, setGeneral }) {
   const { t, i18n } = useTranslation();
   const [cacheStats, setCacheStats] = useState({ count: 0, sizeFormatted: "0 B" });
   const [chatLineHeight, setChatLineHeight] = useState("1.5");
+  const [defaultDownloadDir, setDefaultDownloadDir] = useState("");
 
   const {
     isStreamerMode,
@@ -108,7 +123,53 @@ export default function GeneralTab({ general, setGeneral }) {
     window.electronAPI?.getTotalCacheStats?.().then(setCacheStats);
     const savedLineHeight = localStorage.getItem(STORAGE_LINE_HEIGHT_KEY) || "1.5";
     setChatLineHeight(savedLineHeight);
+    if (window.electronAPI?.getDefaultDownloadDirectory) {
+      window.electronAPI.getDefaultDownloadDirectory().then((dir) => {
+        if (dir) setDefaultDownloadDir(dir);
+      });
+    }
   }, []);
+
+  const currentDownloadSizeIndex = useMemo(() => {
+    const currentVal = general?.autoDownloadMaxSizeMB;
+    if (currentVal === -1) return AUTO_DOWNLOAD_SIZE_STEPS.length - 1;
+    const exact = AUTO_DOWNLOAD_SIZE_STEPS.findIndex((s) => s.value === currentVal);
+    if (exact !== -1) return exact;
+    let closestIdx = 5;
+    let minDiff = Infinity;
+    AUTO_DOWNLOAD_SIZE_STEPS.forEach((step, i) => {
+      if (step.value === -1) return;
+      const diff = Math.abs(step.value - (currentVal ?? 500));
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = i;
+      }
+    });
+    return closestIdx;
+  }, [general?.autoDownloadMaxSizeMB]);
+
+  const currentDownloadSizeLabel =
+    AUTO_DOWNLOAD_SIZE_STEPS[currentDownloadSizeIndex]?.label || "500 MB";
+
+  const handleDownloadSizeIndexChange = (e) => {
+    const idx = parseInt(e.target.value, 10);
+    const step = AUTO_DOWNLOAD_SIZE_STEPS[idx];
+    if (step) {
+      handleChange("autoDownloadMaxSizeMB", step.value);
+    }
+  };
+
+  const handleSelectDirectory = async () => {
+    if (!window.electronAPI?.selectDownloadDirectory) return;
+    const selected = await window.electronAPI.selectDownloadDirectory();
+    if (selected) {
+      handleChange("downloadDirectory", selected);
+    }
+  };
+
+  const handleResetDirectory = () => {
+    handleChange("downloadDirectory", "");
+  };
 
   const handleChange = (key, value) => {
     setGeneral((prev) => ({
@@ -158,6 +219,20 @@ export default function GeneralTab({ general, setGeneral }) {
         window.dispatchEvent(
           new CustomEvent("onicord:general-settings-updated", {
             detail: { enableOpenGraph: value },
+          })
+        );
+      } catch {}
+    }
+
+    if (key === "autoDownloadFiles" || key === "autoDownloadMaxSizeMB" || key === "downloadDirectory") {
+      try {
+        const raw = localStorage.getItem("onicord_general_settings");
+        const parsed = raw ? JSON.parse(raw) : {};
+        parsed[key] = value;
+        localStorage.setItem("onicord_general_settings", JSON.stringify(parsed));
+        window.dispatchEvent(
+          new CustomEvent("onicord:general-settings-updated", {
+            detail: { [key]: value, ...parsed },
           })
         );
       } catch {}
@@ -336,6 +411,28 @@ export default function GeneralTab({ general, setGeneral }) {
                 checked={general.openAtLogin ?? false}
                 onChange={(e) =>
                   handleChange("openAtLogin", e.target.checked)
+                }
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          <div data-setting-id="autoDownloadUpdates" className="onicord-settings-row transition-all">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.autoDownloadUpdates", "Descarga automática de actualizaciones")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.general.autoDownloadUpdatesDesc", "Descarga las nuevas versiones de Onicord en segundo plano y las instala al reiniciar.")}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={general.autoDownloadAppUpdates ?? true}
+                onChange={(e) =>
+                  handleChange("autoDownloadAppUpdates", e.target.checked)
                 }
                 className="sr-only peer"
               />
@@ -555,72 +652,179 @@ export default function GeneralTab({ general, setGeneral }) {
 
           {/* Disable hardware acceleration */}
           <div className="onicord-settings-row">
-          <div className="min-w-0 pr-4">
-            <p className="onicord-settings-row-title">
-              {t("settings.general.disableHardwareAccel", "Desactivar aceleración por hardware")}
-            </p>
-            <p className="onicord-settings-row-desc">
-              {t("settings.general.disableHardwareAccelDesc", "Desactiva la renderización mediante GPU.")}
-            </p>
-            <p className="text-[10px] text-onicord-danger font-medium mt-1">
-              {t("settings.general.restartWarning", "Requiere reiniciar la aplicación.")}
-            </p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-            <input
-              type="checkbox"
-              checked={general.disableHardwareAcceleration ?? false}
-              onChange={(e) =>
-                handleChange(
-                  "disableHardwareAcceleration",
-                  e.target.checked,
-                )
-              }
-              className="sr-only peer"
-            />
-            <div className="onicord-toggle-slider" />
-          </label>
-        </div>
-      </div>
-    </div>
-
-      {/* Streamer mode and privacy */}
-      <div data-setting-id="streamerMode" className="onicord-settings-card transition-all">
-        <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-3">
-          <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-              isStreamerMode
-                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                : "bg-onicord-base/40 text-onicord-muted border border-white/5"
-            }`}>
-              <MaterialIcon name="podcasts" size={20} />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-onicord-text">
-                {t("settings.general.streamerModeTitle", "Modo Streamer y Privacidad")}
-              </h3>
-              <p className="text-[11px] text-onicord-muted">
-                {t("settings.general.streamerModeSubtitle", "Oculta datos sensibles y enlaces de invitación durante tus transmisiones.")}
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.disableHardwareAccel", "Desactivar aceleración por hardware")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.general.disableHardwareAccelDesc", "Desactiva la renderización mediante GPU.")}
+              </p>
+              <p className="text-[10px] text-onicord-danger font-medium mt-1">
+                {t("settings.general.restartWarning", "Requiere reiniciar la aplicación.")}
               </p>
             </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={general.disableHardwareAcceleration ?? false}
+                onChange={(e) =>
+                  handleChange(
+                    "disableHardwareAcceleration",
+                    e.target.checked,
+                  )
+                }
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
           </div>
-
-          <button
-            type="button"
-            onClick={toggleManual}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer border ${
-              manualActive
-                ? "bg-purple-600 text-white border-purple-500"
-                : "bg-onicord-base/60 text-onicord-muted hover:text-onicord-text hover:bg-white/5 border-white/5"
-            }`}
-          >
-            {manualActive
-              ? t("settings.general.streamerModeManualDeactivate", "Desactivar manual")
-              : t("settings.general.streamerModeManualActivate", "Activar manualmente")}
-          </button>
         </div>
+      </div>
+
+      {/* Descargas y Almacenamiento */}
+      <div data-setting-id="downloads" className="onicord-settings-card">
+        <h3 className="onicord-settings-section-title">
+          <span>{t("settings.general.downloadsTitle", "Descargas y Almacenamiento")}</span>
+        </h3>
 
         <div>
+          {/* Switch principal autodescarga */}
+          <div className="onicord-settings-row">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.autoDownloadFiles", "Autodescarga de archivos y multimedia")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.general.autoDownloadFilesDesc", "Descarga automáticamente en segundo plano imágenes y archivos adjuntos para visualizarlos de inmediato en canales y foros.")}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={general.autoDownloadFiles ?? true}
+                onChange={(e) => handleChange("autoDownloadFiles", e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          {/* Opciones dependientes (cuando autodescarga está activa) */}
+          {(general.autoDownloadFiles ?? true) && (
+            <>
+              {/* Slider tamaño máximo */}
+              <div className="onicord-settings-slider-row">
+                <div className="flex justify-between items-center">
+                  <div className="min-w-0 pr-2">
+                    <p className="onicord-settings-row-title">
+                      {t("settings.general.autoDownloadMaxSize", "Tamaño máximo para autodescarga")}
+                    </p>
+                    <p className="onicord-settings-row-desc">
+                      {t("settings.general.autoDownloadMaxSizeDesc", "Los archivos que superen este peso requerirán confirmación manual para descargarse.")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-white/5 mt-1">
+                  <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[38px]">
+                    {AUTO_DOWNLOAD_SIZE_STEPS[0].label}
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max={AUTO_DOWNLOAD_SIZE_STEPS.length - 1}
+                    step="1"
+                    value={currentDownloadSizeIndex}
+                    onChange={handleDownloadSizeIndexChange}
+                    className="onicord-range-input flex-1"
+                  />
+                  <span className={`text-[11px] font-mono font-bold select-none px-2 py-0.5 rounded-md min-w-[68px] text-center ${
+                    AUTO_DOWNLOAD_SIZE_STEPS[currentDownloadSizeIndex]?.value === -1
+                      ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                      : "bg-onicord-accent/15 text-onicord-accent border border-onicord-accent/30"
+                  }`}>
+                    {currentDownloadSizeLabel}
+                  </span>
+                </div>
+              </div>
+
+              {/* Selector de directorio de descargas */}
+              <div className="onicord-settings-input-row flex-col items-start gap-2">
+                <div className="w-full flex justify-between items-start">
+                  <div className="min-w-0 pr-2">
+                    <p className="onicord-settings-row-title">
+                      {t("settings.general.downloadDirectory", "Carpeta de descargas")}
+                    </p>
+                    <p className="onicord-settings-row-desc">
+                      {t("settings.general.downloadDirectoryDesc", "Ubicación en tu equipo donde se guardarán las imágenes y archivos descargados.")}
+                    </p>
+                  </div>
+                  {Boolean(general.downloadDirectory) && (
+                    <button
+                      type="button"
+                      onClick={handleResetDirectory}
+                      className="text-[11px] text-onicord-accent hover:underline hover:text-onicord-accent-hover transition-colors shrink-0 ml-2 cursor-pointer"
+                    >
+                      {t("settings.general.resetDownloadDir", "Restablecer por defecto")}
+                    </button>
+                  )}
+                </div>
+                <div className="w-full flex items-center gap-2 mt-1">
+                  <div className="flex-1 min-w-0 bg-onicord-base/60 px-3 py-2 rounded-xl border border-white/5 text-xs text-onicord-text font-mono truncate select-all flex items-center gap-2">
+                    <MaterialIcon name="folder" size={16} className="text-onicord-muted shrink-0" />
+                    <span className="truncate" title={general.downloadDirectory || defaultDownloadDir || "Descargas"}>
+                      {general.downloadDirectory || defaultDownloadDir || t("settings.general.defaultDownloadsFolder", "Carpeta de Descargas del sistema")}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSelectDirectory}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-onicord-base/80 hover:bg-white/10 text-onicord-text border border-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                  >
+                    <MaterialIcon name="folder_open" size={16} />
+                    <span>{t("settings.general.chooseFolder", "Cambiar")}</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Streamer mode and privacy */}
+      <div data-setting-id="streamerMode" className="onicord-settings-card">
+        <h3 className="onicord-settings-section-title">
+          <span>{t("settings.general.streamerModeTitle", "Modo Streamer y Privacidad")}</span>
+        </h3>
+
+        <div>
+          {/* Activar manualmente */}
+          <div className="onicord-settings-row">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.streamerModeManualActivate", "Activar Modo Streamer manualmente")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.general.streamerModeSubtitle", "Oculta datos sensibles y enlaces de invitación durante tus transmisiones.")}
+              </p>
+              {isStreamerMode && (
+                <p className="text-[10px] text-purple-400 font-semibold mt-1">
+                  {detectedApp
+                    ? t("settings.general.streamerModeStreaming", { app: detectedApp, defaultValue: `Transmitiendo (${detectedApp})` })
+                    : t("settings.general.streamerModeActive", "Modo Streamer activo")}
+                </p>
+              )}
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={manualActive}
+                onChange={toggleManual}
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
           {/* Automatic activation */}
           <div className="onicord-settings-row">
             <div className="min-w-0 pr-4">
@@ -640,18 +844,6 @@ export default function GeneralTab({ general, setGeneral }) {
               />
               <div className="onicord-toggle-slider" />
             </label>
-          </div>
-
-          <div className="mt-3 p-3 rounded-xl bg-onicord-base/30 border border-white/5 text-[11px] text-onicord-muted space-y-1.5">
-            <p className="font-semibold text-onicord-text flex items-center gap-1.5">
-              <MaterialIcon name="shield" size={15} className="text-purple-400" />
-              {t("settings.general.streamerModeProtectionsTitle", "Protecciones activadas durante transmisiones y directos:")}
-            </p>
-            <ul className="list-disc list-inside space-y-0.5 pl-1 opacity-85">
-              <li>{t("settings.general.streamerModeProtection1", "Ocultamiento de códigos de sala (roomCode) e IPs en ajustes e invitaciones.")}</li>
-              <li>{t("settings.general.streamerModeProtection2", "Supresión de alertas y toasts emergentes de mensajes privados.")}</li>
-              <li>{t("settings.general.streamerModeProtection3", "Atenuación de sonidos de la interfaz para no contaminar el audio del stream.")}</li>
-            </ul>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { resolveAuthorDisplay, buildPeerLookup } from "../../lib/profileUtils";
+import { resolveWelcomeMessageText } from "../../lib/welcomeUtils";
 import EmojiPickerPopover from "../ui/EmojiPickerPopover";
 import MaterialIcon from "../icons/MaterialIcon";
 import IconEstrella from "../icons/Estrella.svg?react";
@@ -12,6 +13,7 @@ import MessageReactionsBar from "./subcomponents/MessageReactionsBar";
 import MessageActionsHoverBar from "./subcomponents/MessageActionsHoverBar";
 import MessageEmbedCard from "./subcomponents/MessageEmbedCard";
 import MessageMediaAttachment from "./subcomponents/MessageMediaAttachment";
+import MessageMediaGallery, { isImageFile } from "./subcomponents/MessageMediaGallery";
 import MessageStickerContent from "./subcomponents/MessageStickerContent";
 import MessagePluginEmbed from "./subcomponents/MessagePluginEmbed";
 import MessageWebhookEmbed from "./subcomponents/MessageWebhookEmbed";
@@ -23,6 +25,8 @@ const ChatMessageItem = memo(
     index = 0,
     messages = [],
     allMessages = null,
+    threadRepliesCount: passedThreadRepliesCount,
+    peersLookup: passedPeersLookup,
     showDivider = false,
     isReplyPreview = false,
     disableThreadAction = false,
@@ -54,13 +58,17 @@ const ChatMessageItem = memo(
 
     const prevMsg = Array.isArray(messages) && index > 0 ? messages[index - 1] : null;
 
-    const peersLookup = useMemo(() => buildPeerLookup(peers), [peers]);
+    const peersLookup = useMemo(
+      () => passedPeersLookup || buildPeerLookup(peers),
+      [passedPeersLookup, peers]
+    );
 
     let { nickname, avatar } = resolveAuthorDisplay(
       msg.authorId,
       profile,
       peersLookup,
       msg,
+      server?.roomCode || server?.id || msg.roomCode,
     );
 
     if (msg.authorId === "onicord-bot") {
@@ -260,9 +268,10 @@ const ChatMessageItem = memo(
     }, [msg?.id]);
 
     const threadRepliesCount = useMemo(() => {
+      if (passedThreadRepliesCount !== undefined) return passedThreadRepliesCount;
       if (!fullChannelMessages || !Array.isArray(fullChannelMessages) || isReplyPreview || disableThreadAction || !msg?.id) return 0;
       return fullChannelMessages.filter(checkIsThreadReply).length;
-    }, [fullChannelMessages, checkIsThreadReply, isReplyPreview, disableThreadAction, msg?.id]);
+    }, [passedThreadRepliesCount, fullChannelMessages, checkIsThreadReply, isReplyPreview, disableThreadAction, msg?.id]);
 
     const threadParticipants = useMemo(() => {
       if (!fullChannelMessages || !Array.isArray(fullChannelMessages) || isReplyPreview || disableThreadAction || !msg?.id) return [];
@@ -278,15 +287,25 @@ const ChatMessageItem = memo(
       return Array.from(userMap.values());
     }, [fullChannelMessages, checkIsThreadReply, isReplyPreview, disableThreadAction, profile, peersLookup, msg?.id]);
 
+    let allAttachments = [];
     if (isFilePayload && textContent) {
       try {
         const parts = textContent.split("[FILE_ATTACHMENT]:");
         textContent = parts[0] ? parts[0].trim() : "";
-        fileData = JSON.parse(parts[1]);
+        for (let i = 1; i < parts.length; i++) {
+          try {
+            const parsed = JSON.parse(parts[i]);
+            if (parsed) allAttachments.push(parsed);
+          } catch {}
+        }
+        fileData = allAttachments[0] || null;
       } catch (e) {
         console.error("Error al desempaquetar mensaje unificado:", e);
       }
     }
+
+    const imageAttachments = allAttachments.filter((att) => isImageFile(att.name));
+    const otherAttachments = allAttachments.filter((att) => !isImageFile(att.name));
 
     let linkUrlOverride = msg.linkUrl || null;
     if (textContent && textContent.includes("[LINK]:")) {
@@ -389,6 +408,53 @@ const ChatMessageItem = memo(
 
       return myRoleNames.some((rName) => rName && textLower.includes(`@${rName}`));
     })();
+
+    const isWelcomeMessage = Boolean(
+      msg.isSystemMessage && msg.systemType === "welcome"
+    ) || (typeof textContent === "string" && textContent.startsWith("[SYSTEM_WELCOME]:"));
+
+    if (isWelcomeMessage) {
+      let welcomeData = msg.systemData || {};
+      let welcomeText = textContent;
+      if (typeof textContent === "string" && textContent.startsWith("[SYSTEM_WELCOME]:")) {
+        try {
+          const parsed = JSON.parse(textContent.replace("[SYSTEM_WELCOME]:", ""));
+          welcomeData = parsed;
+          welcomeText = parsed.text || parsed.message || "";
+        } catch (_) {}
+      }
+
+      const resolvedWelcome = resolveWelcomeMessageText(welcomeText, welcomeData, server, t);
+      welcomeText = resolvedWelcome.text;
+      const displayNickname = resolvedWelcome.userNick || welcomeData.nickname || t("chat.newMember", "Nuevo Miembro");
+
+      return (
+        <div
+          id={`msg-${msg.id}`}
+          className="flex items-center gap-3 px-4 py-2.5 my-1 mx-2 rounded-xl bg-onicord-accent/5 border border-onicord-accent/20 animate-fade-in text-left select-none group/welcome hover:bg-onicord-accent/10 transition-colors"
+        >
+          <div className="w-9 h-9 rounded-full bg-onicord-accent/20 border border-onicord-accent/40 flex items-center justify-center shrink-0 text-onicord-accent shadow-sm">
+            <MaterialIcon name="celebration" size={20} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-xs text-onicord-accent">
+                {displayNickname}
+              </span>
+              <span className="px-1.5 py-0.2 rounded bg-onicord-accent/20 text-onicord-accent text-[9px] font-bold tracking-wider uppercase">
+                {t("chat.welcomeBadge", "Bienvenida")}
+              </span>
+              <span className="text-[10px] text-onicord-muted ml-auto">
+                {formatTime(msg.timestamp)}
+              </span>
+            </div>
+            <p className="text-xs text-onicord-text/90 mt-0.5 whitespace-pre-wrap font-medium">
+              {welcomeText}
+            </p>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div
@@ -538,9 +604,23 @@ const ChatMessageItem = memo(
               <MessageWebhookEmbed embeds={msg.embeds} />
             )}
 
-            {isFilePayload && fileData && (
+            {imageAttachments.length > 0 && (
+              <div className="mb-2 max-w-2xl">
+                <MessageMediaGallery
+                  images={imageAttachments}
+                  msg={msg}
+                  isMyMessage={isMyMessage}
+                  fileProgress={fileProgress}
+                  onDownloadFile={onDownloadFile}
+                  onOpenPreview={onOpenPreview}
+                />
+              </div>
+            )}
+
+            {otherAttachments.map((otherAtt, attIdx) => (
               <MessageMediaAttachment
-                fileData={fileData}
+                key={otherAtt.id || attIdx}
+                fileData={otherAtt}
                 msg={msg}
                 isMyMessage={isMyMessage}
                 server={server}
@@ -550,7 +630,7 @@ const ChatMessageItem = memo(
                 onOpenPreview={onOpenPreview}
                 onShowAlert={onShowAlert}
               />
-            )}
+            ))}
 
             <MessageThreadBadge
               threadRepliesCount={threadRepliesCount}

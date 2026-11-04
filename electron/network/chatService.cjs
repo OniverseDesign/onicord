@@ -82,7 +82,8 @@ class ChatService {
       patch,
       localPeerId
     );
-    this.p2p._broadcast("meta-update", meta);
+    meta.roomCode = code;
+    this.p2p._broadcast("meta-update", meta, code);
     this.callbacks.onServerMetaUpdated?.(code, meta);
     return meta;
   }
@@ -329,8 +330,8 @@ class ChatService {
       roomCode: code,
       channelId: channelId || "general",
       authorId: this.authorId(),
-      authorNickname: this.p2p.profile?.nickname ?? "Anonymous",
-      authorAvatar: this.p2p.profile?.avatar ?? null,
+      authorNickname: (require("../services/profileService.cjs").getEffectiveProfile(this.p2p.profile, code)?.nickname) ?? this.p2p.profile?.nickname ?? "Anonymous",
+      authorAvatar: (require("../services/profileService.cjs").getEffectiveProfile(this.p2p.profile, code)?.avatar) ?? this.p2p.profile?.avatar ?? null,
       text: String(text).trim(),
       timestamp: Date.now(),
     };
@@ -342,7 +343,7 @@ class ChatService {
     if (msg.authorId === "self") {
       const myId = this.p2p.profile?.id;
       const myNick = this.p2p.profile?.nickname;
-      if (myId && myNick && msg.authorNickname === myNick) {
+      if (myId) {
         return { ...msg, authorId: myId };
       }
     }
@@ -482,6 +483,32 @@ class ChatService {
     return message;
   }
 
+  async sendSystemMessage(channelId, text, roomCode, options = {}) {
+    const code = this._resolveRoomCode(roomCode);
+    if (!code) return null;
+    const plainText = String(text || "").trim();
+    const cryptoService = require("../services/cryptoService.cjs");
+    const encryptedText = plainText ? cryptoService.encrypt(code, plainText) : "";
+
+    const message = {
+      id: options.id || "sys_" + crypto.randomUUID(),
+      roomCode: code,
+      channelId: channelId || "general",
+      authorId: options.authorId || "onicord-bot",
+      authorNickname: options.authorNickname || "Onicord",
+      authorAvatar: options.authorAvatar || "bot-star",
+      text: encryptedText,
+      timestamp: options.timestamp || Date.now(),
+      isSystemMessage: true,
+      systemType: options.systemType || "info",
+      systemData: options.systemData || null,
+    };
+
+    await this.persistAndEmit(message, code);
+    this.p2p._broadcast("chat", message);
+    return message;
+  }
+
   async deleteChatMessage(channelId, messageId, roomCode) {
     const code = this._resolveRoomCode(roomCode);
     if (!code) throw new Error("You are not in a room");
@@ -520,7 +547,7 @@ class ChatService {
     this.p2p._broadcast("typing-state", {
       userId: this.p2p.profile?.id,
       channelId: channelId || "general",
-      nickname: this.p2p.profile?.nickname ?? "Alguien",
+      nickname: (require("../services/profileService.cjs").getEffectiveProfile(this.p2p.profile, code)?.nickname) ?? this.p2p.profile?.nickname ?? "Alguien",
       roomCode: code,
     });
   }
@@ -574,6 +601,9 @@ class ChatService {
       isWebhook: Boolean(payload.isWebhook),
       webhookId: payload.webhookId || null,
       embeds: Array.isArray(payload.embeds) ? payload.embeds : [],
+      isSystemMessage: Boolean(payload.isSystemMessage),
+      systemType: payload.systemType || null,
+      systemData: payload.systemData || null,
     };
 
     if (message.isHidden) {

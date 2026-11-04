@@ -1,6 +1,7 @@
-import React, { useRef } from "react";
+import React, { useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import UserProfilePopout from "../ui/UserProfilePopout";
+import Select from "../ui/Select";
 import RichPresenceCard from "../ui/RichPresenceCard";
 import { IconLink } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
@@ -8,7 +9,7 @@ import ColorPicker from "../ui/ColorPicker";
 import { APP_COLORS } from "../../lib/colors";
 import { ModalInput } from "../ui/ModalShell";
 
-const MAX_AVATAR_SIZE = 512 * 1024;
+const MAX_AVATAR_SIZE = 8 * 1024 * 1024;
 
 export default function ProfileTab({
   nickname,
@@ -24,9 +25,110 @@ export default function ProfileTab({
   customStatus,
   setCustomStatus,
   setError,
+  servers = [],
+  currentServer = null,
+  serverProfiles = {},
+  selectedScope = "global",
+  onScopeChange,
+  onUpdateServerProfile,
+  onResetServerProfile,
 }) {
   const { t } = useTranslation();
   const fileRef = useRef(null);
+
+  // Canonical key for the server we are currently in (uppercase roomCode preferred)
+  const currentServerKey = useMemo(() => {
+    if (!currentServer) return null;
+    return String(currentServer.roomCode || currentServer.id || "")
+      .trim()
+      .toUpperCase();
+  }, [currentServer]);
+
+  const isServerScope = Boolean(selectedScope && selectedScope !== "global");
+  const activeScopeKey = isServerScope
+    ? selectedScope || currentServerKey
+    : null;
+  const currentServerOverride = activeScopeKey
+    ? serverProfiles[activeScopeKey] ||
+      serverProfiles[activeScopeKey.toUpperCase()] ||
+      {}
+    : {};
+
+  const currentNick = isServerScope
+    ? (currentServerOverride.nickname ?? "")
+    : nickname;
+  const currentAvatar = isServerScope
+    ? currentServerOverride.avatar !== undefined
+      ? currentServerOverride.avatar
+      : null
+    : avatar;
+  const currentLink = isServerScope
+    ? (currentServerOverride.customLink ?? "")
+    : customLink;
+  const currentColor = isServerScope
+    ? (currentServerOverride.profileColor ?? "")
+    : profileColor;
+  const currentStatus = isServerScope
+    ? (currentServerOverride.customStatus ?? "")
+    : customStatus;
+
+  const handleScopeSelectChange = (e) => {
+    const val = e.target.value;
+    if (val === "global") {
+      onScopeChange?.("global");
+    } else {
+      if (currentServerKey) {
+        onScopeChange?.(currentServerKey);
+      }
+    }
+  };
+
+  const scopeOptions = useMemo(
+    () => [
+      {
+        value: "global",
+        label: t("profileTab.mainProfile", "Perfil Principal"),
+      },
+      {
+        value: "server",
+        label: t("profileTab.serverProfile", "Perfil del Servidor"),
+        disabled: !currentServerKey,
+      },
+    ],
+    [t, currentServerKey],
+  );
+
+  const handleNickChange = (val) => {
+    if (isServerScope && activeScopeKey) {
+      onUpdateServerProfile?.(activeScopeKey, { nickname: val });
+    } else {
+      setNickname(val);
+    }
+  };
+
+  const handleStatusChange = (val) => {
+    if (isServerScope && activeScopeKey) {
+      onUpdateServerProfile?.(activeScopeKey, { customStatus: val });
+    } else {
+      setCustomStatus(val);
+    }
+  };
+
+  const handleLinkChange = (val) => {
+    if (isServerScope && activeScopeKey) {
+      onUpdateServerProfile?.(activeScopeKey, { customLink: val });
+    } else {
+      setCustomLink(val);
+    }
+  };
+
+  const handleColorChange = (val) => {
+    if (isServerScope && activeScopeKey) {
+      onUpdateServerProfile?.(activeScopeKey, { profileColor: val });
+    } else {
+      setProfileColor(val);
+    }
+  };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
@@ -38,42 +140,52 @@ export default function ProfileTab({
     }
     if (file.size > MAX_AVATAR_SIZE) {
       setError(
-        t("profileTab.imageTooLarge", "La imagen no debe superar los 512 KB."),
+        t("profileTab.imageTooLarge", "La imagen no debe superar los 8 MB."),
       );
       e.target.value = "";
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
-      setAvatar(reader.result);
+      const dataUrl = reader.result;
+      if (isServerScope && activeScopeKey) {
+        onUpdateServerProfile?.(activeScopeKey, { avatar: dataUrl });
+      } else {
+        setAvatar(dataUrl);
+      }
       setError(null);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
   };
 
-  const currentColorConfig = Object.values(APP_COLORS).find(
-    (c) =>
-      c.colorVar === profileColor ||
-      c.rgbVar === profileColor ||
-      c.key === profileColor,
-  );
-  const isLightBg = currentColorConfig
-    ? currentColorConfig.isLight
-    : profileColor
-      ? true
-      : false;
-  const cutoutColor = profileColor || "rgb(var(--onicord-bg-mantle))";
-  const cutoutColorDot = "rgb(var(--onicord-bg-mantle) / 0.3)";
+  const handleRemoveAvatar = () => {
+    if (isServerScope && activeScopeKey) {
+      onUpdateServerProfile?.(activeScopeKey, { avatar: null });
+    } else {
+      setAvatar(null);
+    }
+  };
 
-  const textMain = isLightBg ? "text-onicord-dark" : "text-onicord-text";
-  const textMuted = isLightBg
-    ? "text-onicord-dark-muted font-bold"
-    : "text-onicord-muted";
-  const divider = isLightBg ? "border-black/10" : "border-white/5";
-  const linkBg = isLightBg
-    ? "bg-black/10 hover:bg-black/20 text-onicord-dark"
-    : "bg-black/20 hover:bg-black/30 text-onicord-accent";
+  const previewNickname = isServerScope
+    ? currentNick.trim() ||
+      nickname ||
+      t("profileTab.yourNamePlaceholder", "Tu Apodo")
+    : nickname || t("profileTab.yourNamePlaceholder", "Tu Apodo");
+
+  const previewAvatar = isServerScope
+    ? currentAvatar !== null && currentAvatar !== undefined
+      ? currentAvatar
+      : avatar
+    : avatar;
+
+  const previewCustomStatus = isServerScope ? currentStatus : customStatus;
+
+  const previewCustomLink = isServerScope ? currentLink : customLink;
+
+  const previewProfileColor = isServerScope
+    ? currentColor || profileColor
+    : profileColor;
 
   return (
     <div className="onicord-settings-container">
@@ -90,13 +202,26 @@ export default function ProfileTab({
               {/* Apodo */}
               <div>
                 <label className="text-xs font-semibold text-onicord-text block mb-1.5">
-                  {t("profileTab.nicknameLabel", "Apodo o Nombre de Usuario")}
+                  {isServerScope
+                    ? t(
+                        "profileTab.serverNicknameLabel",
+                        "Apodo en este Servidor",
+                      )
+                    : t(
+                        "profileTab.nicknameLabel",
+                        "Apodo o Nombre de Usuario",
+                      )}
                 </label>
                 <ModalInput
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
+                  value={currentNick}
+                  onChange={(e) => handleNickChange(e.target.value)}
                   maxLength={32}
-                  placeholder={t("profileTab.yourNamePlaceholder", "Tu Apodo")}
+                  placeholder={
+                    isServerScope
+                      ? nickname ||
+                        t("profileTab.yourNamePlaceholder", "Tu Apodo")
+                      : t("profileTab.yourNamePlaceholder", "Tu Apodo")
+                  }
                   className="h-10 text-xs"
                 />
               </div>
@@ -107,8 +232,8 @@ export default function ProfileTab({
                   {t("profileTab.statusLabel", "Estado Personalizado")}
                 </label>
                 <ModalInput
-                  value={customStatus}
-                  onChange={(e) => setCustomStatus(e.target.value)}
+                  value={currentStatus}
+                  onChange={(e) => handleStatusChange(e.target.value)}
                   maxLength={64}
                   placeholder={t(
                     "profileTab.statusPlaceholder",
@@ -124,19 +249,24 @@ export default function ProfileTab({
                   {t("profileTab.linkLabel", "Enlace o Red Social")}
                 </label>
                 <ModalInput
-                  value={customLink}
-                  onChange={(e) => setCustomLink(e.target.value)}
-                  placeholder={t(
-                    "profileTab.addLinkPlaceholder",
-                    "twitter.com/tu_usuario",
-                  )}
+                  value={currentLink}
+                  onChange={(e) => handleLinkChange(e.target.value)}
+                  placeholder={
+                    isServerScope
+                      ? customLink || "twitter.com/tu_usuario"
+                      : t(
+                          "profileTab.addLinkPlaceholder",
+                          "twitter.com/tu_usuario",
+                        )
+                  }
                   className="h-10 text-xs"
                 />
               </div>
             </div>
           </div>
 
-          {/* Activity and presence visibility */}
+          {/* Activity and presence visibility (solo en global) */}
+
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>
@@ -172,17 +302,25 @@ export default function ProfileTab({
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>
-                {t("profileTab.backgroundColor", "Color de Fondo del Perfil")}
+                {isServerScope
+                  ? t(
+                      "profileTab.serverBackgroundColor",
+                      "Color de Perfil para este Servidor",
+                    )
+                  : t(
+                      "profileTab.backgroundColor",
+                      "Color de Fondo del Perfil",
+                    )}
               </span>
             </h3>
             <div className="pt-1 flex justify-start">
               <ColorPicker
-                selectedColor={profileColor || "default"}
+                selectedColor={currentColor || "default"}
                 onSelectColor={(key, info) => {
                   if (key === "default") {
-                    setProfileColor("");
+                    handleColorChange("");
                   } else {
-                    setProfileColor(info.colorVar);
+                    handleColorChange(info.colorVar);
                   }
                 }}
                 showStructures={true}
@@ -191,12 +329,48 @@ export default function ProfileTab({
           </div>
         </div>
 
-        {/* RIGHT COLUMN: LIVE PREVIEW (5/12) */}
-        <div className="md:col-span-6">
+        {/* RIGHT COLUMN: SCOPE SELECTOR & LIVE PREVIEW */}
+        <div className="md:col-span-6 space-y-4">
+          {/* Scope Selector Card using custom Select */}
+          <div className="onicord-settings-card space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-onicord-text">
+                {t("profileTab.scopeLabel", "Ámbito de Edición")}
+              </label>
+              {isServerScope && (
+                <button
+                  type="button"
+                  onClick={() => onResetServerProfile?.(activeScopeKey)}
+                  className="text-[10px] font-bold text-onicord-accent bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                >
+                  {t(
+                    "profileTab.resetToServerDefault",
+                    "Restablecer al perfil principal",
+                  )}
+                </button>
+              )}
+            </div>
+
+            <Select
+              className="w-full"
+              value={isServerScope ? "server" : "global"}
+              onChange={handleScopeSelectChange}
+              options={scopeOptions}
+            />
+          </div>
+
+          {/* Live Preview Card */}
           <div className="onicord-settings-card flex flex-col items-center">
             <span className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted mb-3 flex items-center gap-1.5 self-start">
               <MaterialIcon name="visibility" size={14} />
-              <span>{t("settings.theme.preview", "Vista Previa en Vivo")}</span>
+              <span>
+                {isServerScope
+                  ? t(
+                      "settings.theme.previewServer",
+                      "Vista Previa en Servidor",
+                    )
+                  : t("settings.theme.preview", "Vista Previa en Vivo")}
+              </span>
             </span>
 
             <input
@@ -212,12 +386,17 @@ export default function ProfileTab({
               isInlinePreview={true}
               member={{
                 id: "preview-user",
-                nickname:
-                  nickname || t("profileTab.yourNamePlaceholder", "Tu Apodo"),
-                avatar: avatar,
-                customStatus: customStatus,
-                customLink: customLink,
-                profileColor: profileColor,
+                nickname: previewNickname,
+                globalNickname:
+                  isServerScope &&
+                  currentNick.trim() &&
+                  currentNick.trim() !== nickname
+                    ? nickname
+                    : null,
+                avatar: previewAvatar,
+                customStatus: previewCustomStatus,
+                customLink: previewCustomLink,
+                profileColor: previewProfileColor,
                 flame: {
                   currentStreak: 5,
                   highestStreak: 12,
@@ -235,11 +414,19 @@ export default function ProfileTab({
                 isSelf: true,
               }}
               userRolesList={[
-                { id: "owner", name: t("common.owner", "Propietario"), color: "#FFD700" },
-                { id: "role-1", name: t("settings.profile.vipMember", "Miembro VIP"), color: "#89b4fa" },
+                {
+                  id: "owner",
+                  name: t("common.owner", "Propietario"),
+                  color: "#FFD700",
+                },
+                {
+                  id: "role-1",
+                  name: t("settings.profile.vipMember", "Miembro VIP"),
+                  color: "#89b4fa",
+                },
               ]}
               onAvatarClick={() => fileRef.current?.click()}
-              onRemoveAvatar={() => setAvatar(null)}
+              onRemoveAvatar={handleRemoveAvatar}
             />
           </div>
         </div>

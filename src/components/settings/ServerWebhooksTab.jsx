@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import { ModalInput } from "../ui/ModalShell";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
+import Select from "../ui/Select";
 
 export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
   const { t } = useTranslation();
@@ -357,17 +358,16 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
               <label className="text-xs font-semibold text-onicord-text block mb-1">
                 {t("serverSettings.webhooks.targetChannel", "Canal de destino")}
               </label>
-              <select
+              <Select
                 value={formChannelId}
                 onChange={(e) => setFormChannelId(e.target.value)}
-                className="onicord-input h-9 text-xs w-full cursor-pointer"
-              >
-                {textChannels.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    #{c.name}
-                  </option>
-                ))}
-              </select>
+                className="w-full"
+                placeholder={t("serverSettings.webhooks.selectChannelPlaceholder", "Seleccionar canal...")}
+                options={textChannels.map((c) => ({
+                  value: c.id,
+                  label: `#${c.name}`,
+                }))}
+              />
             </div>
           </div>
 
@@ -376,14 +376,21 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
               <label className="text-xs font-semibold text-onicord-text block mb-1">
                 {t("serverSettings.webhooks.typeLabel", "Tipo de Webhook")}
               </label>
-              <select
+              <Select
                 value={formType}
                 onChange={(e) => setFormType(e.target.value)}
-                className="onicord-input h-9 text-xs w-full cursor-pointer"
-              >
-                <option value="incoming">{t("serverSettings.webhooks.typeIncoming", "Ingress Directo HTTP (Push - Scripts / Bots)")}</option>
-                <option value="pull_poller">{t("serverSettings.webhooks.typePoller", "Sondeo P2P (Pull Feed RSS/Atom/JSON)")}</option>
-              </select>
+                className="w-full"
+                options={[
+                  {
+                    value: "incoming",
+                    label: t("serverSettings.webhooks.typeIncoming", "Ingress Directo HTTP (Push - Scripts / Bots)"),
+                  },
+                  {
+                    value: "pull_poller",
+                    label: t("serverSettings.webhooks.typePoller", "Sondeo P2P (Pull Feed RSS/Atom/JSON)"),
+                  },
+                ]}
+              />
             </div>
 
             <div>

@@ -2,6 +2,9 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 import ChatMessageItem from "../ChatMessageItem";
+import ForumPostCard from "./ForumPostCard";
+import { ThreadLoadingSkeleton } from "./ChatLoadingSkeleton";
+import { useAnimatedMount } from "../../../hooks/useAnimatedMount";
 import {
   IconSave,
   IconCopyFile,
@@ -14,6 +17,8 @@ import ContextMenu from "../../ui/ContextMenu";
 import DeleteMessageModal from "../../modals/DeleteMessageModal";
 import ForwardMessageModal from "../../modals/ForwardMessageModal";
 import ConfirmDialogModal from "../../modals/ConfirmDialogModal";
+import MediaPreviewModal from "../../modals/MediaPreviewModal";
+import { formatBytes } from "./MessageMediaAttachment";
 import { ONICORD_COMMANDS } from "../../../lib/commands";
 import { copyTextToClipboard, readTextFromClipboard } from "../../../lib/clipboard";
 import {
@@ -43,6 +48,8 @@ export default function ThreadSidePanel({
   onClose,
   onSendThreadReply,
   onToggleReaction,
+  isForum: isForumProp,
+  loading = false,
 }) {
   const { t } = useTranslation();
   const [input, setInput] = useState("");
@@ -62,6 +69,21 @@ export default function ThreadSidePanel({
   const [editingMsg, setEditingMsg] = useState(null);
   const [editInputText, setEditInputText] = useState("");
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: "", msg: "" });
+  const [previewMedia, setPreviewMedia] = useState({
+    isOpen: false,
+    localPath: null,
+    fileName: null,
+    fileSize: null,
+    isImage: false,
+    isVideo: false,
+    initialTime: 0,
+    filesList: [],
+    currentIndex: 0,
+  });
+
+  const handleOpenPreview = useCallback((data) => {
+    setPreviewMedia({ isOpen: true, ...data });
+  }, []);
 
   const endRef = useRef(null);
   const tyrannyInputRef = useRef(null);
@@ -98,6 +120,23 @@ export default function ThreadSidePanel({
   const activeRootMessage = useMemo(() => {
     return messages.find((m) => m.id === parentMessage?.id) || parentMessage;
   }, [messages, parentMessage]);
+
+  const { shouldRender: showThreadSkeleton, isAnimatingOut: isThreadSkeletonFadingOut } = useAnimatedMount(
+    Boolean(loading || !activeRootMessage),
+    200
+  );
+
+  const parentChannel = useMemo(() => {
+    return server?.channels?.find((c) => c.id === parentMessage?.channelId);
+  }, [server?.channels, parentMessage?.channelId]);
+
+  const isForumThread = useMemo(() => {
+    if (isForumProp !== undefined) return Boolean(isForumProp);
+    if (parentChannel?.type === "forum") return true;
+    if (activeRootMessage?.title) return true;
+    if (Array.isArray(activeRootMessage?.tags) && activeRootMessage.tags.length > 0) return true;
+    return false;
+  }, [isForumProp, parentChannel, activeRootMessage]);
 
   // Compute pinned message IDs dynamically from full messages history
   const pinnedMsgIds = useMemo(() => {
@@ -703,7 +742,7 @@ export default function ThreadSidePanel({
           <MaterialIcon name="forum" size={20} className="text-onicord-accent shrink-0" />
           <div className="flex flex-col min-w-0">
             <h3 className="text-sm font-bold text-onicord-text truncate leading-snug">
-              {t("chat.thread", "Hilo de conversación")}
+              {activeRootMessage?.title || t("chat.thread", "Hilo de conversación")}
             </h3>
             <span className="text-[11px] text-onicord-muted truncate">
               {threadReplies.length === 1
@@ -731,65 +770,116 @@ export default function ThreadSidePanel({
         {/* Top gradient shadow overlay */}
         <div className="absolute top-0 left-0 right-0 h-[24px] bg-gradient-to-b from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
 
-        <div className="w-full h-full overflow-y-auto minimal-scrollbar py-4 space-y-2 select-text">
-          {/* Root Message Section Header */}
-          <div>
-            <div className="text-[10px] uppercase tracking-wider font-bold text-onicord-accent mb-2 px-4 flex items-center gap-1">
-              <MaterialIcon name="push_pin" size={12} />
-              {t("chat.threadRootMessage", "Mensaje Principal")}
+        <div className="w-full h-full overflow-y-auto minimal-scrollbar py-4 space-y-2 select-text relative">
+          {showThreadSkeleton && (
+            <div
+              className={`w-full ${
+                isThreadSkeletonFadingOut
+                  ? "absolute inset-0 z-10 pointer-events-none transition-opacity duration-200 opacity-0 bg-onicord-base"
+                  : "min-h-full"
+              }`}
+            >
+              <ThreadLoadingSkeleton isForum={isForumThread} isFadingOut={isThreadSkeletonFadingOut} />
             </div>
-            <ChatMessageItem
-              msg={activeRootMessage}
-              profile={profile}
-              peers={peers}
-              server={server}
-              nameColor={getNameColor(activeRootMessage.authorId)}
-              disableThreadAction={true}
-              onContextMenu={handleMessageContextMenu}
-              onToggleReaction={handleToggleReaction}
-              onJumpToMessage={handleJumpToMessage}
-              onReplyClick={(target) => {
-                setReplyTarget(target);
-                tyrannyInputRef.current?.focus();
-              }}
-            />
-          </div>
+          )}
 
-          {/* Thread Replies Divider */}
-          <div className="relative flex items-center justify-center my-4 select-none">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-onicord-accent/20" />
+          {(!loading && activeRootMessage) && (
+            <div className="animate-fade-in space-y-2">
+              {/* Root Message Section Header */}
+              <div>
+                {!isForumThread && (
+                  <div className="text-[10px] uppercase tracking-wider font-bold text-onicord-accent mb-2 px-4 flex items-center gap-1">
+                    <MaterialIcon name="push_pin" size={12} />
+                    {t("chat.threadRootMessage", "Mensaje Principal")}
+                  </div>
+                )}
+                {isForumThread ? (
+                  <div className="px-3">
+                    <ForumPostCard
+                      msg={activeRootMessage}
+                      allMessages={messages}
+                      profile={profile}
+                      peers={peers}
+                      server={server}
+                      nameColor={getNameColor(activeRootMessage.authorId)}
+                      onOpenDeleteModal={(e, m, nick, av) => {
+                        setMessageToDelete({ msg: m, nickname: nick, avatar: av });
+                      }}
+                      onContextMenu={handleMessageContextMenu}
+                      onToggleReaction={handleToggleReaction}
+                      onForwardClick={(m) => setForwardModalMsg(m)}
+                      onOpenPreview={handleOpenPreview}
+                      onOpenThread={() => {
+                        tyrannyInputRef.current?.focus();
+                      }}
+                      isInThread={true}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {activeRootMessage?.title && (
+                      <h2 className="text-base font-bold text-onicord-text px-4 mb-2 tracking-tight">
+                        {activeRootMessage.title}
+                      </h2>
+                    )}
+                    <ChatMessageItem
+                      msg={activeRootMessage}
+                      profile={profile}
+                      peers={peers}
+                      server={server}
+                      nameColor={getNameColor(activeRootMessage.authorId)}
+                      disableThreadAction={true}
+                      onContextMenu={handleMessageContextMenu}
+                      onToggleReaction={handleToggleReaction}
+                      onJumpToMessage={handleJumpToMessage}
+                      onOpenPreview={handleOpenPreview}
+                      onReplyClick={(target) => {
+                        setReplyTarget(target);
+                        tyrannyInputRef.current?.focus();
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+
+              {/* Thread Replies Divider */}
+              <div className="relative flex items-center justify-center my-4 select-none">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-onicord-accent/20" />
+                </div>
+                <span className="relative bg-onicord-base px-3 text-[11px] font-semibold text-onicord-accent/50 uppercase tracking-wider">
+                  {threadReplies.length === 0
+                    ? t("chat.noRepliesYet", "Aún no hay respuestas en este hilo.")
+                    : t("chat.repliesSeparator", { count: threadReplies.length, defaultValue: `${threadReplies.length} respuestas` })}
+                </span>
+              </div>
+
+              {/* Thread Replies List */}
+              {threadReplies.map((replyMsg, idx) => (
+                <ChatMessageItem
+                  key={replyMsg.id || idx}
+                  msg={replyMsg}
+                  index={idx}
+                  messages={threadReplies}
+                  profile={profile}
+                  peers={peers}
+                  server={server}
+                  nameColor={getNameColor(replyMsg.authorId)}
+                  disableThreadAction={true}
+                  onContextMenu={handleMessageContextMenu}
+                  onToggleReaction={handleToggleReaction}
+                  onJumpToMessage={handleJumpToMessage}
+                  onOpenPreview={handleOpenPreview}
+                  onReplyClick={(target) => {
+                    setReplyTarget(target);
+                    tyrannyInputRef.current?.focus();
+                  }}
+                />
+              ))}
+
+              <div ref={endRef} className="h-4" />
             </div>
-            <span className="relative bg-onicord-base px-3 text-[11px] font-semibold text-onicord-accent/50 uppercase tracking-wider">
-              {threadReplies.length === 0
-                ? t("chat.noRepliesYet", "Aún no hay respuestas en este hilo.")
-                : t("chat.repliesSeparator", { count: threadReplies.length, defaultValue: `${threadReplies.length} respuestas` })}
-            </span>
-          </div>
-
-          {/* Thread Replies List */}
-          {threadReplies.map((replyMsg, idx) => (
-            <ChatMessageItem
-              key={replyMsg.id || idx}
-              msg={replyMsg}
-              index={idx}
-              messages={threadReplies}
-              profile={profile}
-              peers={peers}
-              server={server}
-              nameColor={getNameColor(replyMsg.authorId)}
-              disableThreadAction={true}
-              onContextMenu={handleMessageContextMenu}
-              onToggleReaction={handleToggleReaction}
-              onJumpToMessage={handleJumpToMessage}
-              onReplyClick={(target) => {
-                setReplyTarget(target);
-                tyrannyInputRef.current?.focus();
-              }}
-            />
-          ))}
-
-          <div ref={endRef} className="h-4" />
+          )}
         </div>
 
         {/* Bottom gradient shadow overlay */}
@@ -1087,6 +1177,32 @@ export default function ThreadSidePanel({
         confirmLabel="Entendido"
         type="alert"
         onConfirm={() => setAlertModal({ isOpen: false, title: "", msg: "" })}
+      />
+
+      <MediaPreviewModal
+        isOpen={previewMedia.isOpen}
+        onClose={() => setPreviewMedia({ ...previewMedia, isOpen: false })}
+        localPath={previewMedia.localPath}
+        fileName={previewMedia.fileName}
+        fileSize={previewMedia.fileSize}
+        isImage={previewMedia.isImage}
+        isVideo={previewMedia.isVideo}
+        initialTime={previewMedia.initialTime}
+        formatBytes={formatBytes}
+        filesList={previewMedia.filesList || []}
+        currentIndex={previewMedia.currentIndex || 0}
+        onNavigate={(newIdx) => {
+          setPreviewMedia((prev) => {
+            const nextItem = prev.filesList?.[newIdx];
+            return {
+              ...prev,
+              currentIndex: newIdx,
+              localPath: nextItem?.localPath || prev.localPath,
+              fileName: nextItem?.name || prev.fileName,
+              fileSize: nextItem?.size || prev.fileSize,
+            };
+          });
+        }}
       />
     </aside>
   );

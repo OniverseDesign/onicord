@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 import { IconAttach, IconSticker } from "../../icons/StreamIcons";
@@ -24,10 +24,16 @@ export default function ChatInputArea({
   channelName,
   placeholderOverride = null,
   hasSendMessages = true,
+  isForum = false,
+  postTitle = "",
+  setPostTitle,
   input,
   setInput,
   pendingFile,
   setPendingFile,
+  pendingFiles = [],
+  onRemovePendingFile = () => {},
+  onClearPendingFiles = null,
   previewUrl,
   setPreviewUrl,
   replyTarget,
@@ -77,6 +83,26 @@ export default function ChatInputArea({
 
   const [cachedPendingFile, setCachedPendingFile] = useState(pendingFile);
   const [cachedPreviewUrl, setCachedPreviewUrl] = useState(previewUrl);
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const blurTimeoutRef = useRef(null);
+
+  const handleInputFocus = () => {
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    setIsInputFocused?.(true);
+  };
+
+  const handleInputBlur = () => {
+    blurTimeoutRef.current = setTimeout(() => {
+      setIsInputFocused?.(false);
+    }, 150);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     if (pendingFile) {
       setCachedPendingFile(pendingFile);
@@ -85,6 +111,15 @@ export default function ChatInputArea({
   }, [pendingFile, previewUrl]);
   const displayPendingFile = pendingFile || cachedPendingFile;
   const displayPreviewUrl = previewUrl || cachedPreviewUrl;
+
+  const isForumExpanded =
+    isForum &&
+    (isInputFocused ||
+      isTitleFocused ||
+      Boolean(postTitle && postTitle.trim().length > 0) ||
+      Boolean(input && input.trim().length > 0) ||
+      Boolean(pendingFiles && pendingFiles.length > 0) ||
+      Boolean(pendingFile));
 
   const renderTypingText = () => {
     const users = Object.values(typingUsers);
@@ -231,6 +266,7 @@ export default function ChatInputArea({
         setInput={setInput}
         peers={peers}
         profile={profile}
+        server={server}
         roles={server?.roles || []}
         setShowMentionsPopup={setShowMentionsPopup}
         tyrannyInputRef={tyrannyInputRef}
@@ -275,12 +311,47 @@ export default function ChatInputArea({
       >
         <div
           className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
-            pendingFile
-              ? "max-h-28 opacity-100 mb-2 pointer-events-auto"
+            (pendingFiles.length > 0 || pendingFile)
+              ? "max-h-36 opacity-100 mb-2 pointer-events-auto"
               : "max-h-0 opacity-0 mb-0 pointer-events-none"
           }`}
         >
-          {displayPendingFile && (
+          {pendingFiles.length > 1 ? (
+            <div className="flex items-center gap-2 overflow-x-auto py-1 px-1 minimal-scrollbar bg-black/20 rounded-lg p-1.5 border border-white/5">
+              {pendingFiles.map((pf, idx) => (
+                <div
+                  key={idx}
+                  className="relative flex items-center gap-2 bg-onicord-base border border-white/10 rounded-lg p-1.5 shrink-0 pr-7 max-w-[200px] shadow"
+                >
+                  <div className="w-10 h-10 rounded bg-black/50 overflow-hidden shrink-0 flex items-center justify-center">
+                    {pf.previewUrl ? (
+                      pf.type?.startsWith("video/") ? (
+                        <video src={pf.previewUrl} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={pf.previewUrl} alt="preview" className="w-full h-full object-cover" />
+                      )
+                    ) : (
+                      <IconAttach size="sm" className="text-onicord-accent" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-onicord-text" title={pf.name}>
+                      {pf.name}
+                    </p>
+                    <p className="text-[10px] text-onicord-muted">{formatBytes(pf.size)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onRemovePendingFile(idx)}
+                    className="w-5 h-5 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-1 right-1"
+                    title={t("chat.cancelSend")}
+                  >
+                    <span className="text-xs font-bold leading-none">✕</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : displayPendingFile ? (
             <div className="onicord-pending-file-card group/pending relative overflow-hidden bg-onicord-base border border-white/5 p-2 flex items-center gap-3">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-black/50 overflow-hidden">
                 {displayPreviewUrl ? (
@@ -313,9 +384,13 @@ export default function ChatInputArea({
               <button
                 type="button"
                 onClick={() => {
-                  if (previewUrl) URL.revokeObjectURL(previewUrl);
-                  setPreviewUrl(null);
-                  setPendingFile(null);
+                  if (onClearPendingFiles) {
+                    onClearPendingFiles();
+                  } else {
+                    if (previewUrl) URL.revokeObjectURL(previewUrl);
+                    setPreviewUrl?.(null);
+                    setPendingFile?.(null);
+                  }
                 }}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-2 right-2"
                 title={t("chat.cancelSend")}
@@ -323,7 +398,7 @@ export default function ChatInputArea({
                 <span className="text-sm font-bold leading-none">✕</span>
               </button>
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2 px-2">
@@ -333,6 +408,7 @@ export default function ChatInputArea({
             style={{ display: "none" }}
             onChange={handleFileInputChange}
             disabled={!hasSendMessages}
+            multiple
           />
           <button
             type="button"
@@ -344,7 +420,42 @@ export default function ChatInputArea({
             <IconAttach size="xl" />
           </button>
 
-          <div className="relative flex-1 min-w-0 flex items-center h-full">
+          <div className="relative flex-1 min-w-0 flex flex-col justify-center">
+            {/* Subdivision Superior: Entrada para el Título del Post con animación fluida de expansión */}
+            {isForum && (
+              <div
+                className={`w-full overflow-hidden transition-all duration-300 ease-out ${
+                  isForumExpanded
+                    ? "max-h-24 opacity-100 pt-2 mb-0.5 pointer-events-auto"
+                    : "max-h-0 opacity-0 py-0 mb-0 pointer-events-none"
+                }`}
+              >
+                <input
+                  type="text"
+                  value={postTitle}
+                  onChange={(e) => setPostTitle?.(e.target.value)}
+                  placeholder={t("chat.postTitlePlaceholder", "Título de la publicación...")}
+                  onFocus={() => {
+                    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+                    setIsTitleFocused(true);
+                    setIsInputFocused?.(true);
+                  }}
+                  onBlur={() => {
+                    setIsTitleFocused(false);
+                    handleInputBlur();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      tyrannyInputRef.current?.focus();
+                    }
+                  }}
+                  className="w-full bg-transparent text-[16px] sm:text-[18px] font-bold text-white placeholder:text-onicord-muted outline-none px-1 py-1"
+                />
+              </div>
+            )}
+
+            {/* Subdivision Inferior: Texto General del Post */}
             <div
               contentEditable={hasSendMessages}
               ref={tyrannyInputRef}
@@ -354,16 +465,20 @@ export default function ChatInputArea({
               onSelect={hasSendMessages ? handleInputSelection : undefined}
               onKeyUp={hasSendMessages ? handleInputSelection : undefined}
               onMouseUp={hasSendMessages ? handleInputSelection : undefined}
-              onFocus={hasSendMessages ? () => setIsInputFocused(true) : undefined}
-              onBlur={hasSendMessages ? () => setIsInputFocused(false) : undefined}
+              onFocus={hasSendMessages ? handleInputFocus : undefined}
+              onBlur={hasSendMessages ? handleInputBlur : undefined}
               placeholder={
                 !hasSendMessages
                   ? t("chat.noPermissionPlaceholder", "No tienes permisos para enviar mensajes en este canal")
                   : placeholderOverride
                     ? placeholderOverride
-                    : pendingFile
-                      ? `Comment on ${pendingFile.name}...`
-                      : `${t("chat.placeholder").replace("#general...", `#${channelName || "general"}`)}`
+                    : isForum
+                      ? isForumExpanded
+                        ? t("chat.postBodyPlaceholder", "¿De qué trata tu publicación? Usa #hashtags...")
+                        : t("chat.forumPostPlaceholder", "Escribe una nueva publicación...")
+                      : pendingFile
+                        ? `Comment on ${pendingFile.name}...`
+                        : `${t("chat.placeholder").replace("#general...", `#${channelName || "general"}`)}`
               }
               className={`onicord-chat-input select-text outline-none overflow-x-hidden whitespace-pre-wrap pr-10 focus:outline-none ${
                 !hasSendMessages ? "opacity-50 cursor-not-allowed select-none" : ""
@@ -372,13 +487,14 @@ export default function ChatInputArea({
                 fontFamily: 'var(--font)',
                 fontSize: '15px',
                 lineHeight: '20px',
-                minHeight: '20px',
-                maxHeight: '120px',
+                minHeight: isForum && isForumExpanded ? '32px' : '20px',
+                maxHeight: '140px',
                 overflowY: 'auto',
                 wordBreak: 'break-all',
               }}
             />
           </div>
+
           <button
             ref={emojiButtonRef}
             type="button"
@@ -389,7 +505,7 @@ export default function ChatInputArea({
                 setEmojisTargetRect(null);
               } else {
                 setStickersTargetRect(null);
-                const rect = stickerButtonRef.current ? stickerButtonRef.current.getBoundingClientRect() : e.currentTarget.getBoundingClientRect();
+                const rect = stickerButtonRef?.current ? stickerButtonRef.current.getBoundingClientRect() : e.currentTarget.getBoundingClientRect();
                 setEmojisTargetRect(rect);
               }
             } : undefined}
@@ -399,25 +515,29 @@ export default function ChatInputArea({
           >
             <MaterialIcon name="sentiment_satisfied" size="xl" />
           </button>
-          <button
-            ref={stickerButtonRef}
-            type="button"
-            onClick={hasSendMessages ? (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (stickersTargetRect) {
-                setStickersTargetRect(null);
-              } else {
-                setEmojisTargetRect(null);
-                setStickersTargetRect(e.currentTarget.getBoundingClientRect());
-              }
-            } : undefined}
-            className={`onicord-chat-toolbar-btn group ${!hasSendMessages ? "opacity-35 cursor-not-allowed pointer-events-none" : ""}`}
-            disabled={!hasSendMessages}
-            title={hasSendMessages ? t("chat.sendSticker") : t("chat.noPermissionShort", "Sin permisos")}
-          >
-            <IconSticker size="xl" />
-          </button>
+
+          {/* Botón de stickers: omitido en post raíz de foro, conservado en hilos y canales de texto */}
+          {!isForum && (
+            <button
+              ref={stickerButtonRef}
+              type="button"
+              onClick={hasSendMessages ? (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (stickersTargetRect) {
+                  setStickersTargetRect(null);
+                } else {
+                  setEmojisTargetRect(null);
+                  setStickersTargetRect(e.currentTarget.getBoundingClientRect());
+                }
+              } : undefined}
+              className={`onicord-chat-toolbar-btn group ${!hasSendMessages ? "opacity-35 cursor-not-allowed pointer-events-none" : ""}`}
+              disabled={!hasSendMessages}
+              title={hasSendMessages ? t("chat.sendSticker") : t("chat.noPermissionShort", "Sin permisos")}
+            >
+              <IconSticker size="xl" />
+            </button>
+          )}
         </div>
       </form>
     </div>

@@ -144,10 +144,6 @@ export default function UserListItem({
     subtitle = (
       <span className="text-purple-400 font-medium">{t("settings.general.streamerMode", "Modo Streamer")}</span>
     );
-  } else if (status === "voice" && showStatusDot) {
-    subtitle = (
-      <span className="text-onicord-accent">{t("voice.connectedToVoice")}</span>
-    );
   } else if (activity?.name) {
     const isApp = activity.type === "app";
     const isMusic = activity.type === "music";
@@ -181,6 +177,10 @@ export default function UserListItem({
           </>
         )}
       </span>
+    );
+  } else if (status === "voice" && showStatusDot) {
+    subtitle = (
+      <span className="text-onicord-accent">{t("voice.connectedToVoice")}</span>
     );
   } else if (fallbackSubtitle) {
     subtitle = <span className="text-onicord-muted">{fallbackSubtitle}</span>;

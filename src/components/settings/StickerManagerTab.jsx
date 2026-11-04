@@ -138,10 +138,19 @@ export default function StickerManagerTab() {
           const reader = new FileReader();
           reader.onload = async () => {
             try {
-              await window.electronAPI.saveStickerLocally({
-                dataUrl: reader.result,
-                filename: file.name,
-              });
+              const fileExt = file.name.split(".").pop().toLowerCase();
+              const baseName = file.name.substring(0, file.name.lastIndexOf(".")) || `sticker_${Date.now()}`;
+              const cleanId = baseName.replace(/[^a-zA-Z0-9_-]/g, "_");
+              const saveFn = window.electronAPI?.saveStickerLocally || window.electronAPI?.saveStickerLocal;
+              if (saveFn) {
+                await saveFn({
+                  id: cleanId,
+                  ext: fileExt,
+                  base64Data: reader.result,
+                  dataUrl: reader.result,
+                  filename: file.name,
+                });
+              }
             } catch (err) {
               console.error("Error saving image sticker:", err);
             }

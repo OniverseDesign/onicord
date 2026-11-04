@@ -1,0 +1,15 @@
+:root {
+  /* 📐 ESCALA DE CAPAS Y Z-INDEX ONICORD */
+  --z-content: 10;
+  --z-resizer: 20;
+  --z-sticky: 30;
+  --z-titlebar: 40;
+  --z-popover: 50;
+  --z-modal: 60;
+  --z-modal-card: 61;
+  --z-modal-nested: 70;
+  --z-modal-nested-card: 71;
+  --z-modal-controls: 75;
+  --z-tooltip: 80;
+  --z-toast: 90;
+}

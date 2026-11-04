@@ -136,30 +136,113 @@ function registerMediaFileHandlers() {
     return { id, name, size: stat.size };
   });
 
-  ipcMain.handle("files:download", async (_event, roomCode, fileId, fileName, fileSize) => {
+  ipcMain.handle("files:selectDownloadDirectory", async () => {
+    const result = await dialog.showOpenDialog(global.mainWindow, {
+      title: "Seleccionar carpeta de descargas",
+      properties: ["openDirectory", "createDirectory"],
+    });
+    if (result.canceled || !result.filePaths?.[0]) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle("files:getDefaultDownloadDirectory", () => {
+    return app.getPath("downloads");
+  });
+
+  ipcMain.handle("files:download", async (_event, roomCode, fileId, fileName, fileSize, options = {}) => {
     const targetCode = roomCode || global.roomManager?.roomCode;
     if (!global.roomManager || !targetCode)
       throw new Error("No hay sala activa");
+    const id = String(fileId || "");
     const defaultName = fileName ? String(fileName) : "archivo";
-    const result = await dialog.showSaveDialog(global.mainWindow, {
-      title: "Save received file",
-      defaultPath: path.join(app.getPath("downloads"), defaultName),
-    });
-    if (result.canceled || !result.filePath) return { canceled: true };
+
+    // 1. Verificación previa en descargas históricas (downloads.json)
+    try {
+      const registryPath = getDownloadsRegistryPath();
+      if (fs.existsSync(registryPath)) {
+        const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
+        const fileRecord = registry[id];
+        if (fileRecord && fileRecord.localPath && fs.existsSync(fileRecord.localPath)) {
+          console.log(`[ARES DOWNLOAD] Archivo ${id} ya existe localmente en: ${fileRecord.localPath}. Omitiendo re-descarga.`);
+          global.mainWindow?.webContents.send("file:progress", {
+            fileId: id,
+            progress: 100,
+            done: true,
+            localPath: fileRecord.localPath,
+          });
+          return { done: true, filePath: fileRecord.localPath, alreadyExists: true };
+        }
+      }
+    } catch (regErr) {
+      console.warn("[ARES DOWNLOAD] Error verificando registry previo:", regErr.message);
+    }
+
+    // 2. Verificación previa de archivo local subido por el propio usuario (fileIndexStore)
+    if (global.roomManager?.fileIndexStore) {
+      try {
+        const records = await global.roomManager.fileIndexStore.load(targetCode);
+        const localFileMeta = records.find((f) => f.id === id);
+        if (localFileMeta && localFileMeta.realPath && fs.existsSync(localFileMeta.realPath)) {
+          console.log(`[ARES DOWNLOAD] Archivo ${id} subido localmente ya existe en: ${localFileMeta.realPath}. Reutilizando.`);
+          await saveDownloadToRegistry(id, localFileMeta.realPath);
+          global.mainWindow?.webContents.send("file:progress", {
+            fileId: id,
+            progress: 100,
+            done: true,
+            localPath: localFileMeta.realPath,
+          });
+          return { done: true, filePath: localFileMeta.realPath, alreadyExists: true };
+        }
+      } catch (storeErr) {
+        console.warn("[ARES DOWNLOAD] Error verificando fileIndexStore previo:", storeErr.message);
+      }
+    }
+
+    let targetFilePath;
+    if (options?.autoDownload) {
+      const downloadDir =
+        options.customDir && fs.existsSync(options.customDir)
+          ? options.customDir
+          : app.getPath("downloads");
+
+      if (!fs.existsSync(downloadDir)) {
+        try {
+          fs.mkdirSync(downloadDir, { recursive: true });
+        } catch (_) {}
+      }
+
+      let candidate = path.join(downloadDir, defaultName);
+      let count = 1;
+      const ext = path.extname(defaultName);
+      const base = path.basename(defaultName, ext);
+      while (fs.existsSync(candidate)) {
+        candidate = path.join(downloadDir, `${base} (${count})${ext}`);
+        count++;
+      }
+      targetFilePath = candidate;
+    } else {
+      const result = await dialog.showSaveDialog(global.mainWindow, {
+        title: "Save received file",
+        defaultPath: path.join(app.getPath("downloads"), defaultName),
+      });
+      if (result.canceled || !result.filePath) return { canceled: true };
+      targetFilePath = result.filePath;
+    }
 
     const downloadResult = await global.roomManager.requestFileDownload(
       String(fileId),
-      result.filePath,
+      targetFilePath,
       defaultName,
-      Number(fileSize) || 0
+      Number(fileSize) || 0,
+      options
     );
     if (downloadResult && !downloadResult.error) {
-      await saveDownloadToRegistry(String(fileId), result.filePath);
+      await saveDownloadToRegistry(String(fileId), targetFilePath);
       global.mainWindow?.webContents.send("file:progress", {
         fileId: String(fileId),
         progress: 100,
         done: true,
-        localPath: result.filePath,
+        localPath: targetFilePath,
       });
     }
     return downloadResult;
@@ -170,16 +253,35 @@ function registerMediaFileHandlers() {
     return global.roomManager.cancelFileDownload(fileId);
   });
 
-  ipcMain.handle("files:getLocalPath", (_event, fileId) => {
+  ipcMain.handle("files:getLocalPath", async (_event, fileId, roomCode) => {
     try {
-      const id = String(fileId || "");
-      const registryPath = getDownloadsRegistryPath();
-      if (!fs.existsSync(registryPath)) return null;
+      const id = String(fileId || "").trim();
+      if (!id) return null;
 
-      const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-      const fileRecord = registry[id];
-      if (fileRecord && fs.existsSync(fileRecord.localPath))
-        return fileRecord.localPath;
+      // 1. Consultar historial de descargas (downloads.json)
+      const registryPath = getDownloadsRegistryPath();
+      if (fs.existsSync(registryPath)) {
+        try {
+          const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
+          const fileRecord = registry[id];
+          if (fileRecord && fileRecord.localPath && fs.existsSync(fileRecord.localPath)) {
+            return fileRecord.localPath;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Consultar índice local de archivos subidos por el usuario (fileIndexStore)
+      const targetCode = roomCode || global.roomManager?.roomCode;
+      if (global.roomManager?.fileIndexStore && targetCode) {
+        try {
+          const records = await global.roomManager.fileIndexStore.load(targetCode);
+          const localFileMeta = records.find((f) => f.id === id);
+          if (localFileMeta && localFileMeta.realPath && fs.existsSync(localFileMeta.realPath)) {
+            return localFileMeta.realPath;
+          }
+        } catch (_) {}
+      }
+
       return null;
     } catch (err) {
       return null;
@@ -227,7 +329,21 @@ function registerMediaFileHandlers() {
   });
 
   // === Stickers ===
-  ipcMain.handle("save-sticker-local", async (event, { id, ext, base64Data }) => {
+  ipcMain.handle("save-sticker-local", async (event, payload) => {
+    if (!payload) return false;
+    let { id, ext, base64Data, dataUrl, filename } = payload;
+    if (dataUrl && !base64Data) {
+      base64Data = dataUrl;
+    }
+    if (filename && (!id || !ext)) {
+      const parts = filename.split(".");
+      ext = ext || (parts.length > 1 ? parts.pop().toLowerCase() : "png");
+      const baseName = parts.join(".");
+      const sanitized = baseName.replace(/[^a-zA-Z0-9_-]/g, "_");
+      id = id || (sanitized || `sticker_${Date.now()}`);
+    }
+    if (!id) id = `sticker_${Date.now()}`;
+    if (!ext) ext = "png";
     return stickerService.saveStickerLocal({ id, ext, base64Data });
   });
 

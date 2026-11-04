@@ -15,17 +15,21 @@ export default function DeleteMessageModal({
 }) {
   const { t } = useTranslation();
   const { isClosing, triggerClose } = useInternalClose(onClose, 140);
-  const timeStr =
-    new Date(message.timestamp).toLocaleDateString("es", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }) +
-    " " +
-    new Date(message.timestamp).toLocaleTimeString("es", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+
+  if (!message) return null;
+
+  const timeStr = message.timestamp
+    ? new Date(message.timestamp).toLocaleDateString("es", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }) +
+      " " +
+      new Date(message.timestamp).toLocaleTimeString("es", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
 
   const cleanText = message?.text?.includes("[FILE_ATTACHMENT]:")
     ? message.text.split("[FILE_ATTACHMENT]:")[0].trim() || t("chat.attachment", "Archivo adjunto")

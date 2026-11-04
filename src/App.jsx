@@ -103,7 +103,7 @@ function TitleBar() {
 
   if (!api || isFullscreen) return null;
   return (
-    <div className="titlebar-drag flex h-[22px] w-full items-center justify-between bg-onicord-mantle px-2 text-[12px] font-medium text-onicord-text select-none z-50">
+    <div className="titlebar-drag flex h-[22px] w-full items-center justify-between bg-onicord-mantle px-2 text-[12px] font-medium text-onicord-text select-none z-titlebar">
       <div className="flex items-center gap-2 p-3 mt-4 pointer-events-none">
         <IconOnicord className="w-16 text-onicord-accent" />
       </div>

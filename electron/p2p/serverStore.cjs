@@ -40,12 +40,13 @@ function safeParseJson(raw, filePathToRepair = null) {
 }
 
 class ServerStore {
+  static _sharedWriteQueue = Promise.resolve();
+
   constructor(userDataPath) {
     this.userDataPath = userDataPath;
     this.filePath = path.join(userDataPath, "servers.json");
     this.filesDir = path.join(userDataPath, "files");
     this._syncCache = new Map();
-    this._writeQueue = Promise.resolve();
   }
 
   _updateSyncCache(servers) {
@@ -120,6 +121,9 @@ class ServerStore {
                 disableFlameSystem: meta.disableFlameSystem ?? false,
                 groupByRoles: meta.groupByRoles ?? false,
                 allowExecutableFiles: meta.allowExecutableFiles ?? false,
+                discoverConfig: meta.discoverConfig ?? null,
+                defaultRoleSettings: meta.defaultRoleSettings ?? { enabled: false, roleId: null },
+                welcomeSettings: meta.welcomeSettings ?? { enabled: false, channelId: null, template: "¡Bienvenido {user} a {server}! 🎉" },
               };
               data.servers.push(recoveredServer);
               changed = true;
@@ -160,6 +164,14 @@ class ServerStore {
         if (s.allowExecutableFiles === undefined) {
           s.allowExecutableFiles = false;
         }
+        if (s.auditLog) {
+          delete s.auditLog;
+          updated = true;
+        }
+        if (s.savedMembers) {
+          delete s.savedMembers;
+          updated = true;
+        }
 
         if (deduplicatedMap.has(cleanCode)) {
           const prev = deduplicatedMap.get(cleanCode);
@@ -184,11 +196,20 @@ class ServerStore {
         }
       }
 
-      const servers = Array.from(deduplicatedMap.values());
+      let servers = Array.from(deduplicatedMap.values());
       if (servers.length !== rawServers.length) {
         updated = true;
       }
       data.servers = servers;
+
+      // Auto-recover if servers list is empty
+      if (servers.length === 0) {
+        const recovered = await this.recoverMissingServersFromRoomMeta(data);
+        if (recovered) {
+          servers = data.servers;
+          updated = true;
+        }
+      }
 
       this._updateSyncCache(servers);
       if (updated) {
@@ -209,11 +230,32 @@ class ServerStore {
   }
 
   async _write(data) {
-    if (data && data.servers) {
+    if (data && Array.isArray(data.servers)) {
+      // Strip any massive non-essential fields (like auditLog or savedMembers) from servers.json
+      for (const s of data.servers) {
+        if (!s) continue;
+        if (s.auditLog) delete s.auditLog;
+        if (s.savedMembers) delete s.savedMembers;
+      }
       this._updateSyncCache(data.servers);
     }
 
-    this._writeQueue = this._writeQueue.then(async () => {
+    // Safety guard: if servers array is empty, check if room-meta has valid server files
+    if (!data?.servers || data.servers.length === 0) {
+      try {
+        const fsSync = require("fs");
+        const roomMetaDir = path.join(this.userDataPath, "room-meta");
+        if (fsSync.existsSync(roomMetaDir)) {
+          const files = fsSync.readdirSync(roomMetaDir).filter((f) => f.endsWith(".json"));
+          if (files.length > 0) {
+            console.warn("[ServerStore] Safety check: refusing to overwrite servers.json with empty array while room-meta backups exist! Auto-recovering first...");
+            await this.recoverMissingServersFromRoomMeta(data);
+          }
+        }
+      } catch (e) {}
+    }
+
+    ServerStore._sharedWriteQueue = ServerStore._sharedWriteQueue.then(async () => {
       const dir = path.dirname(this.filePath);
       await fs.mkdir(dir, { recursive: true });
       const tmpPath = `${this.filePath}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
@@ -227,9 +269,11 @@ class ServerStore {
           await fs.unlink(tmpPath).catch(() => {});
         } catch (e2) {}
       }
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error("[ServerStore] Error during serialized _write:", err);
+    });
 
-    return this._writeQueue;
+    return ServerStore._sharedWriteQueue;
   }
 
   async list() {
@@ -281,12 +325,22 @@ class ServerStore {
 
   async get(serverId) {
     const data = await this._read();
-    return this._findServer(data, serverId);
+    let server = this._findServer(data, serverId);
+    if (!server) {
+      await this.recoverMissingServersFromRoomMeta(data);
+      server = this._findServer(data, serverId);
+    }
+    return server;
   }
 
   async getByRoomCode(roomCode) {
     const data = await this._read();
-    return this._findServer(data, roomCode);
+    let server = this._findServer(data, roomCode);
+    if (!server) {
+      await this.recoverMissingServersFromRoomMeta(data);
+      server = this._findServer(data, roomCode);
+    }
+    return server;
   }
 
   async add({ name, roomCode, isOwner, ownerId }) {
@@ -440,17 +494,24 @@ class ServerStore {
     if (settings.kickedUsers !== undefined) server.kickedUsers = settings.kickedUsers;
     if (Array.isArray(settings.plugins)) server.plugins = settings.plugins;
     if (Array.isArray(settings.webhooks)) server.webhooks = settings.webhooks;
+    if (settings.discoverConfig !== undefined) server.discoverConfig = settings.discoverConfig;
+    if (settings.defaultRoleSettings !== undefined) server.defaultRoleSettings = settings.defaultRoleSettings;
+    if (settings.welcomeSettings !== undefined) server.welcomeSettings = settings.welcomeSettings;
 
     if (Array.isArray(settings.channels)) {
       server.channels = settings.channels.map((c) => {
         const isCat = c.type === "category" || String(c.id).startsWith("cat-");
         return {
           id: c.id,
-          type: isCat ? "category" : c.type === "voice" ? "voice" : "text",
+          type: isCat ? "category" : c.type === "voice" ? "voice" : c.type === "forum" ? "forum" : "text",
           name: String(c.name ?? "")
             .trim()
             .slice(0, 32),
           parentId: c.parentId ?? null,
+          isPrivate: Boolean(c.isPrivate),
+          allowedRoles: Array.isArray(c.allowedRoles) ? c.allowedRoles : [],
+          hasSpeakRestrictions: Boolean(c.hasSpeakRestrictions),
+          disallowedSpeakRoles: Array.isArray(c.disallowedSpeakRoles) ? c.disallowedSpeakRoles : [],
         };
       });
     }
@@ -464,7 +525,11 @@ class ServerStore {
     if (!meta?.version) return null;
     const code = String(roomCode).trim().toUpperCase();
     const data = await this._read();
-    const server = data.servers.find((s) => s.roomCode === code);
+    let server = data.servers.find((s) => s.roomCode === code);
+    if (!server) {
+      await this.recoverMissingServersFromRoomMeta(data);
+      server = data.servers.find((s) => s.roomCode === code);
+    }
     if (!server) return null;
 
     // FIX 2: Authority validation already happened in RoomMetaStore.merge().
@@ -492,13 +557,26 @@ class ServerStore {
     if (meta.ownerId) server.ownerId = meta.ownerId;
     if (Array.isArray(meta.bannedUsers)) server.bannedUsers = meta.bannedUsers;
     if (meta.kickedUsers) server.kickedUsers = meta.kickedUsers;
-    if (Array.isArray(meta.auditLog)) server.auditLog = meta.auditLog;
+    // NOTE: NEVER copy meta.auditLog or savedMembers into servers.json! auditLog is kept in room-meta only.
+    if (server.auditLog) delete server.auditLog;
+    if (server.savedMembers) delete server.savedMembers;
     if (Array.isArray(meta.webhooks)) server.webhooks = meta.webhooks;
+    if (meta.discoverConfig !== undefined) server.discoverConfig = meta.discoverConfig;
+    if (meta.defaultRoleSettings !== undefined) server.defaultRoleSettings = meta.defaultRoleSettings;
+    if (meta.welcomeSettings !== undefined) server.welcomeSettings = meta.welcomeSettings;
 
     server.metaVersion = meta.version;
     server.metaUpdatedAt = meta.updatedAt;
     await this._write(data);
     return server;
+  }
+
+  async getServerByRoomCode(roomCode) {
+    return this.getByRoomCode(roomCode);
+  }
+
+  async updateServer(serverId, data) {
+    return this.updateSettings(serverId, data);
   }
 }
 

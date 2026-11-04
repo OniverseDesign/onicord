@@ -43,6 +43,20 @@ class UpdateService {
     );
     this.autoUpdater = null;
     this.updateAvailableInfo = null;
+    this.releaseNotesCache = new Map();
+    this.currentState = {
+      status: "idle",
+      version: null,
+      releaseDate: null,
+      releaseNotes: null,
+      percent: 0,
+      bytesPerSecond: 0,
+      transferred: 0,
+      total: 0,
+      isPortable: this.isPortable,
+      isDownloaded: false,
+      error: null,
+    };
   }
 
   init(mainWindow) {
@@ -54,7 +68,9 @@ class UpdateService {
     try {
       const { autoUpdater } = require("electron-updater");
       this.autoUpdater = autoUpdater;
-      this.autoUpdater.autoDownload = false;
+      // Auto-download update in background for packaged installer builds
+      this.autoUpdater.autoDownload = !this.isPortable;
+      // Automatically run silent installer upon application quit
       this.autoUpdater.autoInstallOnAppQuit = true;
       this.autoUpdater.logger = console;
 
@@ -65,9 +81,113 @@ class UpdateService {
   }
 
   _sendToRenderer(channel, payload) {
+    if (channel === "update:status" && payload) {
+      this.currentState = {
+        ...this.currentState,
+        ...payload,
+        isPortable: this.isPortable,
+      };
+      if (payload.status === "downloaded") {
+        this.currentState.isDownloaded = true;
+        this.currentState.percent = 100;
+      }
+      if (payload.version && payload.releaseNotes) {
+        const cleanVer = String(payload.version).replace(/^v/, "").trim();
+        this.releaseNotesCache.set(cleanVer, payload.releaseNotes);
+      }
+    }
+
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send(channel, payload);
     }
+  }
+
+  getUpdateState() {
+    return {
+      ...this.currentState,
+      currentVersion: getCurrentAppVersion(),
+      isPortable: this.isPortable,
+    };
+  }
+
+  async getReleaseNotes(targetVersion) {
+    const cleanVer = (targetVersion || getCurrentAppVersion()).replace(/^v/, "").trim();
+
+    // 1. Check in-memory release notes cache
+    if (this.releaseNotesCache.has(cleanVer)) {
+      return {
+        status: "ok",
+        version: cleanVer,
+        releaseNotes: this.releaseNotesCache.get(cleanVer),
+      };
+    }
+
+    // 2. If it matches current updateAvailableInfo
+    if (this.updateAvailableInfo && (this.updateAvailableInfo.version || "").replace(/^v/, "").trim() === cleanVer) {
+      if (this.updateAvailableInfo.releaseNotes) {
+        this.releaseNotesCache.set(cleanVer, this.updateAvailableInfo.releaseNotes);
+        return {
+          status: "ok",
+          version: cleanVer,
+          releaseNotes: this.updateAvailableInfo.releaseNotes,
+        };
+      }
+    }
+
+    // 3. Query GitHub Releases for the specific tag
+    try {
+      const res = await fetch(`https://api.github.com/repos/OniverseDesign/onicord/releases/tags/v${cleanVer}`, {
+        headers: {
+          "User-Agent": "Onicord-App",
+          "Accept": "application/vnd.github.v3+json",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const body = data.body || "Sin notas de lanzamiento detalladas para esta versión.";
+        this.releaseNotesCache.set(cleanVer, body);
+        return {
+          status: "ok",
+          version: cleanVer,
+          name: data.name,
+          releaseDate: data.published_at,
+          releaseNotes: body,
+        };
+      }
+    } catch (err) {
+      diagService.log("warn", "UpdateService", `Could not fetch release notes for tag v${cleanVer}: ${err.message}`);
+    }
+
+    // 4. Query GitHub Releases latest fallback
+    try {
+      const resLatest = await fetch("https://api.github.com/repos/OniverseDesign/onicord/releases/latest", {
+        headers: {
+          "User-Agent": "Onicord-App",
+          "Accept": "application/vnd.github.v3+json",
+        },
+      });
+      if (resLatest.ok) {
+        const data = await resLatest.json();
+        const latestVer = (data.tag_name || "").replace(/^v/, "").trim();
+        if (latestVer === cleanVer || !targetVersion) {
+          const body = data.body || "Sin notas de lanzamiento detalladas para esta versión.";
+          this.releaseNotesCache.set(cleanVer, body);
+          return {
+            status: "ok",
+            version: cleanVer,
+            name: data.name,
+            releaseDate: data.published_at,
+            releaseNotes: body,
+          };
+        }
+      }
+    } catch (_) {}
+
+    return {
+      status: "fallback",
+      version: cleanVer,
+      releaseNotes: `Notas de lanzamiento para Onicord v${cleanVer}.\nPara más detalles visita https://github.com/OniverseDesign/onicord/releases`,
+    };
   }
 
   _registerEvents() {
@@ -100,6 +220,10 @@ class UpdateService {
 
     this.autoUpdater.on("error", (err) => {
       diagService.log("warn", "UpdateService", `electron-updater error event: ${err?.message || err}`);
+      this._sendToRenderer("update:status", {
+        status: "error",
+        error: err?.message || String(err),
+      });
     });
 
     this.autoUpdater.on("download-progress", (progressObj) => {
@@ -117,6 +241,8 @@ class UpdateService {
       this._sendToRenderer("update:status", {
         status: "downloaded",
         version: info?.version,
+        isDownloaded: true,
+        percent: 100,
       });
     });
   }
@@ -213,10 +339,12 @@ class UpdateService {
       diagService.log("info", "UpdateService", "Dev mode: checking GitHub releases directly");
       const devResult = await this._checkGitHubReleasesDirectly();
       if (devResult) return devResult;
-      return {
+      const devState = {
         status: "dev-mode",
         message: "Las actualizaciones automáticas están deshabilitadas en entorno de desarrollo.",
       };
+      this._sendToRenderer("update:status", devState);
+      return devState;
     }
 
     // 2. Portable build: always query GitHub Releases directly
@@ -283,6 +411,7 @@ class UpdateService {
     }
 
     try {
+      this._sendToRenderer("update:status", { status: "downloading", percent: 0 });
       await this.autoUpdater.downloadUpdate();
       return { status: "downloading" };
     } catch (err) {

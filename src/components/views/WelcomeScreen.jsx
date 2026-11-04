@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import JoinModal from "../modals/JoinModal";
 import MaterialIcon from "../icons/MaterialIcon";
 
-const MAX_AVATAR_SIZE = 512 * 1024;
+const MAX_AVATAR_SIZE = 8 * 1024 * 1024;
 
 const CATEGORY_LABELS = {
   profile: "Perfil",
@@ -238,11 +238,11 @@ export default function WelcomeScreen({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Select a valid image (PNG, JPG, WebP).");
+      setError("Select a valid image (PNG, JPG, GIF, WebP).");
       return;
     }
     if (file.size > MAX_AVATAR_SIZE) {
-      setError("Image must be smaller than 512 KB.");
+      setError("Image must be smaller than 8 MB.");
       return;
     }
     const reader = new FileReader();
