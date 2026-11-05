@@ -37,7 +37,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libarchive-tools
+          sudo apt-get install -y libarchive-tools libx11-dev libxtst-dev libpng-dev
 
       - name: Install Dependencies
         run: npm ci

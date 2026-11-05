@@ -266,6 +266,22 @@ class UpdateService {
         const data = await response.json();
         const latestVersion = (data.tag_name || "").replace(/^v/, "").trim();
         if (latestVersion && isNewerVersion(latestVersion, currentVersion)) {
+          // Verify that the GitHub release actually has binary assets uploaded
+          if (Array.isArray(data.assets)) {
+            const hasReadyAsset = this.isPortable
+              ? data.assets.some((a) => /portable/i.test(a.name) && a.name.endsWith(".exe"))
+              : data.assets.some((a) => a.name === "latest.yml" || /setup/i.test(a.name) || (a.name.endsWith(".exe") && !/portable/i.test(a.name)));
+
+            if (data.assets.length === 0 || !hasReadyAsset) {
+              diagService.log("warn", "UpdateService", `Release v${latestVersion} has no ready binary assets uploaded yet.`);
+              this._sendToRenderer("update:status", {
+                status: "not-available",
+                version: currentVersion,
+              });
+              return { status: "not-available", version: currentVersion };
+            }
+          }
+
           diagService.log("info", "UpdateService", `Update available via GitHub API: v${latestVersion}`);
           const updateInfo = {
             version: latestVersion,
@@ -411,16 +427,27 @@ class UpdateService {
     }
 
     try {
+      if (!this.autoUpdater.updateInfo) {
+        diagService.log("info", "UpdateService", "startDownload: updateInfo is null, calling checkForUpdates() first");
+        const checkResult = await this.autoUpdater.checkForUpdates();
+        if (!checkResult?.updateInfo) {
+          throw new Error("No se encontraron paquetes de instalación válidos (latest.yml) en el repositorio para la versión seleccionada.");
+        }
+      }
+
       this._sendToRenderer("update:status", { status: "downloading", percent: 0 });
       await this.autoUpdater.downloadUpdate();
       return { status: "downloading" };
     } catch (err) {
       diagService.log("error", "UpdateService", `startDownload error: ${err.message}`);
+      const friendlyMsg = (err.message && err.message.includes("Please check update first"))
+        ? "El paquete de instalación aún no está disponible para su descarga en el servidor."
+        : (err.message || String(err));
       this._sendToRenderer("update:status", {
         status: "error",
-        error: err.message,
+        error: friendlyMsg,
       });
-      return { status: "error", error: err.message };
+      return { status: "error", error: friendlyMsg };
     }
   }
 
