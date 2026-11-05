@@ -28,7 +28,7 @@
     "check:i18n": "node check-i18n.js",
     "tools:backup": "node scripts/restore-local-tools.cjs backup",
     "tools:restore": "node scripts/restore-local-tools.cjs restore",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "node scripts/install-better-sqlite3.cjs"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
