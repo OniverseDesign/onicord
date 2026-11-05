@@ -47,6 +47,7 @@ const ForumPostCard = memo(
       profile,
       peersLookup,
       msg,
+      server,
     );
 
     // Calculate thread replies count (fast lookup if precomputed)
@@ -354,7 +355,7 @@ const ForumPostCard = memo(
           className="flex flex-wrap items-center gap-2 mt-2 pt-2.5 border-t border-white/5"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 1. Píldora: Reaccionar */}
+          {/* 1. React button */}
           <button
             type="button"
             onClick={(e) => {
@@ -372,7 +373,7 @@ const ForumPostCard = memo(
             <span>{t("chat.addReaction", "Reaccionar")}</span>
           </button>
 
-          {/* 2. Píldora: Responder (Omitida dentro del panel lateral del hilo) */}
+          {/* 2. Reply button (omitted when rendered inside thread side panel) */}
           {!isInThread && (
             <button
               type="button"
@@ -400,7 +401,7 @@ const ForumPostCard = memo(
             </button>
           )}
 
-          {/* 3. Píldora: Reenviar */}
+          {/* 3. Forward button */}
           <button
             type="button"
             onClick={(e) => {
@@ -415,7 +416,7 @@ const ForumPostCard = memo(
           </button>
         </div>
 
-        {/* Emoji Picker Popover para Reaccionar */}
+        {/* Emoji reaction popover */}
         {pickerTargetRect && (
           <EmojiPickerPopover
             targetRect={pickerTargetRect}

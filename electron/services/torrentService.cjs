@@ -56,11 +56,16 @@ const MIME_TYPES = {
   ".opus": "audio/opus",
 };
 
-// Códecs que Chromium / Electron reproduce de forma nativa sin transcodificación
+// Codecs natively supported by Chromium / Electron without transcoding
 const NATIVE_VIDEO_CODECS = new Set(["h264", "avc1", "vp8", "vp9", "av1", "theora"]);
 const NATIVE_AUDIO_CODECS = new Set(["aac", "mp3", "opus", "vorbis", "flac", "pcm_s16le", "pcm_s24le", "pcm_f32le", "mp4a"]);
 const FORCE_REMUX_EXTENSIONS = new Set([".avi", ".ts", ".m2ts", ".flv", ".wmv", ".mov"]);
 
+/**
+ * Service managing on-demand BitTorrent streaming for media files.
+ * Provides on-the-fly byte-range HTTP streaming and real-time FFmpeg transcoding
+ * for non-native video/audio codecs.
+ */
 class TorrentService {
   constructor() {
     this.engines = new Map(); // infoHash -> entry
@@ -93,13 +98,21 @@ class TorrentService {
     return Array.from(set);
   }
 
+  /**
+   * Initializes or retrieves an active torrent-stream engine instance for the given infoHash.
+   * Pauses inactive torrent engines to prioritize network bandwidth.
+   *
+   * @param {string} infoHash - 40-character hex BitTorrent infoHash
+   * @param {string[]} [customTrackers=[]] - Additional tracker URLs to announce to
+   * @returns {Promise<Object>} Active engine entry object
+   */
   async getOrCreateEngine(infoHash, customTrackers = []) {
     const cleanHash = String(infoHash || "").trim().toLowerCase();
     if (!/^[a-f0-9]{40}$/.test(cleanHash)) {
       throw new Error(`Invalid infoHash: ${infoHash}`);
     }
 
-    // Pausar otros torrents inactivos para concentrar el ancho de banda en la reproducción actual
+    // Pause inactive torrents to prioritize bandwidth for active playback
     for (const [hash, existing] of this.engines.entries()) {
       if (hash !== cleanHash && existing.activeRequests <= 0) {
         this.destroyEngine(hash);
@@ -158,7 +171,7 @@ class TorrentService {
         console.log(
           `[TorrentService] Metadatos P2P listos para ${cleanHash}: ${engine.files.length} archivo(s)`
         );
-        // Deseleccionar todos por defecto hasta que se pida el archivo específico
+        // Deselect all files by default until a specific stream file is requested
         engine.files.forEach((f) => {
           try {
             f.deselect();
@@ -198,7 +211,7 @@ class TorrentService {
       }
     }
 
-    // Buscar el archivo de video/audio más grande si el índice no coincide con un medio válido
+    // Find largest audio/video file if candidate index is not valid media
     let bestFile = null;
     let bestIdx = 0;
     for (let i = 0; i < engine.files.length; i++) {
@@ -215,7 +228,7 @@ class TorrentService {
       return { file: bestFile, index: bestIdx };
     }
 
-    // Fallback al archivo de mayor tamaño general
+    // Fallback to largest file overall
     let largest = engine.files[0];
     let largestIdx = 0;
     for (let i = 1; i < engine.files.length; i++) {
@@ -227,6 +240,14 @@ class TorrentService {
     return { file: largest, index: largestIdx };
   }
 
+  /**
+   * Probes media stream codecs using ffprobe via internal HTTP stream.
+   * Caches results per file index.
+   *
+   * @param {Object} entry - Torrent engine entry
+   * @param {number} fileIndex - Index of the target media file
+   * @returns {Promise<{videoCodec: string, audioCodec: string, duration: number, isVideoNative: boolean, isAudioNative: boolean, needsTranscode: boolean}>}
+   */
   async probeStreamCodecs(entry, fileIndex) {
     if (entry.codecCache.has(fileIndex)) {
       return entry.codecCache.get(fileIndex);
@@ -326,6 +347,14 @@ class TorrentService {
     return probePromise;
   }
 
+  /**
+   * Serves raw media stream using HTTP 206 Partial Content (Range requests) or full HTTP 200.
+   *
+   * @param {import("http").IncomingMessage} req
+   * @param {import("http").ServerResponse} res
+   * @param {Object} entry - Torrent engine entry
+   * @param {Object} file - torrent-stream file handle
+   */
   serveRawRangeStream(req, res, entry, file) {
     const fileSize = file.length;
     const ext = path.extname(file.name).toLowerCase();
@@ -394,6 +423,17 @@ class TorrentService {
     }
   }
 
+  /**
+   * Spawns an FFmpeg pipeline to remux/transcode audio or video into fragmented MP4
+   * on-the-fly and pipes output directly to the HTTP response stream.
+   *
+   * @param {import("http").IncomingMessage} req
+   * @param {import("http").ServerResponse} res
+   * @param {Object} entry - Torrent engine entry
+   * @param {number} fileIndex - Index of the target media file
+   * @param {Object} probeInfo - Output from probeStreamCodecs
+   * @param {number} [startTimeSec=0] - Offset in seconds to seek to
+   */
   serveTranscodedStream(req, res, entry, fileIndex, probeInfo, startTimeSec = 0) {
     if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
       const resolved = this.resolveTargetFile(entry.engine, fileIndex);
@@ -500,7 +540,7 @@ class TorrentService {
   }
 
   async handleHttpRequest(req, res, parsedUrl) {
-    // Formato esperado: /torrent/:infoHash/:fileIdx[/raw|/stats]
+    // Expected format: /torrent/:infoHash/:fileIdx[/raw|/stats]
     const parts = (parsedUrl.pathname || "").split("/").filter(Boolean);
     // parts[0] === "torrent"
     const infoHash = (parts[1] || "").toLowerCase();
@@ -578,7 +618,7 @@ class TorrentService {
         file.select();
       } catch (_) {}
 
-      // Endpoint interno /raw siempre sirve bytes directos por Range
+      // Internal /raw endpoint always serves direct bytes via HTTP Range
       if (subAction === "raw" || parsedUrl.query?.raw === "1") {
         return this.serveRawRangeStream(req, res, entry, file);
       }
@@ -592,7 +632,7 @@ class TorrentService {
         return this.serveTranscodedStream(req, res, entry, actualIndex, probeInfo, startTimeSec);
       }
 
-      // Para archivos .mkv o .mp4, verificar si tienen audio AC3/EAC3/DTS o video HEVC
+      // For .mkv/.mp4 containers, verify whether audio or video tracks require transcoding (e.g. AC3/DTS/HEVC)
       if (ext === ".mkv" || ext === ".mp4" || ext === ".m4v") {
         const probeInfo = await this.probeStreamCodecs(entry, actualIndex);
         if (probeInfo.needsTranscode) {

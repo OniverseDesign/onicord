@@ -1,7 +1,10 @@
 export function getEffectiveProfile(profile, serverIdOrRoomCode, servers = []) {
   if (!profile) return null;
   if (!serverIdOrRoomCode) return profile;
-  const rawKey = String(serverIdOrRoomCode).trim();
+  const targetKey = (typeof serverIdOrRoomCode === "object" && serverIdOrRoomCode !== null)
+    ? (serverIdOrRoomCode.roomCode || serverIdOrRoomCode.id || "")
+    : serverIdOrRoomCode;
+  const rawKey = String(targetKey).trim();
   const safeKey = rawKey.toUpperCase();
   const serverProfiles = profile.serverProfiles || {};
 
@@ -94,31 +97,64 @@ export function resolveAuthorDisplay(
     };
   }
 
+  const serverObj = (typeof serverContext === "object" && serverContext !== null) ? serverContext : null;
+  const serverScope = serverObj ? (serverObj.roomCode || serverObj.id) : serverContext;
+
+  // 1. Self profile display
   if (profile?.id && (authorId === profile.id || authorId === "self")) {
-    const effective = serverContext ? getEffectiveProfile(profile, serverContext) : profile;
+    const effective = serverScope ? getEffectiveProfile(profile, serverScope) : profile;
     return { nickname: effective.nickname, avatar: effective.avatar ?? null };
   }
 
-  if (peers instanceof Map) {
-    const peer = peers.get(authorId);
-    if (peer) {
-      return { nickname: peer.nickname, avatar: peer.avatar ?? null };
-    }
-  } else if (Array.isArray(peers)) {
-    for (const peer of peers) {
-      if (peer.id === authorId || peer.userId === authorId) {
-        return { nickname: peer.nickname, avatar: peer.avatar ?? null };
-      }
-    }
+  // 2. Server savedMembers display (takes priority for current server nicknames & avatars)
+  const savedMember = serverObj?.savedMembers?.[authorId];
+  if (savedMember && savedMember.nickname) {
+    return {
+      nickname: savedMember.nickname,
+      avatar: savedMember.avatar !== undefined ? savedMember.avatar : null,
+    };
   }
 
+  // 3. Message author metadata (sent at time of message creation with effective profile)
+  if (messageFallback?.authorNickname) {
+    return {
+      nickname: messageFallback.authorNickname,
+      avatar: messageFallback.authorAvatar !== undefined ? messageFallback.authorAvatar : (messageFallback.avatar ?? null),
+    };
+  }
+
+  // 4. Online peer lookup
+  let peer = null;
+  if (peers instanceof Map) {
+    peer = peers.get(authorId);
+  } else if (Array.isArray(peers)) {
+    peer = peers.find((p) => p && (p.id === authorId || p.userId === authorId || p.peerId === authorId));
+  }
+
+  if (peer) {
+    let effNickname = peer.nickname;
+    let effAvatar = peer.avatar;
+    if (serverScope && peer.serverProfiles) {
+      const scopeKey = String(serverScope).trim().toUpperCase();
+      const override = peer.serverProfiles[scopeKey] || peer.serverProfiles[serverScope];
+      if (override?.nickname) effNickname = override.nickname;
+      if (override?.avatar !== undefined && override?.avatar !== null && override?.avatar !== "") {
+        effAvatar = override.avatar;
+      }
+    }
+    return {
+      nickname: effNickname || "Usuario",
+      avatar: effAvatar ?? null,
+    };
+  }
+
+  // 5. Final fallback
   return {
     nickname:
-      messageFallback?.authorNickname ||
       messageFallback?.complementName ||
       messageFallback?.nickname ||
       "Usuario",
-    avatar: messageFallback?.authorAvatar ?? messageFallback?.avatar ?? null,
+    avatar: messageFallback?.avatar ?? null,
   };
 }
 
@@ -129,6 +165,7 @@ export function buildPeerLookup(peers) {
     for (const peer of peers) {
       if (peer && peer.id) byKey.set(peer.id, peer);
       if (peer && peer.userId) byKey.set(peer.userId, peer);
+      if (peer && peer.peerId) byKey.set(peer.peerId, peer);
     }
   }
   return byKey;

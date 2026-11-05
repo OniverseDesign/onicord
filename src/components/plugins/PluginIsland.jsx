@@ -232,7 +232,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
   const idleTimerRef = useRef(null);
   const isExpanded = isPinned || isHovered;
 
-  // Temporizador de reposo de 2 minutos (120000ms)
+  // 2-minute idle rest timer (120000ms)
   const resetIdleTimer = useCallback(() => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     idleTimerRef.current = setTimeout(() => {

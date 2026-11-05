@@ -52,11 +52,14 @@ export function extractInstagramId(urlStr) {
   }
 }
 
+const clientOgCache = new Map();
+
 export default function MessageEmbedCard({ url }) {
   const { t } = useTranslation();
   const { inVoice } = useVoiceChannelInfo();
-  const [ogData, setOgData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const cachedData = url ? clientOgCache.get(url) : null;
+  const [ogData, setOgData] = useState(() => cachedData || null);
+  const [loading, setLoading] = useState(() => !cachedData);
   const [isPlaying, setIsPlaying] = useState(false);
   const [ogEnabled, setOgEnabled] = useState(() => {
     try {
@@ -88,12 +91,21 @@ export default function MessageEmbedCard({ url }) {
       setLoading(false);
       return;
     }
+
+    if (clientOgCache.has(url)) {
+      const cached = clientOgCache.get(url);
+      setOgData(cached);
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
     if (window.electronAPI?.fetchOpenGraph) {
       window.electronAPI
         .fetchOpenGraph(url)
         .then((data) => {
           if (data && isMounted) {
+            clientOgCache.set(url, data);
             setOgData(data);
             // Signal ChatPanel to re-anchor scroll if user was at the bottom
             window.dispatchEvent(new CustomEvent("onicord:embed-loaded"));

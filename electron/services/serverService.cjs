@@ -3,11 +3,25 @@ const crypto = require("crypto");
 const { ServerStore } = require("../p2p/serverStore.cjs");
 const { RoomMetaStore } = require("../p2p/roomMetaStore.cjs");
 
+/**
+ * High-level service managing P2P server lifecycles, background peer discovery,
+ * room join procedures, and channel synchronization.
+ */
 class ServerService {
   getServerStore() {
     return new ServerStore(app.getPath("userData"));
   }
 
+  /**
+   * Joins an active P2P server room, initializes local user profile state,
+   * establishes network connections via RoomManager, and touches last active timestamp.
+   *
+   * @param {string} serverId - Server identifier or room code
+   * @param {Object} profile - User profile data (name, avatar, publicKey, etc.)
+   * @param {Object} roomManager - Active RoomManager coordinator instance
+   * @param {Function} [startLocalStreamServer] - Callback to start local media streaming proxy
+   * @returns {Promise<Object>} Joined server metadata record
+   */
   async enterServer(serverId, profile, roomManager, startLocalStreamServer) {
     if (!serverId) throw new Error("Server ID is required");
     const cleanId = String(serverId).trim();
@@ -38,18 +52,44 @@ class ServerService {
       startLocalStreamServer();
     }
 
-    return server;
+    try {
+      const { RoomMetaStore } = require("../p2p/roomMetaStore.cjs");
+      const roomMetaStore = roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
+      const meta = await roomMetaStore.load(server.roomCode, true);
+      return {
+        ...server,
+        savedMembers: meta?.savedMembers || {},
+      };
+    } catch (_) {
+      return server;
+    }
   }
 
+  /**
+   * Connects to all other registered servers in the background to listen for incoming
+   * notifications, direct messages, and peer state updates without switching the active UI view.
+   *
+   * @param {Object} profile - Local user profile
+   * @param {string} excludeServerId - Current active server ID to exclude from background boot
+   * @param {Object} roomManager - Active RoomManager coordinator instance
+   */
   async bootBackgroundServers(profile, excludeServerId, roomManager) {
     if (!roomManager) return;
+    if (profile) {
+      roomManager.setProfile(profile);
+    }
+    try {
+      await roomManager.p2pService?.ensureSwarm();
+    } catch (err) {
+      console.error("[ServerService] Error ensuring global discovery swarm:", err.message);
+    }
     const store = this.getServerStore();
     const servers = await store.list();
     for (const server of servers) {
       if (server.id === excludeServerId) continue;
       if (!server.roomCode) continue;
       try {
-        await roomManager.connectToRoom(server.roomCode, server.isOwner, profile);
+        await roomManager.connectToRoom(server.roomCode, server.isOwner, profile, { isBackground: true });
       } catch (err) {
         console.error(`[ServerService] Error booting background room ${server.roomCode}:`, err.message);
       }
@@ -67,12 +107,14 @@ class ServerService {
       roomCode: code,
       isOwner: true,
       ownerId: profile.id,
+      creatorId: profile.id,
+      creatorID: profile.id,
     });
 
     const roomMetaStore = new RoomMetaStore(app.getPath("userData"));
     await roomMetaStore.bump(
       code,
-      { name: server.name, channels: server.channels, ownerId: profile.id },
+      { name: server.name, channels: server.channels, ownerId: profile.id, creatorId: profile.id, creatorID: profile.id },
       "local"
     );
 
@@ -81,17 +123,19 @@ class ServerService {
 
   async leaveRoom(roomManager) {
     console.log(
-      "\n============= [SERVICE COMMAND] EXECUTING ROOM: LEAVE ============="
+      "\n============= [SERVICE COMMAND] EXECUTING ROOM: LEAVE (VIEW DEACTIVATE) ============="
     );
     if (roomManager) {
       try {
         roomManager.leaveVoice();
-        console.log("[ONICORD P2P] Canal de voz purgado preventivamente.");
-        await roomManager.destroy();
-        console.log("[ONICORD P2P] Servidor Ares y Swarm destruidos con éxito.");
+        roomManager.voiceService?.stopPingInterval();
+        roomManager.fileService?.setRoomCode(null);
+        roomManager.roomCode = null;
+        roomManager.isHost = false;
+        roomManager._moderationCache = null;
       } catch (err) {
         console.error(
-          "[ONICORD P2P Error] Failed to clear network buffers:",
+          "[ONICORD P2P Error] Failed to deactivate current room view:",
           err.message
         );
       }
@@ -103,26 +147,34 @@ class ServerService {
       `\n============= [SERVICE COMMAND] DELETING SERVER: ${serverId} =============`
     );
     const store = this.getServerStore();
-    const server = await store.get(serverId);
+    const server = (await store.get(serverId)) || (await store.getByRoomCode(serverId));
+    const code = (server?.roomCode || serverId) ? String(server?.roomCode || serverId).trim().toUpperCase() : null;
+
+    const localProfileId = roomManager?.p2pService?.profile?.id || roomManager?.profile?.id;
+
+    if (code && localProfileId && roomManager?.p2pService) {
+      try {
+        roomManager.p2pService._broadcast("member-leave", { roomCode: code, userId: localProfileId }, code);
+        console.log(`[ServerService] Broadcasted member-leave for user ${localProfileId} in room ${code}`);
+      } catch (err) {
+        console.warn("[ServerService] Failed to broadcast member-leave:", err.message);
+      }
+    }
 
     const isCurrentlyActiveRoom =
-      server &&
+      code &&
       roomManager &&
       (
-        (roomManager.rooms && roomManager.rooms.has(server.roomCode)) ||
-        (roomManager.chatService && roomManager.chatService._isActiveRoom?.(server.roomCode)) ||
-        (roomManager.roomCode && (
-          String(roomManager.roomCode).toUpperCase() === String(server.roomCode || "").toUpperCase() ||
-          String(roomManager.roomCode).toUpperCase() === String(server.id || "").toUpperCase()
-        ))
+        (roomManager.rooms && roomManager.rooms.has(code)) ||
+        (roomManager.chatService && roomManager.chatService._isActiveRoom?.(code)) ||
+        (roomManager.roomCode && String(roomManager.roomCode).toUpperCase() === code)
       );
 
     if (isCurrentlyActiveRoom) {
       try {
         const roomMetaStore = roomManager.roomMetaStore;
-        if (roomMetaStore) {
-          const meta = await roomMetaStore.load(server.roomCode);
-          const localProfileId = roomManager.p2pService?.profile?.id;
+        if (roomMetaStore && code) {
+          const meta = await roomMetaStore.load(code);
           if (meta && localProfileId && meta.ownerId === localProfileId) {
             const otherMembers = Object.values(meta.savedMembers || {})
               .filter((m) => m.id !== localProfileId);
@@ -135,18 +187,25 @@ class ServerService {
               });
 
               const newOwnerId = otherMembers[0].id;
-              console.log(`[Owner Inheritance] Transferring ownership of server ${server.roomCode} from ${meta.ownerId} to oldest member: ${newOwnerId}`);
+              console.log(`[Owner Inheritance] Transferring ownership of server ${code} from ${meta.ownerId} to oldest member: ${newOwnerId}`);
+
+              const updatedSavedMembers = { ...(meta.savedMembers || {}) };
+              delete updatedSavedMembers[localProfileId];
 
               await roomMetaStore.bump(
-                server.roomCode,
-                { ownerId: newOwnerId },
+                code,
+                { ownerId: newOwnerId, savedMembers: updatedSavedMembers },
                 localProfileId
               );
 
               await roomManager.publishServerMeta({
-                ownerId: newOwnerId
-              }, server.roomCode).catch(() => {});
+                ownerId: newOwnerId,
+                savedMembers: updatedSavedMembers
+              }, code).catch(() => {});
             }
+          }
+          if (localProfileId) {
+            await roomMetaStore.removeSavedMember(code, localProfileId);
           }
         }
       } catch (err) {
@@ -154,20 +213,19 @@ class ServerService {
       }
 
       try {
-        roomManager.leaveVoice();
-        await roomManager.destroy();
+        await roomManager.leaveSingleRoom(code);
         console.log(
-          "[ONICORD P2P] Servidor activo removido y sockets purgados del S.O."
+          `[ONICORD P2P] Sala ${code} desconectada limpiamente sin afectar otros servidores.`
         );
       } catch (e) {
         console.error(
-          "[ONICORD P2P] Error purging manager on removal:",
+          "[ONICORD P2P] Error leaving single room on removal:",
           e.message
         );
       }
     }
 
-    return await store.remove(serverId);
+    return await store.remove(server?.id || serverId);
   }
 
   async joinServer(code, name, profile) {
@@ -178,15 +236,42 @@ class ServerService {
     if (!/^[A-F0-9]{8}$/.test(normalized))
       throw new Error("Código de invitación inválido");
 
+    let discovered = null;
+    try {
+      const discoverService = require("./discoverService.cjs");
+      discovered = discoverService.discoveredServers?.get(normalized);
+    } catch (_) {}
+
     return await this.getServerStore().add({
-      name: name || `Servidor ${normalized}`,
+      name: name || discovered?.name || `Servidor ${normalized}`,
       roomCode: normalized,
       isOwner: false,
+      icon: discovered?.icon || null,
+      banner: discovered?.banner || null,
     });
   }
 
   async listServers() {
-    return await this.getServerStore().list();
+    const servers = await this.getServerStore().list();
+    try {
+      const { RoomMetaStore } = require("../p2p/roomMetaStore.cjs");
+      const roomMetaStore = new RoomMetaStore(app.getPath("userData"));
+      return await Promise.all(
+        servers.map(async (s) => {
+          try {
+            if (s.roomCode) {
+              const meta = await roomMetaStore.load(s.roomCode, true);
+              if (meta?.savedMembers) {
+                return { ...s, savedMembers: meta.savedMembers };
+              }
+            }
+          } catch (_) {}
+          return s;
+        })
+      );
+    } catch (_) {
+      return servers;
+    }
   }
 
   async updateServer(serverId, data, roomManager) {
@@ -522,6 +607,103 @@ class ServerService {
         mergedAuditLog = auditLogs;
       }
 
+      // Detect newly banned or kicked users BEFORE publishing metadata
+      const newlyPenalizedIds = new Set();
+      if (Array.isArray(data.bannedUsers)) {
+        const beforeBanned = Array.isArray(before?.bannedUsers) ? before.bannedUsers : [];
+        for (const id of data.bannedUsers) {
+          if (!beforeBanned.includes(id)) newlyPenalizedIds.add(id);
+        }
+      }
+      if (data.kickedUsers) {
+        const beforeKicked = before?.kickedUsers || {};
+        for (const [id, kickTime] of Object.entries(data.kickedUsers)) {
+          if (!beforeKicked[id] || beforeKicked[id] !== kickTime) newlyPenalizedIds.add(id);
+        }
+      }
+
+      let cleanedSavedMembers = null;
+      let latestMetaSnapshot = null;
+      const metaStore = roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
+      try {
+        latestMetaSnapshot = await metaStore.load(targetServerRoomCode);
+      } catch (_) {}
+
+      if (newlyPenalizedIds.size > 0) {
+        try {
+          for (const id of newlyPenalizedIds) {
+            latestMetaSnapshot = await metaStore.removeSavedMember(targetServerRoomCode, id);
+          }
+          if (latestMetaSnapshot?.savedMembers) {
+            cleanedSavedMembers = { ...latestMetaSnapshot.savedMembers };
+          }
+        } catch (_) {}
+
+        // Send lightweight "evict" message FIRST before queueing multi-MB publishServerMeta
+        if (roomManager && roomManager.p2pService) {
+          const normalizedTargetRoom = String(targetServerRoomCode || "").trim().toUpperCase();
+          const isViewingTargetRoom = Boolean(
+            roomManager.roomCode &&
+            String(roomManager.roomCode).trim().toUpperCase() === normalizedTargetRoom
+          );
+
+          for (const penalizedId of newlyPenalizedIds) {
+            const isBanned = Array.isArray(updated.bannedUsers) && updated.bannedUsers.includes(penalizedId);
+            const matchingPeers = Array.from(roomManager.p2pService.peers.values()).filter(
+              (p) => p.userId === penalizedId || p.id === penalizedId || p.peerId === penalizedId
+            );
+            for (const peer of matchingPeers) {
+              const targetPeerId = peer.id || peer.peerId;
+              console.log(`[ServerService Moderation] Evicting peer ${targetPeerId} (userId: ${penalizedId}) from ${normalizedTargetRoom} due to ${isBanned ? "ban" : "kick"}`);
+              try {
+                const { safeWriteSocket, encodeMessage } = require("../network/p2pService.cjs");
+                safeWriteSocket(peer.socket, encodeMessage("evict", {
+                  type: isBanned ? "banned" : "kicked",
+                  roomCode: normalizedTargetRoom,
+                  name: updated.name,
+                }));
+              } catch (e) {
+                console.error("[ServerService Moderation] Error sending evict socket message:", e);
+              }
+
+              // Isolate ONLY this room from peerRooms without destroying shared sockets for other servers
+              const peerRoomSet = roomManager.p2pService.peerRooms.get(targetPeerId);
+              if (peerRoomSet) {
+                peerRoomSet.delete(normalizedTargetRoom);
+              }
+              peer.syncRequestedRooms?.delete(normalizedTargetRoom);
+
+              if (isViewingTargetRoom) {
+                roomManager._callbacks?.onPeerLeft?.({
+                  id: penalizedId,
+                  peerId: targetPeerId,
+                  roomCode: normalizedTargetRoom,
+                });
+                roomManager.voiceService?.handlePeerLeft(targetPeerId, () => roomManager._emitVoiceState?.());
+              }
+            }
+
+            // Broadcast member-leave to remaining room peers so they immediately drop the evicted user
+            try {
+              roomManager.p2pService._broadcast(
+                "member-leave",
+                { roomCode: normalizedTargetRoom, userId: penalizedId },
+                normalizedTargetRoom
+              );
+            } catch (_) {}
+
+            // Even if peer wasn't actively connected, notify local UI if viewing this room
+            if (matchingPeers.length === 0 && isViewingTargetRoom) {
+              roomManager._callbacks?.onPeerLeft?.({
+                id: penalizedId,
+                peerId: penalizedId,
+                roomCode: normalizedTargetRoom,
+              });
+            }
+          }
+        }
+      }
+
       const metaPayload = {
         name: updated.name,
         icon: updated.icon,
@@ -543,14 +725,47 @@ class ServerService {
         discoverConfig: updated.discoverConfig || null,
         defaultRoleSettings: updated.defaultRoleSettings ?? { enabled: false, roleId: null },
         welcomeSettings: updated.welcomeSettings ?? { enabled: false, channelId: null, template: "¡Bienvenido {user} a {server}! 🎉" },
+        ...(cleanedSavedMembers ? { savedMembers: cleanedSavedMembers } : {}),
       };
 
-      if (roomManager?.publishServerMeta) {
-        roomManager.publishServerMeta(metaPayload, targetServerRoomCode).catch(() => {});
-      } else {
-        const metaStore = new RoomMetaStore(app.getPath("userData"));
-        metaStore.bump(targetServerRoomCode, metaPayload).catch(() => {});
+      if (roomManager) {
+        const normalizedTargetRoom = String(targetServerRoomCode || "").trim().toUpperCase();
+        if (roomManager.roomCode === normalizedTargetRoom) {
+          roomManager._moderationCache = {
+            bannedUsers: metaPayload.bannedUsers,
+            kickedUsers: metaPayload.kickedUsers,
+          };
+        }
+        const roomEntry = roomManager.rooms?.get(normalizedTargetRoom);
+        if (roomEntry) {
+          roomEntry.moderationCache = {
+            bannedUsers: metaPayload.bannedUsers,
+            kickedUsers: metaPayload.kickedUsers,
+          };
+        }
       }
+
+      if (roomManager?.publishServerMeta) {
+        try {
+          latestMetaSnapshot = await roomManager.publishServerMeta(metaPayload, targetServerRoomCode);
+        } catch (err) {
+          console.warn("[ServerService] publishServerMeta fallback to metaStore.bump:", err.message);
+          latestMetaSnapshot = await metaStore.bump(targetServerRoomCode, metaPayload, roomManager?.profile?.id || "local").catch(() => latestMetaSnapshot);
+        }
+      } else {
+        latestMetaSnapshot = await metaStore.bump(targetServerRoomCode, metaPayload, "local").catch(() => latestMetaSnapshot);
+      }
+
+      try {
+        const discoverService = require("./discoverService.cjs");
+        discoverService.syncAndAnnounceLocalServers().catch(() => {});
+      } catch (_) {}
+
+      return {
+        ...updated,
+        savedMembers: cleanedSavedMembers || latestMetaSnapshot?.savedMembers || {},
+        auditLog: mergedAuditLog,
+      };
     }
     try {
       const discoverService = require("./discoverService.cjs");

@@ -1,3 +1,14 @@
+# Onicord v0.2.3
+
+## Changes
+
+- **SQLite & Content-Addressed Storage (CAS) Database Architecture**: Migrated core storage from flat JSON files to high-performance `better-sqlite3` relational databases in WAL mode, coupled with a Content-Addressed Storage engine for SHA-256 media deduplication and automated legacy data migration.
+- **Interactive Server Moderation & Eviction Engine**: Added native confirmation dialogs for kicking and banning members, real-time ban/kick propagation across peer swarms, instant unbanning, and graceful eviction modals replacing browser alert popups.
+- **Rich Server Invites & Direct TCP Connection Links**: Full chat integration for server invites with live P2P metadata resolution (server icon, name, member count), one-click joining, and support for direct TCP deep links (`onicord://direct:<IP>:<PORT>/<CODE>`).
+- **Permission-Aware Unread Tracker & Server Read State**: Isolated unread badge tracking enforcing role-based channel visibility (`hasChannelAccess`) and direct message recipient verification, alongside one-click "Mark as Read" actions for channels and servers.
+- **Message Grouping & Server-Scoped Identity Polish**: Hardened message grouping logic preventing improper clustering between local users, remote peers, and webhooks, with full propagation of server-specific profiles across reply previews and reaction bars.
+- **P2P Media Streaming & Engine Optimization**: Streamlined background torrent engine prioritization, enhanced on-the-fly FFmpeg audio/video remuxing and transcoding fallbacks, and updated bundled `yt-dlp` binary.
+
 # Onicord v0.2.2
 
 ## Changes

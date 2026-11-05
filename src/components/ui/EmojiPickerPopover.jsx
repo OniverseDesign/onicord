@@ -559,7 +559,7 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={t("chat.searchEmojisPlaceholder")}
+          placeholder={t("chat.searchEmojisPlaceholder", "Buscar emojis...")}
           className="w-full bg-transparent text-xs text-white placeholder-onicord-muted outline-none"
           autoFocus
         />
@@ -614,7 +614,7 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
         // Search Results Mode (Single Grid)
         <div className="flex-1 overflow-y-auto p-2.5 custom-scrollbar">
           <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 mb-1.5">
-            {t("chat.searchEmojisPlaceholder", "Resultados de búsqueda")}
+            {t("chat.searchResults", "Resultados de búsqueda")}
           </h4>
           <div className="grid grid-cols-7 gap-1 content-start">
             {filteredSearchResults.map((emoji, idx) => (

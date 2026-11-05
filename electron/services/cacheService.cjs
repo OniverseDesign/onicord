@@ -2,22 +2,45 @@ const fs = require("fs");
 const fsPromises = require("fs/promises");
 const path = require("path");
 const { app } = require("electron");
+const { DbManager } = require("../storage/dbManager.cjs");
 
 class CacheService {
+  _getDownloadsMap() {
+    const map = {};
+    try {
+      const appConfigDb = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
+      const rows = appConfigDb.prepare("SELECT * FROM downloads").all();
+      for (const r of rows) {
+        map[r.download_id] = {
+          localPath: r.file_path,
+          savedAt: r.downloaded_at,
+        };
+      }
+    } catch {}
+
+    try {
+      const jsonPath = path.join(app.getPath("userData"), "downloads.json");
+      if (fs.existsSync(jsonPath)) {
+        const legacy = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+        for (const [id, val] of Object.entries(legacy)) {
+          if (!map[id] && val?.localPath) {
+            map[id] = val;
+          }
+        }
+      }
+    } catch {}
+
+    return map;
+  }
+
   async getServerFiles(roomCode) {
     if (!roomCode || !global.roomManager?.fileIndexStore) return [];
     try {
       const records = await global.roomManager.fileIndexStore.load(roomCode);
       const files = [];
 
-      // Load downloads registry
-      const registryPath = path.join(app.getPath("userData"), "downloads.json");
-      let downloadsRegistry = {};
-      if (fs.existsSync(registryPath)) {
-        try {
-          downloadsRegistry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-        } catch (e) {}
-      }
+      // Load downloads registry from app_config.db
+      const downloadsRegistry = this._getDownloadsMap();
 
       for (const record of records) {
         let localPath = null;
@@ -76,21 +99,11 @@ class CacheService {
       // Safely un-index file from fileIndexStore (DO NOT unlink user's PC physical file!)
       await global.roomManager.fileIndexStore.remove(roomCode, fileRecord.id);
 
-      // Clean up downloads registry entry if present
-      const registryPath = path.join(app.getPath("userData"), "downloads.json");
-      if (fs.existsSync(registryPath)) {
-        try {
-          let downloadsRegistry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-          if (downloadsRegistry[fileRecord.id]) {
-            delete downloadsRegistry[fileRecord.id];
-            await fsPromises.writeFile(
-              registryPath,
-              JSON.stringify(downloadsRegistry, null, 2),
-              "utf8"
-            );
-          }
-        } catch (e) {}
-      }
+      // Clean up downloads registry entry in app_config.db
+      try {
+        const appConfigDb = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
+        appConfigDb.prepare("DELETE FROM downloads WHERE download_id = ?").run(String(fileRecord.id));
+      } catch {}
 
       return true;
     } catch (err) {
@@ -102,14 +115,10 @@ class CacheService {
   async clearServerCache(roomCode) {
     if (!roomCode || !global.roomManager?.fileIndexStore) return false;
     try {
-      // Clear downloads registry entries safely without unlinking any physical files on disk
-      const registryPath = path.join(app.getPath("userData"), "downloads.json");
-      if (fs.existsSync(registryPath)) {
-        try {
-          await fsPromises.writeFile(registryPath, JSON.stringify({}, null, 2), "utf8");
-        } catch (e) {}
-      }
-
+      const appConfigDb = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
+      appConfigDb
+        .prepare("DELETE FROM downloads WHERE source_room_code = ? OR source_room_code IS NULL")
+        .run(String(roomCode).trim().toUpperCase());
       return true;
     } catch (err) {
       console.error("[CacheService] Error clearing server cache:", err.message);
@@ -122,16 +131,13 @@ class CacheService {
     let totalFiles = 0;
 
     try {
-      const registryPath = path.join(app.getPath("userData"), "downloads.json");
-      if (fs.existsSync(registryPath)) {
-        const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-        for (const key of Object.keys(registry)) {
-          const lp = registry[key].localPath;
-          if (lp && fs.existsSync(lp)) {
-            const stats = fs.statSync(lp);
-            totalSize += stats.size;
-            totalFiles += 1;
-          }
+      const registry = this._getDownloadsMap();
+      for (const key of Object.keys(registry)) {
+        const lp = registry[key].localPath;
+        if (lp && fs.existsSync(lp)) {
+          const stats = fs.statSync(lp);
+          totalSize += stats.size;
+          totalFiles += 1;
         }
       }
     } catch (e) {
@@ -153,13 +159,10 @@ class CacheService {
         }
       }
 
-      const registryPath = path.join(app.getPath("userData"), "downloads.json");
-      if (fs.existsSync(registryPath)) {
-        const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-        const dl = registry[String(fileId)];
-        if (dl?.localPath && fs.existsSync(dl.localPath)) {
-          return dl.localPath;
-        }
+      const registry = this._getDownloadsMap();
+      const dl = registry[String(fileId)];
+      if (dl?.localPath && fs.existsSync(dl.localPath)) {
+        return dl.localPath;
       }
 
       return null;

@@ -236,6 +236,10 @@ export function useChatMessages({
   const focusTimeoutRef = useRef(null);
   const checkedAttachmentIdsRef = useRef(new Set());
   const autoDownloadingIdsRef = useRef(new Set());
+  const serverRef = useRef(server);
+  useEffect(() => {
+    serverRef.current = server;
+  }, [server]);
   const generalSettingsRef = useRef(
     profile?.general ? normalizeGeneralSettings(profile.general) : getStoredGeneralSettings()
   );
@@ -391,11 +395,11 @@ export function useChatMessages({
       for (const att of newAttachmentsToCheck) {
         try {
           let savedPath = null;
-          // Si el archivo fue enviado por el propio usuario, buscar en su índice de subidas locales
+          // If file was sent by the local user, look up in their local uploads index
           if (att.isMyMessage && window.electronAPI?.fetchUploadedLocalPath && roomCode) {
             savedPath = await window.electronAPI.fetchUploadedLocalPath(roomCode, att.id);
           }
-          // Si no o si es de otro usuario, consultar registro de descargas e índice compartido
+          // Otherwise, query download history registry and shared media index
           if (!savedPath && window.electronAPI?.fetchMediaLocalPath) {
             savedPath = await window.electronAPI.fetchMediaLocalPath(att.id, roomCode);
           }
@@ -407,7 +411,7 @@ export function useChatMessages({
               localPath: savedPath,
             };
           } else if (
-            !att.isMyMessage && // NUNCA auto-descargar archivos propios que ya están en el disco
+            !att.isMyMessage && // Never auto-download own files that already exist on disk
             isAutoEnabled &&
             window.electronAPI?.downloadFile &&
             roomCode &&
@@ -435,10 +439,20 @@ export function useChatMessages({
           if (autoDownloadingIdsRef.current.has(att.id)) continue;
           autoDownloadingIdsRef.current.add(att.id);
           try {
-            await window.electronAPI.downloadFile(roomCode, att.id, att.name, att.size, {
+            const res = await window.electronAPI.downloadFile(roomCode, att.id, att.name, att.size, {
               autoDownload: true,
               customDir: downloadDir,
             });
+            if (res?.done && res?.filePath) {
+              setFileProgress((prev) => ({
+                ...prev,
+                [att.id]: {
+                  progress: 100,
+                  done: true,
+                  localPath: res.filePath,
+                },
+              }));
+            }
           } catch (e) {
             console.warn("[AutoDownload] Error auto-descargando archivo:", att.name, e);
             autoDownloadingIdsRef.current.delete(att.id);
@@ -577,8 +591,10 @@ export function useChatMessages({
       });
     };
 
-    const fetchFreshHistory = () => {
-      setLoading(true);
+    const fetchFreshHistory = (showLoading = true) => {
+      if (showLoading) {
+        setLoading(true);
+      }
 
       api
         .getChatHistory(roomCode, channelId)
@@ -590,27 +606,31 @@ export function useChatMessages({
           );
           setMessages(sortedHistory);
           setVisibleCount?.(Math.min(40, historialMensajes.length));
-          setLoading(false);
+          if (showLoading) {
+            setLoading(false);
+          }
         })
         .catch((err) => {
           console.error("Error cargando historial", err);
-          setLoading(false);
+          if (showLoading) {
+            setLoading(false);
+          }
         });
     };
 
-    fetchFreshHistory();
+    fetchFreshHistory(true);
 
     const unsubRoomJoined = api.onRoomJoined?.((data) => {
-      if (data?.code === roomCode) fetchFreshHistory();
+      if (data?.code === roomCode) fetchFreshHistory(false);
     });
 
     const unsubRoomCreated = api.onRoomCreated?.((data) => {
-      if (data?.code === roomCode) fetchFreshHistory();
+      if (data?.code === roomCode) fetchFreshHistory(false);
     });
 
     const unsubSyncComplete = api.onSyncComplete?.((data) => {
       if (data?.type === "sticker_pack_imported") return;
-      fetchFreshHistory();
+      fetchFreshHistory(false);
     });
 
     const unsub = api.onChatMessage(async (msg) => {
@@ -766,11 +786,12 @@ export function useChatMessages({
         const myNickLower = (profile?.nickname || "").toLowerCase();
         const isDirectMention = myNickLower && textLower.includes(`@${myNickLower}`);
 
-        const myRoleIds = Array.isArray(server?.userRoles?.[profile?.id])
-          ? server.userRoles[profile.id]
-          : (server?.userRoles?.[profile?.id] ? [server.userRoles[profile.id]] : []);
+        const currentServer = serverRef.current || server;
+        const myRoleIds = Array.isArray(currentServer?.userRoles?.[profile?.id])
+          ? currentServer.userRoles[profile.id]
+          : (currentServer?.userRoles?.[profile?.id] ? [currentServer.userRoles[profile.id]] : []);
 
-        const myRoleNames = (server?.roles || [])
+        const myRoleNames = (currentServer?.roles || [])
           .filter((r) => myRoleIds.includes(r.id))
           .map((r) => r.name?.toLowerCase());
 
@@ -778,17 +799,17 @@ export function useChatMessages({
 
         const notifMode = localStorage.getItem(`channel_notif_mode_${channelId}`) || "all";
 
-        const currentChannel = server?.channels?.find((c) => c.id === channelId);
+        const currentChannel = currentServer?.channels?.find((c) => c.id === channelId);
         const channelName = currentChannel?.name || channelId;
-        const serverName = server?.name;
+        const serverName = currentServer?.name;
 
         const senderAvatar =
           msg.authorAvatar ||
           msg.avatar ||
           msg.user?.avatar ||
-          server?.savedMembers?.[msg.authorId]?.avatar ||
-          (Array.isArray(server?.members)
-            ? server.members.find((m) => m.id === msg.authorId || m.userId === msg.authorId)?.avatar
+          currentServer?.savedMembers?.[msg.authorId]?.avatar ||
+          (Array.isArray(currentServer?.members)
+            ? currentServer.members.find((m) => m.id === msg.authorId || m.userId === msg.authorId)?.avatar
             : null) ||
           null;
 
@@ -800,9 +821,9 @@ export function useChatMessages({
               nickname: msg.authorName || msg.user?.nickname || "Alguien",
               avatar: senderAvatar,
               text: msg.text,
-              roomCode: server?.roomCode || msg.roomCode,
+              roomCode: currentServer?.roomCode || msg.roomCode,
               channelId: channelId || msg.channelId || "general",
-              serverId: server?.id || msg.serverId,
+              serverId: currentServer?.id || msg.serverId,
               serverName,
               channelName,
             });
@@ -813,9 +834,9 @@ export function useChatMessages({
               nickname: msg.authorName || msg.user?.nickname || "Alguien",
               avatar: senderAvatar,
               text: msg.text,
-              roomCode: server?.roomCode || msg.roomCode,
+              roomCode: currentServer?.roomCode || msg.roomCode,
               channelId: channelId || msg.channelId || "general",
-              serverId: server?.id || msg.serverId,
+              serverId: currentServer?.id || msg.serverId,
               serverName,
               channelName,
             });
@@ -825,9 +846,9 @@ export function useChatMessages({
               avatar: senderAvatar,
               text: msg.text,
               isCurrentChannel: document.hasFocus(),
-              roomCode: server?.roomCode || msg.roomCode,
+              roomCode: currentServer?.roomCode || msg.roomCode,
               channelId: channelId || msg.channelId || "general",
-              serverId: server?.id || msg.serverId,
+              serverId: currentServer?.id || msg.serverId,
               serverName,
               channelName,
             });
@@ -865,7 +886,11 @@ export function useChatMessages({
         let nuevoFeed;
         if (optimisticIdx !== -1) {
           nuevoFeed = [...prev];
-          nuevoFeed[optimisticIdx] = normalizedMsg;
+          const oldOpt = prev[optimisticIdx];
+          nuevoFeed[optimisticIdx] = {
+            ...normalizedMsg,
+            clientTempId: oldOpt.id,
+          };
         } else {
           nuevoFeed = [...prev, normalizedMsg].sort(
             (a, b) => a.timestamp - b.timestamp,
@@ -927,7 +952,7 @@ export function useChatMessages({
         return {};
       });
     };
-  }, [roomCode, channelId, profile?.id, profile?.nickname, server, messagesCountRef, setVisibleCount, bottomRef, chatContainerRef]);
+  }, [roomCode, channelId, profile?.id, profile?.nickname, server?.id, messagesCountRef, setVisibleCount, bottomRef, chatContainerRef]);
 
   // Historical full-text search across all messages and channels
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React from "react";
 import ServerInviteCard from "../components/chat/ServerInviteCard";
+import { parseInviteUrl } from "./inviteUtils";
 
 export function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -125,16 +126,33 @@ export function parseInlineStyles(
     content: match[1],
   }));
 
-  // 2. Onicord invite cards
-  const inviteRegex = /(?:onicord:\/\/join\/([a-zA-Z0-9]+)|https?:\/\/(?:[a-zA-Z0-9-]+\.)?onicord\.(?:app|io|com)\/join\/([a-zA-Z0-9]+))/gi;
-  tokens = parseRegexToken(tokens, inviteRegex, (match) => {
-    const code = (match[1] || match[2] || "").trim().toUpperCase();
-    if (!code) return null;
-    return {
+  // 2. Onicord invite cards (native deep links or GitHub Pages landing invites)
+  const potentialInviteRegex = /(?:onicord:\/\/(?:join|direct:[^:\/\s]+:\d+)\/[a-zA-Z0-9]+|https?:\/\/[^\s\)]+)/gi;
+  tokens = parseRegexToken(tokens, potentialInviteRegex, (match) => {
+    let rawUrl = match[0];
+    let trailing = "";
+
+    // Strip trailing punctuation that might adhere to URLs at the end of a sentence
+    while (/[.,!?;:]$/.test(rawUrl)) {
+      trailing = rawUrl.slice(-1) + trailing;
+      rawUrl = rawUrl.slice(0, -1);
+    }
+
+    const parsed = parseInviteUrl(rawUrl);
+    if (!parsed || !parsed.roomCode) return null;
+
+    const token = {
       type: "inviteCard",
-      roomCode: code,
-      fullUrl: match[0],
+      roomCode: parsed.roomCode,
+      ip: parsed.ip || null,
+      port: parsed.port || null,
+      fullUrl: parsed.fullUrl,
     };
+
+    if (trailing) {
+      return [token, { type: "text", content: trailing }];
+    }
+    return token;
   });
 
   // 3. Explicit markdown links [label](url)
@@ -339,6 +357,8 @@ export function parseInlineStyles(
           <ServerInviteCard
             key={i}
             roomCode={token.roomCode}
+            ip={token.ip}
+            port={token.port}
             fullUrl={token.fullUrl}
           />
         );

@@ -74,6 +74,9 @@ export function addPlaytime(gameName, addedSeconds, cover = null, type = "game",
     };
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+    if (typeof window !== "undefined" && window.electronAPI?.savePlaytime) {
+      window.electronAPI.savePlaytime(current).catch(() => {});
+    }
     // Dispatch event so any mounted widgets refresh their live stats
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("onicord-playtime-updated", { detail: current }));
@@ -127,6 +130,26 @@ export function formatRelativeDate(timestamp, t = null) {
 export function initGlobalPlaytimeTracker() {
   const api = window.electronAPI;
   if (!api || typeof window === "undefined") return () => {};
+
+  // Hydrate and merge between SQLite (activity.db) and localStorage on boot
+  if (api.loadPlaytime) {
+    api.loadPlaytime().then((dbData) => {
+      const localData = getPlaytimeData();
+      const merged = { ...(dbData || {}) };
+      let hasNewFromLocal = false;
+      for (const [k, v] of Object.entries(localData)) {
+        if (!merged[k] || (v.totalSeconds || 0) > (merged[k].totalSeconds || 0)) {
+          merged[k] = v;
+          hasNewFromLocal = true;
+        }
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      if (hasNewFromLocal && api.savePlaytime) {
+        api.savePlaytime(merged).catch(() => {});
+      }
+      window.dispatchEvent(new CustomEvent("onicord-playtime-updated", { detail: merged }));
+    }).catch(() => {});
+  }
 
   let currentActive = null;
   let lastTimestamp = Date.now();

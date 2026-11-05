@@ -6,6 +6,7 @@ import RichPresenceCard from "../ui/RichPresenceCard";
 import AddServerModal from "../modals/AddServerModal";
 import ServerSettingsModal from "../modals/ServerSettingsModal";
 import AppSettingsModal from "../modals/AppSettingsModal";
+import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import VoiceUserVolumeMenu from "../voice/VoiceUserVolumeMenu";
 import { useGlobalVoice } from "../../context/VoiceContext";
 import PluginIsland from "../plugins/PluginIsland";
@@ -53,6 +54,7 @@ export default function RoomView({
   const [showAdd, setShowAdd] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+  const [moderationConfirm, setModerationConfirm] = useState(null);
   const [textChannelId, setTextChannelId] = useState(() => {
     const ch = server.channels?.find(
       (c) => c.id === server.lastChannelId && c.type === "text",
@@ -543,6 +545,9 @@ export default function RoomView({
 
   const sanitizedMembersList = useMemo(() => {
     const seen = new Set();
+    const bannedSet = new Set(Array.isArray(server?.bannedUsers) ? server.bannedUsers : []);
+    const kickedUsers = server?.kickedUsers || {};
+
     const localUser = {
       id: profile?.id || "self",
       peerId: null,
@@ -566,29 +571,49 @@ export default function RoomView({
     const list = [localUser];
 
     (peers || []).forEach((p) => {
-      const actualId = p.id || p.peerId || p.userId;
+      const actualId = p.userId || p.id || p.peerId;
       if (!actualId) return;
+      // Filter out connecting or unauthenticated sockets
+      if (!p.userId || p.nickname === "Conectando…" || p.nickname === "Conectando...") return;
+      // Filter out banned users
+      if (bannedSet.has(actualId) || (p.userId && bannedSet.has(p.userId))) return;
+
       if (
         seen.has(actualId) ||
         (p.userId && seen.has(p.userId)) ||
+        (p.id && seen.has(p.id)) ||
         (p.peerId && seen.has(p.peerId))
       )
         return;
 
       seen.add(actualId);
       if (p.userId) seen.add(p.userId);
+      if (p.id) seen.add(p.id);
       if (p.peerId) seen.add(p.peerId);
 
-      const savedInfo = server?.savedMembers?.[actualId];
+      const savedInfo = (p.userId && server?.savedMembers?.[p.userId]) || server?.savedMembers?.[actualId] || (p.peerId && server?.savedMembers?.[p.peerId]);
+
+      const serverScopeKey = server?.roomCode ? String(server.roomCode).trim().toUpperCase() : null;
+      const peerServerOverride = (serverScopeKey && p.serverProfiles)
+        ? (p.serverProfiles[serverScopeKey] || p.serverProfiles[server?.roomCode] || p.serverProfiles[server?.id])
+        : null;
+
+      const effNickname = savedInfo?.nickname || peerServerOverride?.nickname || p.nickname;
+      const effAvatar = savedInfo?.avatar !== undefined ? savedInfo.avatar : (peerServerOverride?.avatar !== undefined && peerServerOverride?.avatar !== null && peerServerOverride?.avatar !== "" ? peerServerOverride.avatar : p.avatar);
+      const effLink = savedInfo?.customLink !== undefined ? savedInfo.customLink : (peerServerOverride?.customLink !== undefined ? peerServerOverride.customLink : (p.customLink || ""));
+      const effColor = savedInfo?.profileColor || peerServerOverride?.profileColor || p.profileColor;
+      const effStatus = savedInfo?.customStatus !== undefined ? savedInfo.customStatus : (peerServerOverride?.customStatus !== undefined ? peerServerOverride.customStatus : (p.customStatus || ""));
+      const effGlobal = savedInfo?.globalNickname || peerServerOverride?.globalNickname || p.globalNickname || (effNickname !== p.nickname ? p.nickname : null);
+
       list.push({
         ...p,
         id: actualId,
-        nickname: savedInfo?.nickname || p.nickname,
-        avatar: savedInfo?.avatar !== undefined ? savedInfo.avatar : p.avatar,
-        customLink: savedInfo?.customLink !== undefined ? savedInfo.customLink : (p.customLink || ""),
-        profileColor: savedInfo?.profileColor || p.profileColor,
-        customStatus: savedInfo?.customStatus !== undefined ? savedInfo.customStatus : (p.customStatus || ""),
-        globalNickname: savedInfo?.globalNickname || p.globalNickname || (savedInfo?.nickname && savedInfo?.nickname !== p.nickname ? p.nickname : null),
+        nickname: effNickname,
+        avatar: effAvatar,
+        customLink: effLink,
+        profileColor: effColor,
+        customStatus: effStatus,
+        globalNickname: effGlobal,
         online: p.online !== false,
         role: getHighestRoleForUser(actualId),
         activity: p.showRichPresence !== false ? p.activity || null : null,
@@ -603,6 +628,9 @@ export default function RoomView({
       savedList.forEach((m) => {
         const actualId = m?.id || m?.userId;
         if (!actualId || seen.has(actualId)) return;
+        // Filter out banned users from historical saved members list
+        if (bannedSet.has(actualId) || (m.userId && bannedSet.has(m.userId))) return;
+
         seen.add(actualId);
         list.push({
           ...m,
@@ -632,6 +660,8 @@ export default function RoomView({
     server.roles,
     server.userRoles,
     server.savedMembers,
+    server.bannedUsers,
+    server.kickedUsers,
     getHighestRoleForUser,
     t,
   ]);
@@ -736,23 +766,34 @@ export default function RoomView({
           speakingPeers.has(m.peerId) ||
           speakingPeers.has(finalUserId);
         const savedInfo = server?.savedMembers?.[finalUserId];
+        const serverScopeKey = server?.roomCode ? String(server.roomCode).trim().toUpperCase() : null;
+        const peerServerOverride = (serverScopeKey && peerProfile?.serverProfiles)
+          ? (peerProfile.serverProfiles[serverScopeKey] || peerProfile.serverProfiles[server?.roomCode] || peerProfile.serverProfiles[server?.id])
+          : null;
+
+        const effNickname = savedInfo?.nickname || peerServerOverride?.nickname || m.nickname || peerProfile?.nickname || "User";
+        const effAvatar = savedInfo?.avatar !== undefined ? savedInfo.avatar : (peerServerOverride?.avatar !== undefined && peerServerOverride?.avatar !== null && peerServerOverride?.avatar !== "" ? peerServerOverride.avatar : (m.avatar ?? peerProfile?.avatar ?? null));
+        const effLink = savedInfo?.customLink !== undefined ? savedInfo.customLink : (peerServerOverride?.customLink !== undefined ? peerServerOverride.customLink : (peerProfile?.customLink || ""));
+        const effColor = savedInfo?.profileColor || peerServerOverride?.profileColor || peerProfile?.profileColor || "";
+        const effStatus = savedInfo?.customStatus !== undefined ? savedInfo.customStatus : (peerServerOverride?.customStatus !== undefined ? peerServerOverride.customStatus : (peerProfile?.customStatus || ""));
+        const effGlobal = savedInfo?.globalNickname || peerServerOverride?.globalNickname || peerProfile?.nickname || null;
 
         return {
           ...m,
           id: finalUserId,
           peerId: m.peerId,
-          nickname: savedInfo?.nickname || m.nickname || peerProfile?.nickname || "User",
-          avatar: savedInfo?.avatar !== undefined ? savedInfo.avatar : (m.avatar ?? peerProfile?.avatar ?? null),
+          nickname: effNickname,
+          avatar: effAvatar,
           isSpeaking: isPeerSpeaking,
           isStreaming: Boolean(m.isStreaming),
           activity:
             peerProfile?.showRichPresence !== false
               ? peerProfile?.activity || null
               : null,
-          customLink: savedInfo?.customLink !== undefined ? savedInfo.customLink : (peerProfile?.customLink || ""),
-          profileColor: savedInfo?.profileColor || peerProfile?.profileColor || "",
-          customStatus: savedInfo?.customStatus !== undefined ? savedInfo.customStatus : (peerProfile?.customStatus || ""),
-          globalNickname: savedInfo?.globalNickname || peerProfile?.nickname || null,
+          customLink: effLink,
+          profileColor: effColor,
+          customStatus: effStatus,
+          globalNickname: effGlobal,
           flame: peerProfile?.flame || m.flame || null,
           role: getHighestRoleForUser(finalUserId),
         };
@@ -869,7 +910,7 @@ export default function RoomView({
 
           const uniqueMap = new Map();
           updated.forEach((p) => {
-            const uid = p.id || p.peerId || p.userId;
+            const uid = p.userId || p.id || p.peerId;
             if (!uid) return;
             if (uniqueMap.has(uid)) {
               uniqueMap.set(uid, { ...uniqueMap.get(uid), ...p });
@@ -883,19 +924,14 @@ export default function RoomView({
     );
 
     const unsubJoin = api.onPeerJoined((peer) => {
-      const uid = peer.id || peer.peerId || peer.userId;
-      if (uid && profile?.id && uid !== profile.id) {
-        const nick = peer.nickname || "Un usuario";
-        notificationManager.showToast(
-          t("server.newMemberJoined", "Nuevo Miembro"),
-          t("server.memberJoinedText", { name: nick, defaultValue: `${nick} se ha unido al servidor.` }),
-          "info"
-        );
+      if (!peer || (!peer.userId && (peer.nickname === "Conectando…" || peer.nickname === "Conectando..."))) {
+        return;
       }
       setPeers((prev) => {
-        const uid = peer.id || peer.peerId || peer.userId;
+        const uid = peer.userId || peer.id || peer.peerId;
         const index = prev.findIndex(
           (p) =>
+            (peer.userId && (p.userId === peer.userId || p.id === peer.userId)) ||
             p.id === uid ||
             (p.peerId && p.peerId === uid) ||
             (p.userId && p.userId === uid),
@@ -909,13 +945,43 @@ export default function RoomView({
       });
     });
 
-    const unsubLeave = api.onPeerLeft((peerId) => {
+    const unsubMemberFirstJoined = api.onMemberFirstJoined?.((member) => {
+      const uid = member?.id || member?.userId;
+      if (uid && profile?.id && uid !== profile.id && member?.roomCode === server?.roomCode) {
+        const nick = member.nickname || "Un usuario";
+        notificationManager.showToast(
+          t("server.newMemberJoined", "Nuevo Miembro"),
+          t("server.memberJoinedText", { name: nick, defaultValue: `${nick} se ha unido al servidor.` }),
+          "info",
+          7500,
+          null,
+          member.avatar || null,
+          nick
+        );
+      }
+    });
+
+    const unsubLeave = api.onPeerLeft((peerData) => {
+      if (
+        typeof peerData === "object" &&
+        peerData?.roomCode &&
+        server?.roomCode &&
+        String(peerData.roomCode).trim().toUpperCase() !== String(server.roomCode).trim().toUpperCase()
+      ) {
+        return;
+      }
+      const leftPeerId = typeof peerData === "string" ? peerData : (peerData?.peerId || peerData?.id);
+      if (!leftPeerId) return;
       setPeers((prev) =>
-        prev.map((p) =>
-          p.id === peerId || p.peerId === peerId || p.userId === peerId
-            ? { ...p, online: false }
-            : p,
-        ),
+        prev.filter(
+          (p) =>
+            p.id !== leftPeerId &&
+            p.peerId !== leftPeerId &&
+            p.userId !== leftPeerId &&
+            p.userId !== null &&
+            p.nickname !== "Conectando…" &&
+            p.nickname !== "Conectando..."
+        )
       );
     });
 
@@ -939,6 +1005,7 @@ export default function RoomView({
     return () => {
       unsubPeerUpdated?.();
       unsubJoin?.();
+      unsubMemberFirstJoined?.();
       unsubLeave?.();
       unsubActivity?.();
     };
@@ -1173,6 +1240,17 @@ export default function RoomView({
     });
   };
 
+  const handleMemberContextMenu = (e, targetUser) => {
+    e.preventDefault();
+    setContextMenu({
+      type: "member",
+      x: e.clientX,
+      y: e.clientY,
+      title: targetUser.nickname || t("common.user", "Usuario"),
+      targetUser,
+    });
+  };
+
   return (
     <div className="flex-1 min-w-0 h-full flex relative flex-row gap-onicord-gap pl-[var(--gap)] box-border">
       <ChannelsSidebar
@@ -1395,7 +1473,7 @@ export default function RoomView({
           </button>
         </div>
 
-        {/* Barra de Hashtags para Canales de Foro */}
+        {/* Forum Channel Hashtag Filters Bar */}
         {activeTextChannel?.type === "forum" && (
           <div className="w-full px-1">
             <ForumTagsBar
@@ -1406,7 +1484,7 @@ export default function RoomView({
           </div>
         )}
 
-        {/* Contenedor Central: ChatPanel + StreamStage + ThreadSidePanel */}
+        {/* Central Container: ChatPanel + StreamStage + ThreadSidePanel */}
         <div ref={centralContainerRef} className="flex-1 min-h-0 flex gap-1 overflow-x-clip overflow-y-hidden">
           <div className="flex-1 min-w-0 h-full flex flex-col relative overflow-hidden bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island">
             <div
@@ -1430,7 +1508,7 @@ export default function RoomView({
                       : activeTextChannel?.name || "general"
                 }
                 profile={profile}
-                peers={peers}
+                peers={sanitizedMembersList}
                 server={server}
                 onProfileChange={onProfileChange}
                 searchQuery={searchQuery}
@@ -1547,7 +1625,7 @@ export default function RoomView({
             <WatchPartyStage />
           </div>
 
-          {/* Isla del Panel de Hilos */}
+          {/* Thread Panel Island */}
           {shouldRenderThread && displayedThreadMsg && (
             <div
               onPointerDown={startResizeThread}
@@ -1575,7 +1653,7 @@ export default function RoomView({
                 messages={threadMessages}
                 currentUserId={profile?.id}
                 profile={profile}
-                peers={peers}
+                peers={sanitizedMembersList}
                 server={server}
                 searchQuery={searchQuery}
                 isForum={activeTextChannel?.type === "forum"}
@@ -1648,6 +1726,7 @@ export default function RoomView({
           onVoiceUserContextMenu={
             voice.inVoice ? handleVoiceUserContextMenu : undefined
           }
+          onMemberContextMenu={handleMemberContextMenu}
           onUserClick={handleUserClick}
           profile={profile}
           roomCode={server.roomCode}
@@ -1767,6 +1846,72 @@ export default function RoomView({
           title={contextMenu.title}
           onClose={() => setContextMenu(null)}
           items={(() => {
+            if (contextMenu.type === "member") {
+              const { targetUser } = contextMenu;
+              const targetId = targetUser.id || targetUser.userId;
+              const isSelf = targetId === profile?.id;
+              const ownerId = server?.ownerId;
+              const isLocalOwner = Boolean(server?.isOwner || (ownerId && ownerId === profile?.id));
+              const isLocalAdmin = isLocalOwner || checkPermission(server, profile?.id, "admin");
+              const targetIsOwner = Boolean(ownerId && targetId === ownerId);
+              const targetIsAdmin = checkPermission(server, targetId, "admin");
+              const canModerate = !isSelf && !targetIsOwner && (isLocalOwner || (isLocalAdmin && !targetIsAdmin));
+
+              const menuItems = [
+                {
+                  label: t("contextMenu.viewProfile", "Ver perfil"),
+                  icon: <MaterialIcon name="person" size={16} />,
+                  onClick: () => {
+                    handleUserClick(null, targetUser);
+                    setContextMenu(null);
+                  },
+                },
+              ];
+
+              if (!isSelf) {
+                menuItems.push({
+                  label: t("contextMenu.sendDirectMessage", "Mensaje directo"),
+                  icon: <MaterialIcon name="chat" size={16} />,
+                  onClick: () => {
+                    handleMessageUser(targetUser);
+                    setContextMenu(null);
+                  },
+                });
+              }
+
+              if (canModerate) {
+                menuItems.push(
+                  {
+                    label: t("settings.members.kickButton", "Expulsar miembro"),
+                    icon: <MaterialIcon name="person_remove" size={16} />,
+                    danger: true,
+                    onClick: () => {
+                      setContextMenu(null);
+                      setModerationConfirm({
+                        type: "kick",
+                        targetId,
+                        nickname: targetUser.nickname || "este usuario",
+                      });
+                    },
+                  },
+                  {
+                    label: t("settings.members.banButton", "Banear miembro"),
+                    icon: <MaterialIcon name="block" size={16} />,
+                    danger: true,
+                    onClick: () => {
+                      setContextMenu(null);
+                      setModerationConfirm({
+                        type: "ban",
+                        targetId,
+                        nickname: targetUser.nickname || "este usuario",
+                      });
+                    },
+                  }
+                );
+              }
+
+              return menuItems;
+            }
             if (contextMenu.type === "voice_user") {
               const { targetUser } = contextMenu;
               return [
@@ -1792,6 +1937,14 @@ export default function RoomView({
               const isChMuted = localStorage.getItem(`channel_notif_mode_${channel.id}`) === "nothing";
               return [
                 {
+                  label: t("contextMenu.markAsRead", "Marcar como leído"),
+                  icon: <MaterialIcon name="done_all" size={16} />,
+                  onClick: () => {
+                    markChannelAsRead?.(server?.roomCode, channel.id);
+                    setContextMenu(null);
+                  },
+                },
+                {
                   label: isChMuted
                     ? t("contextMenu.unmuteChannel", "Desilenciar canal")
                     : t("contextMenu.muteChannel", "Silenciar canal"),
@@ -1810,6 +1963,59 @@ export default function RoomView({
             }
             return [];
           })()}
+        />
+      )}
+
+      {moderationConfirm && (
+        <ConfirmDialogModal
+          isOpen={Boolean(moderationConfirm)}
+          title={
+            moderationConfirm.type === "ban"
+              ? t("settings.members.banTitle", "Banear miembro")
+              : t("settings.members.kickTitle", "Expulsar miembro")
+          }
+          message={
+            moderationConfirm.type === "ban"
+              ? t("settings.members.confirmBan", `¿Estás seguro de que deseas banear a ${moderationConfirm.nickname}?`)
+              : t("settings.members.confirmKick", `¿Estás seguro de que deseas expulsar a ${moderationConfirm.nickname}?`)
+          }
+          warningMessage={
+            moderationConfirm.type === "ban"
+              ? t("settings.members.banWarning", "El usuario no podrá volver a unirse hasta que sea desbaneado.")
+              : t("settings.members.kickWarning", "El usuario será desconectado inmediatamente del servidor.")
+          }
+          confirmLabel={moderationConfirm.type === "ban" ? "Banear" : "Expulsar"}
+          cancelLabel="Cancelar"
+          type="danger"
+          onConfirm={async () => {
+            const { type, targetId } = moderationConfirm;
+            setModerationConfirm(null);
+            if (!server?.id || !targetId) return;
+            setPeers((prev) =>
+              prev.filter((p) => p.id !== targetId && p.userId !== targetId && p.peerId !== targetId)
+            );
+            try {
+              if (type === "kick") {
+                const currentKicked = { ...(server.kickedUsers || {}) };
+                currentKicked[targetId] = Date.now();
+                const updated = await window.electronAPI.updateServerSettings(server.id, {
+                  kickedUsers: currentKicked,
+                });
+                if (updated) onServerUpdated?.(updated);
+                soundEngine.playNav("leave");
+              } else if (type === "ban") {
+                const currentBanned = Array.from(new Set([...(server.bannedUsers || []), targetId]));
+                const updated = await window.electronAPI.updateServerSettings(server.id, {
+                  bannedUsers: currentBanned,
+                });
+                if (updated) onServerUpdated?.(updated);
+                soundEngine.playNav("leave");
+              }
+            } catch (err) {
+              console.error(`[Moderation Error (${type})]:`, err);
+            }
+          }}
+          onCancel={() => setModerationConfirm(null)}
         />
       )}
     </div>

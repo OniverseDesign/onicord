@@ -58,6 +58,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("game-activity-changed", handler);
   },
   getCurrentGame: () => ipcRenderer.invoke("game:get-current"),
+  loadPlaytime: () => ipcRenderer.invoke("activity:load-playtime"),
+  savePlaytime: (data) => ipcRenderer.invoke("activity:save-playtime", data),
+  loadDashboardIslands: () => ipcRenderer.invoke("dashboard:load-islands"),
+  saveDashboardIslands: (map) => ipcRenderer.invoke("dashboard:save-islands", map),
   onStreamerModeDetected: (callback) => {
     const handler = (event, data) => callback(data);
     ipcRenderer.on("streamer-mode-detected", handler);
@@ -148,7 +152,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   on: (channel, callback) => {
     const ALLOWED_CHANNELS = [
       "peer:joined", "peer:left", "peer:updated", "peer:activity", "sync:complete",
-      "server:updated", "room:created", "room:joined", "server:banned", "server:kicked",
+      "server:updated", "server:member-first-joined", "room:created", "room:joined", "server:banned", "server:kicked",
       "p2p:error", "chat:message", "chat:deleted",
       "chat:typing", "voice:state", "voice:signal", "voice:speaking-updated",
       "voice:sfu-migrated", "diagnostics:peer-logs", "file:progress",
@@ -261,6 +265,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("peer:joined", handler);
     return () => ipcRenderer.removeListener("peer:joined", handler);
+  },
+  onMemberFirstJoined: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("server:member-first-joined", handler);
+    return () => ipcRenderer.removeListener("server:member-first-joined", handler);
   },
   onPeerLeft: (callback) => {
     const handler = (_event, data) => callback(data);

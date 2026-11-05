@@ -59,26 +59,15 @@ function getCategoryPaths(categories) {
   const paths = [];
 
   if (categories.includes("profile")) {
-    const p = path.join(ud, "profile.json");
-    if (fs.existsSync(p)) paths.push({ src: p, dest: "profile/profile.json", isFile: true });
+    const dbDir = path.join(ud, "db");
+    if (fs.existsSync(dbDir)) paths.push({ src: dbDir, dest: "db", isDir: true });
+    const casDir = path.join(ud, "cas");
+    if (fs.existsSync(casDir)) paths.push({ src: casDir, dest: "cas", isDir: true });
   }
 
   if (categories.includes("servers")) {
-    // servers.json
-    const s = path.join(ud, "servers.json");
-    if (fs.existsSync(s)) paths.push({ src: s, dest: "servers/servers.json", isFile: true });
-
-    // room-meta/
-    const rm = path.join(ud, "room-meta");
-    if (fs.existsSync(rm)) paths.push({ src: rm, dest: "servers/room-meta", isDir: true });
-
-    // chats/
-    const ch = path.join(ud, "chats");
-    if (fs.existsSync(ch)) paths.push({ src: ch, dest: "servers/chats", isDir: true });
-
-    // files-index/
-    const fi = path.join(ud, "files-index");
-    if (fs.existsSync(fi)) paths.push({ src: fi, dest: "servers/files-index", isDir: true });
+    const srvDir = path.join(ud, "servers");
+    if (fs.existsSync(srvDir)) paths.push({ src: srvDir, dest: "servers", isDir: true });
   }
 
   if (categories.includes("addons")) {
@@ -102,17 +91,11 @@ async function estimateBackupSize(categories = ["profile", "servers", "addons", 
   let total = 0;
 
   if (categories.includes("profile")) {
-    try {
-      total += fs.statSync(path.join(ud, "profile.json")).size;
-    } catch {}
+    total += getDirSizeSync(path.join(ud, "db"));
+    total += getDirSizeSync(path.join(ud, "cas"));
   }
   if (categories.includes("servers")) {
-    try {
-      total += fs.statSync(path.join(ud, "servers.json")).size;
-    } catch {}
-    total += getDirSizeSync(path.join(ud, "room-meta"));
-    total += getDirSizeSync(path.join(ud, "chats"));
-    total += getDirSizeSync(path.join(ud, "files-index"));
+    total += getDirSizeSync(path.join(ud, "servers"));
   }
   if (categories.includes("addons")) {
     total += getDirSizeSync(path.join(ud, "plugins"));
@@ -145,15 +128,15 @@ function addDirToZip(zip, srcDir, destPrefix) {
 
 function getProfileSummary() {
   const ud = getUserDataPath();
-  const profilePath = path.join(ud, "profile.json");
   try {
-    if (fs.existsSync(profilePath)) {
-      const raw = fs.readFileSync(profilePath, "utf8");
-      const parsed = JSON.parse(raw);
+    const { DbManager } = require("../storage/dbManager.cjs");
+    const profileDb = DbManager.getInstance(ud).getGlobalDb("profile");
+    const row = profileDb.prepare("SELECT user_id, nickname, avatar_ref FROM main_profile WHERE id = 1").get();
+    if (row) {
       return {
-        id: parsed.id || null,
-        nickname: parsed.nickname || "",
-        avatar: parsed.avatar || null,
+        id: row.user_id || null,
+        nickname: row.nickname || "",
+        avatar: row.avatar_ref || null,
       };
     }
   } catch {}
@@ -167,24 +150,18 @@ function getQuickStats() {
   let stickersCount = 0;
 
   try {
-    const sPath = path.join(ud, "servers.json");
-    if (fs.existsSync(sPath)) {
-      const s = JSON.parse(fs.readFileSync(sPath, "utf8"));
-      if (Array.isArray(s)) serversCount = s.length;
-    }
+    const { DbManager } = require("../storage/dbManager.cjs");
+    const dbMgr = DbManager.getInstance(ud);
+    const srvRow = dbMgr.getGlobalDb("servers_list").prepare("SELECT COUNT(*) AS cnt FROM joined_servers").get();
+    serversCount = srvRow?.cnt || 0;
+    const stkRow = dbMgr.getGlobalDb("stickers").prepare("SELECT COUNT(*) AS cnt FROM stickers").get();
+    stickersCount = stkRow?.cnt || 0;
   } catch {}
 
   try {
     const plPath = path.join(ud, "plugins");
     if (fs.existsSync(plPath)) {
-      pluginsCount = fs.readdirSync(plPath, { withFileTypes: true }).filter((d) => d.isDirectory()).length;
-    }
-  } catch {}
-
-  try {
-    const stPath = path.join(ud, "stickers");
-    if (fs.existsSync(stPath)) {
-      stickersCount = fs.readdirSync(stPath, { withFileTypes: true }).filter((d) => !d.isDirectory()).length;
+      pluginsCount = fs.readdirSync(plPath, { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith(".")).length;
     }
   } catch {}
 
@@ -234,21 +211,39 @@ async function buildZip(categories) {
 const SETTINGS_FILE = "backup-settings.json";
 const OLD_DRIVE_SETTINGS_FILE = "drive-backup-settings.json";
 
-function getSettingsFilePath() {
-  return path.join(getUserDataPath(), SETTINGS_FILE);
+function _writeBackupSettingsRaw(db, data) {
+  db.prepare(`
+    INSERT OR REPLACE INTO app_settings (key, value_json, updated_at)
+    VALUES (?, ?, ?)
+  `).run("backup_settings", JSON.stringify(data), Date.now());
 }
 
 function getBackupSettings() {
   const ud = getUserDataPath();
-  const p = getSettingsFilePath();
+  let db = null;
+  try {
+    const { DbManager } = require("../storage/dbManager.cjs");
+    db = DbManager.getInstance(ud).getGlobalDb("app_config");
+    const row = db.prepare("SELECT value_json FROM app_settings WHERE key = ?").get("backup_settings");
+    if (row && row.value_json) {
+      return JSON.parse(row.value_json);
+    }
+  } catch (err) {
+    console.warn("[BackupService] Error loading backup settings from SQLite:", err.message);
+  }
+
+  // 2. Migración legacy de backup-settings.json o drive-backup-settings.json
+  const p = path.join(ud, SETTINGS_FILE);
   const oldP = path.join(ud, OLD_DRIVE_SETTINGS_FILE);
 
   try {
     if (fs.existsSync(p)) {
       const raw = fs.readFileSync(p, "utf8");
-      return JSON.parse(raw);
+      const data = JSON.parse(raw);
+      if (db) _writeBackupSettingsRaw(db, data);
+      try { fs.unlinkSync(p); } catch {}
+      return data;
     } else if (fs.existsSync(oldP)) {
-      // Migrate from old Google Drive settings
       const raw = fs.readFileSync(oldP, "utf8");
       const oldSettings = JSON.parse(raw);
       const migrated = {
@@ -258,27 +253,35 @@ function getBackupSettings() {
         selectedCategories: oldSettings.selectedCategories || ["profile", "servers"],
         lastAutoBackupTime: oldSettings.lastAutoBackupTime || 0,
       };
-      fs.writeFileSync(p, JSON.stringify(migrated, null, 2), "utf8");
+      if (db) _writeBackupSettingsRaw(db, migrated);
+      try { fs.unlinkSync(oldP); } catch {}
       return migrated;
     }
   } catch (err) {
-    console.error("[BackupService] Error loading backup settings:", err);
+    console.error("[BackupService] Error migrando settings JSON a SQLite:", err);
   }
 
-  return {
+  const defaultSettings = {
     autoBackupEnabled: false,
     frequency: "weekly",
     maxBackups: 3,
     selectedCategories: ["profile", "servers"],
     lastAutoBackupTime: 0,
   };
+  if (db) {
+    try { _writeBackupSettingsRaw(db, defaultSettings); } catch {}
+  }
+  return defaultSettings;
 }
 
 function saveBackupSettings(newSettings) {
   try {
+    const ud = getUserDataPath();
     const current = getBackupSettings();
     const updated = { ...current, ...newSettings };
-    fs.writeFileSync(getSettingsFilePath(), JSON.stringify(updated, null, 2), "utf8");
+    const { DbManager } = require("../storage/dbManager.cjs");
+    const db = DbManager.getInstance(ud).getGlobalDb("app_config");
+    _writeBackupSettingsRaw(db, updated);
     return updated;
   } catch (err) {
     console.error("[BackupService] Error saving backup settings:", err);
@@ -454,7 +457,7 @@ async function listLocalBackups() {
     } catch {}
   }
 
-  // Ordenar por fecha descendente (más recientes primero)
+  // Sort descending by creation date (newest first)
   backups.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   return backups;
 }
@@ -494,7 +497,7 @@ async function checkAndRunAutoBackup() {
       await createBackupFile(settings.selectedCategories);
       saveBackupSettings({ lastAutoBackupTime: now });
 
-      // Limitar el número de backups en la bóveda local si maxBackups está definido
+      // Enforce local backup retention limit if maxBackups is configured
       const max = settings.maxBackups || 3;
       const allBackups = await listLocalBackups();
       if (allBackups.length > max) {

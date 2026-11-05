@@ -167,7 +167,7 @@ export default function ServerDiscoverTab({
 
       {enabled && (
         <>
-          {/* CARD 2: MODALIDAD DE ACCESO (Basado en Modo de Entrada de Voz y Video) */}
+          {/* CARD 2: ACCESS POLICY */}
           <div className="onicord-settings-card">
             <h3 className="onicord-settings-section-title">
               <span>{t("discover.accessPolicyTitle", "Modalidad de Ingreso")}</span>
@@ -372,7 +372,7 @@ export default function ServerDiscoverTab({
             </div>
           </div>
 
-          {/* CARD 4: BANDEJA DE SOLICITUDES DE ACCESO */}
+          {/* CARD 4: KNOCKING ACCESS REQUESTS INBOX */}
           <div className="onicord-settings-card">
             <div className="flex items-center justify-between mb-2">
               <h3 className="onicord-settings-section-title mb-0">

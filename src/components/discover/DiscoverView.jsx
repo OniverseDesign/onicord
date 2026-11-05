@@ -9,6 +9,7 @@ export default function DiscoverView({
   profile,
   servers = [],
   onSelectServer,
+  onRefreshServers,
   onNavigate,
 }) {
   const { t } = useTranslation();
@@ -71,11 +72,19 @@ export default function DiscoverView({
       }
     });
 
+    const unsubKnockStatus = api?.on?.("discover:knock-status-changed", (data) => {
+      if (data?.status === "approved") {
+        onRefreshServers?.();
+        window.dispatchEvent(new CustomEvent("onicord:refresh-servers"));
+      }
+    });
+
     return () => {
       isMounted = false;
       if (unsub) unsub();
+      if (unsubKnockStatus) unsubKnockStatus();
     };
-  }, []);
+  }, [onRefreshServers]);
 
   // 1. Build a lookup of current user's local servers
   const localServerMap = useMemo(() => {
@@ -210,6 +219,9 @@ export default function DiscoverView({
         profile
       );
 
+      await onRefreshServers?.();
+      window.dispatchEvent(new CustomEvent("onicord:refresh-servers"));
+
       notificationManager.showToast(
         t("discover.joinedSuccessTitle", "¡Te has unido!"),
         `${t("discover.joinedSuccessDesc", "Bienvenido a")} ${server.name}`,
@@ -218,7 +230,7 @@ export default function DiscoverView({
 
       // Navigate to server
       if (onSelectServer) {
-        onSelectServer(joined?.id || server.roomCode);
+        await onSelectServer(joined || server.roomCode);
       } else {
         window.dispatchEvent(
           new CustomEvent("onicord:select-server", { detail: server.roomCode })
@@ -472,7 +484,7 @@ export default function DiscoverView({
         </div>
       </div>
 
-      {/* 3. Knocking Request Modal (Modal para solicitar acceso) */}
+      {/* 3. Knocking Request Modal (Access request dialog) */}
       {knockingServer && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 onicord-animate-fade-in">
           <div className="w-full max-w-md rounded-onicord-outer-p4 bg-onicord-surface border border-onicord-island shadow-2xl overflow-hidden onicord-animate-modal-in">

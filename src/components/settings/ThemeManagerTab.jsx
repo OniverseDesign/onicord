@@ -281,17 +281,17 @@ export default function ThemeManagerTab({ profile }) {
                       className="whitespace-pre-wrap break-words text-[13px] text-onicord-subtext select-text mt-1"
                       style={{ lineHeight: "var(--onicord-chat-line-height, 1.45)" }}
                     >
-                      ¡Hola a todos! Este es un mensaje de prueba con una mención a{" "}
+                      {t("settings.theme.previewMsg1Before", "¡Hola a todos! Este es un mensaje de prueba con una mención a ")}
                       <span className="inline-flex items-center font-semibold text-onicord-accent bg-onicord-accent/15 px-1.5 py-0.5 rounded-md cursor-pointer hover:underline">
                         @Admin
-                      </span>{" "}
-                      usando la nueva paleta.
+                      </span>
+                      {t("settings.theme.previewMsg1After", " usando la nueva paleta.")}
                     </div>
                     <div
                       className="whitespace-pre-wrap break-words text-[13px] text-onicord-subtext select-text mt-3"
                       style={{ lineHeight: "var(--onicord-chat-line-height, 1.45)" }}
                     >
-                      Este segundo mensaje está agrupado sin repetir la foto ni el nombre de usuario.
+                      {t("settings.theme.previewMsgGrouped", "Este segundo mensaje está agrupado sin repetir la foto ni el nombre de usuario.")}
                     </div>
                   </div>
                 </div>
@@ -304,16 +304,17 @@ export default function ThemeManagerTab({ profile }) {
 
                   <div className="min-w-0 flex-1">
                     <div className="font-bold text-sm text-purple-300 leading-tight cursor-default">
-                      Alex (Moderador)
+                      Alex ({t("settings.theme.previewModerator", "Moderador")})
                     </div>
                     <div
                       className="whitespace-pre-wrap break-words text-[13px] text-onicord-subtext select-text mt-1 min-h-[38px]"
                       style={{ lineHeight: "var(--onicord-chat-line-height, 1.45)" }}
                     >
-                      ¡Quedó excelente el acento de color{" "}
+                      {t("settings.theme.previewMsg2Before", "¡Quedó excelente el acento de color ")}
                       <span className="inline-flex items-center font-medium text-onicord-accent bg-onicord-accent/15 px-1.5 py-0.5 rounded-md cursor-pointer hover:underline">
                         @{activeAccent.startsWith("#") ? t("settings.theme.customColor", "Personalizado") : (APP_COLORS[activeAccent]?.name || "Lavender")}
-                      </span>!
+                      </span>
+                      {t("settings.theme.previewMsg2After", "!")}
                     </div>
                   </div>
                 </div>
@@ -476,13 +477,13 @@ export default function ThemeManagerTab({ profile }) {
           <textarea
             value={customCSS}
             onChange={handleCSSChange}
-            placeholder={`/* Escribe reglas CSS personalizadas aquí */\n.onicord-chat-input-bar {\n  border-color: var(--onicord-accent) !important;\n}`}
+            placeholder={t("settings.theme.customCSSPlaceholder", "/* Escribe reglas CSS personalizadas aquí */\n.onicord-chat-input-bar {\n  border-color: var(--onicord-accent) !important;\n}")}
             className="w-full h-36 bg-onicord-base/80 border border-white/10 rounded-xl p-3.5 text-xs text-onicord-accent placeholder-onicord-muted/30 focus:outline-none focus:border-onicord-accent transition-colors resize-none font-mono leading-relaxed shadow-inner minimal-scrollbar"
             spellCheck="false"
           />
           <div className="flex justify-between items-center mt-1.5 px-1 text-[10px] text-onicord-muted">
             <span>{t("settings.theme.cssHint", "Las reglas CSS escritas aquí se aplican instantáneamente en toda la aplicación.")}</span>
-            <span className="font-mono">{customCSS.length} caracteres</span>
+            <span className="font-mono">{t("settings.theme.charCount", { count: customCSS.length, defaultValue: `${customCSS.length} caracteres` })}</span>
           </div>
         </div>
       </div>

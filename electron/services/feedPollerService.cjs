@@ -17,43 +17,66 @@ class FeedPollerService {
     if (this._initialized) return;
     try {
       const userData = app ? app.getPath("userData") : process.cwd();
-      this._cacheFilePath = path.join(userData, "onicord_feed_cache.json");
-      this._loadCache();
+      const legacyCachePath = path.join(userData, "onicord_feed_cache.json");
+      if (fs.existsSync(legacyCachePath)) {
+        try {
+          fs.unlinkSync(legacyCachePath);
+          console.log("[FeedPollerService] Archivo obsoleto onicord_feed_cache.json eliminado. Ahora se usa server.db.");
+        } catch (_) {}
+      }
     } catch (e) {
-      console.warn("[FeedPollerService] Failed to initialize cache path:", e.message);
+      console.warn("[FeedPollerService] Failed to initialize:", e.message);
     }
     this._initialized = true;
   }
 
-  _loadCache() {
-    if (!this._cacheFilePath) return;
+  _getSeenGuids(roomCode, webhookId) {
+    if (this._seenGuids.has(webhookId)) {
+      return this._seenGuids.get(webhookId);
+    }
+    const seen = new Set();
     try {
-      if (fs.existsSync(this._cacheFilePath)) {
-        const raw = fs.readFileSync(this._cacheFilePath, "utf8");
-        const data = JSON.parse(raw);
-        if (data && typeof data === "object") {
-          for (const [whId, guids] of Object.entries(data)) {
-            if (Array.isArray(guids)) {
-              this._seenGuids.set(whId, new Set(guids));
-            }
-          }
-        }
+      const { DbManager } = require("../storage/dbManager.cjs");
+      const userData = app ? app.getPath("userData") : process.cwd();
+      const serverDb = DbManager.getInstance(userData).getServerDb(roomCode, "server");
+      const rows = serverDb
+        .prepare("SELECT item_guid FROM webhook_feed_cache WHERE webhook_id = ?")
+        .all(String(webhookId));
+      for (const row of rows) {
+        if (row.item_guid) seen.add(row.item_guid);
       }
     } catch (e) {
-      console.warn("[FeedPollerService] Error reading cache file:", e.message);
+      console.warn(`[FeedPollerService] Error leyendo webhook_feed_cache de la sala ${roomCode}:`, e.message);
     }
+    this._seenGuids.set(webhookId, seen);
+    return seen;
   }
 
-  _saveCache() {
-    if (!this._cacheFilePath) return;
+  _recordSeenGuids(roomCode, webhookId, guids) {
+    if (!guids || guids.length === 0) return;
     try {
-      const obj = {};
-      for (const [whId, set] of this._seenGuids.entries()) {
-        obj[whId] = Array.from(set).slice(-100); // Keep last 100 items per webhook
-      }
-      fs.writeFileSync(this._cacheFilePath, JSON.stringify(obj, null, 2), "utf8");
+      const { DbManager } = require("../storage/dbManager.cjs");
+      const userData = app ? app.getPath("userData") : process.cwd();
+      const serverDb = DbManager.getInstance(userData).getServerDb(roomCode, "server");
+      const insertStmt = serverDb.prepare(
+        "INSERT OR IGNORE INTO webhook_feed_cache (webhook_id, item_guid, seen_at) VALUES (?, ?, ?)"
+      );
+      const now = Date.now();
+      serverDb.transaction(() => {
+        for (const g of guids) {
+          if (g) insertStmt.run(String(webhookId), String(g), now);
+        }
+        // Conservar los 100 elementos más recientes por webhook en el servidor
+        serverDb.prepare(`
+          DELETE FROM webhook_feed_cache 
+          WHERE webhook_id = ? 
+            AND item_guid NOT IN (
+              SELECT item_guid FROM webhook_feed_cache WHERE webhook_id = ? ORDER BY seen_at DESC LIMIT 100
+            )
+        `).run(String(webhookId), String(webhookId));
+      })();
     } catch (e) {
-      console.warn("[FeedPollerService] Error saving cache file:", e.message);
+      console.warn(`[FeedPollerService] Error guardando webhook_feed_cache en la sala ${roomCode}:`, e.message);
     }
   }
 
@@ -81,7 +104,6 @@ class FeedPollerService {
       clearInterval(this._intervalTimer);
       this._intervalTimer = null;
     }
-    this._saveCache();
   }
 
   /**
@@ -174,22 +196,23 @@ class FeedPollerService {
         return { success: true, newItemsCount: 0, message: "No items found in feed" };
       }
 
-      let seen = this._seenGuids.get(webhook.id);
-      const isFirstRun = !seen;
-      if (isFirstRun) {
-        seen = new Set();
-        this._seenGuids.set(webhook.id, seen);
-      }
+      let seen = this._getSeenGuids(roomCode, webhook.id);
+      const isFirstRun = seen.size === 0;
 
       // If it's the very first time this webhook runs and we're not forcing,
       // seed all existing items so we don't spam 50 older items to the channel.
       // But we can post the newest 1 item if forcePostLatest is true.
       if (isFirstRun && !forcePostLatest) {
+        const seededGuids = [];
         for (const item of items) {
-          seen.add(item.guid || item.link || item.title);
+          const id = item.guid || item.link || item.title;
+          if (id) {
+            seen.add(id);
+            seededGuids.push(id);
+          }
         }
-        this._saveCache();
-        console.log(`[FeedPoller 📡] Initialized feed tracking for "${webhook.name}" with ${items.length} items seeded.`);
+        this._recordSeenGuids(roomCode, webhook.id, seededGuids);
+        console.log(`[FeedPoller 📡] Initialized feed tracking for "${webhook.name}" in room ${roomCode} with ${items.length} items seeded.`);
         return { success: true, newItemsCount: 0, seeded: true };
       }
 
@@ -213,14 +236,20 @@ class FeedPollerService {
 
       // Post max 3 new items at a time to prevent flood
       const toPost = newItems.slice(0, 3);
+      const newlyDispatchedGuids = [];
       for (const item of toPost) {
         const id = item.guid || item.link || item.title;
-        seen.add(id);
+        if (id) {
+          seen.add(id);
+          newlyDispatchedGuids.push(id);
+        }
 
         await this._dispatchFeedItem(roomCode, webhook, item);
       }
 
-      this._saveCache();
+      if (newlyDispatchedGuids.length > 0) {
+        this._recordSeenGuids(roomCode, webhook.id, newlyDispatchedGuids);
+      }
       return { success: true, newItemsCount: toPost.length };
     } catch (err) {
       status.lastError = err.message;

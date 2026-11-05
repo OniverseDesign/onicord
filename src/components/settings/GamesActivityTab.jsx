@@ -16,7 +16,7 @@ export default function GamesActivityTab({
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
 
-  // Suscribirse a la actividad del cliente local
+  // Subscribe to local client activity
   useEffect(() => {
     const api = window.electronAPI;
     if (!api) return;
@@ -53,7 +53,7 @@ export default function GamesActivityTab({
       const finalTitle = result.title || cleanExe.replace(/\.exe$/i, "");
       const finalType = result.type || "game";
 
-      // Verificar si ya existe en la lista
+      // Verify if executable already exists in registered list
       const exists = customGames.some(
         (g) => g.exe.toLowerCase() === cleanExe.toLowerCase()
       );
@@ -223,7 +223,7 @@ export default function GamesActivityTab({
         )}
       </div>
 
-      {/* TARJETA 2: AGREGAR Y ADMINISTRAR JUEGOS / SOFTWARE */}
+      {/* CARD 2: ADD AND MANAGE GAMES / SOFTWARE */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between border-b border-white/5 pb-3">
           <div>
@@ -314,6 +314,7 @@ export default function GamesActivityTab({
                             type="text"
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
+                            placeholder={t("gamesTab.gameTitlePlaceholder", "Nombre del juego o software")}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") handleSaveRename(game.id);
                               if (e.key === "Escape") setEditingId(null);
@@ -353,7 +354,7 @@ export default function GamesActivityTab({
                     </div>
                   </div>
 
-                  {/* Switch Activo/Pausado + Eliminar */}
+                  {/* Active / Paused detection toggle and delete action */}
                   <div className="flex items-center gap-3 shrink-0">
                     <label className="relative inline-flex items-center cursor-pointer select-none" title={t("gamesTab.toggleTooltip", "Activar o pausar detección")}>
                       <input

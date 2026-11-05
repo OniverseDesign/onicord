@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { checkPermission } from "../../lib/permissionsHelper";
 import { copyTextToClipboard } from "../../lib/clipboard";
 import { getWebInviteUrl } from "../../lib/inviteUtils";
+import { getEffectiveProfile } from "../../lib/profileUtils";
 import ModalShell, {
   ModalButton,
 } from "../ui/ModalShell";
@@ -132,24 +133,6 @@ export default function ServerSettingsModal({
           ],
         },
         {
-          id: "plugins",
-          label: "Complementos",
-          icon: "extension",
-          keywords: ["complementos", "addons", "plugins", "juegos", "arcade", "isla"],
-          features: [
-            { id: "serverPlugins", label: t("serverSettings.plugins.title", "Complementos activos en el servidor"), keywords: ["addons", "complementos", "servidor", "juegos", "arcade", "isla"] },
-          ],
-        },
-        {
-          id: "discover",
-          label: "Descubrimiento",
-          icon: "explore",
-          keywords: ["descubrir", "discover", "comunidad", "publico", "aprobacion"],
-          features: [
-            { id: "discoverSettings", label: "Publicar en Onicord Discover", keywords: ["discover", "publico", "explorar"] },
-          ],
-        },
-        {
           id: "storage",
           label: t("serverSettings.tabs.storage", "Almacenamiento"),
           icon: "folder",
@@ -162,6 +145,24 @@ export default function ServerSettingsModal({
       );
       if (hasAdvanced) {
         base.push(
+          {
+            id: "plugins",
+            label: t("serverSettings.tabs.plugins", "Complementos"),
+            icon: "extension",
+            keywords: ["complementos", "addons", "plugins", "juegos", "arcade", "isla"],
+            features: [
+              { id: "serverPlugins", label: t("serverSettings.plugins.title", "Complementos activos en el servidor"), keywords: ["addons", "complementos", "servidor", "juegos", "arcade", "isla"] },
+            ],
+          },
+          {
+            id: "discover",
+            label: t("serverSettings.tabs.discover", "Descubrimiento"),
+            icon: "explore",
+            keywords: ["descubrir", "discover", "comunidad", "publico", "aprobacion"],
+            features: [
+              { id: "discoverSettings", label: "Publicar en Onicord Discover", keywords: ["discover", "publico", "explorar"] },
+            ],
+          },
           {
             id: "network",
             label: t("serverSettings.tabs.network", "Red"),
@@ -267,7 +268,30 @@ export default function ServerSettingsModal({
         }
       );
     }
-  }, [server]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [server?.id]);
+
+  // Keep live moderation & pending knock state synced without overwriting unsaved form edits
+  useEffect(() => {
+    if (!server) return;
+    if (Array.isArray(server.bannedUsers)) {
+      setBannedUsers(server.bannedUsers);
+    }
+    if (server.kickedUsers && typeof server.kickedUsers === "object") {
+      setKickedUsers(server.kickedUsers);
+    }
+    if (server.discoverConfig?.pendingRequests) {
+      setDiscoverConfig((prev) =>
+        prev ? { ...prev, pendingRequests: server.discoverConfig.pendingRequests } : prev
+      );
+    }
+  }, [server?.bannedUsers, server?.kickedUsers, server?.discoverConfig?.pendingRequests]);
+
+  useEffect(() => {
+    if (!SECTIONS.some((s) => s.id === section)) {
+      setSection("overview");
+    }
+  }, [SECTIONS, section]);
 
   const updateChannelById = (id, field, value) => {
     setChannels((prev) =>
@@ -558,7 +582,7 @@ export default function ServerSettingsModal({
   };
 
   const renderFooter = () => {
-    if (section === "invite" || (!hasAdvanced && section === "overview"))
+    if (!hasAdvanced || section === "invite" || section === "storage")
       return (
         <ModalButton key="btn-ready" variant="primary" onClick={onClose}>
           {t("common.confirm")}
@@ -618,23 +642,27 @@ export default function ServerSettingsModal({
       const id = p?.userId || p?.id || p?.peerId;
       if (!id) continue;
       const prev = memberMap.get(id) || {};
+      const savedInfo =
+        (p.userId && (server?.savedMembers?.[p.userId] || serverWithCopy?.savedMembers?.[p.userId])) ||
+        (server?.savedMembers?.[id] || serverWithCopy?.savedMembers?.[id]);
       memberMap.set(id, {
         ...prev,
         ...p,
         id,
-        nickname: p.nickname || prev.nickname || "Usuario",
-        avatar: p.avatar || prev.avatar || null,
+        nickname: savedInfo?.nickname || prev.nickname || p.nickname || "Usuario",
+        avatar: savedInfo?.avatar !== undefined ? savedInfo.avatar : (prev.avatar || p.avatar || null),
       });
     }
 
     // 4. Integrate local user profile
     if (profile?.id) {
+      const effective = getEffectiveProfile(profile, server?.roomCode || server?.id);
       const prev = memberMap.get(profile.id) || {};
       memberMap.set(profile.id, {
         ...prev,
         id: profile.id,
-        nickname: profile.nickname || prev.nickname || t("common.you", "Tú"),
-        avatar: profile.avatar || prev.avatar || null,
+        nickname: effective?.nickname || profile.nickname || prev.nickname || t("common.you", "Tú"),
+        avatar: effective?.avatar ?? profile.avatar ?? prev.avatar ?? null,
       });
     }
 
@@ -743,6 +771,7 @@ export default function ServerSettingsModal({
           setBannedUsers={setBannedUsers}
           kickedUsers={kickedUsers}
           setKickedUsers={setKickedUsers}
+          onUpdateServer={onSave || onSaved}
         />
       )}
 
@@ -754,7 +783,7 @@ export default function ServerSettingsModal({
         />
       )}
 
-      {section === "plugins" && (
+      {section === "plugins" && hasAdvanced && (
         <ServerPluginsTab
           server={{ ...serverWithCopy, plugins: serverPlugins }}
           onUpdateServer={(updated) => setServerPlugins(updated.plugins || [])}
@@ -762,7 +791,7 @@ export default function ServerSettingsModal({
         />
       )}
 
-      {section === "discover" && (
+      {section === "discover" && hasAdvanced && (
         <ServerDiscoverTab
           server={serverWithCopy}
           profile={profile}

@@ -326,7 +326,7 @@ export default function ChannelsSidebar({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                 </div>
               </div>
-              {/* Avatar grande solapando el borde inferior del banner */}
+              {/* Large avatar overlapping the bottom edge of the banner */}
               <div className="px-5 -mt-7 relative z-10">
                 <div className="w-16 h-16 rounded-full border-[4px] border-onicord-base flex items-center justify-center bg-onicord-surface relative">
                   <div
@@ -348,7 +348,7 @@ export default function ChannelsSidebar({
                   </div>
                 </div>
               </div>
-              {/* Nombre + Flama en su propia fila */}
+              {/* Server Name and Flame Badge row */}
               <div className="flex items-center justify-between px-5 pt-2 pb-3">
                 <h2 className="truncate text-left text-[15px] font-semibold text-onicord-text">
                   {server?.name || t("roomView.loadingServer")}

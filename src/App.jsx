@@ -189,18 +189,34 @@ export default function App() {
     try {
       const list = await window.electronAPI.listServers();
       setServers(list || []);
+      return list || [];
     } catch (err) {
       console.error("Error al listar servidores:", err);
+      return [];
     }
   }, []);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      refreshServers();
+    };
+    window.addEventListener("onicord:refresh-servers", handleRefresh);
+    return () => window.removeEventListener("onicord:refresh-servers", handleRefresh);
+  }, [refreshServers]);
 
   const handleServerUpdated = useCallback((updatedServer) => {
     if (!updatedServer || !updatedServer.id) return;
     setServers((prev) =>
-      prev.map((s) => (s.id === updatedServer.id ? updatedServer : s))
+      prev.map((s) =>
+        s.id === updatedServer.id
+          ? { ...s, ...updatedServer, savedMembers: updatedServer.savedMembers ?? s.savedMembers }
+          : s
+      )
     );
     setActiveServer((prev) =>
-      prev && prev.id === updatedServer.id ? updatedServer : prev
+      prev && prev.id === updatedServer.id
+        ? { ...prev, ...updatedServer, savedMembers: updatedServer.savedMembers ?? prev.savedMembers }
+        : prev
     );
   }, []);
 

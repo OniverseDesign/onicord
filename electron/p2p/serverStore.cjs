@@ -1,460 +1,430 @@
 const fs = require("fs/promises");
+const fsSync = require("fs");
 const path = require("path");
-const crypto = require("crypto");
+const { DbManager } = require("../storage/dbManager.cjs");
+const { CasStore } = require("../storage/casStore.cjs");
+const { RoomMetaStore, DEFAULT_CHANNELS } = require("./roomMetaStore.cjs");
 
-const DEFAULT_CHANNELS = [
-  { id: "general", type: "text", name: "general" },
-  { id: "voice-lounge", type: "voice", name: "Voice Lounge" },
-];
-
-function safeParseJson(raw, filePathToRepair = null) {
-  if (!raw || typeof raw !== "string") return null;
+function safeParse(jsonStr, fallback) {
+  if (!jsonStr || typeof jsonStr !== "string") return fallback;
   try {
-    return JSON.parse(raw);
-  } catch (err) {
-    try {
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) {
-        let candidate = match[0];
-        while (candidate.length > 0) {
-          try {
-            const parsed = JSON.parse(candidate);
-            if (filePathToRepair) {
-              try {
-                const fsSync = require("fs");
-                fsSync.writeFileSync(filePathToRepair, JSON.stringify(parsed, null, 2), "utf-8");
-                console.log(`[ServerStore] Auto-repaired corrupted JSON file on disk: ${filePathToRepair}`);
-              } catch (e) {}
-            }
-            return parsed;
-          } catch {
-            const lastBrace = candidate.lastIndexOf("}");
-            if (lastBrace <= 0) break;
-            candidate = candidate.slice(0, lastBrace);
-          }
-        }
-      }
-    } catch (e) {}
+    return JSON.parse(jsonStr);
+  } catch {
+    return fallback;
   }
-  return null;
 }
 
 class ServerStore {
-  static _sharedWriteQueue = Promise.resolve();
+  static _syncLookup = new Map(); // normalizedUserData -> Map<roomCode, server>
+  static _locks = new Map();      // normalizedUserData -> Promise
 
   constructor(userDataPath) {
-    this.userDataPath = userDataPath;
-    this.filePath = path.join(userDataPath, "servers.json");
-    this.filesDir = path.join(userDataPath, "files");
-    this._syncCache = new Map();
+    this.userDataPath = path.resolve(userDataPath);
+    this.filesDir = path.join(this.userDataPath, "files");
+  }
+
+  _dbMgr() {
+    return DbManager.getInstance(this.userDataPath);
+  }
+
+  _cas() {
+    return CasStore.getInstance(this.userDataPath);
+  }
+
+  _metaStore() {
+    return new RoomMetaStore(this.userDataPath);
+  }
+
+  _withLock(fn) {
+    const key = this.userDataPath.toLowerCase();
+    const prev = ServerStore._locks.get(key) || Promise.resolve();
+    const next = prev.then(() => fn(), () => fn());
+    ServerStore._locks.set(
+      key,
+      next.catch((err) => {
+        console.error("[ServerStore] Lock task error:", err);
+      })
+    );
+    return next;
+  }
+
+  _getLocalProfileId() {
+    try {
+      const profileDb = this._dbMgr().getGlobalDb("profile");
+      const row = profileDb.prepare("SELECT user_id FROM main_profile WHERE id = 1").get();
+      return row?.user_id || null;
+    } catch {
+      return null;
+    }
+  }
+
+  _assembleServerObjectSync(joinedRow) {
+    const code = String(joinedRow.room_code).trim().toUpperCase();
+    const meta = this._metaStore()._loadFromSqlSync(code);
+    const extra = safeParse(joinedRow.extra_json, {});
+    const localUserId = this._getLocalProfileId();
+
+    const resolvedOwnerId = meta.ownerId || joinedRow.owner_id || null;
+    const resolvedCreatorId =
+      meta.creatorID || meta.creatorId || joinedRow.creator_id || resolvedOwnerId || null;
+    const isOwner =
+      localUserId && resolvedOwnerId
+        ? resolvedOwnerId === localUserId
+        : Boolean(joinedRow.is_owner);
+
+    return {
+      id: code,
+      roomCode: code,
+      name: (meta.name || joinedRow.name || `Servidor ${code.slice(0, 4)}`).trim().slice(0, 48),
+      isOwner,
+      ownerId: resolvedOwnerId,
+      creatorId: resolvedCreatorId,
+      creatorID: resolvedCreatorId,
+      icon: meta.icon || joinedRow.icon_ref || null,
+      banner: meta.banner || joinedRow.banner_ref || null,
+      channels:
+        Array.isArray(meta.channels) && meta.channels.length > 0
+          ? meta.channels
+          : DEFAULT_CHANNELS.map((c) => ({ ...c })),
+      lastChannelId: joinedRow.last_read_channel_id || "general",
+      metaVersion: Math.max(meta.version || 0, extra.metaVersion || 0),
+      metaUpdatedAt: Math.max(meta.updatedAt || 0, extra.metaUpdatedAt || 0),
+      createdAt: extra.createdAt || joinedRow.joined_at || Date.now(),
+      joinedAt: joinedRow.joined_at || Date.now(),
+      lastVisitedAt: joinedRow.last_visited_at || joinedRow.joined_at || Date.now(),
+      plugins: Array.isArray(meta.plugins) ? meta.plugins : [],
+      roles: Array.isArray(meta.roles) ? meta.roles : [],
+      userRoles: meta.userRoles || {},
+      bannedUsers: Array.isArray(meta.bannedUsers) ? meta.bannedUsers : [],
+      kickedUsers: meta.kickedUsers || {},
+      disableFlameSystem: Boolean(meta.disableFlameSystem),
+      groupByRoles: Boolean(meta.groupByRoles),
+      allowExecutableFiles: Boolean(meta.allowExecutableFiles),
+      iceServers: Array.isArray(meta.iceServers) ? meta.iceServers : [],
+      directConnectionEnabled: Boolean(meta.directConnectionEnabled),
+      directIP: meta.directIP || "",
+      directPort: meta.directPort || 7777,
+      webhooks: Array.isArray(meta.webhooks) ? meta.webhooks : [],
+      discoverConfig: meta.discoverConfig ?? null,
+      defaultRoleSettings: meta.defaultRoleSettings ?? { enabled: false, roleId: null },
+      welcomeSettings: meta.welcomeSettings ?? {
+        enabled: false,
+        channelId: null,
+        template: "¡Bienvenido {user} a {server}! 🎉",
+      },
+      music: meta.music ?? null,
+    };
+  }
+
+  _loadAllServersSync() {
+    const dbMgr = this._dbMgr();
+    const serversListDb = dbMgr.getGlobalDb("servers_list");
+    const rows = serversListDb
+      .prepare("SELECT * FROM joined_servers ORDER BY last_visited_at DESC")
+      .all();
+
+    const servers = rows.map((r) => this._assembleServerObjectSync(r));
+    this._updateSyncCache(servers);
+    return servers;
   }
 
   _updateSyncCache(servers) {
+    const key = this.userDataPath.toLowerCase();
+    const map = new Map();
     if (Array.isArray(servers)) {
       for (const s of servers) {
         if (s && s.roomCode) {
-          this._syncCache.set(String(s.roomCode).trim().toUpperCase(), s);
+          map.set(String(s.roomCode).trim().toUpperCase(), s);
         }
       }
     }
+    ServerStore._syncLookup.set(key, map);
   }
 
   getServerByRoomCodeSync(roomCode) {
     if (!roomCode) return null;
     const code = String(roomCode).trim().toUpperCase();
-    if (this._syncCache.has(code)) {
-      return this._syncCache.get(code);
+    const key = this.userDataPath.toLowerCase();
+    const cachedMap = ServerStore._syncLookup.get(key);
+    if (cachedMap && cachedMap.has(code)) {
+      return cachedMap.get(code);
     }
     try {
-      const fsSync = require("fs");
-      if (fsSync.existsSync(this.filePath)) {
-        const raw = fsSync.readFileSync(this.filePath, "utf-8");
-        const data = JSON.parse(raw);
-        if (Array.isArray(data?.servers)) {
-          this._updateSyncCache(data.servers);
-          return this._findServer(data, code);
-        }
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const row = serversListDb
+        .prepare("SELECT * FROM joined_servers WHERE room_code = ?")
+        .get(code);
+      if (!row) return null;
+      const srv = this._assembleServerObjectSync(row);
+      if (!ServerStore._syncLookup.has(key)) {
+        ServerStore._syncLookup.set(key, new Map());
       }
-    } catch (e) {}
-    return null;
-  }
-
-  async recoverMissingServersFromRoomMeta(data) {
-    if (!data || !Array.isArray(data.servers)) return false;
-    try {
-      const fsSync = require("fs");
-      const roomMetaDir = path.join(this.userDataPath, "room-meta");
-      if (!fsSync.existsSync(roomMetaDir)) return false;
-
-      const files = fsSync.readdirSync(roomMetaDir);
-      let changed = false;
-
-      for (const file of files) {
-        if (!file.endsWith(".json")) continue;
-        const roomCode = file.replace(".json", "").toUpperCase();
-        const exists = data.servers.some(
-          (s) => s.roomCode && String(s.roomCode).trim().toUpperCase() === roomCode
-        );
-        if (!exists) {
-          try {
-            const fullMetaPath = path.join(roomMetaDir, file);
-            const raw = fsSync.readFileSync(fullMetaPath, "utf-8");
-            const meta = safeParseJson(raw, fullMetaPath);
-            if (meta && (meta.name || meta.roomCode)) {
-              const recoveredServer = {
-                id: roomCode,
-                name: meta.name || `Servidor ${roomCode.slice(0, 4)}`,
-                roomCode: roomCode,
-                isOwner: meta.isOwner ?? true,
-                ownerId: meta.ownerId || null,
-                icon: meta.icon || null,
-                banner: meta.banner || null,
-                channels: Array.isArray(meta.channels) && meta.channels.length > 0 ? meta.channels : DEFAULT_CHANNELS.map((c) => ({ ...c })),
-                lastChannelId: "general",
-                metaVersion: meta.version || 1,
-                metaUpdatedAt: meta.updatedAt || Date.now(),
-                createdAt: Date.now(),
-                lastVisitedAt: Date.now(),
-                plugins: meta.plugins || [],
-                roles: meta.roles || [],
-                userRoles: meta.userRoles || {},
-                disableFlameSystem: meta.disableFlameSystem ?? false,
-                groupByRoles: meta.groupByRoles ?? false,
-                allowExecutableFiles: meta.allowExecutableFiles ?? false,
-                discoverConfig: meta.discoverConfig ?? null,
-                defaultRoleSettings: meta.defaultRoleSettings ?? { enabled: false, roleId: null },
-                welcomeSettings: meta.welcomeSettings ?? { enabled: false, channelId: null, template: "¡Bienvenido {user} a {server}! 🎉" },
-              };
-              data.servers.push(recoveredServer);
-              changed = true;
-              console.log(`[ServerStore] Restored server "${recoveredServer.name}" (${roomCode}) from room-meta backup!`);
-            }
-          } catch (e) {
-            console.error(`[ServerStore] Error recovering server from ${file}:`, e);
-          }
-        }
-      }
-
-      if (changed) {
-        await this._write(data);
-      }
-      return changed;
-    } catch (err) {
-      console.error("[ServerStore] Error recovering servers from room-meta:", err);
-      return false;
-    }
-  }
-
-  async _read() {
-    try {
-      const raw = await fs.readFile(this.filePath, "utf8");
-      const data = safeParseJson(raw, this.filePath) || { servers: [], lastServerId: null };
-      const rawServers = Array.isArray(data.servers) ? data.servers : [];
-      let updated = false;
-
-      const deduplicatedMap = new Map();
-
-      for (const s of rawServers) {
-        if (!s) continue;
-        const cleanCode = String(s.roomCode || s.id || "").trim().toUpperCase();
-        if (!cleanCode) continue;
-
-        s.roomCode = cleanCode;
-        s.id = cleanCode;
-        if (s.allowExecutableFiles === undefined) {
-          s.allowExecutableFiles = false;
-        }
-        if (s.auditLog) {
-          delete s.auditLog;
-          updated = true;
-        }
-        if (s.savedMembers) {
-          delete s.savedMembers;
-          updated = true;
-        }
-
-        if (deduplicatedMap.has(cleanCode)) {
-          const prev = deduplicatedMap.get(cleanCode);
-          // Merge duplicates keeping non-empty/most recent fields
-          const merged = {
-            ...prev,
-            ...s,
-            id: cleanCode,
-            roomCode: cleanCode,
-            name: (s.name && !s.name.startsWith("Servidor ")) ? s.name : prev.name,
-            icon: s.icon || prev.icon || null,
-            banner: s.banner || prev.banner || null,
-            channels: (Array.isArray(s.channels) && s.channels.length > 0) ? s.channels : prev.channels,
-            metaVersion: Math.max(s.metaVersion || 0, prev.metaVersion || 0),
-            metaUpdatedAt: Math.max(s.metaUpdatedAt || 0, prev.metaUpdatedAt || 0),
-            lastVisitedAt: Math.max(s.lastVisitedAt || 0, prev.lastVisitedAt || 0),
-          };
-          deduplicatedMap.set(cleanCode, merged);
-          updated = true;
-        } else {
-          deduplicatedMap.set(cleanCode, s);
-        }
-      }
-
-      let servers = Array.from(deduplicatedMap.values());
-      if (servers.length !== rawServers.length) {
-        updated = true;
-      }
-      data.servers = servers;
-
-      // Auto-recover if servers list is empty
-      if (servers.length === 0) {
-        const recovered = await this.recoverMissingServersFromRoomMeta(data);
-        if (recovered) {
-          servers = data.servers;
-          updated = true;
-        }
-      }
-
-      this._updateSyncCache(servers);
-      if (updated) {
-        try {
-          await this._write(data);
-        } catch (e) {}
-      }
-
-      return {
-        servers,
-        lastServerId: data.lastServerId ?? null,
-      };
+      ServerStore._syncLookup.get(key).set(code, srv);
+      return srv;
     } catch {
-      const fallbackData = { servers: [], lastServerId: null };
-      await this.recoverMissingServersFromRoomMeta(fallbackData);
-      return fallbackData;
+      return null;
     }
   }
 
-  async _write(data) {
-    if (data && Array.isArray(data.servers)) {
-      // Strip any massive non-essential fields (like auditLog or savedMembers) from servers.json
-      for (const s of data.servers) {
-        if (!s) continue;
-        if (s.auditLog) delete s.auditLog;
-        if (s.savedMembers) delete s.savedMembers;
-      }
-      this._updateSyncCache(data.servers);
-    }
-
-    // Safety guard: if servers array is empty, check if room-meta has valid server files
-    if (!data?.servers || data.servers.length === 0) {
-      try {
-        const fsSync = require("fs");
-        const roomMetaDir = path.join(this.userDataPath, "room-meta");
-        if (fsSync.existsSync(roomMetaDir)) {
-          const files = fsSync.readdirSync(roomMetaDir).filter((f) => f.endsWith(".json"));
-          if (files.length > 0) {
-            console.warn("[ServerStore] Safety check: refusing to overwrite servers.json with empty array while room-meta backups exist! Auto-recovering first...");
-            await this.recoverMissingServersFromRoomMeta(data);
-          }
-        }
-      } catch (e) {}
-    }
-
-    ServerStore._sharedWriteQueue = ServerStore._sharedWriteQueue.then(async () => {
-      const dir = path.dirname(this.filePath);
-      await fs.mkdir(dir, { recursive: true });
-      const tmpPath = `${this.filePath}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
-      const content = JSON.stringify(data, null, 2);
-      await fs.writeFile(tmpPath, content, "utf8");
-      try {
-        await fs.rename(tmpPath, this.filePath);
-      } catch (e) {
-        try {
-          await fs.copyFile(tmpPath, this.filePath);
-          await fs.unlink(tmpPath).catch(() => {});
-        } catch (e2) {}
-      }
-    }).catch((err) => {
-      console.error("[ServerStore] Error during serialized _write:", err);
-    });
-
-    return ServerStore._sharedWriteQueue;
+  _readServers() {
+    return this._loadAllServersSync();
   }
 
   async list() {
-    const data = await this._read();
-    await this.recoverMissingServersFromRoomMeta(data);
-
-    // Final safety deduplication before returning to UI
-    const seen = new Set();
-    const cleanList = [];
-    for (const s of data.servers) {
-      const code = String(s.roomCode || s.id || "").trim().toUpperCase();
-      if (code && !seen.has(code)) {
-        seen.add(code);
-        cleanList.push(s);
-      }
-    }
-
-    return cleanList.sort(
-      (a, b) => (b.lastVisitedAt || 0) - (a.lastVisitedAt || 0),
-    );
+    return this._withLock(async () => {
+      return this._loadAllServersSync();
+    });
   }
 
   async getLastActive() {
-    const data = await this._read();
-    return data.lastServerId ?? null;
+    return this._withLock(async () => {
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const navRow = serversListDb
+        .prepare("SELECT value FROM navigation_state WHERE key = 'lastServerId'")
+        .get();
+      if (navRow?.value) {
+        const exists = serversListDb
+          .prepare("SELECT room_code FROM joined_servers WHERE room_code = ?")
+          .get(navRow.value);
+        if (exists) return navRow.value;
+      }
+      const firstRow = serversListDb
+        .prepare("SELECT room_code FROM joined_servers ORDER BY last_visited_at DESC LIMIT 1")
+        .get();
+      return firstRow?.room_code || null;
+    });
   }
 
   async setLastActive(serverId) {
-    const data = await this._read();
-    const exists = data.servers.some((s) => s.id === serverId);
-    data.lastServerId = exists ? serverId : (data.servers[0]?.id ?? null);
-    await this._write(data);
-    return { ok: true, id: data.lastServerId };
-  }
-
-  _findServer(data, idOrCode) {
-    if (!idOrCode || !data?.servers) return null;
-    const str = String(idOrCode).trim();
-    const upper = str.toUpperCase();
-    return (
-      data.servers.find(
-        (s) =>
-          s.id === str ||
-          String(s.id).toUpperCase() === upper ||
-          (s.roomCode && String(s.roomCode).trim().toUpperCase() === upper)
-      ) ?? null
-    );
+    return this._withLock(async () => {
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const code = serverId ? String(serverId).trim().toUpperCase() : null;
+      let nextId = null;
+      if (code) {
+        const matched = serversListDb
+          .prepare("SELECT room_code FROM joined_servers WHERE room_code = ?")
+          .get(code);
+        if (matched) nextId = matched.room_code;
+      }
+      if (!nextId) {
+        const first = serversListDb
+          .prepare("SELECT room_code FROM joined_servers ORDER BY last_visited_at DESC LIMIT 1")
+          .get();
+        nextId = first?.room_code || null;
+      }
+      serversListDb
+        .prepare("INSERT OR REPLACE INTO navigation_state (key, value) VALUES ('lastServerId', ?)")
+        .run(nextId);
+      return { ok: true, id: nextId };
+    });
   }
 
   async get(serverId) {
-    const data = await this._read();
-    let server = this._findServer(data, serverId);
-    if (!server) {
-      await this.recoverMissingServersFromRoomMeta(data);
-      server = this._findServer(data, serverId);
-    }
-    return server;
+    if (!serverId) return null;
+    return this._withLock(async () => {
+      const code = String(serverId).trim().toUpperCase();
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const row = serversListDb
+        .prepare("SELECT * FROM joined_servers WHERE room_code = ?")
+        .get(code);
+      if (!row) return null;
+      const srv = this._assembleServerObjectSync(row);
+      const key = this.userDataPath.toLowerCase();
+      if (!ServerStore._syncLookup.has(key)) {
+        ServerStore._syncLookup.set(key, new Map());
+      }
+      ServerStore._syncLookup.get(key).set(code, srv);
+      return { ...srv };
+    });
   }
 
   async getByRoomCode(roomCode) {
-    const data = await this._read();
-    let server = this._findServer(data, roomCode);
-    if (!server) {
-      await this.recoverMissingServersFromRoomMeta(data);
-      server = this._findServer(data, roomCode);
-    }
-    return server;
+    return this.get(roomCode);
   }
 
-  async add({ name, roomCode, isOwner, ownerId }) {
-    const data = await this._read();
-    const code = String(roomCode).trim().toUpperCase();
+  async getServerByRoomCode(roomCode) {
+    return this.get(roomCode);
+  }
 
-    // First, attempt to restore missing servers from room-meta backup
-    await this.recoverMissingServersFromRoomMeta(data);
+  async updateServer(serverId, patch) {
+    return this.updateSettings(serverId, patch);
+  }
 
-    let existing = this._findServer(data, code);
-    if (existing) {
-      existing.lastVisitedAt = Date.now();
-      if (name?.trim()) existing.name = name.trim().slice(0, 48);
-      if (isOwner !== undefined) existing.isOwner = Boolean(isOwner);
-      if (ownerId) existing.ownerId = ownerId;
-      data.lastServerId = existing.id;
-      await this._write(data);
-      return existing;
-    }
+  async add({ name, roomCode, isOwner, ownerId, creatorId, creatorID, icon, banner }) {
+    return this._withLock(async () => {
+      const code = String(roomCode).trim().toUpperCase();
+      const now = Date.now();
+      const cas = this._cas();
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const metaStore = this._metaStore();
+      const existingMeta = metaStore._loadFromSqlSync(code);
 
-    // Try reading room-meta file directly as fallback to preserve settings
-    let metaBackup = null;
-    try {
-      const fsSync = require("fs");
-      const roomMetaPath = path.join(this.userDataPath, "room-meta", `${code}.json`);
-      if (fsSync.existsSync(roomMetaPath)) {
-        metaBackup = JSON.parse(fsSync.readFileSync(roomMetaPath, "utf-8"));
+      const iconRef = cas.storeDataUri(icon || existingMeta?.icon || null);
+      const bannerRef = cas.storeDataUri(banner || existingMeta?.banner || null);
+
+      const existingRow = serversListDb
+        .prepare("SELECT * FROM joined_servers WHERE room_code = ?")
+        .get(code);
+
+      const localUserId = this._getLocalProfileId();
+      const resolvedOwnerId = ownerId || existingMeta?.ownerId || existingRow?.owner_id || null;
+      const resolvedCreatorId =
+        creatorID ||
+        creatorId ||
+        existingMeta?.creatorID ||
+        existingMeta?.creatorId ||
+        existingRow?.creator_id ||
+        resolvedOwnerId ||
+        null;
+
+      let resolvedIsOwner = false;
+      if (isOwner !== undefined) {
+        resolvedIsOwner = Boolean(isOwner);
+      } else if (resolvedOwnerId && localUserId) {
+        resolvedIsOwner = resolvedOwnerId === localUserId;
+      } else if (existingRow) {
+        resolvedIsOwner = Boolean(existingRow.is_owner);
       }
-    } catch (e) {}
 
-    const server = {
-      id: code,
-      name: (name || metaBackup?.name || `Servidor ${code.slice(0, 4)}`).trim().slice(0, 48),
-      roomCode: code,
-      isOwner: isOwner !== undefined ? Boolean(isOwner) : (metaBackup?.isOwner ?? true),
-      ownerId: ownerId || metaBackup?.ownerId || null,
-      icon: metaBackup?.icon || null,
-      banner: metaBackup?.banner || null,
-      channels: Array.isArray(metaBackup?.channels) && metaBackup.channels.length > 0 ? metaBackup.channels : DEFAULT_CHANNELS.map((c) => ({ ...c })),
-      lastChannelId: "general",
-      metaVersion: metaBackup?.version || (isOwner ? 1 : 0),
-      metaUpdatedAt: metaBackup?.updatedAt || (isOwner ? Date.now() : 0),
-      createdAt: Date.now(),
-      lastVisitedAt: Date.now(),
-      plugins: metaBackup?.plugins || [],
-      roles: metaBackup?.roles || [],
-      userRoles: metaBackup?.userRoles || {},
-      disableFlameSystem: metaBackup?.disableFlameSystem || false,
-      groupByRoles: metaBackup?.groupByRoles || false,
-      allowExecutableFiles: metaBackup?.allowExecutableFiles || false,
-      iceServers: metaBackup?.iceServers || [],
-      directConnectionEnabled: metaBackup?.directConnectionEnabled || false,
-      directIP: metaBackup?.directIP || "",
-      directPort: metaBackup?.directPort || 7777,
-      webhooks: metaBackup?.webhooks || [],
-    };
+      const resolvedName = (
+        (name && !name.trim().startsWith("Servidor ") ? name : null) ||
+        existingMeta?.name ||
+        existingRow?.name ||
+        name ||
+        `Servidor ${code.slice(0, 4)}`
+      )
+        .trim()
+        .slice(0, 48);
 
-    data.servers.push(server);
-    data.lastServerId = server.id;
-    await this._write(data);
+      const extraObj = existingRow ? safeParse(existingRow.extra_json, {}) : {};
+      if (!extraObj.createdAt) extraObj.createdAt = now;
+      extraObj.metaVersion = Math.max(existingMeta?.version || 0, resolvedIsOwner ? 1 : 0);
+      extraObj.metaUpdatedAt = Math.max(existingMeta?.updatedAt || 0, resolvedIsOwner ? now : 0);
 
-    const serverFilesDir = path.join(this.filesDir, code);
-    await fs.mkdir(serverFilesDir, { recursive: true });
+      serversListDb
+        .prepare(`
+          INSERT OR REPLACE INTO joined_servers (
+            room_code, name, icon_ref, banner_ref, owner_id, creator_id, is_owner,
+            position, folder_id, muted, last_read_channel_id, joined_at, last_visited_at, extra_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `)
+        .run(
+          code,
+          resolvedName,
+          iconRef,
+          bannerRef,
+          resolvedOwnerId,
+          resolvedCreatorId,
+          resolvedIsOwner ? 1 : 0,
+          existingRow?.position ?? 0,
+          existingRow?.folder_id ?? null,
+          existingRow?.muted ?? 0,
+          existingRow?.last_read_channel_id || "general",
+          now,
+          now,
+          JSON.stringify(extraObj)
+        );
 
-    return server;
+      serversListDb
+        .prepare("INSERT OR REPLACE INTO navigation_state (key, value) VALUES ('lastServerId', ?)")
+        .run(code);
+
+      // Ensure server.db is initialized for this server
+      if (!existingMeta || existingMeta.version === 0) {
+        metaStore._saveToSqlSync(code, {
+          ...existingMeta,
+          roomCode: code,
+          name: resolvedName,
+          icon: iconRef,
+          banner: bannerRef,
+          ownerId: resolvedOwnerId,
+          creatorID: resolvedCreatorId,
+          creatorId: resolvedCreatorId,
+          version: existingMeta?.version || (resolvedIsOwner ? 1 : 0),
+          updatedAt: existingMeta?.updatedAt || (resolvedIsOwner ? now : 0),
+        });
+      }
+
+      const serverFilesDir = path.join(this.filesDir, code);
+      await fs.mkdir(serverFilesDir, { recursive: true }).catch(() => {});
+
+      const all = this._loadAllServersSync();
+      return all.find((s) => s.roomCode === code) || null;
+    });
   }
 
   async touch(serverId, patch = {}) {
-    const data = await this._read();
-    const server = this._findServer(data, serverId);
-    if (!server) return null;
+    return this._withLock(async () => {
+      const code = String(serverId).trim().toUpperCase();
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const row = serversListDb
+        .prepare("SELECT * FROM joined_servers WHERE room_code = ?")
+        .get(code);
+      if (!row) return null;
 
-    if (patch.lastChannelId) server.lastChannelId = patch.lastChannelId;
-    if (patch.name?.trim()) server.name = patch.name.trim().slice(0, 48);
-    server.lastVisitedAt = Date.now();
-    data.lastServerId = server.id;
-    await this._write(data);
-    return server;
+      const nextChannel = patch.lastChannelId || row.last_read_channel_id || "general";
+      const nextName = patch.name?.trim() ? patch.name.trim().slice(0, 48) : row.name;
+      const now = Date.now();
+
+      serversListDb
+        .prepare(`
+          UPDATE joined_servers
+          SET name = ?, last_read_channel_id = ?, last_visited_at = ?
+          WHERE room_code = ?
+        `)
+        .run(nextName, nextChannel, now, code);
+
+      serversListDb
+        .prepare("INSERT OR REPLACE INTO navigation_state (key, value) VALUES ('lastServerId', ?)")
+        .run(code);
+
+      const all = this._loadAllServersSync();
+      return all.find((s) => s.roomCode === code) || null;
+    });
   }
 
   async remove(serverId) {
-    const data = await this._read();
-    const server = this._findServer(data, serverId);
-    if (server) {
-      data.servers = data.servers.filter((s) => s.id !== server.id);
-      if (data.lastServerId === server.id) {
-        data.lastServerId = data.servers[0]?.id ?? null;
+    return this._withLock(async () => {
+      const targetCode = String(serverId || "").trim().toUpperCase();
+      const dbMgr = this._dbMgr();
+      const serversListDb = dbMgr.getGlobalDb("servers_list");
+
+      serversListDb.prepare("DELETE FROM joined_servers WHERE room_code = ?").run(targetCode);
+
+      const navRow = serversListDb
+        .prepare("SELECT value FROM navigation_state WHERE key = 'lastServerId'")
+        .get();
+      if (navRow?.value === targetCode) {
+        const nextRow = serversListDb
+          .prepare("SELECT room_code FROM joined_servers ORDER BY last_visited_at DESC LIMIT 1")
+          .get();
+        serversListDb
+          .prepare("INSERT OR REPLACE INTO navigation_state (key, value) VALUES ('lastServerId', ?)")
+          .run(nextRow?.room_code || null);
       }
-      await this._write(data);
 
-      if (server.roomCode) {
-        const code = String(server.roomCode).trim().toUpperCase();
+      if (targetCode && /^[A-F0-9]{8}$/.test(targetCode)) {
         try {
-          const fsSync = require("fs");
-          const roomMetaPath = path.join(this.userDataPath, "room-meta", `${code}.json`);
-          const serverFilesDir = path.join(this.filesDir, code);
-          const serverChatsDir = path.join(this.userDataPath, "chats", code);
+          RoomMetaStore.evictCache(this.userDataPath, targetCode);
+        } catch {}
 
-          if (fsSync.existsSync(roomMetaPath)) {
-            fsSync.rmSync(roomMetaPath, { force: true });
-          }
+        try {
+          dbMgr.purgeServerFolder(targetCode);
+          const serverFilesDir = path.join(this.filesDir, targetCode);
           if (fsSync.existsSync(serverFilesDir)) {
             fsSync.rmSync(serverFilesDir, { recursive: true, force: true });
           }
-          if (fsSync.existsSync(serverChatsDir)) {
-            fsSync.rmSync(serverChatsDir, { recursive: true, force: true });
-          }
-          console.log(`[ServerStore] Completely purged server ${code} (room-meta, files & chats) from disk.`);
+          console.log(
+            `[ServerStore] Completely purged server ${targetCode} (servers/${targetCode} SQLite DBs & files) from disk.`
+          );
         } catch (e) {
-          console.error(`[ServerStore] Error purging disk files for server ${code}:`, e);
+          console.error(`[ServerStore] Error purging disk files for server ${targetCode}:`, e);
         }
       }
-    }
-    return { ok: true };
+
+      this._loadAllServersSync();
+      return { ok: true };
+    });
   }
 
   getFilesDir(roomCode) {
@@ -462,121 +432,144 @@ class ServerStore {
   }
 
   async updateSettings(serverId, settings) {
-    const data = await this._read();
-    await this.recoverMissingServersFromRoomMeta(data);
-    let server = this._findServer(data, serverId);
-    if (!server) {
-      console.warn(`[ServerStore] updateSettings: Server ${serverId} not found locally — trying recovery...`);
-      await this.recoverMissingServersFromRoomMeta(data);
-      server = this._findServer(data, serverId);
-      if (!server) {
-        console.error(`[ServerStore] updateSettings: Server ${serverId} could not be recovered.`);
+    return this._withLock(async () => {
+      const code = String(serverId).trim().toUpperCase();
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const row = serversListDb
+        .prepare("SELECT * FROM joined_servers WHERE room_code = ?")
+        .get(code);
+      if (!row) {
+        console.warn(`[ServerStore] updateSettings: Server ${serverId} not found locally.`);
         return null;
       }
-    }
 
-    if (settings.name?.trim()) server.name = settings.name.trim().slice(0, 48);
-    if (settings.icon !== undefined) server.icon = settings.icon;
-    if (settings.banner !== undefined) server.banner = settings.banner;
+      const cas = this._cas();
+      const metaStore = this._metaStore();
+      const meta = metaStore._loadFromSqlSync(code);
+      const now = Date.now();
 
-    if (Array.isArray(settings.roles)) server.roles = settings.roles;
-    if (settings.userRoles) server.userRoles = settings.userRoles;
-    if (settings.music !== undefined) server.music = settings.music;
-    if (settings.disableFlameSystem !== undefined) server.disableFlameSystem = settings.disableFlameSystem;
-    if (settings.groupByRoles !== undefined) server.groupByRoles = settings.groupByRoles;
-    if (settings.allowExecutableFiles !== undefined) server.allowExecutableFiles = settings.allowExecutableFiles;
-    if (Array.isArray(settings.iceServers)) server.iceServers = settings.iceServers;
-    if (settings.directConnectionEnabled !== undefined) server.directConnectionEnabled = settings.directConnectionEnabled;
-    if (settings.directIP !== undefined) server.directIP = settings.directIP;
-    if (settings.directPort !== undefined) server.directPort = settings.directPort;
-    if (settings.ownerId !== undefined) server.ownerId = settings.ownerId;
-    if (Array.isArray(settings.bannedUsers)) server.bannedUsers = settings.bannedUsers;
-    if (settings.kickedUsers !== undefined) server.kickedUsers = settings.kickedUsers;
-    if (Array.isArray(settings.plugins)) server.plugins = settings.plugins;
-    if (Array.isArray(settings.webhooks)) server.webhooks = settings.webhooks;
-    if (settings.discoverConfig !== undefined) server.discoverConfig = settings.discoverConfig;
-    if (settings.defaultRoleSettings !== undefined) server.defaultRoleSettings = settings.defaultRoleSettings;
-    if (settings.welcomeSettings !== undefined) server.welcomeSettings = settings.welcomeSettings;
+      if (settings.name?.trim()) meta.name = settings.name.trim().slice(0, 48);
+      if (settings.icon !== undefined) meta.icon = cas.storeDataUri(settings.icon);
+      if (settings.banner !== undefined) meta.banner = cas.storeDataUri(settings.banner);
+      if (Array.isArray(settings.roles)) meta.roles = settings.roles;
+      if (settings.userRoles) meta.userRoles = settings.userRoles;
+      if (settings.music !== undefined) meta.music = settings.music;
+      if (settings.disableFlameSystem !== undefined)
+        meta.disableFlameSystem = settings.disableFlameSystem;
+      if (settings.groupByRoles !== undefined) meta.groupByRoles = settings.groupByRoles;
+      if (settings.allowExecutableFiles !== undefined)
+        meta.allowExecutableFiles = settings.allowExecutableFiles;
+      if (Array.isArray(settings.iceServers)) meta.iceServers = settings.iceServers;
+      if (settings.directConnectionEnabled !== undefined)
+        meta.directConnectionEnabled = settings.directConnectionEnabled;
+      if (settings.directIP !== undefined) meta.directIP = settings.directIP;
+      if (settings.directPort !== undefined) meta.directPort = settings.directPort;
+      if (settings.ownerId !== undefined) meta.ownerId = settings.ownerId;
+      if (Array.isArray(settings.bannedUsers)) meta.bannedUsers = settings.bannedUsers;
+      if (settings.kickedUsers !== undefined) meta.kickedUsers = settings.kickedUsers;
+      if (Array.isArray(settings.plugins)) meta.plugins = settings.plugins;
+      if (Array.isArray(settings.webhooks)) meta.webhooks = settings.webhooks;
+      if (settings.discoverConfig !== undefined) meta.discoverConfig = settings.discoverConfig;
+      if (settings.defaultRoleSettings !== undefined)
+        meta.defaultRoleSettings = settings.defaultRoleSettings;
+      if (settings.welcomeSettings !== undefined) meta.welcomeSettings = settings.welcomeSettings;
 
-    if (Array.isArray(settings.channels)) {
-      server.channels = settings.channels.map((c) => {
-        const isCat = c.type === "category" || String(c.id).startsWith("cat-");
-        return {
-          id: c.id,
-          type: isCat ? "category" : c.type === "voice" ? "voice" : c.type === "forum" ? "forum" : "text",
-          name: String(c.name ?? "")
-            .trim()
-            .slice(0, 32),
-          parentId: c.parentId ?? null,
-          isPrivate: Boolean(c.isPrivate),
-          allowedRoles: Array.isArray(c.allowedRoles) ? c.allowedRoles : [],
-          hasSpeakRestrictions: Boolean(c.hasSpeakRestrictions),
-          disallowedSpeakRoles: Array.isArray(c.disallowedSpeakRoles) ? c.disallowedSpeakRoles : [],
-        };
-      });
-    }
-    server.metaVersion = (server.metaVersion || 1) + 1;
-    server.metaUpdatedAt = Date.now();
-    await this._write(data);
-    return server;
+      if (Array.isArray(settings.channels)) {
+        meta.channels = settings.channels.map((c) => {
+          const isCat = c.type === "category" || String(c.id).startsWith("cat-");
+          return {
+            id: c.id,
+            type: isCat
+              ? "category"
+              : c.type === "voice"
+              ? "voice"
+              : c.type === "forum"
+              ? "forum"
+              : "text",
+            name: String(c.name ?? "").trim().slice(0, 32),
+            parentId: c.parentId ?? null,
+            isPrivate: Boolean(c.isPrivate),
+            allowedRoles: Array.isArray(c.allowedRoles) ? c.allowedRoles : [],
+            hasSpeakRestrictions: Boolean(c.hasSpeakRestrictions),
+            disallowedSpeakRoles: Array.isArray(c.disallowedSpeakRoles)
+              ? c.disallowedSpeakRoles
+              : [],
+          };
+        });
+      }
+
+      meta.version = (meta.version || 1) + 1;
+      meta.updatedAt = now;
+      metaStore._saveToSqlSync(code, meta);
+
+      const extraObj = safeParse(row.extra_json, {});
+      extraObj.metaVersion = meta.version;
+      extraObj.metaUpdatedAt = meta.updatedAt;
+
+      serversListDb
+        .prepare(`
+          UPDATE joined_servers
+          SET name = ?, icon_ref = ?, banner_ref = ?, owner_id = ?, extra_json = ?
+          WHERE room_code = ?
+        `)
+        .run(
+          meta.name || row.name,
+          meta.icon ?? row.icon_ref,
+          meta.banner ?? row.banner_ref,
+          meta.ownerId || row.owner_id,
+          JSON.stringify(extraObj),
+          code
+        );
+
+      const all = this._loadAllServersSync();
+      return all.find((s) => s.roomCode === code) || null;
+    });
   }
 
   async applySyncedMeta(roomCode, meta) {
     if (!meta?.version) return null;
-    const code = String(roomCode).trim().toUpperCase();
-    const data = await this._read();
-    let server = data.servers.find((s) => s.roomCode === code);
-    if (!server) {
-      await this.recoverMissingServersFromRoomMeta(data);
-      server = data.servers.find((s) => s.roomCode === code);
-    }
-    if (!server) return null;
+    return this._withLock(async () => {
+      const code = String(roomCode).trim().toUpperCase();
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const row = serversListDb
+        .prepare("SELECT * FROM joined_servers WHERE room_code = ?")
+        .get(code);
+      if (!row) return null;
 
-    // FIX 2: Authority validation already happened in RoomMetaStore.merge().
-    // onServerMetaUpdated is only called after merge() accepted the data,
-    // so we always apply here without repeating the version check, which
-    // avoids divergence between room-meta/*.json and servers.json.
-    if (meta.name) server.name = meta.name;
-    if (meta.icon !== undefined) server.icon = meta.icon;
-    if (meta.banner !== undefined) server.banner = meta.banner;
-    if (Array.isArray(meta.channels)) server.channels = meta.channels;
+      const cas = this._cas();
+      const iconRef = meta.icon !== undefined ? cas.storeDataUri(meta.icon) : row.icon_ref;
+      const bannerRef = meta.banner !== undefined ? cas.storeDataUri(meta.banner) : row.banner_ref;
+      const nextName = meta.name ? String(meta.name).trim().slice(0, 48) : row.name;
+      const nextOwnerId = meta.ownerId || row.owner_id;
+      const nextCreatorId = meta.creatorID || meta.creatorId || row.creator_id || nextOwnerId;
+      const localUserId = this._getLocalProfileId();
+      const nextIsOwner =
+        localUserId && nextOwnerId ? (nextOwnerId === localUserId ? 1 : 0) : row.is_owner;
 
-    if (Array.isArray(meta.roles)) server.roles = meta.roles;
-    if (meta.userRoles) server.userRoles = meta.userRoles;
-    if (Array.isArray(meta.plugins)) server.plugins = meta.plugins;
-    // FIX 3: Use !== undefined so null values (clearing music) are applied.
-    if (meta.music !== undefined) server.music = meta.music;
-    if (meta.disableFlameSystem !== undefined) server.disableFlameSystem = meta.disableFlameSystem;
-    if (meta.groupByRoles !== undefined) server.groupByRoles = meta.groupByRoles;
-    if (meta.allowExecutableFiles !== undefined) server.allowExecutableFiles = meta.allowExecutableFiles;
-    // FIX 3: Use Array.isArray so an empty [] properly clears custom ICE servers.
-    if (Array.isArray(meta.iceServers)) server.iceServers = meta.iceServers;
-    if (meta.directConnectionEnabled !== undefined) server.directConnectionEnabled = meta.directConnectionEnabled;
-    if (meta.directIP !== undefined) server.directIP = meta.directIP;
-    if (meta.directPort !== undefined) server.directPort = meta.directPort;
-    if (meta.ownerId) server.ownerId = meta.ownerId;
-    if (Array.isArray(meta.bannedUsers)) server.bannedUsers = meta.bannedUsers;
-    if (meta.kickedUsers) server.kickedUsers = meta.kickedUsers;
-    // NOTE: NEVER copy meta.auditLog or savedMembers into servers.json! auditLog is kept in room-meta only.
-    if (server.auditLog) delete server.auditLog;
-    if (server.savedMembers) delete server.savedMembers;
-    if (Array.isArray(meta.webhooks)) server.webhooks = meta.webhooks;
-    if (meta.discoverConfig !== undefined) server.discoverConfig = meta.discoverConfig;
-    if (meta.defaultRoleSettings !== undefined) server.defaultRoleSettings = meta.defaultRoleSettings;
-    if (meta.welcomeSettings !== undefined) server.welcomeSettings = meta.welcomeSettings;
+      const extraObj = safeParse(row.extra_json, {});
+      extraObj.metaVersion = meta.version;
+      extraObj.metaUpdatedAt = meta.updatedAt || Date.now();
 
-    server.metaVersion = meta.version;
-    server.metaUpdatedAt = meta.updatedAt;
-    await this._write(data);
-    return server;
-  }
+      serversListDb
+        .prepare(`
+          UPDATE joined_servers
+          SET name = ?, icon_ref = ?, banner_ref = ?, owner_id = ?, creator_id = ?, is_owner = ?, extra_json = ?
+          WHERE room_code = ?
+        `)
+        .run(
+          nextName,
+          iconRef,
+          bannerRef,
+          nextOwnerId,
+          nextCreatorId,
+          nextIsOwner,
+          JSON.stringify(extraObj),
+          code
+        );
 
-  async getServerByRoomCode(roomCode) {
-    return this.getByRoomCode(roomCode);
-  }
-
-  async updateServer(serverId, data) {
-    return this.updateSettings(serverId, data);
+      const all = this._loadAllServersSync();
+      return all.find((s) => s.roomCode === code) || null;
+    });
   }
 }
 

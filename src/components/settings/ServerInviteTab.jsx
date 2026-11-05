@@ -257,7 +257,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
                   </div>
                 </div>
 
-                {/* Botones de Aceptar y Cancelar calcados */}
+                {/* Accept and Cancel preview buttons */}
                 <div className="w-full flex flex-col gap-2.5">
                   <button
                     type="button"

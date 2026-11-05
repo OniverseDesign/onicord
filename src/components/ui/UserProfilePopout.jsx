@@ -324,7 +324,7 @@ export default function UserProfilePopout({
           </button>
         )}
 
-        {/* Flama del usuario (Racha) */}
+        {/* User Flame Badge (Streak) */}
         {!disableFlameSystem && (
           <div className="w-full mb-2 p-3 rounded-xl bg-onicord-base border border-onicord-island flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">

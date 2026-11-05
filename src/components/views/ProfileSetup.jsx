@@ -372,7 +372,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                   onChange={(e) => setNickname(e.target.value)}
                   maxLength={32}
                   className="onicord-input mt-1 w-full"
-                  placeholder={t("profileTab.yourNamePlaceholder", "Ej: PlayerOne")}
+                  placeholder={t("profileTab.yourNamePlaceholder", "e.g. PlayerOne")}
                   autoFocus
                 />
               </div>

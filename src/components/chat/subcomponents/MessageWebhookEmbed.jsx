@@ -23,9 +23,8 @@ function SingleWebhookEmbed({ embed }) {
   const rawThumbnail = embed.thumbnail?.url || (typeof embed.thumbnail === "string" ? embed.thumbnail : null);
   const rawImage = embed.image?.url || (typeof embed.image === "string" ? embed.image : null);
 
-  // Si tiene título o descripción, las imágenes únicas se muestran de forma compacta
-  // a la derecha (estilo OpenGraph/preview). Solo se muestra abajo a pantalla completa
-  // si es un banner secundario o si el embed no tiene texto descriptivo.
+  // If title or description is present, single images are rendered as compact right-aligned thumbnails (OpenGraph style).
+  // Full-width bottom layout is only used for secondary banners or embeds without descriptive text.
   const sideThumbnail = rawThumbnail || (rawImage && (title || description) ? rawImage : null);
   const bottomImage = rawThumbnail ? rawImage : (!title && !description ? rawImage : null);
 

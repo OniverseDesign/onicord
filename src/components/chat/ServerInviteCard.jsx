@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
+import { parseInviteUrl } from "../../lib/inviteUtils";
 
-export default function ServerInviteCard({ roomCode, fullUrl }) {
+export default function ServerInviteCard({ roomCode, fullUrl, ip, port }) {
   const { t } = useTranslation();
   const [serverData, setServerData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +47,8 @@ export default function ServerInviteCard({ roomCode, fullUrl }) {
         let details = null;
         if (api.resolveInvite) {
           try {
-            details = await api.resolveInvite(cleanCode);
+            const profile = await api.getProfile?.().catch(() => null);
+            details = await api.resolveInvite(cleanCode, profile);
           } catch (e) {}
         }
 
@@ -74,9 +76,24 @@ export default function ServerInviteCard({ roomCode, fullUrl }) {
       }
     }
 
+    let offInviteUpdated = null;
+    if (window.electronAPI?.onInviteDetailsUpdated) {
+      offInviteUpdated = window.electronAPI.onInviteDetailsUpdated((updated) => {
+        if (!isMounted || !updated || String(updated.roomCode || "").trim().toUpperCase() !== cleanCode) return;
+        setServerData((prev) => ({
+          ...(prev || {}),
+          name: updated.name || prev?.name || `Servidor ${cleanCode}`,
+          icon: updated.icon !== undefined ? updated.icon : prev?.icon,
+          memberCount: updated.memberCount !== undefined ? updated.memberCount : (prev?.memberCount || 1),
+        }));
+      });
+    }
+
     loadServerInfo();
     return () => {
       isMounted = false;
+      if (offInviteUpdated) offInviteUpdated();
+      window.electronAPI?.cancelResolveInvite?.(cleanCode);
     };
   }, [cleanCode]);
 
@@ -103,12 +120,30 @@ export default function ServerInviteCard({ roomCode, fullUrl }) {
           serverData?.name || `Servidor ${cleanCode}`,
           profile
         );
+
+        // Persist direct TCP connection parameters if provided in the invite
+        if ((ip && port) || fullUrl) {
+          try {
+            const parsed = parseInviteUrl(fullUrl);
+            const directIp = ip || parsed?.ip;
+            const directPort = port || parsed?.port;
+            if (directIp && directPort && joinedServer?.id && api.updateServerSettings) {
+              await api.updateServerSettings(joinedServer.id, {
+                directConnectionEnabled: true,
+                directIP: directIp,
+                directPort: parseInt(directPort, 10) || directPort,
+              });
+            }
+          } catch (_) {}
+        }
+
         setServerData((prev) => ({
           ...prev,
           isMember: true,
           serverObj: joinedServer,
         }));
         // Switch to the server immediately after joining
+        window.dispatchEvent(new CustomEvent("onicord:refresh-servers"));
         window.dispatchEvent(
           new CustomEvent("onicord:select-server", { detail: cleanCode })
         );

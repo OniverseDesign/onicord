@@ -1,5 +1,5 @@
 const os = require("os");
-const { encodeMessage, getLocalIPs, isSameSubnet } = require("./p2pService.cjs");
+const { encodeMessage, getLocalIPs, isSameSubnet, safeWriteSocket } = require("./p2pService.cjs");
 
 class VoiceService {
   constructor(p2pService) {
@@ -99,7 +99,9 @@ class VoiceService {
     this.initialMuted = this.localVoice.muted;
     this.initialDeafened = this.localVoice.deafened;
     this._broadcastLocalVoiceState(profile);
-    emitVoiceState();
+    if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
   }
 
   leaveVoice(profile, emitVoiceState) {
@@ -111,31 +113,41 @@ class VoiceService {
     this.localVoice = null;
     this._pendingSignals.clear();
     this._broadcastLocalVoiceState(profile);
-    emitVoiceState();
+    if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
   }
 
   setVoiceMuted(muted, profile, emitVoiceState) {
     this.initialMuted = Boolean(muted);
     if (!this.localVoice) {
+      if (typeof emitVoiceState === "function") {
       emitVoiceState();
+    }
       return;
     }
     this.localVoice.muted = Boolean(muted);
     this._broadcastLocalVoiceState(profile);
-    emitVoiceState();
+    if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
   }
 
   setVoiceDeafened(deafened, profile, emitVoiceState) {
     this.initialDeafened = Boolean(deafened);
     if (deafened) this.initialMuted = true;
     if (!this.localVoice) {
+      if (typeof emitVoiceState === "function") {
       emitVoiceState();
+    }
       return;
     }
     this.localVoice.deafened = Boolean(deafened);
     if (deafened) this.localVoice.muted = true;
     this._broadcastLocalVoiceState(profile);
-    emitVoiceState();
+    if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
   }
 
   setStreamingState(isStreaming, profile, emitVoiceState) {
@@ -145,7 +157,9 @@ class VoiceService {
     }
     this.localVoice.isStreaming = Boolean(isStreaming);
     this._broadcastLocalVoiceState(profile);
-    emitVoiceState();
+    if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
   }
 
   relayVoiceSignal(toPeerId, channelId, signal) {
@@ -237,7 +251,9 @@ class VoiceService {
       topology: "sfu",
     });
 
-    emitVoiceState();
+    if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
   }
 
   updateVoiceStreamIds(audioStreamId, videoStreamId, bandwidth, profile, emitVoiceState) {
@@ -251,7 +267,9 @@ class VoiceService {
     }
     this._recalculateLocalSfuScore();
     this._broadcastLocalVoiceState(profile);
-    emitVoiceState();
+    if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
   }
 
   _recalculateLocalSfuScore() {
@@ -356,7 +374,9 @@ class VoiceService {
       });
     }
 
-    emitVoiceState();
+    if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
   }
 
   handleSfuHostClaim(fromPeerId, payload) {
@@ -389,7 +409,9 @@ class VoiceService {
         this._recalculateLocalSfuScore();
         if (Math.abs((this.localVoice.sfuScore || 0) - oldScore) > 5) {
           this._broadcastLocalVoiceState(profile);
-          emitVoiceState();
+          if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
         }
       }
     }
@@ -407,14 +429,17 @@ class VoiceService {
         topology: "mesh",
       });
     }
-    emitVoiceState();
+    if (typeof emitVoiceState === "function") {
+      emitVoiceState();
+    }
   }
 
   handlePeerJoined(peerId, socket) {
     if (this.localVoice?.channelId) {
       const localId = this.p2p._resolveLocalPeerId();
       if (localId) {
-        socket.write(
+        safeWriteSocket(
+          socket,
           encodeMessage("voice-state", {
             peerId: localId,
             channelId: this.localVoice.channelId,
@@ -434,7 +459,8 @@ class VoiceService {
     }
 
     if (this.currentSfuHostId) {
-      socket.write(
+      safeWriteSocket(
+        socket,
         encodeMessage("sfu-host-claim", { peerId: this.currentSfuHostId })
       );
     }

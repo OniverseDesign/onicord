@@ -214,7 +214,7 @@ export default function ServerStorageTab({ server }) {
           ))}
         </div>
 
-        {/* Rejilla de Archivos */}
+        {/* Files Grid */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3 text-onicord-muted">
             <div className="onicord-loading-container onicord-bounce-logo h-10 w-10 text-onicord-accent">

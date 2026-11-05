@@ -15,6 +15,9 @@ function createRoomManager() {
     onPeerJoined: (peer) => {
       global.mainWindow?.webContents.send("peer:joined", peer);
     },
+    onMemberFirstJoined: (member) => {
+      global.mainWindow?.webContents.send("server:member-first-joined", member);
+    },
     onPeerLeft: (peer) => {
       global.mainWindow?.webContents.send("peer:left", peer);
     },
@@ -50,22 +53,36 @@ function createRoomManager() {
       const serverStore = serverService.getServerStore();
       const server = await serverStore.applySyncedMeta(roomCode, meta);
       if (server) {
-        global.mainWindow?.webContents.send("server:updated", server);
+        const enrichedServer = {
+          ...server,
+          savedMembers: meta.savedMembers || {},
+        };
+        global.mainWindow?.webContents.send("server:updated", enrichedServer);
 
         // Invalidate moderation cache
-        if (global.roomManager && global.roomManager.roomCode === roomCode) {
-          global.roomManager._moderationCache = {
-            bannedUsers: Array.isArray(meta.bannedUsers) ? meta.bannedUsers : [],
-            kickedUsers: meta.kickedUsers || {},
-          };
+        const normalizedCode = String(roomCode || "").trim().toUpperCase();
+        if (global.roomManager) {
+          const roomEntry = global.roomManager.rooms?.get(normalizedCode);
+          if (roomEntry) {
+            roomEntry.moderationCache = {
+              bannedUsers: Array.isArray(meta.bannedUsers) ? meta.bannedUsers : [],
+              kickedUsers: meta.kickedUsers || {},
+            };
+          }
+          if (global.roomManager.roomCode === normalizedCode) {
+            global.roomManager._moderationCache = {
+              bannedUsers: Array.isArray(meta.bannedUsers) ? meta.bannedUsers : [],
+              kickedUsers: meta.kickedUsers || {},
+            };
 
-          if (global.roomManager.p2pService) {
-            global.roomManager.p2pService.setDirectConfig({
-              enabled: Boolean(server.directConnectionEnabled),
-              ip: server.directIP || "",
-              port: parseInt(server.directPort, 10) || 7777,
-              isHost: global.roomManager.isHost,
-            });
+            if (global.roomManager.p2pService) {
+              global.roomManager.p2pService.setDirectConfig({
+                enabled: Boolean(server.directConnectionEnabled),
+                ip: server.directIP || "",
+                port: parseInt(server.directPort, 10) || 7777,
+                isHost: global.roomManager.isHost,
+              });
+            }
           }
 
           // Anti-Moderation Check: Evict penalized local user in real-time
@@ -75,17 +92,17 @@ function createRoomManager() {
             if (!isOwner) {
               const isBanned = Array.isArray(meta.bannedUsers) && meta.bannedUsers.includes(localProfileId);
               const kickTime = meta.kickedUsers?.[localProfileId];
-              const joinTime = global.roomManager.localJoinTimestamp || 0;
-              const isKicked = kickTime && kickTime > joinTime;
+              const joinTime = server.joinedAt || server.createdAt || roomEntry?.localJoinTimestamp || 0;
+              const isKicked = Boolean(kickTime && kickTime > joinTime);
 
               if (isBanned) {
-                console.log(`[P2P Eviction] Local user is BANNED from room ${roomCode}. Booting...`);
-                global.mainWindow?.webContents.send("server:banned", { roomCode, name: server.name || meta.name });
+                console.log(`[P2P Eviction] Local user is BANNED from room ${normalizedCode}. Booting...`);
                 await serverService.removeServer(server.id, global.roomManager);
+                global.mainWindow?.webContents.send("server:banned", { roomCode: normalizedCode, name: server.name || meta.name });
               } else if (isKicked) {
-                console.log(`[P2P Eviction] Local user is KICKED from room ${roomCode}. Booting...`);
-                global.mainWindow?.webContents.send("server:kicked", { roomCode, name: server.name || meta.name });
-                await global.roomManager.leaveRoom();
+                console.log(`[P2P Eviction] Local user is KICKED from room ${normalizedCode}. Booting...`);
+                await serverService.removeServer(server.id, global.roomManager);
+                global.mainWindow?.webContents.send("server:kicked", { roomCode: normalizedCode, name: server.name || meta.name });
               }
             }
           }
@@ -123,20 +140,31 @@ function registerP2PServerHandlers() {
   ipcMain.handle("deeplink:resolve-invite", async (event, roomCode, profile) => {
     const normalized = String(roomCode).trim().toUpperCase();
 
-    const roomMetaStore = new RoomMetaStore(app.getPath("userData"));
+    const roomMetaStore = global.roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
     const localMeta = await roomMetaStore.load(normalized);
 
     const serverStore = new ServerStore(app.getPath("userData"));
     const localServer = await serverStore.getByRoomCode(normalized);
+    const discovered = discoverService.discoveredServers?.get(normalized);
 
     const savedMembersList = localMeta?.savedMembers ? Object.values(localMeta.savedMembers) : [];
+    const activePeersInRoom = global.roomManager?.getPeersForRoom ? global.roomManager.getPeersForRoom(normalized) : [];
+    const isLocalMember = Boolean(localServer);
     const initialDetails = {
       roomCode: normalized,
-      name: localServer?.name || localMeta?.name || `Servidor ${normalized}`,
-      icon: localServer?.icon || localMeta?.icon || null,
-      memberCount: savedMembersList.length,
-      onlineCount: 0,
+      name: localServer?.name || localMeta?.name || discovered?.name || `Servidor ${normalized}`,
+      icon: localServer?.icon || localMeta?.icon || discovered?.icon || null,
+      memberCount: Math.max(savedMembersList.length, discovered?.memberCount || 0, isLocalMember ? 1 : 0),
+      onlineCount: activePeersInRoom.length + (isLocalMember ? 1 : 0),
     };
+
+    // If main RoomManager is active, ask connected peers over the existing P2P/Discovery mesh instead of spawning a second Hyperswarm instance
+    if (global.roomManager?.p2pService) {
+      global.roomManager.p2pService._broadcast("invite-preview-req", { roomCode: normalized });
+      if (isLocalMember || global.roomManager.p2pService.peers.size > 0 || discovered) {
+        return initialDetails;
+      }
+    }
 
     if (activeInvitePreviews.has(normalized)) {
       const prev = activeInvitePreviews.get(normalized);
@@ -251,17 +279,18 @@ function registerP2PServerHandlers() {
   ipcMain.handle("room:leave", async () => {
     if (global.roomManager) {
       await serverService.leaveRoom(global.roomManager);
-      global.roomManager = null;
     }
     return { success: true };
   });
 
   ipcMain.handle("servers:remove", async (_event, serverId) => {
-    if (global.roomManager) {
-      await serverService.leaveRoom(global.roomManager);
+    const manager = global.roomManager;
+    const res = await serverService.removeServer(serverId, manager);
+    if (global.roomManager && (!global.roomManager.rooms || global.roomManager.rooms.size === 0) && !global.roomManager.roomCode) {
+      await global.roomManager.destroy().catch(() => {});
       global.roomManager = null;
     }
-    return serverService.removeServer(serverId);
+    return res;
   });
 
   ipcMain.handle("servers:join", async (_event, code, name, profile) => {
@@ -423,7 +452,10 @@ function registerP2PServerHandlers() {
 
   ipcMain.handle("discover:get-servers", async () => {
     try {
+      const manager = createRoomManager();
+      await manager.p2pService?.ensureSwarm();
       await discoverService.syncAndAnnounceLocalServers();
+      discoverService.requestPeerDiscoveries();
     } catch (_) {}
     return discoverService.getDiscoveredServers();
   });

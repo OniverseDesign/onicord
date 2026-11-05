@@ -192,7 +192,7 @@ export default function ChatMessageList({
                   !isForum && (!prevMsg || !isSameDay(msg.timestamp, prevMsg.timestamp));
 
                 return (
-                  <li key={msg.id || idx}>
+                  <li key={msg.clientTempId || msg.id || idx}>
                     {showDivider && (
                       <div className="relative flex items-center justify-center my-4 select-none">
                         <div className="absolute inset-0 flex items-center">

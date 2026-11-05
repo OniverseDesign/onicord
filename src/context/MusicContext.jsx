@@ -142,7 +142,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     });
   }, [activeServerId, profile]);
 
-  // 2. Broadcast de estado autoritativo (Solo el DJ)
+  // 2. Authoritative state broadcast (DJ only)
   const broadcastCurrentState = useCallback((overrides = {}) => {
     if (!currentVoiceChannelId || !window.electronAPI?.broadcastMusicState) return;
 
@@ -705,7 +705,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     }
   }, [inVoice, currentVoiceChannelId, currentTrack, isDJ, djUserId, djPeerId, voiceMembers, profile?.id, broadcastCurrentState]);
 
-  // 12. Compatibilidad con CustomEvents de la UI (`onicord:broadcast-music`, etc.)
+  // 12. UI CustomEvents backward-compatibility (`onicord:broadcast-music`, etc.)
   useEffect(() => {
     const handleBroadcastMusic = (e) => {
       const action = e.detail;

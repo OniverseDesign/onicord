@@ -133,42 +133,50 @@ class PluginService {
     return null;
   }
 
-  _getUninstalledPluginsPath() {
-    return path.join(app.getPath("userData"), "uninstalled-plugins.json");
+  _getAddonsDb() {
+    const { DbManager } = require("../storage/dbManager.cjs");
+    return DbManager.getInstance(app.getPath("userData")).getGlobalDb("addons");
   }
 
   _getUninstalledPlugins() {
     try {
-      const p = this._getUninstalledPluginsPath();
-      if (fs.existsSync(p)) {
-        const raw = fs.readFileSync(p, "utf-8");
-        const list = JSON.parse(raw);
-        return Array.isArray(list) ? list : [];
-      }
+      const db = this._getAddonsDb();
+      const rows = db
+        .prepare("SELECT plugin_id FROM installed_addons WHERE uninstalled = 1")
+        .all();
+      return rows.map((r) => r.plugin_id);
     } catch (_) {}
     return [];
   }
 
   _addUninstalledPlugin(pluginId) {
     if (!pluginId) return;
-    const target = String(pluginId).trim().toLowerCase();
-    const list = this._getUninstalledPlugins();
-    if (!list.some((id) => id && String(id).trim().toLowerCase() === target)) {
-      list.push(pluginId);
-      try {
-        fs.writeFileSync(this._getUninstalledPluginsPath(), JSON.stringify(list, null, 2), "utf-8");
-      } catch (_) {}
-    }
+    const target = String(pluginId).trim();
+    const now = Date.now();
+    try {
+      const db = this._getAddonsDb();
+      db.prepare(`
+        INSERT INTO installed_addons (
+          plugin_id, name, version, author, enabled_globally, uninstalled, manifest_json, installed_at, updated_at
+        ) VALUES (?, ?, '0.0.0', NULL, 0, 1, '{}', ?, ?)
+        ON CONFLICT(plugin_id) DO UPDATE SET
+          uninstalled = 1,
+          enabled_globally = 0,
+          updated_at = excluded.updated_at
+      `).run(target, target, now, now);
+    } catch (_) {}
   }
 
   _removeUninstalledPlugin(pluginId) {
     if (!pluginId) return;
     const target = String(pluginId).trim().toLowerCase();
-    const list = this._getUninstalledPlugins().filter(
-      (id) => !id || String(id).trim().toLowerCase() !== target
-    );
     try {
-      fs.writeFileSync(this._getUninstalledPluginsPath(), JSON.stringify(list, null, 2), "utf-8");
+      const db = this._getAddonsDb();
+      db.prepare(`
+        UPDATE installed_addons
+        SET uninstalled = 0, enabled_globally = 1, updated_at = ?
+        WHERE LOWER(plugin_id) = ?
+      `).run(Date.now(), target);
     } catch (_) {}
   }
 
@@ -674,48 +682,92 @@ class PluginService {
         const manifest = JSON.parse(raw);
         manifest.enabled = enabled;
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
+        try {
+          const db = this._getAddonsDb();
+          const now = Date.now();
+          db.prepare(`
+            INSERT INTO installed_addons (
+              plugin_id, name, version, author, enabled_globally, uninstalled, manifest_json, installed_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
+            ON CONFLICT(plugin_id) DO UPDATE SET
+              enabled_globally = excluded.enabled_globally,
+              manifest_json = excluded.manifest_json,
+              updated_at = excluded.updated_at
+          `).run(
+            String(manifest.id || pluginId),
+            String(manifest.name || pluginId),
+            String(manifest.version || "1.0.0"),
+            manifest.author || null,
+            enabled ? 1 : 0,
+            JSON.stringify(manifest),
+            now,
+            now
+          );
+        } catch (_) {}
         return { success: true, enabled };
       }
     }
     return { success: false, error: "Manifest no encontrado" };
   }
 
-  getPluginStoragePath(pluginId) {
-    const safeId = String(pluginId || "unknown").replace(/[^a-zA-Z0-9_\-\.]/g, "_");
-    const dataDir = path.join(this.getPluginsDir(), ".storage");
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+  _resolveStorageDb(roomCode = null) {
+    const { DbManager } = require("../storage/dbManager.cjs");
+    const dbMgr = DbManager.getInstance(app.getPath("userData"));
+    const targetCode = String(roomCode || global.roomManager?.roomCode || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-F0-9]/g, "");
+    if (targetCode && /^[A-F0-9]{8}$/.test(targetCode)) {
+      return {
+        db: dbMgr.getServerDb(targetCode, "addons"),
+        table: "addon_server_storage",
+      };
     }
-    return path.join(dataDir, `${safeId}.json`);
+    return {
+      db: dbMgr.getGlobalDb("addons"),
+      table: "global_addon_storage",
+    };
   }
 
-  getPluginStorage(pluginId, key) {
+  getPluginStorage(pluginId, key, roomCode = null) {
     try {
-      const filePath = this.getPluginStoragePath(pluginId);
-      if (fs.existsSync(filePath)) {
-        const raw = fs.readFileSync(filePath, "utf-8");
-        const store = JSON.parse(raw);
-        return key ? store[key] : store;
+      const safeId = String(pluginId || "unknown").trim();
+      const { db, table } = this._resolveStorageDb(roomCode);
+      if (key) {
+        const row = db
+          .prepare(`SELECT value_json FROM ${table} WHERE plugin_id = ? AND storage_key = ?`)
+          .get(safeId, String(key));
+        return row ? JSON.parse(row.value_json) : null;
+      } else {
+        const rows = db
+          .prepare(`SELECT storage_key, value_json FROM ${table} WHERE plugin_id = ?`)
+          .all(safeId);
+        if (rows.length === 0) return null;
+        const store = {};
+        for (const r of rows) {
+          try {
+            store[r.storage_key] = JSON.parse(r.value_json);
+          } catch {}
+        }
+        return store;
       }
     } catch (err) {
-      console.error(`[PLUGIN SERVICE] Error reading storage for ${pluginId}:`, err);
+      console.error(`[PLUGIN SERVICE] Error reading SQLite storage for ${pluginId}:`, err);
     }
     return null;
   }
 
-  setPluginStorage(pluginId, key, value) {
+  setPluginStorage(pluginId, key, value, roomCode = null) {
     try {
-      const filePath = this.getPluginStoragePath(pluginId);
-      let store = {};
-      if (fs.existsSync(filePath)) {
-        try {
-          store = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-        } catch (e) {}
-      }
-      store[key] = value;
-      fs.writeFileSync(filePath, JSON.stringify(store, null, 2), "utf-8");
+      const safeId = String(pluginId || "unknown").trim();
+      if (!key) return;
+      const { db, table } = this._resolveStorageDb(roomCode);
+      db.prepare(`
+        INSERT OR REPLACE INTO ${table} (plugin_id, storage_key, value_json, updated_at)
+        VALUES (?, ?, ?, ?)
+      `).run(safeId, String(key), JSON.stringify(value), Date.now());
     } catch (err) {
-      console.error(`[PLUGIN SERVICE] Error writing storage for ${pluginId}:`, err);
+      console.error(`[PLUGIN SERVICE] Error writing SQLite storage for ${pluginId}:`, err);
     }
   }
 

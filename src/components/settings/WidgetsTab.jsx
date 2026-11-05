@@ -22,7 +22,7 @@ export default function WidgetsTab({
 
   return (
     <div className="onicord-settings-container">
-      {/* TARJETA Panel de Widgets */}
+      {/* Widgets Panel Card */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.widgetsTab.title", "Panel de Widgets")}</span>

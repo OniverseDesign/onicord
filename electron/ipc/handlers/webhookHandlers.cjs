@@ -42,7 +42,7 @@ function registerWebhookHandlers() {
 
     // Broadcast meta update to peer swarm & update local serverStore
     try {
-      global.roomManager.p2pService?._broadcast("meta-update", meta);
+      global.roomManager.p2pService?._broadcast("meta-update", meta, code);
       const serverStore = serverService.getServerStore();
       const updatedServer = await serverStore.applySyncedMeta(code, meta);
       if (updatedServer) {
@@ -79,7 +79,7 @@ function registerWebhookHandlers() {
     );
 
     try {
-      global.roomManager.p2pService?._broadcast("meta-update", meta);
+      global.roomManager.p2pService?._broadcast("meta-update", meta, code);
       const serverStore = serverService.getServerStore();
       const updatedServer = await serverStore.applySyncedMeta(code, meta);
       if (updatedServer) {
@@ -106,7 +106,7 @@ function registerWebhookHandlers() {
     );
 
     try {
-      global.roomManager.p2pService?._broadcast("meta-update", meta);
+      global.roomManager.p2pService?._broadcast("meta-update", meta, code);
       const serverStore = serverService.getServerStore();
       const updatedServer = await serverStore.applySyncedMeta(code, meta);
       if (updatedServer) {
@@ -133,7 +133,7 @@ function registerWebhookHandlers() {
     );
 
     try {
-      global.roomManager.p2pService?._broadcast("meta-update", meta);
+      global.roomManager.p2pService?._broadcast("meta-update", meta, code);
       const serverStore = serverService.getServerStore();
       const updatedServer = await serverStore.applySyncedMeta(code, meta);
       if (updatedServer) {

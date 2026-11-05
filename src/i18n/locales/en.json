@@ -56,7 +56,8 @@
     "clickToPreview": "Click to preview",
     "searchSettings": "Search settings...",
     "clearSearch": "Clear search (Esc)",
-    "noResultsFor": "No results found for"
+    "noResultsFor": "No results found for",
+    "select": "Select..."
   },
   "sidebar": {
     "voiceChannel": "In voice channel",
@@ -81,7 +82,8 @@
     "inviteCodeHint": "8 hex characters (0-9, A-F). Ask whoever created the server.",
     "joinInviteInstruction": "Server settings → Invites",
     "createButton": "Create and Enter",
-    "joinButton": "Join Server"
+    "joinButton": "Join Server",
+    "codePlaceholder": "A1B2C3D4"
   },
   "deleteServerModal": {
     "title": "Delete Server",
@@ -125,7 +127,9 @@
     "muteUser": "Mute user",
     "unmuteUser": "Unmute user",
     "muteChannel": "Mute channel",
-    "unmuteChannel": "Unmute channel"
+    "unmuteChannel": "Unmute channel",
+    "markAsRead": "Mark as Read",
+    "markServerAsRead": "Mark as Read"
   },
   "userPanel": {
     "playing": "Playing",
@@ -305,6 +309,8 @@
       "roles": "Roles",
       "members": "Members",
       "invites": "Invites",
+      "plugins": "Plugins",
+      "discover": "Discovery",
       "storage": "Storage",
       "network": "Network",
       "audit": "Audit Log",
@@ -332,7 +338,8 @@
       "banButton": "Ban member",
       "unbanButton": "Unban",
       "noMembersFound": "No members found.",
-      "bannedTitle": "Banned Members"
+      "bannedTitle": "Banned Members",
+      "searchPlaceholder": "Search member..."
     },
     "channels": {
       "orphanChannels": "Orphan Channels",
@@ -369,7 +376,9 @@
       "readOnlyBadge": "Read only",
       "disableSpeakRestrictions": "Disable speaking restrictions (Allow everyone)",
       "enableVoiceRestrictions": "Restrict who can speak (Listeners only mode)",
-      "enableTextRestrictions": "Restrict who can write (Read-only mode)"
+      "enableTextRestrictions": "Restrict who can write (Read-only mode)",
+      "categoryPlaceholder": "Category",
+      "channelPlaceholder": "channel-name"
     },
     "invites": {
       "title": "Server Invites",
@@ -445,7 +454,8 @@
       "deleteConfirmTitle": "Delete Webhook",
       "deleteConfirmMsg": "Are you sure you want to delete the webhook \"{{name}}\"? External services sending requests to this URL will stop working.",
       "regenerateConfirmTitle": "Regenerate Webhook Token",
-      "regenerateConfirmMsg": "Do you want to regenerate the token for \"{{name}}\"? The previous token will be immediately invalidated."
+      "regenerateConfirmMsg": "Do you want to regenerate the token for \"{{name}}\"? The previous token will be immediately invalidated.",
+      "feedUrlPlaceholder": "https://news.google.com/rss/search?q=Worlds+LoL..."
     },
     "overview": {
       "title": "Server Overview",
@@ -479,7 +489,8 @@
       "defaultWelcomeTemplate": "Welcome {user} to {server}! 🎉",
       "restoreDefaultTemplate": "Reset to default template",
       "multilingualNotice": "Default template active: each member will see the message translated into their own language.",
-      "multilingualBadge": "Multilingual"
+      "multilingualBadge": "Multilingual",
+      "serverNamePlaceholder": "My Server"
     },
     "roles": {
       "defaultRoleTitle": "Automatically Assign Role to New Members",
@@ -506,7 +517,7 @@
       "manageMusic": "Manage Music",
       "manageMusicDesc": "Allows pausing, skipping tracks, and managing the queue in voice channels.",
       "viewAdvancedSettings": "View Advanced Settings",
-      "viewAdvancedSettingsDesc": "View and edit channels, roles, and server network settings."
+      "viewAdvancedSettingsDesc": "View and edit channels, roles, plugins, discovery, and server network settings."
     },
     "network": {
       "title": "Network Settings & ICE Fallbacks",
@@ -758,7 +769,12 @@
       "installErrorDesc": "Failed to process the .onipkg package."
     },
     "complementBadge": "Addon",
-    "pluginCommandFallback": "Command from {{name}} plugin"
+    "pluginCommandFallback": "Command from {{name}} plugin",
+    "searchResults": "Search results",
+    "forumPostPlaceholder": "Write a new post...",
+    "replyInThreadPlaceholder": "Reply in thread...",
+    "commentOnFile": "Comment on {{filename}}...",
+    "editMessagePlaceholder": "Write your message..."
   },
   "voice": {
     "screenOf": "{{name}}'s Screen",
@@ -1065,7 +1081,8 @@
       "packPluginFolder": "Package addon folder",
       "uninstallSuccess": "Addon '{{name}}' removed from your device.",
       "loadingPackage": "Loading package...",
-      "loadLocalPackage": "Load local package (.onipkg)"
+      "loadLocalPackage": "Load local package (.onipkg)",
+      "searchPlaceholder": "Search plugins..."
     },
     "profile": {
       "vipMember": "VIP Member"
@@ -1123,7 +1140,8 @@
       "manageMusic": "Manage music",
       "manageMusicDesc": "Allows pausing, skipping tracks, and managing the queue in voice channels.",
       "viewAdvancedSettings": "View advanced settings",
-      "viewAdvancedSettingsDesc": "View and edit server channels, roles and network."
+      "viewAdvancedSettingsDesc": "View and edit server channels, roles, plugins, discovery, and network.",
+      "roleNamePlaceholder": "Role name"
     },
     "members": {
       "searchLabel": "Search Members",
@@ -1182,11 +1200,21 @@
       "customColor": "Custom",
       "settings": "Settings",
       "previewToggle": "State Toggle",
-      "scrollLevel": "Scroll Level"
+      "scrollLevel": "Scroll Level",
+      "previewMsg1Before": "Hello everyone! This is a test message with a mention to ",
+      "previewMsg1After": " using the new palette.",
+      "previewMsgGrouped": "This second message is grouped without repeating the avatar or username.",
+      "previewModerator": "Moderator",
+      "previewMsg2Before": "The ",
+      "previewMsg2After": " color accent looks great!",
+      "customCSSPlaceholder": "/* Write custom CSS rules here */\n.onicord-chat-input-bar {\n  border-color: var(--onicord-accent) !important;\n}",
+      "charCount": "{{count}} characters"
     },
     "network": {
       "ipPlaceholder": "e.g. 201.242.10.15 or myserver.ddns.net",
-      "userPlaceholder": "my_username"
+      "userPlaceholder": "my_username",
+      "stunPlaceholder": "stun:stun.l.google.com:19302",
+      "turnPlaceholder": "turn:relay.myserver.com:3478"
     },
     "backup": {
       "exportTitle": "Export backup in .onipkg format",
@@ -1456,7 +1484,8 @@
     "badgeGame": "Game",
     "badgeApp": "App",
     "toggleTooltip": "Enable or pause detection",
-    "errorBrowse": "Could not read the selected file."
+    "errorBrowse": "Could not read the selected file.",
+    "gameTitlePlaceholder": "Game or software name"
   },
   "watchParty": {
     "title": "Watch Party",
@@ -1582,6 +1611,8 @@
     "knockErrorDesc": "Could not send access request.",
     "queueFullNotice": "The access request queue is full (maximum 25). You must approve or reject current requests before new users can apply.",
     "toastKnockTitle": "Access Request",
-    "toastKnockMsg": "{{applicant}} requested to join {{server}}"
+    "toastKnockMsg": "{{applicant}} requested to join {{server}}",
+    "descPlaceholder": "Describe what your server is about...",
+    "tagsPlaceholder": "Type a tag and press Enter or comma..."
   }
 }

@@ -18,6 +18,7 @@ import MessageStickerContent from "./subcomponents/MessageStickerContent";
 import MessagePluginEmbed from "./subcomponents/MessagePluginEmbed";
 import MessageWebhookEmbed from "./subcomponents/MessageWebhookEmbed";
 import MessageTextContent, { parseMessageText } from "./subcomponents/MessageTextContent";
+import { isInviteUrl } from "../../lib/inviteUtils";
 
 const ChatMessageItem = memo(
   ({
@@ -68,7 +69,7 @@ const ChatMessageItem = memo(
       profile,
       peersLookup,
       msg,
-      server?.roomCode || server?.id || msg.roomCode,
+      server || server?.roomCode || server?.id || msg.roomCode,
     );
 
     if (msg.authorId === "onicord-bot") {
@@ -92,12 +93,12 @@ const ChatMessageItem = memo(
       const prevIsMe = Boolean(profile?.id && (prevMsg.authorId === profile.id || prevMsg.authorId === "self")) || prevMsg.authorId === "self";
       const currentIsMe = isMyMessage;
 
-      // 1. Nunca agrupar mensajes propios con mensajes de otros usuarios
+      // 1. Never group local user messages with messages from other peers
       if (prevIsMe === currentIsMe) {
         const prevIsComp = Boolean(prevMsg.isComplement || prevMsg.authorId === "onicord-bot" || prevMsg.isWebhook);
         const currentIsComp = Boolean(msg.isComplement || msg.authorId === "onicord-bot" || msg.isWebhook);
 
-        // 2. Nunca agrupar complementos/bots con mensajes de usuario regular
+        // 2. Never group plugins/bots/webhooks with regular user messages
         if (prevIsComp === currentIsComp) {
           if (prevIsComp) {
             const prevCompName = prevMsg.complementName || prevMsg.authorNickname || "Complemento";
@@ -110,7 +111,13 @@ const ChatMessageItem = memo(
             const bothHaveIds = Boolean(prevId && currentId && prevId !== "self" && currentId !== "self");
             const sameId = bothHaveIds && prevId === currentId;
 
-            const prevDisplay = resolveAuthorDisplay(prevMsg.authorId, profile, peersLookup, prevMsg);
+            const prevDisplay = resolveAuthorDisplay(
+              prevMsg.authorId,
+              profile,
+              peersLookup,
+              prevMsg,
+              server || server?.roomCode || server?.id || prevMsg.roomCode
+            );
             const prevNick = prevDisplay.nickname;
             const currentNick = nickname;
             const sameNick = Boolean(prevNick && currentNick && prevNick === currentNick);
@@ -280,7 +287,7 @@ const ChatMessageItem = memo(
       const userMap = new Map();
       replies.forEach((r) => {
         if (!userMap.has(r.authorId)) {
-          userMap.set(r.authorId, resolveAuthorDisplay(r.authorId, profile, peersLookup, r));
+          userMap.set(r.authorId, resolveAuthorDisplay(r.authorId, profile, peersLookup, r, server));
         }
       });
 
@@ -316,14 +323,17 @@ const ChatMessageItem = memo(
 
     const isOgEnabled = profile?.general?.enableOpenGraph ?? true;
     const urlRegex = /(https?:\/\/[^\s\)]+)/;
+    const rawDetectedUrl = linkUrlOverride || (textContent ? textContent.match(urlRegex)?.[0] : null);
+    const isInvite = Boolean(rawDetectedUrl && isInviteUrl(rawDetectedUrl));
     const hasLink =
-      Boolean(linkUrlOverride || (textContent && urlRegex.test(textContent))) &&
+      Boolean(rawDetectedUrl) &&
+      !isInvite &&
       isOgEnabled &&
       !isStickerPayload &&
       !isPluginEmbedPayload &&
       !msg.hidePreview &&
       !msg.suppressEmbeds;
-    const detectedUrl = linkUrlOverride || (hasLink ? textContent.match(urlRegex)?.[0] : null);
+    const detectedUrl = hasLink ? rawDetectedUrl : null;
 
     const handleJumpToMessage = (targetId) => {
       if (!targetId) return;
@@ -375,6 +385,7 @@ const ChatMessageItem = memo(
           profile,
           peersLookup,
           fallbackForReply,
+          server,
         )
       : { nickname: "Usuario", avatar: null };
 
@@ -645,6 +656,7 @@ const ChatMessageItem = memo(
               msgId={msg.id}
               profile={profile}
               peers={peers}
+              server={server}
               onToggleReaction={onToggleReaction}
               pickerTargetRect={pickerTargetRect}
               setPickerTargetRect={setPickerTargetRect}

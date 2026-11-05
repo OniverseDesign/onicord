@@ -406,7 +406,7 @@ export default function StickerManagerTab() {
                     </div>
                   </div>
 
-                  {/* Vista Previa Horizontal de Stickers del Paquete */}
+                  {/* Horizontal Sticker Pack Preview */}
                   <div className="flex gap-2 overflow-x-auto minimal-scrollbar py-1.5 bg-black/20 p-2 rounded-xl border border-white/5">
                     {packStickers.map((stk) => (
                       <div

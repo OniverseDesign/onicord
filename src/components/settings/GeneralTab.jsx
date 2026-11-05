@@ -310,7 +310,7 @@ export default function GeneralTab({ general, setGeneral }) {
             </div>
           </div>
 
-          {/* Interlineado del Chat (Fila con slider) */}
+          {/* Chat line height slider row */}
           <div data-setting-id="lineSpacing" className="onicord-settings-slider-row transition-all">
             <div className="flex justify-between items-center">
               <div className="min-w-0 pr-2">
@@ -516,7 +516,7 @@ export default function GeneralTab({ general, setGeneral }) {
             </label>
           </div>
 
-          {/* Nivel de Efectos de Sonido (Selector por Botones Segmentados) */}
+          {/* Sound effects level (segmented button selector) */}
           <div data-setting-id="sfxSettings" className="onicord-settings-row flex-col items-stretch gap-2.5 transition-all">
             <div className="flex justify-between items-start">
               <div className="min-w-0 pr-2">
@@ -550,7 +550,7 @@ export default function GeneralTab({ general, setGeneral }) {
             </div>
           </div>
 
-          {/* Paquete de Sonidos (Fila con select) */}
+          {/* Sound pack select row */}
           <div className={`onicord-settings-input-row transition-opacity duration-200 ${sfxLevel === 0 ? "opacity-40 pointer-events-none" : ""}`}>
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
@@ -583,7 +583,7 @@ export default function GeneralTab({ general, setGeneral }) {
             />
           </div>
 
-          {/* Volumen de Efectos (Fila con slider) */}
+          {/* Sound effects volume slider row */}
           <div className={`onicord-settings-slider-row transition-opacity duration-200 ${sfxLevel === 0 ? "opacity-40 pointer-events-none" : ""}`}>
             <div className="flex justify-between items-center">
               <div className="min-w-0 pr-2">
@@ -709,10 +709,10 @@ export default function GeneralTab({ general, setGeneral }) {
             </label>
           </div>
 
-          {/* Opciones dependientes (cuando autodescarga está activa) */}
+          {/* Dependent options when auto-download is enabled */}
           {(general.autoDownloadFiles ?? true) && (
             <>
-              {/* Slider tamaño máximo */}
+              {/* Max auto-download file size slider */}
               <div className="onicord-settings-slider-row">
                 <div className="flex justify-between items-center">
                   <div className="min-w-0 pr-2">
@@ -747,7 +747,7 @@ export default function GeneralTab({ general, setGeneral }) {
                 </div>
               </div>
 
-              {/* Selector de directorio de descargas */}
+              {/* Download directory selector */}
               <div className="onicord-settings-input-row flex-col items-start gap-2">
                 <div className="w-full flex justify-between items-start">
                   <div className="min-w-0 pr-2">
@@ -797,7 +797,7 @@ export default function GeneralTab({ general, setGeneral }) {
         </h3>
 
         <div>
-          {/* Activar manualmente */}
+          {/* Manual Streamer Mode activation */}
           <div className="onicord-settings-row">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">

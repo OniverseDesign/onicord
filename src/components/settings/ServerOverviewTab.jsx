@@ -150,6 +150,7 @@ export default function ServerOverviewTab({
                   onChange={(e) => setName(e.target.value)}
                   maxLength={48}
                   disabled={readOnly}
+                  placeholder={t("serverSettings.overview.serverNamePlaceholder", "Mi Servidor")}
                   className="h-10 text-xs"
                 />
               </div>
@@ -228,7 +229,7 @@ export default function ServerOverviewTab({
                 </label>
               </div>
 
-              {/* Permitir Archivos Ejecutables */}
+              {/* Allow Executable Files */}
               <div className="onicord-settings-row">
                 <div className="min-w-0 pr-4">
                   <p className="onicord-settings-row-title">
@@ -451,7 +452,7 @@ export default function ServerOverviewTab({
                       )}
                     </div>
                   </div>
-                  {/* Avatar grande solapando el borde inferior del banner con overlay interactivo */}
+                  {/* Large avatar overlapping bottom banner edge with interactive overlay */}
                   <div className="px-5 -mt-7 relative z-10">
                     <div className="w-16 h-16 rounded-full border-[4px] border-onicord-base flex items-center justify-center bg-onicord-surface relative group">
                       <div

@@ -509,13 +509,37 @@ function createWindow() {
 
       let urlPath = request.url.replace("onicord-media://", "");
       urlPath = urlPath.split("?")[0];
-      if (urlPath.startsWith("win-disk/")) {
-        urlPath = urlPath.replace("win-disk/", "");
-      }
-      urlPath = decodeURIComponent(urlPath);
 
-      if (/^[a-zA-Z]\//.test(urlPath)) {
-        urlPath = urlPath.charAt(0) + ":" + urlPath.slice(1);
+      // Support Content-Addressed Storage: onicord-media://cas/<sha256>.<ext>
+      if (urlPath.startsWith("cas/")) {
+        const casRef = decodeURIComponent(urlPath.slice("cas/".length));
+        const { CasStore } = require("./storage/casStore.cjs");
+        let resolvedCasPath = CasStore.getInstance(app.getPath("userData")).resolveFilePath(casRef);
+        if (!resolvedCasPath) {
+          // Local multi-instance fallback (e.g. dev-user-2 <-> %APPDATA%/onicord)
+          const altDirs = [
+            path.join(process.cwd(), "dev-user-2"),
+            process.env.APPDATA ? path.join(process.env.APPDATA, "onicord") : null,
+          ].filter(Boolean);
+          for (const altDir of altDirs) {
+            if (fs.existsSync(path.join(altDir, "cas"))) {
+              resolvedCasPath = CasStore.getInstance(altDir).resolveFilePath(casRef);
+              if (resolvedCasPath) break;
+            }
+          }
+        }
+        if (resolvedCasPath) {
+          urlPath = resolvedCasPath;
+        }
+      } else {
+        if (urlPath.startsWith("win-disk/")) {
+          urlPath = urlPath.replace("win-disk/", "");
+        }
+        urlPath = decodeURIComponent(urlPath);
+
+        if (/^[a-zA-Z]\//.test(urlPath)) {
+          urlPath = urlPath.charAt(0) + ":" + urlPath.slice(1);
+        }
       }
 
       if (urlPath.includes("..")) {
@@ -583,6 +607,8 @@ function createWindow() {
           ".jpeg": "image/jpeg",
           ".gif": "image/gif",
           ".webp": "image/webp",
+          ".svg": "image/svg+xml",
+          ".ico": "image/x-icon",
           ".mp4": "video/mp4",
           ".webm": "video/webm",
           ".mp3": "audio/mpeg",

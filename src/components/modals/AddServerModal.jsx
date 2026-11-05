@@ -125,7 +125,7 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
           <ModalInput
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="A1B2C3D4"
+            placeholder={t("addServerModal.codePlaceholder", "A1B2C3D4")}
             className="onicord-input-code text-xl tracking-[0.3em] pl-[0.3em]"
           />
           <p className="mt-1.5 text-right font-mono text-[11px] text-onicord-muted font-bold tracking-tight select-none">

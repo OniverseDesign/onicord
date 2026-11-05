@@ -56,7 +56,8 @@
     "clickToPreview": "Clic para previsualizar",
     "searchSettings": "Buscar ajustes...",
     "clearSearch": "Limpiar búsqueda (Esc)",
-    "noResultsFor": "No se encontraron resultados para"
+    "noResultsFor": "No se encontraron resultados para",
+    "select": "Seleccionar..."
   },
   "sidebar": {
     "voiceChannel": "En el canal de voz",
@@ -81,7 +82,8 @@
     "inviteCodeHint": "8 caracteres hex (0-9, A-F). Pídeselo a quien creó el servidor.",
     "joinInviteInstruction": "Configuración del servidor → Invitaciones",
     "createButton": "Crear y entrar",
-    "joinButton": "Unirse al servidor"
+    "joinButton": "Unirse al servidor",
+    "codePlaceholder": "A1B2C3D4"
   },
   "deleteServerModal": {
     "title": "Eliminar servidor",
@@ -125,7 +127,9 @@
     "muteUser": "Silenciar usuario",
     "unmuteUser": "Desilenciar usuario",
     "muteChannel": "Silenciar canal",
-    "unmuteChannel": "Desilenciar canal"
+    "unmuteChannel": "Desilenciar canal",
+    "markAsRead": "Marcar como leído",
+    "markServerAsRead": "Marcar como leído"
   },
   "userPanel": {
     "playing": "Jugando a",
@@ -305,6 +309,8 @@
       "roles": "Roles",
       "members": "Miembros",
       "invites": "Invitaciones",
+      "plugins": "Complementos",
+      "discover": "Descubrimiento",
       "storage": "Almacenamiento",
       "network": "Red",
       "audit": "Auditoría",
@@ -332,7 +338,8 @@
       "banButton": "Banear miembro",
       "unbanButton": "Desbanear",
       "noMembersFound": "No se encontraron miembros.",
-      "bannedTitle": "Miembros Baneados"
+      "bannedTitle": "Miembros Baneados",
+      "searchPlaceholder": "Buscar miembro..."
     },
     "channels": {
       "orphanChannels": "Canales Huérfanos",
@@ -369,7 +376,9 @@
       "readOnlyBadge": "Solo lectura",
       "disableSpeakRestrictions": "Desactivar restricciones de habla (Permitir a todos)",
       "enableVoiceRestrictions": "Restringir quiénes pueden hablar (Modo solo oyentes)",
-      "enableTextRestrictions": "Restringir quiénes pueden escribir (Modo solo lectura)"
+      "enableTextRestrictions": "Restringir quiénes pueden escribir (Modo solo lectura)",
+      "categoryPlaceholder": "Categoría",
+      "channelPlaceholder": "nombre-del-canal"
     },
     "invites": {
       "title": "Invitaciones al Servidor",
@@ -445,7 +454,8 @@
       "deleteConfirmTitle": "Eliminar Webhook",
       "deleteConfirmMsg": "¿Estás seguro de que deseas eliminar el webhook \"{{name}}\"? Los servicios externos que envíen peticiones a esta URL dejarán de funcionar.",
       "regenerateConfirmTitle": "Regenerar Token de Webhook",
-      "regenerateConfirmMsg": "¿Deseas regenerar el token para \"{{name}}\"? El token anterior quedará invalidado inmediatamente."
+      "regenerateConfirmMsg": "¿Deseas regenerar el token para \"{{name}}\"? El token anterior quedará invalidado inmediatamente.",
+      "feedUrlPlaceholder": "https://news.google.com/rss/search?q=Worlds+LoL..."
     },
     "overview": {
       "title": "Vista General del Servidor",
@@ -479,7 +489,8 @@
       "defaultWelcomeTemplate": "¡Bienvenido {user} a {server}! 🎉",
       "restoreDefaultTemplate": "Restablecer a plantilla por defecto",
       "multilingualNotice": "Plantilla por defecto activa: cada miembro verá el mensaje en su propio idioma.",
-      "multilingualBadge": "Multilenguaje"
+      "multilingualBadge": "Multilenguaje",
+      "serverNamePlaceholder": "Mi Servidor"
     },
     "roles": {
       "defaultRoleTitle": "Asignar Rol Automático a Nuevos Miembros",
@@ -506,7 +517,7 @@
       "manageMusic": "Controlar música",
       "manageMusicDesc": "Permite pausar, saltar pistas y gestionar la cola de música en canales de voz.",
       "viewAdvancedSettings": "Ver ajustes avanzados",
-      "viewAdvancedSettingsDesc": "Ver y editar canales, roles y red del servidor."
+      "viewAdvancedSettingsDesc": "Ver y editar canales, roles, complementos, descubrimiento y red del servidor."
     },
     "network": {
       "title": "Configuración de Red y Respaldo ICE",
@@ -758,7 +769,12 @@
       "installErrorDesc": "No se pudo procesar el paquete .onipkg."
     },
     "complementBadge": "Complemento",
-    "pluginCommandFallback": "Comando del complemento {{name}}"
+    "pluginCommandFallback": "Comando del complemento {{name}}",
+    "searchResults": "Resultados de búsqueda",
+    "forumPostPlaceholder": "Escribe una nueva publicación...",
+    "replyInThreadPlaceholder": "Responder en el hilo...",
+    "commentOnFile": "Comentar en {{filename}}...",
+    "editMessagePlaceholder": "Escribe tu mensaje..."
   },
   "voice": {
     "screenOf": "Pantalla de {{name}}",
@@ -1065,7 +1081,8 @@
       "packPluginFolder": "Empaquetar carpeta de complemento",
       "uninstallSuccess": "Complemento '{{name}}' eliminado de tu equipo.",
       "loadingPackage": "Cargando paquete...",
-      "loadLocalPackage": "Cargar paquete local (.onipkg)"
+      "loadLocalPackage": "Cargar paquete local (.onipkg)",
+      "searchPlaceholder": "Buscar complementos..."
     },
     "profile": {
       "vipMember": "Miembro VIP"
@@ -1123,7 +1140,8 @@
       "manageMusic": "Controlar música",
       "manageMusicDesc": "Permite pausar, saltar pistas y gestionar la cola de música en canales de voz.",
       "viewAdvancedSettings": "Ver ajustes avanzados",
-      "viewAdvancedSettingsDesc": "Ver y editar canales, roles y red del servidor."
+      "viewAdvancedSettingsDesc": "Ver y editar canales, roles, complementos, descubrimiento y red del servidor.",
+      "roleNamePlaceholder": "Nombre del rol"
     },
     "members": {
       "searchLabel": "Buscar Miembros",
@@ -1182,11 +1200,21 @@
       "customColor": "Personalizado",
       "settings": "Ajustes",
       "previewToggle": "Interruptor de Estado",
-      "scrollLevel": "Nivel de Desplazamiento"
+      "scrollLevel": "Nivel de Desplazamiento",
+      "previewMsg1Before": "¡Hola a todos! Este es un mensaje de prueba con una mención a ",
+      "previewMsg1After": " usando la nueva paleta.",
+      "previewMsgGrouped": "Este segundo mensaje está agrupado sin repetir la foto ni el nombre de usuario.",
+      "previewModerator": "Moderador",
+      "previewMsg2Before": "¡Quedó excelente el acento de color ",
+      "previewMsg2After": "!",
+      "customCSSPlaceholder": "/* Escribe reglas CSS personalizadas aquí */\n.onicord-chat-input-bar {\n  border-color: var(--onicord-accent) !important;\n}",
+      "charCount": "{{count}} caracteres"
     },
     "network": {
       "ipPlaceholder": "e.g. 201.242.10.15 o miservidor.ddns.net",
-      "userPlaceholder": "mi_usuario"
+      "userPlaceholder": "mi_usuario",
+      "stunPlaceholder": "stun:stun.l.google.com:19302",
+      "turnPlaceholder": "turn:relay.miservidor.com:3478"
     },
     "backup": {
       "exportTitle": "Exportar copia en formato .onipkg",
@@ -1456,7 +1484,8 @@
     "badgeGame": "Juego",
     "badgeApp": "App",
     "toggleTooltip": "Activar o pausar detección",
-    "errorBrowse": "No se pudo leer el archivo seleccionado."
+    "errorBrowse": "No se pudo leer el archivo seleccionado.",
+    "gameTitlePlaceholder": "Nombre del juego o software"
   },
   "watchParty": {
     "title": "Watch Party",
@@ -1582,6 +1611,8 @@
     "knockErrorDesc": "No se pudo emitir la solicitud.",
     "queueFullNotice": "La cola de solicitudes está completa (máximo 25). Debes responder a las solicitudes actuales para permitir que nuevos usuarios envíen peticiones.",
     "toastKnockTitle": "Solicitud de Ingreso",
-    "toastKnockMsg": "{{applicant}} ha solicitado ingresar a {{server}}"
+    "toastKnockMsg": "{{applicant}} ha solicitado ingresar a {{server}}",
+    "descPlaceholder": "Describe de qué trata tu servidor...",
+    "tagsPlaceholder": "Escribe una etiqueta y presiona Enter o coma..."
   }
 }

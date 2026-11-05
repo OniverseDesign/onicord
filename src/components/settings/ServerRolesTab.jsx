@@ -131,6 +131,7 @@ export default function ServerRolesTab({
                     handleUpdateRole(role.id, "name", e.target.value)
                   }
                   onMouseDown={(e) => e.stopPropagation()}
+                  placeholder={t("settings.roles.roleNamePlaceholder", "Nombre del rol")}
                   className="max-w-[160px] py-1 text-xs bg-transparent border-none shadow-none focus:ring-0 font-bold cursor-text"
                   style={{ color: role.color }}
                 />
@@ -244,7 +245,7 @@ export default function ServerRolesTab({
                         ),
                         desc: t(
                           "settings.roles.viewAdvancedSettingsDesc",
-                          "Ver y editar canales, roles y red del servidor.",
+                          "Ver y editar canales, roles, complementos, descubrimiento y red del servidor.",
                         ),
                       },
                     ].map((perm) => {

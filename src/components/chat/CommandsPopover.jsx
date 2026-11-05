@@ -87,7 +87,7 @@ const CommandsPopover = memo(
         };
       });
 
-    // Agregar comandos de complementos externos no declarados en ONICORD_COMMANDS
+    // Append external plugin commands not declared in base ONICORD_COMMANDS
     const extraPluginEntries = allowedPluginCommands
       .filter((pc) => {
         const normalizedCmd = pc.command.startsWith("/")

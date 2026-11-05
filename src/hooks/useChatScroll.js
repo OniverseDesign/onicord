@@ -178,7 +178,11 @@ export function useChatScroll({
 
     if (messages.length <= visibleCount) return;
 
-    if (container.scrollTop <= 40 && !isScrollingUpLoading) {
+    if (
+      container.scrollHeight > container.clientHeight + 40 &&
+      container.scrollTop <= 40 &&
+      !isScrollingUpLoading
+    ) {
       setIsScrollingUpLoading(true);
 
       const previousScrollHeight = container.scrollHeight;

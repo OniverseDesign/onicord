@@ -209,6 +209,7 @@ export default function ChatInputArea({
             profile,
             peers,
             displayReplyTarget,
+            server,
           );
           return (
             <div className="onicord-reply-bar !mx-0 !mb-0">
@@ -421,7 +422,7 @@ export default function ChatInputArea({
           </button>
 
           <div className="relative flex-1 min-w-0 flex flex-col justify-center">
-            {/* Subdivision Superior: Entrada para el Título del Post con animación fluida de expansión */}
+            {/* Forum post title expansion input */}
             {isForum && (
               <div
                 className={`w-full overflow-hidden transition-all duration-300 ease-out ${
@@ -455,7 +456,7 @@ export default function ChatInputArea({
               </div>
             )}
 
-            {/* Subdivision Inferior: Texto General del Post */}
+            {/* Main post body editable area */}
             <div
               contentEditable={hasSendMessages}
               ref={tyrannyInputRef}
@@ -477,8 +478,8 @@ export default function ChatInputArea({
                         ? t("chat.postBodyPlaceholder", "¿De qué trata tu publicación? Usa #hashtags...")
                         : t("chat.forumPostPlaceholder", "Escribe una nueva publicación...")
                       : pendingFile
-                        ? `Comment on ${pendingFile.name}...`
-                        : `${t("chat.placeholder").replace("#general...", `#${channelName || "general"}`)}`
+                        ? t("chat.commentOnFile", { filename: pendingFile.name, defaultValue: `Comentar en ${pendingFile.name}...` })
+                        : `${t("chat.placeholder", { channel: channelName || "general" }).replace(/#[\w-]+\.\.\./, `#${channelName || "general"}`)}`
               }
               className={`onicord-chat-input select-text outline-none overflow-x-hidden whitespace-pre-wrap pr-10 focus:outline-none ${
                 !hasSendMessages ? "opacity-50 cursor-not-allowed select-none" : ""
@@ -516,7 +517,7 @@ export default function ChatInputArea({
             <MaterialIcon name="sentiment_satisfied" size="xl" />
           </button>
 
-          {/* Botón de stickers: omitido en post raíz de foro, conservado en hilos y canales de texto */}
+          {/* Sticker picker button (hidden on root forum post, shown in threads and regular text channels) */}
           {!isForum && (
             <button
               ref={stickerButtonRef}

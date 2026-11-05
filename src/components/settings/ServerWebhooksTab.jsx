@@ -401,7 +401,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                 type="url"
                 value={formAvatar}
                 onChange={(e) => setFormAvatar(e.target.value)}
-                placeholder="https://ejemplo.com/avatar.png"
+                placeholder={t("serverSettings.webhooks.avatarPlaceholder", "https://example.com/avatar.png")}
                 className="h-9 text-xs"
               />
             </div>
@@ -419,7 +419,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                     required
                     value={formTargetUrl}
                     onChange={(e) => setFormTargetUrl(e.target.value)}
-                    placeholder="https://news.google.com/rss/search?q=Worlds+LoL..."
+                    placeholder={t("serverSettings.webhooks.feedUrlPlaceholder", "https://news.google.com/rss/search?q=Worlds+LoL...")}
                     className="h-9 text-xs"
                   />
                 </div>

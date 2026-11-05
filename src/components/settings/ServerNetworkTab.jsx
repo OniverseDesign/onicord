@@ -302,7 +302,7 @@ export default function ServerNetworkTab({
         )}
       </div>
 
-      {/* TARJETA 2: RESPALDO ICE (STUN/TURN) */}
+      {/* CARD 2: BACKUP ICE SERVERS (STUN/TURN) */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title flex items-center gap-1.5">
           <span>{t("serverSettings.network.iceBackupTitle", "Servidores ICE de Respaldo (STUN/TURN)")}</span>
@@ -311,7 +311,7 @@ export default function ServerNetworkTab({
           {t("serverSettings.network.iceBackupDesc", "Si los miembros del servidor no logran conectarse a las salas de voz (por cortafuegos restrictivos o NAT simétrico), configura aquí servidores STUN/TURN de relay. De lo contrario, Onicord usará los nodos públicos por defecto.")}
         </p>
 
-        {/* Formulario y listado en sub-secciones dentro de la misma tarjeta */}
+        {/* Form and server list subsections within the card */}
         <div className="space-y-4 pt-2 pb-4">
           <h4 className="text-xs font-bold text-onicord-text">
             {t("serverSettings.network.addIceServer", "Nuevo Servidor de Respaldo")}
@@ -340,7 +340,7 @@ export default function ServerNetworkTab({
               <ModalInput
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
-                placeholder={newType === "stun" ? "stun:stun.l.google.com:19302" : "turn:relay.miservidor.com:3478"}
+                placeholder={newType === "stun" ? t("settings.network.stunPlaceholder", "stun:stun.l.google.com:19302") : t("settings.network.turnPlaceholder", "turn:relay.myserver.com:3478")}
                 className="h-9 text-xs font-mono bg-black/20"
               />
             </div>

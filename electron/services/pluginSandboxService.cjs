@@ -581,14 +581,16 @@ class PluginSandboxService {
             console.warn(`[SANDBOX] ${pluginId} bloqueado: falta permiso storage`);
             return null;
           }
-          return pluginService.getPluginStorage(pluginId, key);
+          const activeRoomCode = sandboxAPI._activeContext?.roomCode || global.roomManager?.roomCode || null;
+          return pluginService.getPluginStorage(pluginId, key, activeRoomCode);
         },
         set: (key, val) => {
           if (!manifest.permissions?.includes("storage")) {
             console.warn(`[SANDBOX] ${pluginId} bloqueado: falta permiso storage`);
             return;
           }
-          pluginService.setPluginStorage(pluginId, key, val);
+          const activeRoomCode = sandboxAPI._activeContext?.roomCode || global.roomManager?.roomCode || null;
+          pluginService.setPluginStorage(pluginId, key, val, activeRoomCode);
         },
       },
       console: {

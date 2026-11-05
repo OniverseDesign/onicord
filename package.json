@@ -1,6 +1,6 @@
 {
   "name": "onicord",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Onicord",
   "main": "electron/main.cjs",
   "type": "module",
@@ -27,12 +27,14 @@
     "export:github": "node scripts/export-to-github.cjs",
     "check:i18n": "node check-i18n.js",
     "tools:backup": "node scripts/restore-local-tools.cjs backup",
-    "tools:restore": "node scripts/restore-local-tools.cjs restore"
+    "tools:restore": "node scripts/restore-local-tools.cjs restore",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "adm-zip": "^0.6.0",
     "b4a": "^1.6.9",
+    "better-sqlite3": "^12.11.1",
     "electron-updater": "^6.8.9",
     "hls.js": "^1.7.4",
     "hyperswarm": "^4.9.0",

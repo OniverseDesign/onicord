@@ -48,7 +48,15 @@ function topicFromRoomCode(code) {
 }
 
 function encodeMessage(type, payload) {
-  return JSON.stringify({ type, payload }) + "\n";
+  let wirePayload = payload;
+  try {
+    const { app } = require("electron");
+    if (app && typeof app.getPath === "function") {
+      const { CasStore } = require("../storage/casStore.cjs");
+      wirePayload = CasStore.getInstance(app.getPath("userData")).hydrateForNetwork(payload);
+    }
+  } catch {}
+  return JSON.stringify({ type, payload: wirePayload }) + "\n";
 }
 
 function safeWriteSocket(socket, dataStr) {
@@ -120,6 +128,12 @@ class P2PService {
       this.swarm = new Hyperswarm({ maxPeers: 64 });
       this.swarm.on("connection", (socket, peerInfo) => this._handleConnection(socket, peerInfo));
       this._resolveLocalPeerId();
+      try {
+        const globalDiscoverTopic = topicFromRoomCode("__ONICORD_GLOBAL_DISCOVER_V1__");
+        this.swarm.join(globalDiscoverTopic, { server: true, client: true });
+      } catch (e) {
+        console.error("[P2P] Error joining global discovery swarm:", e.message);
+      }
     }
   }
 
@@ -148,6 +162,11 @@ class P2PService {
     if (!normalized) return;
 
     this.joinedRooms.delete(normalized);
+    if (this.profile) {
+      this.profile.joinedRooms = Array.from(this.joinedRooms);
+    }
+    this._broadcastJoinedRooms();
+
     const discovery = this.roomDiscoveries.get(normalized);
     if (discovery) {
       this.roomDiscoveries.delete(normalized);
@@ -159,14 +178,8 @@ class P2PService {
         await this.swarm.leave(topic);
       } catch {}
     }
-
-    // Clean up peers that only belonged to this room
-    for (const [peerId, rooms] of this.peerRooms.entries()) {
-      rooms.delete(normalized);
-      if (rooms.size === 0 && !this.peers.get(peerId)?.isDirectTCP) {
-        this._removePeer(peerId);
-      }
-    }
+    // Note: Do NOT delete `normalized` from `this.peerRooms` (which tracks *remote* peers' joined rooms)
+    // and do NOT tear down peer sockets, as sockets remain shared for other servers & global discovery.
   }
 
   disconnectAllPeers() {
@@ -181,9 +194,7 @@ class P2PService {
   }
 
   _broadcastJoinedRooms() {
-    if (this.joinedRooms.size > 0) {
-      this._broadcast("room-announce", { rooms: Array.from(this.joinedRooms) });
-    }
+    this._broadcast("room-announce", { rooms: Array.from(this.joinedRooms) });
   }
 
   _handleConnection(socket, peerInfo) {
@@ -254,7 +265,15 @@ class P2PService {
     if (!peer) return;
 
     for (const msg of messages) {
-      const { type, payload } = msg;
+      const { type } = msg;
+      let { payload } = msg;
+      try {
+        const { app } = require("electron");
+        if (payload && app && typeof app.getPath === "function") {
+          const { CasStore } = require("../storage/casStore.cjs");
+          payload = CasStore.getInstance(app.getPath("userData")).ingestObject(payload);
+        }
+      } catch {}
 
       if (type === "profile" && payload) {
         peer.userId = payload.id || peer.userId;
@@ -267,18 +286,22 @@ class P2PService {
         peer.customStatus = payload.customStatus || "";
         peer.showRichPresence = payload.showRichPresence ?? true;
         peer.flame = payload.flame || null;
+        peer.serverProfiles = payload.serverProfiles || null;
+        peer.isPreview = Boolean(payload.isPreview);
 
         if (Array.isArray(payload.joinedRooms)) {
-          const peerRoomSet = this.peerRooms.get(peerId) || new Set();
-          for (const r of payload.joinedRooms) peerRoomSet.add(r);
-          this.peerRooms.set(peerId, peerRoomSet);
+          this.peerRooms.set(
+            peerId,
+            new Set(payload.joinedRooms.map((r) => String(r || "").trim().toUpperCase()).filter(Boolean))
+          );
         }
       }
 
       if (type === "room-announce" && payload && Array.isArray(payload.rooms)) {
-        const peerRoomSet = this.peerRooms.get(peerId) || new Set();
-        for (const r of payload.rooms) peerRoomSet.add(r);
-        this.peerRooms.set(peerId, peerRoomSet);
+        this.peerRooms.set(
+          peerId,
+          new Set(payload.rooms.map((r) => String(r || "").trim().toUpperCase()).filter(Boolean))
+        );
       }
 
       this.onMessage?.(peerId, type, payload);
@@ -298,12 +321,12 @@ class P2PService {
 
   _broadcast(type, payload, targetRoomCode) {
     const line = encodeMessage(type, payload);
+    const normalizedTarget = targetRoomCode ? String(targetRoomCode).trim().toUpperCase() : null;
     for (const [peerId, peer] of this.peers.entries()) {
       if (peer.socket && !peer.socket.destroyed) {
-        // If a targetRoomCode is specified, only send to peers in that room (if known) or all connected peers
-        if (targetRoomCode) {
+        if (normalizedTarget) {
           const rooms = this.peerRooms.get(peerId);
-          if (rooms && rooms.size > 0 && !rooms.has(targetRoomCode)) {
+          if (!rooms || !rooms.has(normalizedTarget)) {
             continue;
           }
         }

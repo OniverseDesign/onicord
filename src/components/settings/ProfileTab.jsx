@@ -253,10 +253,10 @@ export default function ProfileTab({
                   onChange={(e) => handleLinkChange(e.target.value)}
                   placeholder={
                     isServerScope
-                      ? customLink || "twitter.com/tu_usuario"
+                      ? customLink || t("profileTab.addLinkPlaceholder", "https://...")
                       : t(
                           "profileTab.addLinkPlaceholder",
-                          "twitter.com/tu_usuario",
+                          "https://...",
                         )
                   }
                   className="h-10 text-xs"

@@ -51,7 +51,7 @@ export default function MessagePluginEmbed({
             userNick: userNick,
             authorName: userNick,
             shareCapture: embedPayload.data?.shareCapture,
-            // SEGURIDAD: Nunca propagar frameScripts ejecutables desde mensajes de red P2P
+            // SECURITY: Never propagate executable frameScripts from P2P network messages
             activity: embedPayload.data?.activity,
           },
         })

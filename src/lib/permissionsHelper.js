@@ -1,6 +1,20 @@
+/**
+ * Evaluates whether a user holds a specific permission on a server.
+ * Evaluation follows hierarchical precedence:
+ * 1. Owner & Creator: Grant all permissions unconditionally.
+ * 2. Unconfigured Roles: Grants standard permissions (denies "admin" & "view_advanced_settings").
+ * 3. Administrator Role: If user holds any role with { permissions: { admin: true } }, grants all permissions.
+ * 4. Additive Role Permissions: Checks if any assigned role explicitly enables the requested permissionKey.
+ *
+ * @param {Object} server - Server metadata object with roles and userRoles
+ * @param {string} userId - User profile ID to verify
+ * @param {string} permissionKey - Permission flag key (e.g. "admin", "manage_channels", "send_messages")
+ * @returns {boolean} True if the user is authorized for the permissionKey
+ */
 export function checkPermission(server, userId, permissionKey) {
-  // 1. Owner always has all permissions
+  // 1. Owner and Creator always have all permissions
   if (server?.ownerId && server.ownerId === userId) return true;
+  if ((server?.creatorID && server.creatorID === userId) || (server?.creatorId && server.creatorId === userId)) return true;
 
   // 2. If no server roles or userRoles mapping, default permissions
   if (!server?.roles || !server?.userRoles) {
@@ -45,12 +59,24 @@ export function checkPermission(server, userId, permissionKey) {
   return false;
 }
 
+/**
+ * Checks if a user has access to view and read a given channel.
+ * - Public channels are accessible to all members.
+ * - Private channels are strictly restricted to Server Owner, Creator, Admins,
+ *   or members holding at least one role listed in `channel.allowedRoles`.
+ *
+ * @param {Object} server - Server metadata object
+ * @param {Object} channel - Channel object with isPrivate and allowedRoles
+ * @param {string} userId - User profile ID
+ * @returns {boolean} True if the channel is visible/accessible to the user
+ */
 export function hasChannelAccess(server, channel, userId) {
   // 1. If channel is not private, everyone has access
   if (!channel?.isPrivate) return true;
 
-  // 2. Owner has access
+  // 2. Owner or Creator has access
   if (server?.ownerId && server.ownerId === userId) return true;
+  if ((server?.creatorID && server.creatorID === userId) || (server?.creatorId && server.creatorId === userId)) return true;
 
   // 3. Admin permission has access (Total Control)
   if (checkPermission(server, userId, "admin")) return true;
@@ -68,6 +94,14 @@ export function hasChannelAccess(server, channel, userId) {
   return roleIds.some((rId) => channel.allowedRoles.includes(rId));
 }
 
+/**
+ * Evaluates whether a user is permitted to speak/broadcast audio in a voice channel.
+ *
+ * @param {Object} server - Server metadata object
+ * @param {Object} channel - Voice channel object with hasSpeakRestrictions and disallowedSpeakRoles
+ * @param {string} userId - User profile ID
+ * @returns {boolean} True if the user is allowed to speak
+ */
 export function canSpeakInChannel(server, channel, userId) {
   // 1. Channel not defined or no speak restrictions -> everyone can speak by default
   if (!channel || !channel.hasSpeakRestrictions) return true;
@@ -77,8 +111,9 @@ export function canSpeakInChannel(server, channel, userId) {
     : [];
   if (disallowed.length === 0) return true;
 
-  // 2. Owner has bypass
+  // 2. Owner or Creator has bypass
   if (server?.ownerId && server.ownerId === userId) return true;
+  if ((server?.creatorID && server.creatorID === userId) || (server?.creatorId && server.creatorId === userId)) return true;
 
   // 3. Admin permission has bypass
   if (checkPermission(server, userId, "admin")) return true;

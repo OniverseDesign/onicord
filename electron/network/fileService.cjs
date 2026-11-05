@@ -113,8 +113,41 @@ class FileService {
     });
   }
 
+  _recordDownload(fileId, targetPath) {
+    try {
+      const { DbManager } = require("../storage/dbManager.cjs");
+      const appConfigDb = DbManager.getInstance(this.userDataPath).getGlobalDb("app_config");
+      let size = 0;
+      try {
+        if (fs.existsSync(targetPath)) size = fs.statSync(targetPath).size;
+      } catch {}
+      appConfigDb
+        .prepare(`
+          INSERT OR REPLACE INTO downloads (
+            download_id, file_name, file_path, size_bytes, mime_type, source_room_code, downloaded_at
+          ) VALUES (?, ?, ?, ?, NULL, ?, ?)
+        `)
+        .run(
+          String(fileId),
+          path.basename(String(targetPath)),
+          String(targetPath),
+          size,
+          this.roomCode || null,
+          Date.now()
+        );
+      console.log(`[ARES REGISTRY P2P] Indexado en app_config.db con éxito: ${fileId} -> ${targetPath}`);
+    } catch (err) {
+      console.error("[ARES REGISTRY ERROR] Falló al registrar en app_config.db:", err.message);
+    }
+  }
+
   async requestFileDownload(fileId, targetPath, fileName, fileSize, options = {}) {
     if (!this.roomCode) return;
+
+    if (this._activeDownloads.has(fileId)) {
+      console.log(`[ARES NETWORK] Descarga ya en curso para fileId: ${fileId}. Omitiendo solicitud duplicada.`);
+      return;
+    }
 
     try {
       const records = await this.fileIndexStore.load(this.roomCode);
@@ -132,36 +165,12 @@ class FileService {
           ? localFileMeta.realPath
           : targetPath;
 
-        // Solo copiar físicamente si es una descarga manual explícita hacia otra ruta elegida
+        // Only copy file physically if this is an explicit manual download to a custom destination
         if (finalPath !== localFileMeta.realPath) {
           fs.copyFileSync(localFileMeta.realPath, finalPath);
         }
 
-        try {
-          const registryPath = path.join(this.userDataPath, "downloads.json");
-          let registry = {};
-          if (fs.existsSync(registryPath)) {
-            registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-          }
-
-          registry[String(fileId)] = {
-            localPath: String(finalPath),
-            savedAt: Date.now(),
-          };
-          fs.writeFileSync(
-            registryPath,
-            JSON.stringify(registry, null, 2),
-            "utf8"
-          );
-          console.log(
-            `[ARES REGISTRY LOCAL] ¡ÉXITO! Archivo indexado correctamente en descargas históricas.`
-          );
-        } catch (regErr) {
-          console.error(
-            "[ARES REGISTRY LOCAL ERROR] JSON physical write failed:",
-            regErr.message
-          );
-        }
+        this._recordDownload(fileId, finalPath);
 
         global.mainWindow?.webContents.send("file:progress", {
           fileId,
@@ -325,26 +334,7 @@ class FileService {
               `[ARES SUCCESS] File assembled and SEALED successfully at: ${dl.targetPath}`
             );
 
-            try {
-              const registryPath = path.join(this.userDataPath, "downloads.json");
-              let registry = {};
-              if (fs.existsSync(registryPath)) {
-                registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-              }
-              registry[String(payload.fileId)] = {
-                localPath: String(dl.targetPath),
-                savedAt: Date.now(),
-              };
-              fs.writeFileSync(
-                registryPath,
-                JSON.stringify(registry, null, 2),
-                "utf8"
-              );
-              console.log("[ARES REGISTRY P2P] Indexado en descargas históricas con éxito.");
-            } catch (regErr) {
-              console.error("[ARES REGISTRY P2P ERROR] Failed to update downloads.json:", regErr.message);
-            }
-
+            this._recordDownload(payload.fileId, dl.targetPath);
             this._activeDownloads.delete(payload.fileId);
 
             global.mainWindow?.webContents.send("file:progress", {

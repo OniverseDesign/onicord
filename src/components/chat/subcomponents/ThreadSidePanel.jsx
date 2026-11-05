@@ -1147,6 +1147,7 @@ export default function ThreadSidePanel({
             <textarea
               value={editInputText}
               onChange={(e) => setEditInputText(e.target.value)}
+              placeholder={t("chat.editMessagePlaceholder", "Escribe tu mensaje...")}
               className="w-full bg-onicord-base border border-onicord-island rounded-lg p-3 text-sm text-onicord-text focus:outline-none focus:border-onicord-accent min-h-[100px] resize-none"
               autoFocus
             />

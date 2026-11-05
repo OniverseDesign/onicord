@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useId } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import MaterialIcon from "../icons/MaterialIcon";
 import { soundEngine } from "../../lib/soundEngine";
@@ -17,7 +18,7 @@ export default function Select({
   value,
   onChange,
   options = [],
-  placeholder = "Seleccionar...",
+  placeholder,
   disabled = false,
   size = "md", // "sm" | "md" | "lg"
   align = "left", // "left" | "right"
@@ -28,6 +29,8 @@ export default function Select({
   optionClassName = "",
   children,
 }) {
+  const { t } = useTranslation();
+  const effectivePlaceholder = placeholder !== undefined ? placeholder : t("common.select", "Seleccionar...");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
   const generatedId = useId();
@@ -176,7 +179,7 @@ export default function Select({
           )}
 
           <span className="truncate">
-            {selectedOption ? selectedOption.label : placeholder}
+            {selectedOption ? selectedOption.label : effectivePlaceholder}
           </span>
         </div>
 

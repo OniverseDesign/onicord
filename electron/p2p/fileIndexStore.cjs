@@ -1,115 +1,164 @@
-const fs = require('fs/promises')
-const path = require('path')
+const path = require("path");
+const { DbManager } = require("../storage/dbManager.cjs");
 
-const MAX_FILES = 500
+const MAX_FILES = 500;
+
+function safeParse(jsonStr, fallback) {
+  if (!jsonStr || typeof jsonStr !== "string") return fallback;
+  try {
+    return JSON.parse(jsonStr);
+  } catch {
+    return fallback;
+  }
+}
 
 class FileIndexStore {
   constructor(userDataPath) {
-    this.dir = path.join(userDataPath, 'files-index')
+    this.userDataPath = path.resolve(userDataPath);
   }
 
-  _path(roomCode) {
-    const safe = String(roomCode).trim().toUpperCase().replace(/[^A-F0-9]/g, '')
-    return path.join(this.dir, `${safe}.json`)
+  _dbMgr() {
+    return DbManager.getInstance(this.userDataPath);
+  }
+
+  _safeCode(roomCode) {
+    return String(roomCode || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-F0-9]/g, "");
+  }
+
+  _rowToFile(row) {
+    const extra = safeParse(row.extra_json, {});
+    return {
+      ...extra,
+      id: row.file_id,
+      ownerId: row.owner_id || extra.ownerId || null,
+      name: row.name,
+      size: Number(row.size_bytes) || extra.size || 0,
+      realPath: row.local_path || extra.realPath || null,
+      uploadedAt: Number(row.uploaded_at) || extra.uploadedAt || 0,
+      updatedAt: Number(row.updated_at) || extra.updatedAt || 0,
+    };
   }
 
   async load(roomCode) {
+    const safeCode = this._safeCode(roomCode);
+    if (!safeCode) return [];
     try {
-      const raw = await fs.readFile(this._path(roomCode), 'utf8')
-      const data = JSON.parse(raw)
-      return Array.isArray(data.files) ? data.files : []
+      const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
+      const rows = msgDb
+        .prepare("SELECT * FROM shared_files ORDER BY uploaded_at ASC LIMIT ?")
+        .all(MAX_FILES);
+      return rows.map((r) => this._rowToFile(r));
     } catch {
-      return []
+      return [];
     }
   }
 
   async merge(roomCode, incoming) {
-    if (!incoming?.length) return { added: 0, files: await this.load(roomCode) }
-    const files = await this.load(roomCode)
-    let added = 0
+    const safeCode = this._safeCode(roomCode);
+    if (!safeCode) return { added: 0, files: [] };
+    if (!incoming?.length) return { added: 0, files: await this.load(safeCode) };
 
-    for (const f of incoming) {
-      if (!f?.id) continue
-      const idx = files.findIndex((x) => x.id === f.id)
-      if (idx < 0) {
-        files.push(f)
-        added++
-      } else if (
-        (f.updatedAt || f.uploadedAt || 0) >
-        (files[idx].updatedAt || files[idx].uploadedAt || 0)
-      ) {
-        const keepRealPath =
-          files[idx].realPath && (f.realPath === undefined || f.realPath === null)
-        files[idx] = { ...files[idx], ...f }
-        if (keepRealPath) files[idx].realPath = files[idx].realPath
-        added++
+    const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
+    let added = 0;
+
+    const getExisting = msgDb.prepare("SELECT * FROM shared_files WHERE file_id = ?");
+    const upsertFile = msgDb.prepare(`
+      INSERT OR REPLACE INTO shared_files (
+        file_id, owner_id, name, size_bytes, mime_type, cas_hash, local_path, extra_json, uploaded_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const tx = msgDb.transaction((items) => {
+      for (const f of items) {
+        if (!f?.id) continue;
+        const fId = String(f.id);
+        const existingRow = getExisting.get(fId);
+        const now = Date.now();
+        if (!existingRow) {
+          upsertFile.run(
+            fId,
+            f.ownerId || null,
+            String(f.name || "archivo"),
+            Number(f.size) || 0,
+            f.mimeType || null,
+            null,
+            f.realPath || null,
+            JSON.stringify(f),
+            Number(f.uploadedAt) || now,
+            Number(f.updatedAt || f.uploadedAt) || now
+          );
+          added++;
+        } else {
+          const exFile = this._rowToFile(existingRow);
+          if ((f.updatedAt || f.uploadedAt || 0) > (exFile.updatedAt || exFile.uploadedAt || 0)) {
+            const keepRealPath = exFile.realPath && (f.realPath === undefined || f.realPath === null);
+            const merged = { ...exFile, ...f };
+            if (keepRealPath) merged.realPath = exFile.realPath;
+            upsertFile.run(
+              fId,
+              merged.ownerId || null,
+              String(merged.name || "archivo"),
+              Number(merged.size) || 0,
+              merged.mimeType || null,
+              null,
+              merged.realPath || null,
+              JSON.stringify(merged),
+              Number(merged.uploadedAt) || now,
+              Number(merged.updatedAt || merged.uploadedAt) || now
+            );
+            added++;
+          }
+        }
       }
-    }
+    });
+    tx(incoming);
 
-    const trimmed = files.length > MAX_FILES ? files.slice(-MAX_FILES) : files
-    const filePath = this._path(roomCode)
-    const dir = path.dirname(filePath)
-    await fs.mkdir(dir, { recursive: true })
-    const tmpPath = `${filePath}.tmp.${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-    const content = JSON.stringify({ roomCode, files: trimmed, updatedAt: Date.now() }, null, 2)
-    await fs.writeFile(tmpPath, content, 'utf8')
-    try {
-      await fs.rename(tmpPath, filePath)
-    } catch {
-      await fs.copyFile(tmpPath, filePath)
-      await fs.unlink(tmpPath).catch(() => {})
-    }
-    return { added, files: trimmed }
+    const files = await this.load(safeCode);
+    return { added, files };
   }
 
   getWatermark(files) {
-    if (!files.length) return 0
-    return Math.max(...files.map((f) => f.updatedAt || f.uploadedAt || 0))
+    if (!files?.length) return 0;
+    return Math.max(...files.map((f) => f.updatedAt || f.uploadedAt || 0));
   }
 
   async remove(roomCode, fileId) {
-    if (!fileId) return false
-    const files = await this.load(roomCode)
-    const initialLen = files.length
-    const filtered = files.filter((f) => f.id !== fileId)
-    if (filtered.length === initialLen) return false
-
-    const filePath = this._path(roomCode)
-    const dir = path.dirname(filePath)
-    await fs.mkdir(dir, { recursive: true })
-    const tmpPath = `${filePath}.tmp.${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-    const content = JSON.stringify({ roomCode, files: filtered, updatedAt: Date.now() }, null, 2)
-    await fs.writeFile(tmpPath, content, 'utf8')
+    const safeCode = this._safeCode(roomCode);
+    if (!safeCode || !fileId) return false;
     try {
-      await fs.rename(tmpPath, filePath)
+      const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
+      const info = msgDb
+        .prepare("DELETE FROM shared_files WHERE file_id = ?")
+        .run(String(fileId));
+      return info.changes > 0;
     } catch {
-      await fs.copyFile(tmpPath, filePath)
-      await fs.unlink(tmpPath).catch(() => {})
+      return false;
     }
-    return true
   }
 
   async removeByMessageId(roomCode, messageId) {
-    if (!messageId) return false
-    const files = await this.load(roomCode)
-    const initialLen = files.length
-    const filtered = files.filter((f) => f.messageId !== messageId)
-    if (filtered.length === initialLen) return false
-
-    const filePath = this._path(roomCode)
-    const dir = path.dirname(filePath)
-    await fs.mkdir(dir, { recursive: true })
-    const tmpPath = `${filePath}.tmp.${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-    const content = JSON.stringify({ roomCode, files: filtered, updatedAt: Date.now() }, null, 2)
-    await fs.writeFile(tmpPath, content, 'utf8')
+    const safeCode = this._safeCode(roomCode);
+    if (!safeCode || !messageId) return false;
     try {
-      await fs.rename(tmpPath, filePath)
+      const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
+      const rows = msgDb.prepare("SELECT * FROM shared_files").all();
+      let deleted = 0;
+      const delStmt = msgDb.prepare("DELETE FROM shared_files WHERE file_id = ?");
+      for (const r of rows) {
+        const extra = safeParse(r.extra_json, {});
+        if (extra.messageId === messageId) {
+          delStmt.run(r.file_id);
+          deleted++;
+        }
+      }
+      return deleted > 0;
     } catch {
-      await fs.copyFile(tmpPath, filePath)
-      await fs.unlink(tmpPath).catch(() => {})
+      return false;
     }
-    return true
   }
 }
 
-module.exports = { FileIndexStore }
+module.exports = { FileIndexStore };

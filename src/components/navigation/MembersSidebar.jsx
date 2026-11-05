@@ -7,6 +7,7 @@ export default function MembersSidebar({
   members,
   voiceMembers,
   onVoiceUserContextMenu,
+  onMemberContextMenu,
   onUserClick, 
   profile,
   roomCode,
@@ -128,12 +129,17 @@ export default function MembersSidebar({
   };
 
   const handleContextMenu = (e, member) => {
-    if (!onVoiceUserContextMenu || !member.peerId) return;
     e.preventDefault();
-    onVoiceUserContextMenu(e, {
-      peerId: member.peerId,
-      nickname: member.nickname || "Usuario",
-    });
+    if (onVoiceUserContextMenu && member.peerId && member.channelId) {
+      onVoiceUserContextMenu(e, {
+        peerId: member.peerId,
+        nickname: member.nickname || "Usuario",
+      });
+      return;
+    }
+    if (onMemberContextMenu) {
+      onMemberContextMenu(e, member);
+    }
   };
 
   const handleClick = (e, member) => {

@@ -105,6 +105,7 @@ export default function ServerChannelsTab({
                   updateChannelById(cat.id, "name", e.target.value)
                 }
                 onMouseDown={(e) => e.stopPropagation()}
+                placeholder={t("serverSettings.channels.categoryPlaceholder", "Categoría")}
                 className="max-w-[160px] py-1 text-xs bg-transparent border-none shadow-none focus:ring-0 px-1 cursor-text font-bold text-onicord-text"
               />
               <div className="flex-1" />
@@ -308,6 +309,7 @@ function ChannelGroupEditor({
                   value={ch.name}
                   onChange={(e) => onUpdate(ch.id, "name", e.target.value)}
                   onMouseDown={(e) => e.stopPropagation()}
+                  placeholder={t("serverSettings.channels.channelPlaceholder", "nombre-del-canal")}
                   className="max-w-[150px] py-1 text-xs bg-transparent border-none shadow-none focus:ring-0 px-1 cursor-text font-semibold text-onicord-text"
                 />
 
@@ -581,7 +583,7 @@ function ChannelGroupEditor({
                         <IconAdd size="sm" />
                       </button>
 
-                      {/* Desplegable de Roles para Restringir */}
+                      {/* Role restriction dropdown menu */}
                       {activeSpeakMenuId === ch.id && (
                         <div
                           ref={menuRef}

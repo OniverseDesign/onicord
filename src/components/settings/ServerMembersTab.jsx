@@ -4,6 +4,7 @@ import { ModalInput } from "../ui/ModalShell";
 import { Delete, IconAdd } from "../icons/StreamIcons";
 import { checkPermission } from "../../lib/permissionsHelper";
 import MaterialIcon from "../icons/MaterialIcon";
+import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 
 function hexToRgba(hex, alpha = 0.25) {
   if (!hex) return `rgba(255, 255, 255, ${alpha})`;
@@ -29,10 +30,14 @@ export default function ServerMembersTab({
   setBannedUsers,
   kickedUsers = {},
   setKickedUsers,
+  onUpdateServer,
 }) {
   const { t } = useTranslation();
   const [activeMemberMenuId, setActiveMemberMenuId] = useState(null);
   const [filtroText, setFiltroText] = useState("");
+  const [moderationConfirm, setModerationConfirm] = useState(null);
+  const [sessionKickedAt, setSessionKickedAt] = useState({});
+  const [bannedMetaCache, setBannedMetaCache] = useState({});
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -81,24 +86,37 @@ export default function ServerMembersTab({
     return !role.permissions?.admin;
   };
 
-  const handleKick = (userId) => {
+  const handleKick = (userId, nickname) => {
     if (!canModerate(userId)) return;
-    setKickedUsers((prev) => ({
-      ...prev,
-      [userId]: Date.now(),
-    }));
-  };
-
-  const handleBan = (userId) => {
-    if (!canModerate(userId)) return;
-    setBannedUsers((prev) => {
-      if (prev.includes(userId)) return prev;
-      return [...prev, userId];
+    setModerationConfirm({
+      type: "kick",
+      userId,
+      nickname: nickname || "este usuario",
     });
   };
 
-  const handleUnban = (userId) => {
-    setBannedUsers((prev) => prev.filter((id) => id !== userId));
+  const handleBan = (userId, nickname) => {
+    if (!canModerate(userId)) return;
+    setModerationConfirm({
+      type: "ban",
+      userId,
+      nickname: nickname || "este usuario",
+    });
+  };
+
+  const handleUnban = async (userId) => {
+    const nextBanned = (bannedUsers || []).filter((id) => id !== userId);
+    setBannedUsers(nextBanned);
+    if (server?.id && window.electronAPI?.updateServerSettings) {
+      try {
+        const updated = await window.electronAPI.updateServerSettings(server.id, {
+          bannedUsers: nextBanned,
+        });
+        if (updated) onUpdateServer?.(updated);
+      } catch (err) {
+        console.error("[ServerMembersTab] Error unbanning member:", err);
+      }
+    }
   };
 
   const activeMembersFiltered = Array.from(
@@ -107,7 +125,8 @@ export default function ServerMembersTab({
         .filter((m) => {
           if (!m || !m.id) return false;
           if (bannedUsers.includes(m.id)) return false;
-          if (kickedUsers[m.id]) return false;
+          const localKickTs = sessionKickedAt[m.id];
+          if (localKickTs && (!m.joinedAt || localKickTs > m.joinedAt)) return false;
           if (filtroText.trim()) {
             const nick = (m.nickname || "").toLowerCase();
             return nick.includes(filtroText.toLowerCase().trim());
@@ -131,7 +150,7 @@ export default function ServerMembersTab({
             <ModalInput
               value={filtroText}
               onChange={(e) => setFiltroText(e.target.value)}
-              placeholder={t("common.search", "Buscar miembro...")}
+              placeholder={t("serverSettings.members.searchPlaceholder", "Buscar miembro...")}
               className="h-10 text-xs px-3"
             />
           </div>
@@ -302,7 +321,7 @@ export default function ServerMembersTab({
                     <div className="flex items-center gap-1 pl-2 border-l border-white/10 shrink-0">
                       <button
                         type="button"
-                        onClick={() => handleKick(m.id)}
+                        onClick={() => handleKick(m.id, m.nickname)}
                         className="w-7 h-7 flex items-center justify-center rounded-lg bg-onicord-surface hover:bg-amber-500/20 hover:text-amber-400 text-onicord-muted transition-colors cursor-pointer"
                         title={t("settings.members.kickButton", "Expulsar miembro")}
                       >
@@ -310,7 +329,7 @@ export default function ServerMembersTab({
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleBan(m.id)}
+                        onClick={() => handleBan(m.id, m.nickname)}
                         className="w-7 h-7 flex items-center justify-center rounded-lg bg-onicord-surface hover:bg-onicord-danger/20 hover:text-onicord-danger text-onicord-muted transition-colors cursor-pointer"
                         title={t("settings.members.banButton", "Banear miembro")}
                       >
@@ -340,7 +359,7 @@ export default function ServerMembersTab({
 
           <div className="space-y-2 pt-1">
             {bannedUsers.map((bannedId) => {
-              const savedMember = server.savedMembers?.[bannedId];
+              const savedMember = server.savedMembers?.[bannedId] || bannedMetaCache[bannedId];
               const nickname = savedMember?.nickname || bannedId;
               const avatar = savedMember?.avatar;
 
@@ -377,6 +396,77 @@ export default function ServerMembersTab({
             })}
           </div>
         </div>
+      )}
+
+      {moderationConfirm && (
+        <ConfirmDialogModal
+          isOpen={Boolean(moderationConfirm)}
+          title={
+            moderationConfirm.type === "ban"
+              ? t("settings.members.banTitle", "Banear miembro")
+              : t("settings.members.kickTitle", "Expulsar miembro")
+          }
+          message={
+            moderationConfirm.type === "ban"
+              ? t("settings.members.confirmBan", `¿Estás seguro de que deseas banear a ${moderationConfirm.nickname}?`)
+              : t("settings.members.confirmKick", `¿Estás seguro de que deseas expulsar a ${moderationConfirm.nickname}?`)
+          }
+          warningMessage={
+            moderationConfirm.type === "ban"
+              ? t("settings.members.banWarning", "El usuario no podrá volver a unirse hasta que sea desbaneado.")
+              : t("settings.members.kickWarning", "El usuario será desconectado inmediatamente del servidor.")
+          }
+          confirmLabel={moderationConfirm.type === "ban" ? "Banear" : "Expulsar"}
+          cancelLabel="Cancelar"
+          type="danger"
+          onConfirm={async () => {
+            const { type, userId, nickname } = moderationConfirm;
+            setModerationConfirm(null);
+            if (!userId) return;
+
+            if (type === "kick") {
+              const kickTs = Date.now();
+              const nextKicked = {
+                ...(kickedUsers || {}),
+                [userId]: kickTs,
+              };
+              setSessionKickedAt((prev) => ({ ...prev, [userId]: kickTs }));
+              setKickedUsers(nextKicked);
+              if (server?.id && window.electronAPI?.updateServerSettings) {
+                try {
+                  const updated = await window.electronAPI.updateServerSettings(server.id, {
+                    kickedUsers: nextKicked,
+                  });
+                  if (updated) onUpdateServer?.(updated);
+                } catch (err) {
+                  console.error("[ServerMembersTab] Error kicking member:", err);
+                }
+              }
+            } else if (type === "ban") {
+              const targetObj = todosLosMiembros.find((m) => m.id === userId) || server?.savedMembers?.[userId];
+              setBannedMetaCache((prev) => ({
+                ...prev,
+                [userId]: {
+                  nickname: targetObj?.nickname || nickname || userId,
+                  avatar: targetObj?.avatar || null,
+                },
+              }));
+              const nextBanned = Array.from(new Set([...(bannedUsers || []), userId]));
+              setBannedUsers(nextBanned);
+              if (server?.id && window.electronAPI?.updateServerSettings) {
+                try {
+                  const updated = await window.electronAPI.updateServerSettings(server.id, {
+                    bannedUsers: nextBanned,
+                  });
+                  if (updated) onUpdateServer?.(updated);
+                } catch (err) {
+                  console.error("[ServerMembersTab] Error banning member:", err);
+                }
+              }
+            }
+          }}
+          onCancel={() => setModerationConfirm(null)}
+        />
       )}
     </div>
   );

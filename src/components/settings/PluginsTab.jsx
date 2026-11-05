@@ -395,7 +395,7 @@ export default function PluginsTab({ profile, onSaved }) {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t("common.search", "Buscar...")}
+              placeholder={t("settings.plugins.searchPlaceholder", "Buscar complementos...")}
               className="onicord-input h-10 pl-9 pr-8 text-xs placeholder:text-onicord-muted/60"
             />
             {searchQuery && (
@@ -685,7 +685,7 @@ export default function PluginsTab({ profile, onSaved }) {
         )}
       </div>
 
-      {/* SECCIÓN DE PREFERENCIAS DE COMPLEMENTOS */}
+      {/* SECTION: PLUGIN PREFERENCES */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.plugins.preferencesTitle", "Preferencias")}</span>

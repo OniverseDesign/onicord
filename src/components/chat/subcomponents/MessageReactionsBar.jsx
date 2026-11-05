@@ -8,6 +8,7 @@ export default function MessageReactionsBar({
   msgId,
   profile,
   peers,
+  server,
   onToggleReaction,
   pickerTargetRect,
   setPickerTargetRect,
@@ -36,6 +37,7 @@ export default function MessageReactionsBar({
             profile,
             peers,
             {},
+            server
           );
           return display.nickname || t("common.user");
         });

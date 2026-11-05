@@ -55,7 +55,7 @@ class ChatService {
 
   async applyRemoteMeta(meta, fromPeerId, roomCode) {
     const code = this._resolveRoomCode(roomCode);
-    if (!code || !this.roomMetaStore) return false;
+    if (!code || !this.roomMetaStore || !this._isActiveRoom(code)) return false;
     let senderUserId = null;
     if (fromPeerId) {
       const peer = this.p2p.peers.get(fromPeerId);
@@ -211,8 +211,10 @@ class ChatService {
   async handleSyncRequest(fromPeerId, payload, roomCode) {
     const code = this._resolveRoomCode(roomCode);
     const peer = this.p2p.peers.get(fromPeerId);
-    if (!peer || peer.syncBusy || !code) return;
-    peer.syncBusy = true;
+    if (!peer || !code || !this._isActiveRoom(code)) return;
+    if (!peer.syncBusyRooms) peer.syncBusyRooms = new Set();
+    if (peer.syncBusyRooms.has(code)) return;
+    peer.syncBusyRooms.add(code);
     try {
       const watermarks = payload?.watermarks || {};
       const filesSince = payload?.filesSince || 0;
@@ -243,8 +245,9 @@ class ChatService {
         }
       }
 
-      if (!peer.syncRequested) {
-        peer.syncRequested = true;
+      if (!peer.syncRequestedRooms) peer.syncRequestedRooms = new Set();
+      if (!peer.syncRequestedRooms.has(code)) {
+        peer.syncRequestedRooms.add(code);
         const localWatermarks = await this.chatStore.getWatermarks(code);
         const localMeta = await this.getLocalMeta(code);
         const localFiles = await this.fileIndexStore.load(code);
@@ -260,12 +263,13 @@ class ChatService {
         });
       }
     } finally {
-      peer.syncBusy = false;
+      peer.syncBusyRooms.delete(code);
     }
   }
 
   async handleSyncResponse(fromPeerId, payload, roomCode) {
     const code = this._resolveRoomCode(roomCode || payload?.roomCode);
+    if (!code || !this._isActiveRoom(code)) return;
     const peer = this.p2p.peers.get(fromPeerId);
     const now = Date.now();
 
@@ -302,7 +306,7 @@ class ChatService {
     setTimeout(async () => {
       const peer = this.p2p.peers.get(peerId);
       if (!peer?.socket || peer.socket.destroyed) return;
-      if (!code) return;
+      if (!code || !this._isActiveRoom(code)) return;
       const watermarks = await this.chatStore.getWatermarks(code);
       const meta = await this.getLocalMeta(code);
       const files = await this.fileIndexStore.load(code);

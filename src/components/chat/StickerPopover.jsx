@@ -409,7 +409,7 @@ export default function StickerPopover({
         // Search Results Mode
         <div className="flex-1 overflow-y-auto p-2.5 custom-scrollbar">
           <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 mb-1.5">
-            {t("chat.searchEmojisPlaceholder", "Resultados de búsqueda")}
+            {t("chat.searchResults", "Resultados de búsqueda")}
           </h4>
           {renderStickerGrid(filteredResults, "search")}
           {filteredResults.length === 0 && (
@@ -425,7 +425,7 @@ export default function StickerPopover({
           onScroll={handleContainerScroll}
           className="flex-1 overflow-y-auto p-2.5 space-y-4 custom-scrollbar pb-24"
         >
-          {/* Frecuentes */}
+          {/* Frequently used stickers */}
           {topStickers.length > 0 && (
             <div
               key="top"

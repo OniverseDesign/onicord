@@ -47,9 +47,16 @@ function sanitizeImage(img) {
   if (
     trimmed.startsWith("http://") ||
     trimmed.startsWith("https://") ||
+    trimmed.startsWith("onicord-media://") ||
     trimmed.startsWith("data:image/")
   ) {
     if (trimmed.length <= LIMITS.avatarOrBanner) {
+      if (trimmed.startsWith("data:image/")) {
+        try {
+          const { CasStore } = require("../storage/casStore.cjs");
+          return CasStore.getInstance(app.getPath("userData")).storeDataUri(trimmed);
+        } catch {}
+      }
       return trimmed;
     }
   }
@@ -68,31 +75,36 @@ class DiscoverService {
     this.isInitialized = false;
   }
 
-  _getCachePath() {
-    if (!this.cacheFile) {
-      this.cacheFile = path.join(app.getPath("userData"), "discover-cache.json");
-    }
-    return this.cacheFile;
+  _getDiscoverDb() {
+    const { DbManager } = require("../storage/dbManager.cjs");
+    return DbManager.getInstance(app.getPath("userData")).getGlobalDb("discover");
   }
 
   _loadCache() {
     try {
-      const p = this._getCachePath();
-      if (fs.existsSync(p)) {
-        const raw = fs.readFileSync(p, "utf-8");
-        const list = JSON.parse(raw);
-        if (Array.isArray(list)) {
-          const now = Date.now();
-          for (const srv of list) {
-            if (srv?.roomCode && srv?.lastSeen && now - srv.lastSeen < ANNOUNCE_EXPIRY_MS) {
-              const code = String(srv.roomCode).toUpperCase().trim();
-              this.discoveredServers.set(code, srv);
-            }
-          }
+      const db = this._getDiscoverDb();
+      const rows = db.prepare("SELECT * FROM discovered_servers").all();
+      const now = Date.now();
+      for (const r of rows) {
+        if (r.room_code && r.last_seen_at && now - r.last_seen_at < ANNOUNCE_EXPIRY_MS) {
+          const extra = r.extra_json ? JSON.parse(r.extra_json) : {};
+          const code = String(r.room_code).toUpperCase().trim();
+          this.discoveredServers.set(code, {
+            ...extra,
+            roomCode: code,
+            name: r.name,
+            description: r.description || "",
+            category: r.category || "General",
+            tags: r.tags_json ? JSON.parse(r.tags_json) : [],
+            memberCount: r.member_count || 1,
+            icon: r.icon_ref || null,
+            banner: r.banner_ref || null,
+            lastSeen: r.last_seen_at,
+          });
         }
       }
     } catch (err) {
-      console.warn("[DiscoverService] Error leyendo caché local:", err.message);
+      console.warn("[DiscoverService] Error leyendo caché local en discover.db:", err.message);
     }
   }
 
@@ -101,11 +113,37 @@ class DiscoverService {
     this.saveTimeout = setTimeout(() => {
       this.saveTimeout = null;
       try {
-        const p = this._getCachePath();
+        const db = this._getDiscoverDb();
         const list = Array.from(this.discoveredServers.values());
-        fs.writeFileSync(p, JSON.stringify(list, null, 2), "utf-8");
+        const tx = db.transaction((items) => {
+          db.prepare("DELETE FROM discovered_servers").run();
+          const insert = db.prepare(`
+            INSERT OR REPLACE INTO discovered_servers (
+              room_code, name, description, category, language,
+              member_count, online_count, icon_ref, banner_ref,
+              tags_json, extra_json, last_seen_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
+          `);
+          for (const srv of items) {
+            if (!srv?.roomCode) continue;
+            insert.run(
+              String(srv.roomCode).toUpperCase().trim(),
+              String(srv.name || srv.roomCode),
+              srv.description || "",
+              srv.category || "General",
+              srv.language || "es",
+              Number(srv.memberCount) || 1,
+              srv.icon || null,
+              srv.banner || null,
+              JSON.stringify(srv.tags || []),
+              JSON.stringify(srv),
+              Number(srv.lastSeen) || Date.now()
+            );
+          }
+        });
+        tx(list);
       } catch (err) {
-        console.warn("[DiscoverService] Error guardando caché local:", err.message);
+        console.warn("[DiscoverService] Error guardando caché local en discover.db:", err.message);
       }
     }, 3000);
   }
@@ -137,7 +175,7 @@ class DiscoverService {
     console.log("[DiscoverService] Servicio nativo de descubrimiento P2P inicializado con blindaje de seguridad.");
   }
 
-  async syncAndAnnounceLocalServers() {
+  async syncAndAnnounceLocalServers(targetPeerId = null) {
     try {
       const allServers = await serverService.listServers();
       let hasChanges = false;
@@ -161,11 +199,15 @@ class DiscoverService {
             lastSeen: Date.now(),
           };
 
-          this.handleIncomingAnnouncement(srvMeta, true);
+          await this.handleIncomingAnnouncement(srvMeta, true);
 
           // Broadcast through P2P room manager if connected
           if (global.roomManager?.p2pService) {
-            global.roomManager.p2pService._broadcast("onicord:discover-announce", srvMeta);
+            if (targetPeerId) {
+              global.roomManager.p2pService._sendToPeer(targetPeerId, "onicord:discover-announce", srvMeta);
+            } else {
+              global.roomManager.p2pService._broadcast("onicord:discover-announce", srvMeta);
+            }
           }
         } else {
           // If discover is disabled, ensure the server is immediately removed from discovered servers & cache
@@ -179,6 +221,13 @@ class DiscoverService {
         }
       }
 
+      // If replying to a specific peer (e.g. on profile handshake or discover-request), also share known cached discoveries
+      if (targetPeerId && global.roomManager?.p2pService) {
+        for (const srv of this.getDiscoveredServers()) {
+          global.roomManager.p2pService._sendToPeer(targetPeerId, "onicord:discover-announce", srv);
+        }
+      }
+
       if (hasChanges) {
         this._saveCacheDebounced();
         this._broadcast("plugins:discover-servers-updated", this.getDiscoveredServers());
@@ -188,6 +237,14 @@ class DiscoverService {
     }
   }
 
+  requestPeerDiscoveries() {
+    try {
+      if (global.roomManager?.p2pService) {
+        global.roomManager.p2pService._broadcast("onicord:discover-request", { timestamp: Date.now() });
+      }
+    } catch (_) {}
+  }
+
   async handleIncomingAnnouncement(serverMeta, isLocalOrigin = false) {
     if (!serverMeta?.roomCode) return;
 
@@ -195,12 +252,12 @@ class DiscoverService {
     // Validate roomCode: strictly alphanumeric and dashes
     if (!rawCode || !/^[A-Z0-9_\-]+$/.test(rawCode)) return;
 
-    // Anti-Spoofing: If not from local origin, check if this roomCode belongs to a local server
+    // Anti-Spoofing: If not from local origin, check if we OWN this server locally
     if (!isLocalOrigin) {
       try {
         const store = serverService.getServerStore();
         const localServer = await store.getServerByRoomCode(rawCode);
-        if (localServer) {
+        if (localServer && localServer.isOwner) {
           // If we own or host this server locally, never allow external announcements to overwrite it
           return;
         }
@@ -283,9 +340,9 @@ class DiscoverService {
       return await this.handleIncomingKnock(sanitizedPayload);
     }
 
-    // Broadcast across P2P swarm
+    // Broadcast across P2P swarm (do not restrict to targetCode since applicant is not in targetCode yet)
     if (global.roomManager?.p2pService) {
-      global.roomManager.p2pService._broadcast("onicord:knock-request", sanitizedPayload, targetCode);
+      global.roomManager.p2pService._broadcast("onicord:knock-request", sanitizedPayload);
     }
 
     return { success: true };
@@ -346,12 +403,16 @@ class DiscoverService {
         },
       ];
 
-      const updatedServer = await store.updateServer(server.id, {
-        discoverConfig: {
-          ...conf,
-          pendingRequests: updatedRequests,
+      const updatedServer = await serverService.updateServer(
+        server.id,
+        {
+          discoverConfig: {
+            ...conf,
+            pendingRequests: updatedRequests,
+          },
         },
-      });
+        global.roomManager
+      );
 
       // Debounce toast notifications so admin's UI is not frozen by rapid notifications
       if (now - this.lastToastNotification > TOAST_THROTTLE_MS) {
@@ -395,17 +456,21 @@ class DiscoverService {
         joinedAt: Date.now(),
       };
 
-      const updated = await store.updateServer(server.id, {
-        savedMembers,
-        discoverConfig: {
-          ...conf,
-          pendingRequests: filteredPending,
+      const updated = await serverService.updateServer(
+        server.id,
+        {
+          savedMembers,
+          discoverConfig: {
+            ...conf,
+            pendingRequests: filteredPending,
+          },
         },
-      });
+        global.roomManager
+      );
 
       this._broadcast("server:updated", updated);
 
-      // Emit approval to applicant peer over P2P
+      // Emit approval to applicant peer over P2P (do not filter by targetCode since applicant is not yet in the room)
       if (global.roomManager?.p2pService) {
         global.roomManager.p2pService._broadcast(
           "onicord:knock-approved",
@@ -414,8 +479,7 @@ class DiscoverService {
             applicantId: applicantId,
             serverName: sanitizeString(server.name, LIMITS.name),
             timestamp: Date.now(),
-          },
-          targetCode
+          }
         );
       }
 
@@ -440,12 +504,16 @@ class DiscoverService {
       const currentPending = Array.isArray(conf.pendingRequests) ? conf.pendingRequests : [];
       const filteredPending = currentPending.filter((r) => r.applicant?.id !== applicantId);
 
-      const updated = await store.updateServer(server.id, {
-        discoverConfig: {
-          ...conf,
-          pendingRequests: filteredPending,
+      const updated = await serverService.updateServer(
+        server.id,
+        {
+          discoverConfig: {
+            ...conf,
+            pendingRequests: filteredPending,
+          },
         },
-      });
+        global.roomManager
+      );
 
       this._broadcast("server:updated", updated);
 
@@ -455,8 +523,7 @@ class DiscoverService {
           {
             roomCode: targetCode,
             applicantId: applicantId,
-          },
-          targetCode
+          }
         );
       }
 

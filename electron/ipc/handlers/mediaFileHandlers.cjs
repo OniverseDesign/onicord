@@ -6,34 +6,72 @@ const crypto = require("crypto");
 const mediaScannerService = require("../../services/mediaScannerService.cjs");
 const stickerService = require("../../services/stickerService.cjs");
 const ytdlpService = require("../../services/ytdlpService.cjs");
+const { DbManager } = require("../../storage/dbManager.cjs");
 
-function getDownloadsRegistryPath() {
-  return path.join(app.getPath("userData"), "downloads.json");
+async function saveDownloadToRegistry(fileId, targetPath, sourceRoomCode = null) {
+  try {
+    const appConfigDb = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
+    let size = 0;
+    try {
+      if (fs.existsSync(targetPath)) size = fs.statSync(targetPath).size;
+    } catch {}
+    appConfigDb
+      .prepare(`
+        INSERT OR REPLACE INTO downloads (
+          download_id, file_name, file_path, size_bytes, mime_type, source_room_code, downloaded_at
+        ) VALUES (?, ?, ?, ?, NULL, ?, ?)
+      `)
+      .run(
+        String(fileId),
+        path.basename(String(targetPath)),
+        String(targetPath),
+        size,
+        sourceRoomCode || global.roomManager?.roomCode || null,
+        Date.now()
+      );
+  } catch (err) {
+    console.error("Error al registrar descarga local en app_config.db:", err.message);
+  }
 }
 
-async function saveDownloadToRegistry(fileId, targetPath) {
+function migrateLegacyDownloadsJson(userDataPath) {
   try {
-    const registryPath = getDownloadsRegistryPath();
-    let registry = {};
-    if (fs.existsSync(registryPath)) {
-      const raw = await fsPromises.readFile(registryPath, "utf8");
-      registry = JSON.parse(raw);
-    }
-    registry[String(fileId)] = {
-      localPath: String(targetPath),
-      savedAt: Date.now(),
-    };
-    await fsPromises.writeFile(
-      registryPath,
-      JSON.stringify(registry, null, 2),
-      "utf8"
-    );
+    const jsonPath = path.join(userDataPath, "downloads.json");
+    if (!fs.existsSync(jsonPath)) return;
+    const raw = fs.readFileSync(jsonPath, "utf8");
+    const data = JSON.parse(raw);
+    const db = DbManager.getInstance(userDataPath).getGlobalDb("app_config");
+    const insertStmt = db.prepare(`
+      INSERT OR REPLACE INTO downloads (
+        download_id, file_name, file_path, size_bytes, mime_type, source_room_code, downloaded_at
+      ) VALUES (?, ?, ?, ?, NULL, NULL, ?)
+    `);
+
+    db.transaction(() => {
+      for (const [id, entry] of Object.entries(data)) {
+        if (!entry || !entry.localPath) continue;
+        const filePath = String(entry.localPath);
+        if (!fs.existsSync(filePath)) continue;
+        let size = 0;
+        try { size = fs.statSync(filePath).size; } catch {}
+        insertStmt.run(
+          String(id),
+          path.basename(filePath),
+          filePath,
+          size,
+          entry.savedAt || Date.now()
+        );
+      }
+    })();
+    console.log("[ARES MIGRATION] Migradas descargas previas de downloads.json a app_config.db");
   } catch (err) {
-    console.error("Error al registrar descarga local:", err.message);
+    console.warn("[ARES MIGRATION] Error migrando downloads.json:", err.message);
   }
 }
 
 function registerMediaFileHandlers() {
+  migrateLegacyDownloadsJson(app.getPath("userData"));
+
   // === Files & Ares P2P ===
   ipcMain.handle("files:processDroppedMeta", async (_event, roomCode, filePath) => {
     const targetCode = roomCode || global.roomManager?.roomCode;
@@ -156,35 +194,53 @@ function registerMediaFileHandlers() {
     const id = String(fileId || "");
     const defaultName = fileName ? String(fileName) : "archivo";
 
-    // 1. Verificación previa en descargas históricas (downloads.json)
+    // 1. Check historical download cache (app_config.db -> downloads)
     try {
-      const registryPath = getDownloadsRegistryPath();
-      if (fs.existsSync(registryPath)) {
-        const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
-        const fileRecord = registry[id];
-        if (fileRecord && fileRecord.localPath && fs.existsSync(fileRecord.localPath)) {
-          console.log(`[ARES DOWNLOAD] Archivo ${id} ya existe localmente en: ${fileRecord.localPath}. Omitiendo re-descarga.`);
-          global.mainWindow?.webContents.send("file:progress", {
-            fileId: id,
-            progress: 100,
-            done: true,
-            localPath: fileRecord.localPath,
-          });
-          return { done: true, filePath: fileRecord.localPath, alreadyExists: true };
-        }
+      const appConfigDb = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
+      const fileRecord = appConfigDb
+        .prepare("SELECT file_path FROM downloads WHERE download_id = ?")
+        .get(id);
+      if (fileRecord && fileRecord.file_path && fs.existsSync(fileRecord.file_path)) {
+        console.log(`[ARES DOWNLOAD] Archivo ${id} ya existe localmente en: ${fileRecord.file_path}. Omitiendo re-descarga.`);
+        global.mainWindow?.webContents.send("file:progress", {
+          fileId: id,
+          progress: 100,
+          done: true,
+          localPath: fileRecord.file_path,
+        });
+        return { done: true, filePath: fileRecord.file_path, alreadyExists: true };
       }
     } catch (regErr) {
       console.warn("[ARES DOWNLOAD] Error verificando registry previo:", regErr.message);
     }
 
-    // 2. Verificación previa de archivo local subido por el propio usuario (fileIndexStore)
+    // 1b. Fallback a downloads.json
+    try {
+      const legacyPath = path.join(app.getPath("userData"), "downloads.json");
+      if (fs.existsSync(legacyPath)) {
+        const legacy = JSON.parse(fs.readFileSync(legacyPath, "utf8"));
+        if (legacy[id]?.localPath && fs.existsSync(legacy[id].localPath)) {
+          console.log(`[ARES DOWNLOAD] Archivo ${id} hallado en downloads.json: ${legacy[id].localPath}. Migrando a app_config.db y omitiendo re-descarga.`);
+          await saveDownloadToRegistry(id, legacy[id].localPath, targetCode);
+          global.mainWindow?.webContents.send("file:progress", {
+            fileId: id,
+            progress: 100,
+            done: true,
+            localPath: legacy[id].localPath,
+          });
+          return { done: true, filePath: legacy[id].localPath, alreadyExists: true };
+        }
+      }
+    } catch (_) {}
+
+    // 2. Check local user uploads cache (fileIndexStore)
     if (global.roomManager?.fileIndexStore) {
       try {
         const records = await global.roomManager.fileIndexStore.load(targetCode);
         const localFileMeta = records.find((f) => f.id === id);
         if (localFileMeta && localFileMeta.realPath && fs.existsSync(localFileMeta.realPath)) {
           console.log(`[ARES DOWNLOAD] Archivo ${id} subido localmente ya existe en: ${localFileMeta.realPath}. Reutilizando.`);
-          await saveDownloadToRegistry(id, localFileMeta.realPath);
+          await saveDownloadToRegistry(id, localFileMeta.realPath, targetCode);
           global.mainWindow?.webContents.send("file:progress", {
             fileId: id,
             progress: 100,
@@ -199,19 +255,44 @@ function registerMediaFileHandlers() {
     }
 
     let targetFilePath;
-    if (options?.autoDownload) {
-      const downloadDir =
-        options.customDir && fs.existsSync(options.customDir)
-          ? options.customDir
-          : app.getPath("downloads");
+    const downloadDir =
+      options?.customDir && fs.existsSync(options.customDir)
+        ? options.customDir
+        : app.getPath("downloads");
 
-      if (!fs.existsSync(downloadDir)) {
-        try {
-          fs.mkdirSync(downloadDir, { recursive: true });
-        } catch (_) {}
+    if (!fs.existsSync(downloadDir)) {
+      try {
+        fs.mkdirSync(downloadDir, { recursive: true });
+      } catch (_) {}
+    }
+
+    if (options?.autoDownload) {
+      // 1c. Evitar re-descargas redundantes: si el archivo con el nombre original ya existe en downloads con el mismo tamaño
+      const defaultCandidate = path.join(downloadDir, defaultName);
+      if (fs.existsSync(defaultCandidate)) {
+        let sizeMatches = true;
+        const expectedBytes = Number(fileSize) || 0;
+        if (expectedBytes > 0) {
+          try {
+            sizeMatches = fs.statSync(defaultCandidate).size === expectedBytes;
+          } catch (_) {
+            sizeMatches = false;
+          }
+        }
+        if (sizeMatches) {
+          console.log(`[ARES DOWNLOAD] Archivo ${id} (${defaultName}) ya existe físicamente en ${defaultCandidate} con tamaño coincidente (${expectedBytes} bytes). Omitiendo re-descarga y registrando.`);
+          await saveDownloadToRegistry(id, defaultCandidate, targetCode);
+          global.mainWindow?.webContents.send("file:progress", {
+            fileId: id,
+            progress: 100,
+            done: true,
+            localPath: defaultCandidate,
+          });
+          return { done: true, filePath: defaultCandidate, alreadyExists: true };
+        }
       }
 
-      let candidate = path.join(downloadDir, defaultName);
+      let candidate = defaultCandidate;
       let count = 1;
       const ext = path.extname(defaultName);
       const base = path.basename(defaultName, ext);
@@ -223,7 +304,7 @@ function registerMediaFileHandlers() {
     } else {
       const result = await dialog.showSaveDialog(global.mainWindow, {
         title: "Save received file",
-        defaultPath: path.join(app.getPath("downloads"), defaultName),
+        defaultPath: path.join(downloadDir, defaultName),
       });
       if (result.canceled || !result.filePath) return { canceled: true };
       targetFilePath = result.filePath;
@@ -237,7 +318,7 @@ function registerMediaFileHandlers() {
       options
     );
     if (downloadResult && !downloadResult.error) {
-      await saveDownloadToRegistry(String(fileId), targetFilePath);
+      await saveDownloadToRegistry(String(fileId), targetFilePath, targetCode);
       global.mainWindow?.webContents.send("file:progress", {
         fileId: String(fileId),
         progress: 100,
@@ -258,19 +339,33 @@ function registerMediaFileHandlers() {
       const id = String(fileId || "").trim();
       if (!id) return null;
 
-      // 1. Consultar historial de descargas (downloads.json)
-      const registryPath = getDownloadsRegistryPath();
-      if (fs.existsSync(registryPath)) {
-        try {
+      // 1. Consultar historial de descargas (app_config.db -> downloads)
+      try {
+        const appConfigDb = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
+        const fileRecord = appConfigDb
+          .prepare("SELECT file_path FROM downloads WHERE download_id = ?")
+          .get(id);
+        if (fileRecord && fileRecord.file_path && fs.existsSync(fileRecord.file_path)) {
+          return fileRecord.file_path;
+        }
+      } catch (err) {
+        console.warn("[files:getLocalPath] Error consultando app_config.db:", err.message);
+      }
+
+      // 2. Fallback legacy downloads.json
+      try {
+        const registryPath = path.join(app.getPath("userData"), "downloads.json");
+        if (fs.existsSync(registryPath)) {
           const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
           const fileRecord = registry[id];
           if (fileRecord && fileRecord.localPath && fs.existsSync(fileRecord.localPath)) {
+            await saveDownloadToRegistry(id, fileRecord.localPath, roomCode);
             return fileRecord.localPath;
           }
-        } catch (_) {}
-      }
+        }
+      } catch (_) {}
 
-      // 2. Consultar índice local de archivos subidos por el usuario (fileIndexStore)
+      // 3. Query local user upload index (fileIndexStore)
       const targetCode = roomCode || global.roomManager?.roomCode;
       if (global.roomManager?.fileIndexStore && targetCode) {
         try {

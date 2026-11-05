@@ -9,6 +9,7 @@ import DeleteServerModal from "../modals/DeleteServerModal";
 import HomeDashboard from "../dashboard/HomeDashboard";
 import AppSettingsModal from "../modals/AppSettingsModal";
 import DiscoverView from "../discover/DiscoverView";
+import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import { IconSettings, Delete } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import { CONFIG_ISLAS, STORAGE_KEY, getCombinedConfigs } from "../dashboard/dashboardConfig";
@@ -41,6 +42,7 @@ export default function HomeView({
   const [appSettingsInitialSection, setAppSettingsInitialSection] = useState("general");
   const [appSettingsInitialServerScope, setAppSettingsInitialServerScope] = useState(null);
   const [activeChannelId, setActiveChannelId] = useState(null);
+  const [evictionModal, setEvictionModal] = useState(null);
 
   const handleOpenAppSettings = useCallback((section = "general", context = null) => {
     const targetSection = typeof section === "string" ? section : (section?.section || "general");
@@ -242,7 +244,7 @@ export default function HomeView({
       const isTyping = isTypingInInput(e);
 
       if (isTyping) {
-        // En cualquier input/textarea/contenteditable, atajos de una sola tecla (sin Ctrl/Alt/Meta) quedan bloqueados
+        // In any input/textarea/contenteditable, single-key shortcuts (without Ctrl/Alt/Meta) are blocked
         if (!e.ctrlKey && !e.altKey && !e.metaKey) {
           return;
         }
@@ -350,7 +352,7 @@ export default function HomeView({
 
   const sharedMusicState = useMusicSession();
 
-  const { getServerUnreadCount, getChannelUnreadCount, markChannelAsRead } =
+  const { getServerUnreadCount, getChannelUnreadCount, markChannelAsRead, markServerAsRead } =
     useUnreadTracker(activeServer?.roomCode, activeChannelId, profile, servers);
 
   const [islas, setIslas] = useState(() => {
@@ -470,24 +472,46 @@ export default function HomeView({
     }
   }, [activeServer?.id]);
 
-  const handleSelectServer = async (serverId) => {
-    if (!serverId) return;
-    const rawId = typeof serverId === "object" ? (serverId.id || serverId.roomCode) : serverId;
+  const handleSelectServer = async (serverIdOrObj) => {
+    if (!serverIdOrObj) return;
+    const rawId =
+      typeof serverIdOrObj === "object"
+        ? serverIdOrObj.id || serverIdOrObj.roomCode
+        : serverIdOrObj;
     if (!rawId) return;
 
     const targetIdUpper = String(rawId).trim().toUpperCase();
     const activeIdUpper = String(activeServer?.id || "").trim().toUpperCase();
     const currentConnUpper = String(currentConnectedServerId || "").trim().toUpperCase();
 
+    let target =
+      servers.find(
+        (s) =>
+          String(s.id || "").toUpperCase() === targetIdUpper ||
+          String(s.roomCode || "").toUpperCase() === targetIdUpper
+      ) ||
+      (typeof serverIdOrObj === "object" && serverIdOrObj.roomCode ? serverIdOrObj : null);
+
+    if (!target && refreshServers) {
+      try {
+        const freshList = await refreshServers();
+        if (Array.isArray(freshList)) {
+          target = freshList.find(
+            (s) =>
+              String(s.id || "").toUpperCase() === targetIdUpper ||
+              String(s.roomCode || "").toUpperCase() === targetIdUpper
+          );
+        }
+      } catch (_) {}
+    }
+
     if (activeIdUpper === targetIdUpper || currentConnUpper === targetIdUpper) {
-      const target = servers.find((s) => String(s.id).toUpperCase() === targetIdUpper);
       if (target) setActiveServer(target);
       setCurrentConnectedServerId(target ? target.id : rawId);
       setActiveView("server");
       return;
     }
 
-    const target = servers.find((s) => String(s.id).toUpperCase() === targetIdUpper);
     if (target) {
       sharedMusicState?.setHasJoinedMusic?.(false);
       await enterServerProcess(target, profile);
@@ -505,16 +529,14 @@ export default function HomeView({
       );
       if (target) {
         handleSelectServer(target.id);
-      } else {
-        window.electronAPI?.listServers().then((list) => {
-          if (Array.isArray(list)) {
-            setServers(list);
-            const found = list.find(
-              (s) => s.id?.toUpperCase() === codeOrId || s.roomCode?.toUpperCase() === codeOrId
-            );
-            if (found) {
-              handleSelectServer(found.id);
-            }
+      } else if (refreshServers) {
+        refreshServers().then((list) => {
+          const freshList = Array.isArray(list) ? list : [];
+          const found = freshList.find(
+            (s) => s.id?.toUpperCase() === codeOrId || s.roomCode?.toUpperCase() === codeOrId
+          );
+          if (found) {
+            handleSelectServer(found.id);
           }
         }).catch(console.error);
       }
@@ -524,7 +546,7 @@ export default function HomeView({
     return () => {
       window.removeEventListener("onicord:select-server", handleSelectServerEvent);
     };
-  }, [servers, handleSelectServer]);
+  }, [servers, handleSelectServer, refreshServers]);
 
   useEffect(() => {
     const handleNavigate = async (e) => {
@@ -537,11 +559,10 @@ export default function HomeView({
           (roomCode && String(s.roomCode).toUpperCase() === String(roomCode).toUpperCase())
       );
 
-      if (!targetServer && window.electronAPI?.listServers) {
+      if (!targetServer && refreshServers) {
         try {
-          const freshList = await window.electronAPI.listServers();
+          const freshList = await refreshServers();
           if (Array.isArray(freshList)) {
-            setServers(freshList);
             targetServer = freshList.find(
               (s) =>
                 (serverId && String(s.id).toUpperCase() === String(serverId).toUpperCase()) ||
@@ -618,15 +639,37 @@ export default function HomeView({
   useEffect(() => {
     if (!window.electronAPI) return;
 
+    const isEvictedFromActive = (evictedCode) => {
+      if (!evictedCode || !activeServer) return false;
+      const target = String(evictedCode).trim().toUpperCase();
+      const activeCode = String(activeServer.roomCode || activeServer.id || "").trim().toUpperCase();
+      const activeId = String(activeServer.id || "").trim().toUpperCase();
+      return target === activeCode || target === activeId;
+    };
+
     const unsubBanned = window.electronAPI.on("server:banned", (data) => {
-      alert(`Has sido baneado del servidor: ${data.name}`);
-      setActiveServer(null);
+      setEvictionModal({
+        title: "Baneado del servidor",
+        message: `Has sido baneado de "${data?.name || "este servidor"}". No podrás volver a ingresar a menos que un administrador te desbanee.`,
+      });
+      if (!data?.roomCode || isEvictedFromActive(data.roomCode)) {
+        setCurrentConnectedServerId(null);
+        setActiveServer(null);
+        setActiveView("home");
+      }
       refreshServers?.();
     });
 
     const unsubKicked = window.electronAPI.on("server:kicked", (data) => {
-      alert(`Has sido expulsado del servidor: ${data.name}`);
-      setActiveServer(null);
+      setEvictionModal({
+        title: "Expulsado del servidor",
+        message: `Has sido expulsado de "${data?.name || "este servidor"}".`,
+      });
+      if (!data?.roomCode || isEvictedFromActive(data.roomCode)) {
+        setCurrentConnectedServerId(null);
+        setActiveServer(null);
+        setActiveView("home");
+      }
       refreshServers?.();
     });
 
@@ -634,7 +677,7 @@ export default function HomeView({
       unsubBanned();
       unsubKicked();
     };
-  }, [refreshServers, setActiveServer]);
+  }, [refreshServers, setActiveServer, activeServer]);
 
   const handleUpdateFolders = async (nextFolders) => {
     if (window.electronAPI?.saveProfile) {
@@ -732,6 +775,7 @@ export default function HomeView({
             profile={profile}
             servers={servers}
             onSelectServer={handleSelectServer}
+            onRefreshServers={refreshServers}
           />
         </div>
       </div>
@@ -767,12 +811,22 @@ export default function HomeView({
       )}
       {showSettings && settingsServer && (
         <ServerSettingsModal
-          server={settingsServer}
-          peers={onlinePeers} 
-          profile={profile}     // CORREGIDO: Le pasamos tu perfil local
+          server={servers.find((s) => s.id === settingsServer.id) || settingsServer}
+          peers={settingsServer.id === currentConnectedServerId ? onlinePeers : []}
+          profile={profile}
           onClose={() => {
             setShowSettings(false);
             setSettingsServer(null);
+          }}
+          onSave={(updatedServer) => {
+            if (!updatedServer) return;
+            onServerUpdated?.(updatedServer);
+            setSettingsServer((prev) =>
+              prev && prev.id === updatedServer.id ? { ...prev, ...updatedServer } : prev
+            );
+            if (activeServer && activeServer.id === updatedServer.id) {
+              setActiveServer((prev) => ({ ...prev, ...updatedServer }));
+            }
           }}
           onSaved={async (updatedServer) => {
             if (onServerUpdated) {
@@ -793,6 +847,15 @@ export default function HomeView({
         (() => {
           const { server } = contextMenu;
           let menuItems = [];
+
+          menuItems.push({
+            label: t("contextMenu.markServerAsRead", "Marcar como leído"),
+            icon: <MaterialIcon name="done_all" size={18} />,
+            onClick: () => {
+              markServerAsRead(server.roomCode);
+              setContextMenu(null);
+            },
+          });
 
           menuItems.push({
             label: t("contextMenu.serverSettings"),
@@ -857,7 +920,6 @@ export default function HomeView({
               setCurrentConnectedServerId(null);
               setActiveServer(null);
               await new Promise((resolve) => requestAnimationFrame(resolve));
-              await window.electronAPI.leaveRoom().catch(console.error);
             }
 
             try {
@@ -867,6 +929,17 @@ export default function HomeView({
               console.error("Error al remover servidor del disco:", err);
             }
           }}
+        />
+      )}
+
+      {evictionModal && (
+        <ConfirmDialogModal
+          isOpen={Boolean(evictionModal)}
+          title={evictionModal.title}
+          message={evictionModal.message}
+          confirmLabel="Entendido"
+          type="alert"
+          onConfirm={() => setEvictionModal(null)}
         />
       )}
     </div>

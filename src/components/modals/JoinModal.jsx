@@ -49,13 +49,13 @@ export default function JoinModal({ onClose, onJoin, busy }) {
         <input
           type="text"
           ref={inputRef}
-          placeholder="A1B2C3D4"
+          placeholder={t("addServerModal.codePlaceholder", "A1B2C3D4")}
           value={code}
           onChange={(e) => setCode(e.target.value)}
           className="onicord-input-code mt-4"
         />
         <p className="mt-2 text-center text-xs text-onicord-muted">
-          {normalized.length}/8 caracteres
+          {normalized.length}/8 {t("common.characters", "caracteres")}
         </p>
 
         <div className="mt-6 flex gap-3">

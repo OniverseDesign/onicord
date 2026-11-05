@@ -216,34 +216,62 @@ async function uploadToDrive(zipBuffer, filename, categories) {
 // ─── SETTINGS STORAGE ─────────────────────────────────────────────────────────
 const SETTINGS_FILE = "drive-backup-settings.json";
 
-function getSettingsFilePath() {
-  return path.join(getUserDataPath(), SETTINGS_FILE);
+function _writeDriveSettingsRaw(db, data) {
+  db.prepare(`
+    INSERT OR REPLACE INTO app_settings (key, value_json, updated_at)
+    VALUES (?, ?, ?)
+  `).run("drive_backup_settings", JSON.stringify(data), Date.now());
 }
 
 function getBackupSettings() {
+  const ud = getUserDataPath();
+  let db = null;
   try {
-    const p = getSettingsFilePath();
-    if (fs.existsSync(p)) {
-      const raw = fs.readFileSync(p, "utf8");
-      return JSON.parse(raw);
+    const { DbManager } = require("../storage/dbManager.cjs");
+    db = DbManager.getInstance(ud).getGlobalDb("app_config");
+    const row = db.prepare("SELECT value_json FROM app_settings WHERE key = ?").get("drive_backup_settings");
+    if (row && row.value_json) {
+      return JSON.parse(row.value_json);
     }
   } catch (err) {
-    console.error("[driveService] Error loading backup settings:", err);
+    console.warn("[driveService] Error loading backup settings from SQLite:", err.message);
   }
-  return {
+
+  // Migración legacy de drive-backup-settings.json si aún existiera
+  const p = path.join(ud, SETTINGS_FILE);
+  try {
+    if (fs.existsSync(p)) {
+      const raw = fs.readFileSync(p, "utf8");
+      const data = JSON.parse(raw);
+      if (db) _writeDriveSettingsRaw(db, data);
+      try { fs.unlinkSync(p); } catch {}
+      return data;
+    }
+  } catch (err) {
+    console.error("[driveService] Error migrando drive-backup-settings.json:", err);
+  }
+
+  const defaultSettings = {
     autoBackupEnabled: false,
     frequency: "weekly",
     replacePrevious: false,
     selectedCategories: ["profile", "servers"],
     lastAutoBackupTime: 0,
   };
+  if (db) {
+    try { _writeDriveSettingsRaw(db, defaultSettings); } catch {}
+  }
+  return defaultSettings;
 }
 
 function saveBackupSettings(newSettings) {
   try {
+    const ud = getUserDataPath();
     const current = getBackupSettings();
     const updated = { ...current, ...newSettings };
-    fs.writeFileSync(getSettingsFilePath(), JSON.stringify(updated, null, 2), "utf8");
+    const { DbManager } = require("../storage/dbManager.cjs");
+    const db = DbManager.getInstance(ud).getGlobalDb("app_config");
+    _writeDriveSettingsRaw(db, updated);
     return updated;
   } catch (err) {
     console.error("[driveService] Error saving backup settings:", err);

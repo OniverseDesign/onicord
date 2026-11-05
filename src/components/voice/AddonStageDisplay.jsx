@@ -324,7 +324,7 @@ export default function AddonStageDisplay({
     }
   }, [stageData, isMini, isCinemaWatchParty, isSyncHost, stopWatchParty]);
 
-  // Diccionario exhaustivo de códigos de idioma ISO 639 a nombres en español
+  // Comprehensive dictionary of ISO 639 language codes to names
   const LANGUAGE_NAMES = {
     spa: "Español",
     es: "Español",
@@ -425,7 +425,7 @@ export default function AddonStageDisplay({
     return () => clearTimeout(timer);
   }, [syncStageContextToIframe, activeUrl, activeHtml]);
 
-  // Helper para mostrar nombres de idiomas limpios según el idioma seleccionado en Onicord
+  // Helper to display clean localized language names based on active language
   const ISO_639_TO_BCP47 = {
     spa: "es", es: "es", spanish: "es", "es-419": "es-419", lat: "es-419", latino: "es-419",
     pob: "pt-BR", "pt-br": "pt-BR", por: "pt", pt: "pt",
@@ -463,7 +463,7 @@ export default function AddonStageDisplay({
     return code.length <= 4 ? code.toUpperCase() : code;
   };
 
-  // Filtra, organiza, prioriza y desambigua la lista de subtítulos según el idioma activo en Onicord
+  // Filters, organizes, prioritizes, and disambiguates subtitles list
   const organizeSubtitlesList = (rawSubs) => {
     if (!Array.isArray(rawSubs) || rawSubs.length === 0) return [];
 
@@ -555,7 +555,7 @@ export default function AddonStageDisplay({
     setMediaSubtitles(prepared);
   }, [currentLang]);
 
-  // Progreso real + interpolación monotónica de 0% a 100% para carga de video
+  // Real progress + monotonic interpolation from 0% to 100% for video loading
   useEffect(() => {
     if (!mediaLoading) {
       loadingDoneRef.current = false;
@@ -833,7 +833,7 @@ export default function AddonStageDisplay({
     return () => window.removeEventListener("onicord:watch-party-ended", handlePartyEnded);
   }, [isCinemaWatchParty, isSyncHost, handleReturnToCatalog]);
 
-  // Detectar pistas de audio de la etiqueta video
+  // Detect audio tracks from HTML video element
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -882,7 +882,7 @@ export default function AddonStageDisplay({
     };
   }, [activeGame]);
 
-  // Notificar cambios de pantalla completa al sistema para ocultar la TitleBar y manejar Escape
+  // Notify stage fullscreen changes to system to hide TitleBar and handle Escape
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("onicord:stage-fullscreen-change", {
@@ -903,7 +903,7 @@ export default function AddonStageDisplay({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFullscreen, onToggleFullscreen]);
 
-  // Sincronizar textTracks de HTML5 y alimentar el overlay de subtítulos de alta visibilidad
+  // Synchronize HTML5 textTracks and feed high-visibility subtitle overlay
   useEffect(() => {
     setActiveCueText("");
     const video = videoRef.current;
@@ -916,14 +916,14 @@ export default function AddonStageDisplay({
       const track = tracks[i];
       const sub = mediaSubtitles[i];
       if (currentSubtitle !== "off" && sub && sub.id === currentSubtitle) {
-        // 'hidden' oculta el renderizado nativo tosco del navegador en el fondo,
-        // pero permite que sigan disparándose los eventos cuechange para nuestro overlay personalizado
+        // 'hidden' suppresses clumsy browser native rendering in background
+        // while continuing to fire cuechange events for our custom high-visibility overlay
         track.mode = "hidden";
         const handleCueChange = () => {
           const cues = track.activeCues;
           if (cues && cues.length > 0) {
             const rawText = Array.from(cues).map((c) => c.text).join("\n");
-            // Limpiar etiquetas HTML residuales (ej: <i>, <b>, <c>) si vinieran del VTT
+            // Strip residual HTML tags (e.g. <i>, <b>, <c>) from VTT cues
             const cleanText = rawText.replace(/<[^>]*>/g, "").trim();
             setActiveCueText(cleanText);
           } else {
@@ -1824,7 +1824,7 @@ export default function AddonStageDisplay({
             {/* Media Loading Overlay with Backdrop & Logo/Title */}
             {mediaLoading && !mediaError && (
               <div className="absolute inset-0 z-30 flex flex-col items-center justify-center overflow-hidden bg-black select-none pointer-events-auto">
-                {/* Backdrop borroso cinematográfico */}
+                {/* Cinematic blurred backdrop */}
                 {(activeGame.banner || activeGame.cover) && (
                   <img
                     src={activeGame.banner || activeGame.cover}
@@ -1834,11 +1834,11 @@ export default function AddonStageDisplay({
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/85 pointer-events-none" />
 
-                {/* Contenedor central cinemático (únicamente el logo/título) */}
+                {/* Central cinematic container (logo or title) */}
                 <div className="relative z-10 flex items-center justify-center max-w-4xl p-10 text-center overflow-visible animate-in fade-in zoom-in-95 duration-300">
                   {activeGame.logo && !logoLoadFailed ? (
                     <div className="relative inline-flex items-center justify-center max-w-[85vw] md:max-w-xl max-h-[160px] md:max-h-[200px] overflow-visible">
-                      {/* Capa 1: Logo base atenuado/background */}
+                      {/* Layer 1: Base muted/background logo */}
                       <img
                         src={activeGame.logo}
                         alt={activeGame.title}
@@ -1846,7 +1846,7 @@ export default function AddonStageDisplay({
                         onError={() => setLogoLoadFailed(true)}
                       />
 
-                      {/* Capa 2: Wrapper con drop-shadow sutil fuera del clip-path para que el glow jamás se corte con el contenedor */}
+                      {/* Layer 2: Wrapper with subtle drop-shadow outside clip-path to prevent clipping */}
                       <div
                         className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-visible"
                         style={{
@@ -1867,12 +1867,12 @@ export default function AddonStageDisplay({
                     </div>
                   ) : (
                     <div className="relative inline-block max-w-full overflow-visible">
-                      {/* Capa 1: Título base atenuado/hollow */}
+                      {/* Layer 1: Base hollow/dim title */}
                       <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-wider text-white/15 select-none leading-tight">
                         {activeGame.title}
                       </h1>
 
-                      {/* Capa 2: Wrapper con drop-shadow sutil fuera del clip-path para evitar cortes */}
+                      {/* Layer 2: Wrapper with subtle drop-shadow outside clip-path to prevent clipping */}
                       <div
                         className="absolute inset-0 pointer-events-none overflow-visible"
                         style={{

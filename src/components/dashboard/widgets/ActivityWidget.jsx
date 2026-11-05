@@ -226,7 +226,7 @@ export default function ActivityWidget({ activeGame = null }) {
         </span>
       </div>
 
-      {/* Contenedor de Tarjetas de Juegos (Estilo RichPresenceCard) */}
+      {/* Game Cards Container (RichPresenceCard style) */}
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto minimal-scrollbar space-y-2.5 pt-3 pr-0.5">
         {gamesList.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-4 text-onicord-muted">

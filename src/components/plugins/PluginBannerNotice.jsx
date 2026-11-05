@@ -29,7 +29,7 @@ export default function PluginBannerNotice({ serverPlugins = [] }) {
     let remoteFailed = false;
 
     try {
-      // 1. Intentar descargar e instalar desatendidamente desde GitHub con timeout de 5s
+      // 1. Attempt unattended download and install from GitHub with 5s timeout
       for (const plugin of missingPlugins) {
         const pluginId = typeof plugin === "string" ? plugin : plugin?.id;
         if (pluginId && window.electronAPI?.downloadAndInstallPlugin) {
