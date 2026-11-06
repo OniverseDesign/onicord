@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { notificationManager } from "../lib/notificationManager";
 import { updateAppBadge } from "../lib/badgeIconGenerator";
 import { hasChannelAccess } from "../lib/permissionsHelper";
+import { getNotificationAuthor } from "../lib/profileUtils";
 
 /**
  * Hook to track, persist, and manage unread message counters across P2P servers and direct channels.
@@ -160,18 +161,20 @@ export function useUnreadTracker(activeRoomCode, activeChannelId, profileOrId, s
             (c) => c.id === rawChannelId
           );
 
+          let channelName = targetChannel?.name || null;
+          if (!channelName) {
+            if (rawChannelId && rawChannelId.startsWith("dm_")) {
+              channelName = "Mensaje directo";
+            } else if (rawChannelId && rawChannelId.startsWith("thread_")) {
+              channelName = msg.title || "Hilo";
+            }
+          }
           const serverName = targetServer?.name;
-          const channelName = targetChannel?.name || rawChannelId;
 
-          const senderAvatar =
-            msg.authorAvatar ||
-            msg.avatar ||
-            msg.user?.avatar ||
-            targetServer?.savedMembers?.[msg.authorId]?.avatar ||
-            (Array.isArray(targetServer?.members)
-              ? targetServer.members.find((m) => m.id === msg.authorId || m.userId === msg.authorId)?.avatar
-              : null) ||
-            null;
+          const profileObj = typeof profileOrId === "object" ? profileOrId : null;
+          const senderInfo = getNotificationAuthor(msg, targetServer, profileObj);
+          const senderNickname = senderInfo.nickname;
+          const senderAvatar = senderInfo.avatar;
 
           const textLower = (msg.text || "").toLowerCase();
           const myName = (profileNickname || "").toLowerCase();
@@ -183,7 +186,7 @@ export function useUnreadTracker(activeRoomCode, activeChannelId, profileOrId, s
 
           if (isDirectMention) {
             notificationManager.trigger("MENTION", {
-              nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              nickname: senderNickname,
               avatar: senderAvatar,
               text: msg.text,
               roomCode: msg.roomCode,
@@ -194,7 +197,7 @@ export function useUnreadTracker(activeRoomCode, activeChannelId, profileOrId, s
             });
           } else {
             notificationManager.trigger("RECEIVE_MESSAGE", {
-              nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              nickname: senderNickname,
               avatar: senderAvatar,
               text: msg.text,
               isCurrentChannel: false,

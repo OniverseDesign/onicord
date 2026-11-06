@@ -815,7 +815,7 @@ export class VoicePeerManager {
       }
       this.reconnectAttempts.delete(remotePeerId);
       const amigoConectado = this.peerIdentities[remotePeerId] || {
-        nickname: `User (${remotePeerId.slice(0, 5)})`,
+        nickname: "Usuario",
       };
 
       const timeSinceLocalJoin = Date.now() - (this._voiceJoinedAt || 0);

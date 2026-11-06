@@ -1,3 +1,13 @@
+# Onicord v0.2.4
+
+## Changes
+
+- **Desktop & In-App Notification Author Sanitization**: Enhanced notification author resolution across webhooks, addons, bots, and members, eliminating raw hashes and ambiguous placeholders while formatting clean contextual titles for channels, DMs, and threads.
+- **Robust In-App Changelog & Markdown Formatting**: Added HTML-to-markdown normalization for update feeds, native link support in `ChangelogModal`, and prioritized GitHub Release notes fetching with seamless cache fallbacks.
+- **UI Zoom Scaling & Settings Reversion Safeguards**: Standardized display scaling on the document root element to eliminate layout shifts, and added automatic reversion of zoom and language tweaks when exiting settings without saving.
+- **Voice Shortcut & Mute State Reactivity**: Fixed stale hook references in global voice shortcut listeners to guarantee instant mute toggling, backed by channel speak-permission guards.
+- **Plugin Toast Internationalization**: Extended the sandbox toast API to support localized titles, message keys, and dynamic translation parameters for third-party addons.
+
 # Onicord v0.2.3
 
 ## Changes

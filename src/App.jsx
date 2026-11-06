@@ -347,6 +347,7 @@ export default function App() {
       const savedZoom = localStorage.getItem("onicord_zoom_level");
       if (savedZoom) {
         document.documentElement.style.zoom = Number(savedZoom) / 100;
+        document.body.style.zoom = "";
       }
 
       try {
@@ -369,10 +370,13 @@ export default function App() {
   useEffect(() => {
     if (profile?.general) {
       const zoom = profile.general.zoomLevel ?? 100;
-      document.body.style.zoom = `${zoom}%`;
+      document.documentElement.style.zoom = Number(zoom) / 100;
+      document.body.style.zoom = "";
+      localStorage.setItem("onicord_zoom_level", String(zoom));
       notificationManager.setSettings(profile.general);
     } else {
-      document.body.style.zoom = "100%";
+      document.documentElement.style.zoom = "1";
+      document.body.style.zoom = "";
       notificationManager.setSettings(null);
     }
   }, [profile?.general]);
@@ -524,8 +528,17 @@ export default function App() {
 
     const unsubServerUpdated = api.on?.("server:updated", handleServerUpdated);
 
-    const unsubPluginToast = api.onPluginShowToast?.(({ title, message, type }) => {
-      notificationManager.showToast(title || "Complemento", message || "", type || "info");
+    const unsubPluginToast = api.onPluginShowToast?.((data) => {
+      if (!data) return;
+      let title = data.title;
+      let message = data.message;
+      if (data.titleKey) {
+        title = t(data.titleKey, data.messageParams || {}, data.title || "Notificación");
+      }
+      if (data.messageKey) {
+        message = t(data.messageKey, data.messageParams || {}, data.message || "");
+      }
+      notificationManager.showToast(title || "Complemento", message || "", data.type || "info");
     });
 
     return () => {

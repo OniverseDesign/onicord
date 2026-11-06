@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { notificationManager } from "../lib/notificationManager";
 import { soundEngine } from "../lib/soundEngine";
 import { getStoredGeneralSettings, normalizeGeneralSettings } from "../lib/generalSettings";
+import { getNotificationAuthor } from "../lib/profileUtils";
 
 export function extractAttachmentsFromText(rawText) {
   if (typeof rawText !== "string" || !rawText.includes("[FILE_ATTACHMENT]:")) {
@@ -800,25 +801,26 @@ export function useChatMessages({
         const notifMode = localStorage.getItem(`channel_notif_mode_${channelId}`) || "all";
 
         const currentChannel = currentServer?.channels?.find((c) => c.id === channelId);
-        const channelName = currentChannel?.name || channelId;
+        let channelName = currentChannel?.name || null;
+        if (!channelName) {
+          if (channelId && channelId.startsWith("dm_")) {
+            channelName = "Mensaje directo";
+          } else if (channelId && channelId.startsWith("thread_")) {
+            channelName = msg.title || "Hilo";
+          }
+        }
         const serverName = currentServer?.name;
 
-        const senderAvatar =
-          msg.authorAvatar ||
-          msg.avatar ||
-          msg.user?.avatar ||
-          currentServer?.savedMembers?.[msg.authorId]?.avatar ||
-          (Array.isArray(currentServer?.members)
-            ? currentServer.members.find((m) => m.id === msg.authorId || m.userId === msg.authorId)?.avatar
-            : null) ||
-          null;
+        const senderInfo = getNotificationAuthor(msg, currentServer, profile);
+        const senderNickname = senderInfo.nickname;
+        const senderAvatar = senderInfo.avatar;
 
         if (notifMode === "nothing") {
           // Muted, do not trigger anything
         } else if (notifMode === "mentions") {
           if (isDirectMention || isRoleMention) {
             notificationManager.trigger("MENTION", {
-              nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              nickname: senderNickname,
               avatar: senderAvatar,
               text: msg.text,
               roomCode: currentServer?.roomCode || msg.roomCode,
@@ -831,7 +833,7 @@ export function useChatMessages({
         } else {
           if (isDirectMention || isRoleMention) {
             notificationManager.trigger("MENTION", {
-              nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              nickname: senderNickname,
               avatar: senderAvatar,
               text: msg.text,
               roomCode: currentServer?.roomCode || msg.roomCode,
@@ -842,7 +844,7 @@ export function useChatMessages({
             });
           } else {
             notificationManager.trigger("RECEIVE_MESSAGE", {
-              nickname: msg.authorName || msg.user?.nickname || "Alguien",
+              nickname: senderNickname,
               avatar: senderAvatar,
               text: msg.text,
               isCurrentChannel: document.hasFocus(),

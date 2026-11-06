@@ -1,6 +1,40 @@
 import { soundEngine } from "./soundEngine";
 import i18n from "../i18n/config";
 
+function formatNotificationContext(channelName, channelId, serverName) {
+  const parts = [];
+
+  const rawChannel = channelName || channelId || "";
+  if (rawChannel) {
+    if (rawChannel.startsWith("dm_")) {
+      parts.push(i18n.t("chat.directMessage", "Mensaje directo"));
+    } else if (rawChannel.startsWith("thread_")) {
+      parts.push(i18n.t("chat.thread", "Hilo"));
+    } else if (/^[0-9a-fA-F-]{20,}$/.test(rawChannel) || /^\d{10,}$/.test(rawChannel)) {
+      // Raw internal ID (UUID/timestamp) - omit ugly identifier
+    } else {
+      parts.push(rawChannel.startsWith("#") ? rawChannel : `#${rawChannel}`);
+    }
+  }
+
+  if (serverName && !parts.includes(serverName)) {
+    parts.push(serverName);
+  }
+
+  return parts.join(" • ");
+}
+
+function sanitizeNotificationSender(nickname) {
+  let sender = nickname || "Usuario";
+  if (sender.toLowerCase() === "alguien") {
+    sender = "Usuario";
+  }
+  if (/^[0-9a-fA-F]{32,64}$/.test(sender) || /^[0-9a-fA-F-]{36}$/.test(sender)) {
+    sender = "Usuario";
+  }
+  return sender;
+}
+
 class NotificationManager {
   constructor() {
     this.settings = {
@@ -161,7 +195,7 @@ class NotificationManager {
         if (!data.isCurrentChannel) {
           soundEngine.playCue("notification");
           if (this.settings?.enableNotifications !== false) {
-            const sender = data.nickname || "Onicord";
+            const sender = sanitizeNotificationSender(data.nickname);
             const preview = data.text
               ? data.text.length > 120
                 ? data.text.substring(0, 117) + "..."
@@ -173,10 +207,7 @@ class NotificationManager {
             if (!this._lastToastTime[toastKey] || now - this._lastToastTime[toastKey] >= 3500) {
               this._lastToastTime[toastKey] = now;
 
-              const contextParts = [];
-              if (data.channelName) contextParts.push(`#${data.channelName}`);
-              if (data.serverName) contextParts.push(data.serverName);
-              const context = contextParts.join(" • ");
+              const context = formatNotificationContext(data.channelName, data.channelId, data.serverName);
               const title = context ? `${sender} (${context})` : sender;
 
               this.showToast(
@@ -198,10 +229,7 @@ class NotificationManager {
             }
 
             if (!document.hasFocus()) {
-              const contextParts = [];
-              if (data.channelName) contextParts.push(`#${data.channelName}`);
-              if (data.serverName) contextParts.push(data.serverName);
-              const context = contextParts.join(" • ");
+              const context = formatNotificationContext(data.channelName, data.channelId, data.serverName);
               const notifTitle = context ? `Onicord • ${sender} (${context})` : `Onicord • ${sender}`;
 
               window.electronAPI?.sendOSNotification?.(
@@ -217,17 +245,14 @@ class NotificationManager {
       case "MENTION":
         soundEngine.playCue("mention");
         {
-          const sender = data.nickname || "alguien";
+          const sender = sanitizeNotificationSender(data.nickname);
           const preview = data.text
             ? data.text.length > 120
               ? data.text.substring(0, 117) + "..."
               : data.text
             : i18n.t("notifications.userMentionedYouFallback", "Te mencionaron en el chat.");
 
-          const contextParts = [];
-          if (data.channelName) contextParts.push(`#${data.channelName}`);
-          if (data.serverName) contextParts.push(data.serverName);
-          const context = contextParts.join(" • ");
+          const context = formatNotificationContext(data.channelName, data.channelId, data.serverName);
 
           const title = context
             ? `@${sender} (${context})`

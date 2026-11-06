@@ -18,9 +18,11 @@ export function VoiceProvider({ profile, children }) {
   );
 
   const leaveVoiceRef = useRef(voice.leaveVoice);
+  const voiceToggleMuteRef = useRef(voice.toggleMute);
   useEffect(() => {
     leaveVoiceRef.current = voice.leaveVoice;
-  }, [voice.leaveVoice]);
+    voiceToggleMuteRef.current = voice.toggleMute;
+  }, [voice.leaveVoice, voice.toggleMute]);
 
   const canSpeak = useMemo(() => {
     if (!currentVoiceServer || !currentVoiceChannelId) return true;
@@ -37,7 +39,7 @@ export function VoiceProvider({ profile, children }) {
       );
       return;
     }
-    toggleMuteRef.current?.();
+    voiceToggleMuteRef.current?.();
   }, [canSpeak]);
 
   useEffect(() => {
@@ -51,10 +53,10 @@ export function VoiceProvider({ profile, children }) {
     }
   }, [voice.inVoice, canSpeak, voice.muted, voice.toggleMute]);
 
-  const toggleMuteRef = useRef(safeToggleMute);
+  const safeToggleMuteRef = useRef(safeToggleMute);
   const toggleDeafenRef = useRef(voice.toggleDeafen);
   useEffect(() => {
-    toggleMuteRef.current = safeToggleMute;
+    safeToggleMuteRef.current = safeToggleMute;
     toggleDeafenRef.current = voice.toggleDeafen;
   }, [safeToggleMute, voice.toggleDeafen]);
 
@@ -77,7 +79,7 @@ export function VoiceProvider({ profile, children }) {
   useEffect(() => {
     const handleToggleMute = () => {
       console.log("[VoiceContext 🎙️] Ejecutando atajo: Alternar Silencio");
-      toggleMuteRef.current?.();
+      safeToggleMuteRef.current?.();
     };
 
     const handleToggleDeafen = () => {

@@ -6,10 +6,58 @@ import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { IconClose } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 
+function normalizeReleaseNotes(raw) {
+  if (!raw) return "";
+  let text = "";
+  if (Array.isArray(raw)) {
+    text = raw
+      .map((entry) => {
+        const ver = entry.version ? `## v${entry.version}\n` : "";
+        const note = typeof entry === "string" ? entry : (entry.note || "");
+        return ver + note;
+      })
+      .join("\n\n");
+  } else if (typeof raw === "string") {
+    text = raw;
+  } else if (typeof raw === "object") {
+    text = raw.note || raw.body || "";
+  }
+
+  // Strip or convert HTML tags if present (e.g. from electron-updater latest.yml)
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    text = text
+      .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n")
+      .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n")
+      .replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n")
+      .replace(/<h4[^>]*>(.*?)<\/h4>/gi, "#### $1\n")
+      .replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n")
+      .replace(/<p[^>]*>(.*?)<\/p>/gi, "$1\n\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
+      .replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**")
+      .replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*")
+      .replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*")
+      .replace(/<code[^>]*>(.*?)<\/code>/gi, "`$1`")
+      .replace(/<a\s+[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, "[$2]($1)")
+      .replace(/<[^>]+>/g, "");
+  }
+
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function FormattedReleaseNotes({ content }) {
   if (!content) return null;
 
-  const lines = content.split("\n");
+  const normalized = normalizeReleaseNotes(content);
+  const lines = normalized.split("\n");
 
   return (
     <div className="space-y-1.5 text-xs text-onicord-subtext font-normal leading-relaxed select-text">
@@ -67,7 +115,7 @@ function FormattedReleaseNotes({ content }) {
 
 function renderInlineMarkdown(text) {
   const parts = [];
-  const regex = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+  const regex = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
   let lastIndex = 0;
   let match;
 
@@ -88,6 +136,21 @@ function renderInlineMarkdown(text) {
           {token.slice(1, -1)}
         </code>
       );
+    } else if (token.startsWith("[") && token.includes("](") && token.endsWith(")")) {
+      const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      if (linkMatch) {
+        parts.push(
+          <a
+            key={match.index}
+            href={linkMatch[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-onicord-accent hover:underline inline-flex items-center gap-0.5"
+          >
+            <span>{linkMatch[1]}</span>
+          </a>
+        );
+      }
     }
     lastIndex = match.index + token.length;
   }

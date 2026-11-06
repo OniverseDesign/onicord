@@ -32,6 +32,53 @@ function isNewerVersion(latest, current) {
   return lPatch > cPatch;
 }
 
+function normalizeReleaseNotes(raw) {
+  if (!raw) return "";
+  let text = "";
+  if (Array.isArray(raw)) {
+    text = raw
+      .map((entry) => {
+        const ver = entry.version ? `## v${entry.version}\n` : "";
+        const note = typeof entry === "string" ? entry : (entry.note || "");
+        return ver + note;
+      })
+      .join("\n\n");
+  } else if (typeof raw === "string") {
+    text = raw;
+  } else if (typeof raw === "object") {
+    text = raw.note || raw.body || "";
+  }
+
+  // Strip or convert HTML tags if present (e.g. from electron-updater latest.yml)
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    text = text
+      .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n")
+      .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n")
+      .replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n")
+      .replace(/<h4[^>]*>(.*?)<\/h4>/gi, "#### $1\n")
+      .replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n")
+      .replace(/<p[^>]*>(.*?)<\/p>/gi, "$1\n\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
+      .replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**")
+      .replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*")
+      .replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*")
+      .replace(/<code[^>]*>(.*?)<\/code>/gi, "`$1`")
+      .replace(/<a\s+[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, "[$2]($1)")
+      .replace(/<[^>]+>/g, "");
+  }
+
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 class UpdateService {
   constructor() {
     this.mainWindow = null;
@@ -113,28 +160,7 @@ class UpdateService {
   async getReleaseNotes(targetVersion) {
     const cleanVer = (targetVersion || getCurrentAppVersion()).replace(/^v/, "").trim();
 
-    // 1. Check in-memory release notes cache
-    if (this.releaseNotesCache.has(cleanVer)) {
-      return {
-        status: "ok",
-        version: cleanVer,
-        releaseNotes: this.releaseNotesCache.get(cleanVer),
-      };
-    }
-
-    // 2. If it matches current updateAvailableInfo
-    if (this.updateAvailableInfo && (this.updateAvailableInfo.version || "").replace(/^v/, "").trim() === cleanVer) {
-      if (this.updateAvailableInfo.releaseNotes) {
-        this.releaseNotesCache.set(cleanVer, this.updateAvailableInfo.releaseNotes);
-        return {
-          status: "ok",
-          version: cleanVer,
-          releaseNotes: this.updateAvailableInfo.releaseNotes,
-        };
-      }
-    }
-
-    // 3. Query GitHub Releases for the specific tag
+    // 1. Query GitHub Releases for the specific tag (pristine Markdown from release)
     try {
       const res = await fetch(`https://api.github.com/repos/OniverseDesign/onicord/releases/tags/v${cleanVer}`, {
         headers: {
@@ -144,21 +170,24 @@ class UpdateService {
       });
       if (res.ok) {
         const data = await res.json();
-        const body = data.body || "Sin notas de lanzamiento detalladas para esta versión.";
-        this.releaseNotesCache.set(cleanVer, body);
-        return {
-          status: "ok",
-          version: cleanVer,
-          name: data.name,
-          releaseDate: data.published_at,
-          releaseNotes: body,
-        };
+        const body = data.body || "";
+        if (body.trim()) {
+          const cleanNotes = normalizeReleaseNotes(body);
+          this.releaseNotesCache.set(cleanVer, cleanNotes);
+          return {
+            status: "ok",
+            version: cleanVer,
+            name: data.name,
+            releaseDate: data.published_at,
+            releaseNotes: cleanNotes,
+          };
+        }
       }
     } catch (err) {
       diagService.log("warn", "UpdateService", `Could not fetch release notes for tag v${cleanVer}: ${err.message}`);
     }
 
-    // 4. Query GitHub Releases latest fallback
+    // 2. Query GitHub Releases latest fallback
     try {
       const resLatest = await fetch("https://api.github.com/repos/OniverseDesign/onicord/releases/latest", {
         headers: {
@@ -170,18 +199,42 @@ class UpdateService {
         const data = await resLatest.json();
         const latestVer = (data.tag_name || "").replace(/^v/, "").trim();
         if (latestVer === cleanVer || !targetVersion) {
-          const body = data.body || "Sin notas de lanzamiento detalladas para esta versión.";
-          this.releaseNotesCache.set(cleanVer, body);
-          return {
-            status: "ok",
-            version: cleanVer,
-            name: data.name,
-            releaseDate: data.published_at,
-            releaseNotes: body,
-          };
+          const body = data.body || "";
+          if (body.trim()) {
+            const cleanNotes = normalizeReleaseNotes(body);
+            this.releaseNotesCache.set(cleanVer, cleanNotes);
+            return {
+              status: "ok",
+              version: cleanVer,
+              name: data.name,
+              releaseDate: data.published_at,
+              releaseNotes: cleanNotes,
+            };
+          }
         }
       }
     } catch (_) {}
+
+    // 3. Check in-memory release notes cache
+    if (this.releaseNotesCache.has(cleanVer)) {
+      return {
+        status: "ok",
+        version: cleanVer,
+        releaseNotes: normalizeReleaseNotes(this.releaseNotesCache.get(cleanVer)),
+      };
+    }
+
+    // 4. If it matches current updateAvailableInfo
+    if (this.updateAvailableInfo && (this.updateAvailableInfo.version || "").replace(/^v/, "").trim() === cleanVer) {
+      if (this.updateAvailableInfo.releaseNotes) {
+        const cleanNotes = normalizeReleaseNotes(this.updateAvailableInfo.releaseNotes);
+        return {
+          status: "ok",
+          version: cleanVer,
+          releaseNotes: cleanNotes,
+        };
+      }
+    }
 
     return {
       status: "fallback",

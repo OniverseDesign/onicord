@@ -152,39 +152,37 @@ export default function AboutTab() {
 
   const handleOpenChangelog = async (targetVersion, isNew = false) => {
     const cleanVer = String(targetVersion || APP_VERSION).replace(/^v/, "").trim();
-    const hasPreloadedNotes = isNew && updateState.releaseNotes;
 
     setChangelogModal({
       isOpen: true,
       version: cleanVer,
-      notes: hasPreloadedNotes ? updateState.releaseNotes : null,
-      loading: !hasPreloadedNotes,
+      notes: null,
+      loading: true,
       error: null,
       isNewVersion: isNew,
     });
-
-    if (hasPreloadedNotes) return;
 
     if (window.electronAPI?.getReleaseNotes) {
       try {
         const res = await window.electronAPI.getReleaseNotes(cleanVer);
         setChangelogModal((prev) => ({
           ...prev,
-          notes: res?.releaseNotes || "Sin notas de lanzamiento disponibles para esta versión.",
+          notes: res?.releaseNotes || updateState.releaseNotes || "Sin notas de lanzamiento disponibles para esta versión.",
           loading: false,
           error: null,
         }));
       } catch (err) {
         setChangelogModal((prev) => ({
           ...prev,
+          notes: updateState.releaseNotes || null,
           loading: false,
-          error: err.message || "No se pudieron obtener las notas de lanzamiento.",
+          error: updateState.releaseNotes ? null : (err.message || "No se pudieron obtener las notas de lanzamiento."),
         }));
       }
     } else {
       setChangelogModal((prev) => ({
         ...prev,
-        notes: `Notas de lanzamiento para Onicord v${cleanVer}.\nPara más información visita https://github.com/OniverseDesign/onicord/releases`,
+        notes: updateState.releaseNotes || `Notas de lanzamiento para Onicord v${cleanVer}.\nPara más información visita https://github.com/OniverseDesign/onicord/releases`,
         loading: false,
         error: null,
       }));
@@ -475,35 +473,6 @@ export default function AboutTab() {
             )}
           </div>
         </div>
-
-        {/* New version changelog preview card */}
-        {Boolean(updateState.version && (updateState.status === "available" || updateState.status === "downloading" || updateState.status === "downloaded")) && (
-          <div className="mt-3.5 p-3 rounded-xl bg-onicord-base/60 border border-white/10 text-xs">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2">
-                <MaterialIcon name="campaign" size={16} className="text-emerald-400" />
-                <span className="font-bold text-onicord-text">Novedades de v{updateState.version}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleOpenChangelog(updateState.version, true)}
-                className="text-[11px] text-onicord-accent hover:underline flex items-center gap-1 font-medium cursor-pointer"
-              >
-                <span>Ver notas completas</span>
-                <MaterialIcon name="open_in_new" size={12} />
-              </button>
-            </div>
-            {updateState.releaseNotes ? (
-              <p className="text-onicord-muted line-clamp-3 whitespace-pre-line text-[11px] leading-relaxed">
-                {updateState.releaseNotes}
-              </p>
-            ) : (
-              <p className="text-onicord-muted/70 text-[11px]">
-                {t("settings.about.notesReady", "Haz clic en 'Ver Novedades' para leer el registro completo de cambios de esta versión.")}
-              </p>
-            )}
-          </div>
-        )}
 
         {/* Download progress bar */}
         {updateState.status === "downloading" && (

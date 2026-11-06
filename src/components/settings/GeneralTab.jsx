@@ -183,8 +183,9 @@ export default function GeneralTab({ general, setGeneral }) {
     }
 
     if (key === "zoomLevel") {
-      document.documentElement.style.zoom = value / 100;
-      localStorage.setItem("onicord_zoom_level", value);
+      document.documentElement.style.zoom = Number(value) / 100;
+      document.body.style.zoom = "";
+      localStorage.setItem("onicord_zoom_level", String(value));
     }
 
     if (key === "enableSoundEffects") {

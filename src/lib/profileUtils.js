@@ -66,6 +66,14 @@ export function resolveAuthorDisplay(
     };
   }
 
+  if (messageFallback?.isWebhook || messageFallback?.webhookName) {
+    return {
+      nickname: messageFallback?.authorNickname || messageFallback?.webhookName || "Webhook",
+      avatar: messageFallback?.authorAvatar ?? messageFallback?.avatar ?? null,
+      isWebhook: true,
+    };
+  }
+
   if (
     messageFallback?.isComplement ||
     (typeof authorId === "string" && authorId.startsWith("bot_"))
@@ -180,5 +188,57 @@ export function getPluginLocalizedMeta(plugin, language = "es") {
     name: localized?.name || plugin.name || plugin.id || "",
     description: localized?.description || plugin.description || "",
     commands: localized?.commands || {},
+  };
+}
+
+/**
+ * Resolves a clean, human-readable author nickname and avatar for notifications.
+ * Accurately recognizes webhooks, plugins/complements, bots, server members, and peers,
+ * avoiding raw IDs or ambiguous fallbacks like "Alguien".
+ */
+export function getNotificationAuthor(msg, server = null, profile = null, peers = null) {
+  if (!msg) return { nickname: "Usuario", avatar: null };
+
+  // 1. Webhook
+  if (msg.isWebhook || msg.webhookName) {
+    return {
+      nickname: msg.authorNickname || msg.webhookName || "Webhook",
+      avatar: msg.authorAvatar || msg.avatar || null,
+    };
+  }
+
+  // 2. Addon / Complement
+  if (msg.isComplement || msg.complementName || msg.addonName) {
+    return {
+      nickname: msg.complementName || msg.addonName || msg.authorNickname || "Complemento",
+      avatar: msg.authorAvatar || msg.avatar || null,
+    };
+  }
+
+  // 3. Bot
+  if (msg.authorId === "onicord-bot" || msg.authorName === "Onicord") {
+    return {
+      nickname: "Onicord",
+      avatar: "bot-star",
+    };
+  }
+
+  const authorId = msg.authorId || msg.userId || msg.user?.id;
+  const res = resolveAuthorDisplay(authorId, profile, peers, msg, server);
+  let nickname = res.nickname;
+
+  // Sanitize fallback
+  if (!nickname || nickname.toLowerCase() === "alguien") {
+    nickname = msg.authorNickname || msg.authorName || msg.user?.nickname || "Usuario";
+  }
+
+  // Strip raw hash/UUID if mistakenly used as nickname
+  if (/^[0-9a-fA-F]{32,64}$/.test(nickname) || /^[0-9a-fA-F-]{36}$/.test(nickname)) {
+    nickname = "Usuario";
+  }
+
+  return {
+    nickname,
+    avatar: res.avatar || msg.authorAvatar || msg.avatar || msg.user?.avatar || null,
   };
 }

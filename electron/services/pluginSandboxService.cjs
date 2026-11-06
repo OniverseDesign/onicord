@@ -301,9 +301,17 @@ class PluginSandboxService {
             console.warn(`[SANDBOX] ${pluginId} bloqueado: falta permiso ui.plugin_island`);
           }
         },
-        showToast: (message) => {
+        showToast: (message, title = null, type = "info") => {
           if (ipcBroadcaster) {
-            ipcBroadcaster("plugins:show-toast", { pluginId, message });
+            const locName = (manifest.locales && manifest.locales[appLanguage] && manifest.locales[appLanguage].name) || manifest.name || "Complemento";
+            const toastTitle = title || locName;
+            const toastMsg = typeof message === "string" ? message : (message?.text || JSON.stringify(message));
+            ipcBroadcaster("plugins:show-toast", {
+              pluginId,
+              title: toastTitle,
+              message: toastMsg,
+              type: type || "info",
+            });
           }
         },
         registerVoiceControlButton: (btnDef) => {

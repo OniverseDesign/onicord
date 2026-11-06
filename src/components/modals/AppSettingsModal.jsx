@@ -41,6 +41,8 @@ export default function AppSettingsModal({
 }) {
   const { t, i18n } = useTranslation();
   const initialLanguageRef = useRef(i18n.language || "es");
+  const initialZoomRef = useRef(profile?.general?.zoomLevel ?? 100);
+  const isSavedRef = useRef(false);
 
   const sections = useMemo(() => {
     const list = [
@@ -538,12 +540,28 @@ export default function AppSettingsModal({
     return false;
   })();
 
-  const handleRevertLanguage = () => {
+  const handleRevertChanges = () => {
     if (i18n.language !== initialLanguageRef.current) {
       i18n.changeLanguage(initialLanguageRef.current);
       localStorage.setItem("onicord_language", initialLanguageRef.current);
     }
+    if (initialZoomRef.current !== undefined) {
+      document.documentElement.style.zoom = Number(initialZoomRef.current) / 100;
+      document.body.style.zoom = "";
+      localStorage.setItem("onicord_zoom_level", String(initialZoomRef.current));
+    }
   };
+  const handleRevertLanguage = handleRevertChanges;
+
+  useEffect(() => {
+    return () => {
+      if (!isSavedRef.current && initialZoomRef.current !== undefined) {
+        document.documentElement.style.zoom = Number(initialZoomRef.current) / 100;
+        document.body.style.zoom = "";
+        localStorage.setItem("onicord_zoom_level", String(initialZoomRef.current));
+      }
+    };
+  }, []);
 
   const handleCloseAttempt = () => {
     if (hasUnsavedChanges) {
@@ -585,6 +603,7 @@ export default function AppSettingsModal({
           new CustomEvent("onicord:general-settings-updated", { detail: saved.general })
         );
       }
+      isSavedRef.current = true;
       soundEngine.playCue("success");
       onClose();
     } catch (err) {
@@ -765,7 +784,7 @@ export default function AppSettingsModal({
           cancelLabel={t("settings.keepEditing", "Keep Editing")}
           onConfirm={() => {
             setShowCloseConfirm(false);
-            handleRevertLanguage();
+            handleRevertChanges();
             onClose();
           }}
           onCancel={() => setShowCloseConfirm(false)}
