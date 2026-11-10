@@ -1331,10 +1331,19 @@ export default function AddonStageDisplay({
 
   // Dynamic gamepad detection, focus transfer, and continuous input bridge for game iframe
   useEffect(() => {
+    if (!activeGame || isCurrentMedia) {
+      setHasGamepad(false);
+      return;
+    }
+
     let animId = null;
     let isLoopRunning = false;
 
     const checkAndSyncGamepads = () => {
+      if (!activeGameRef.current) {
+        isLoopRunning = false;
+        return;
+      }
       const rawPads = navigator.getGamepads ? navigator.getGamepads() : [];
       const connected = Array.from(rawPads || []).some((p) => p && p.connected);
       setHasGamepad(connected);
@@ -1415,7 +1424,7 @@ export default function AddonStageDisplay({
       window.removeEventListener("gamepaddisconnected", onGamepadDisconnected);
       if (animId) cancelAnimationFrame(animId);
     };
-  }, []);
+  }, [activeGame, isCurrentMedia]);
 
   // Ensure game iframe captures active focus required for Gamepad API and controls
   useEffect(() => {

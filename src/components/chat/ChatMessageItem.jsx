@@ -27,6 +27,7 @@ const ChatMessageItem = memo(
     messages = [],
     allMessages = null,
     threadRepliesCount: passedThreadRepliesCount,
+    precomputedThreadParticipants,
     peersLookup: passedPeersLookup,
     showDivider = false,
     isReplyPreview = false,
@@ -53,9 +54,10 @@ const ChatMessageItem = memo(
     const { t } = useTranslation();
     const [pickerTargetRect, setPickerTargetRect] = useState(null);
 
-    if (!msg || (msg.text && typeof msg.text === "string" && msg.text.includes("[MUSIC_ACTION]:"))) {
-      return null;
-    }
+    const isInvalidOrHiddenMusic =
+      !msg ||
+      typeof msg.text !== "string" ||
+      msg.text.includes("[MUSIC_ACTION]:");
 
     const prevMsg = Array.isArray(messages) && index > 0 ? messages[index - 1] : null;
 
@@ -64,29 +66,31 @@ const ChatMessageItem = memo(
       [passedPeersLookup, peers]
     );
 
+    const safeMsg = msg || {};
+
     let { nickname, avatar } = resolveAuthorDisplay(
-      msg.authorId,
+      safeMsg.authorId,
       profile,
       peersLookup,
-      msg,
-      server || server?.roomCode || server?.id || msg.roomCode,
+      safeMsg,
+      server || server?.roomCode || server?.id || safeMsg.roomCode,
     );
 
-    if (msg.authorId === "onicord-bot") {
+    if (safeMsg.authorId === "onicord-bot") {
       nickname = "Onicord";
       avatar = "bot-star";
     }
 
-    if (msg.isComplement) {
-      nickname = msg.complementName || msg.user?.nickname || "Complemento";
-      avatar = msg.authorAvatar || msg.avatar || msg.user?.avatar || null;
+    if (safeMsg.isComplement) {
+      nickname = safeMsg.complementName || safeMsg.user?.nickname || "Complemento";
+      avatar = safeMsg.authorAvatar || safeMsg.avatar || safeMsg.user?.avatar || null;
     }
 
-    if (msg.isWebhook) {
-      nickname = msg.authorNickname || "Webhook";
-      avatar = msg.authorAvatar || null;
+    if (safeMsg.isWebhook) {
+      nickname = safeMsg.authorNickname || "Webhook";
+      avatar = safeMsg.authorAvatar || null;
     }
-    const isMyMessage = Boolean(profile?.id && (msg.authorId === profile.id || msg.authorId === "self")) || msg.authorId === "self";
+    const isMyMessage = Boolean(profile?.id && (safeMsg.authorId === profile.id || safeMsg.authorId === "self")) || safeMsg.authorId === "self";
 
     let isSameAuthor = false;
     if (prevMsg && msg) {
@@ -131,23 +135,24 @@ const ChatMessageItem = memo(
     }
 
     const isRecent =
-      prevMsg && msg.timestamp - prevMsg.timestamp < 5 * 60 * 1000;
+      prevMsg && safeMsg.timestamp - prevMsg.timestamp < 5 * 60 * 1000;
 
-    let textContent = msg.text;
+    let textContent = safeMsg.text || "";
     let fileData = null;
-    let replyToData = msg.replyTo || null;
+    let replyToData = safeMsg.replyTo || null;
+    let effectiveThreadParentId = safeMsg.threadParentId || null;
     let isForwarded = false;
     let originChannelName = null;
     let originChannelId = null;
     let originalMessageId = null;
 
     if (
-      msg.text &&
-      typeof msg.text === "string" &&
-      msg.text.trim().startsWith("{")
+      safeMsg.text &&
+      typeof safeMsg.text === "string" &&
+      safeMsg.text.trim().startsWith("{")
     ) {
       try {
-        const parsedReplyObj = JSON.parse(msg.text);
+        const parsedReplyObj = JSON.parse(safeMsg.text);
         if (
           parsedReplyObj &&
           typeof parsedReplyObj === "object" &&
@@ -156,18 +161,18 @@ const ChatMessageItem = memo(
           textContent = parsedReplyObj.body;
           replyToData = parsedReplyObj.replyTo || replyToData;
           if (parsedReplyObj.threadParentId) {
-            msg.threadParentId = parsedReplyObj.threadParentId;
+            effectiveThreadParentId = parsedReplyObj.threadParentId;
           }
         }
       } catch (e) {}
     } else if (
       !replyToData &&
-      msg.rawText &&
-      typeof msg.rawText === "string" &&
-      msg.rawText.trim().startsWith("{")
+      safeMsg.rawText &&
+      typeof safeMsg.rawText === "string" &&
+      safeMsg.rawText.trim().startsWith("{")
     ) {
       try {
-        const parsedReplyObj = JSON.parse(msg.rawText);
+        const parsedReplyObj = JSON.parse(safeMsg.rawText);
         if (
           parsedReplyObj &&
           typeof parsedReplyObj === "object" &&
@@ -175,7 +180,7 @@ const ChatMessageItem = memo(
         ) {
           replyToData = parsedReplyObj.replyTo;
           if (parsedReplyObj.threadParentId) {
-            msg.threadParentId = parsedReplyObj.threadParentId;
+            effectiveThreadParentId = parsedReplyObj.threadParentId;
           }
         }
       } catch (e) {}
@@ -198,12 +203,14 @@ const ChatMessageItem = memo(
 
     const isGrouped = Boolean(isSameAuthor && isRecent && !showDivider && !replyToData && !isForwarded && !isReplyPreview);
 
-    if (typeof textContent === "string" && (textContent.includes("[NUDGE_MESSAGE]") || textContent.startsWith("[NUDGE_MESSAGE]"))) {
-      return null;
-    }
+    const isHiddenLog =
+      isInvalidOrHiddenMusic ||
+      (typeof textContent === "string" &&
+        (textContent.includes("[NUDGE_MESSAGE]") ||
+          textContent.startsWith("[NUDGE_MESSAGE]")));
 
     const isStickerPayload = (() => {
-      if (typeof textContent !== "string") return false;
+      if (isHiddenLog || typeof textContent !== "string") return false;
       const trimmed = textContent.trim();
       if (trimmed.startsWith('{"type":"sticker"')) return true;
       try {
@@ -214,9 +221,9 @@ const ChatMessageItem = memo(
       return false;
     })();
 
-    const isFilePayload = typeof textContent === "string" && textContent.includes("[FILE_ATTACHMENT]:");
-    const isTTSPayload = typeof textContent === "string" && textContent.startsWith("[TTS_MESSAGE]:");
-    const isPluginEmbedPayload = typeof textContent === "string" && textContent.startsWith("[PLUGIN_EMBED]:");
+    const isFilePayload = !isHiddenLog && typeof textContent === "string" && textContent.includes("[FILE_ATTACHMENT]:");
+    const isTTSPayload = !isHiddenLog && typeof textContent === "string" && textContent.startsWith("[TTS_MESSAGE]:");
+    const isPluginEmbedPayload = !isHiddenLog && typeof textContent === "string" && textContent.startsWith("[PLUGIN_EMBED]:");
 
     let ttsCleanText = textContent;
     if (isTTSPayload) {
@@ -225,14 +232,14 @@ const ChatMessageItem = memo(
     }
 
     useEffect(() => {
-      if (isTTSPayload && ttsCleanText) {
+      if (!isHiddenLog && isTTSPayload && ttsCleanText) {
         try {
           const ahora = Date.now();
-          const edadDelMensaje = ahora - msg.timestamp;
+          const edadDelMensaje = ahora - safeMsg.timestamp;
 
           if (edadDelMensaje > 4000) {
             console.log(
-              `[Onicord TTS] Ignoring historical audio message: ID ${msg.id}`,
+              `[Onicord TTS] Ignoring historical audio message: ID ${safeMsg.id}`,
             );
             return;
           }
@@ -251,37 +258,40 @@ const ChatMessageItem = memo(
           console.error("Webkit SpeechSynthesis engine error:", audioErr);
         }
       }
-    }, [msg.id, isTTSPayload, ttsCleanText, nickname, msg.timestamp]);
+    }, [isHiddenLog, safeMsg.id, isTTSPayload, ttsCleanText, nickname, safeMsg.timestamp]);
 
     const fullChannelMessages = allMessages || messages;
 
     const checkIsThreadReply = useCallback((m) => {
-      if (!m || !msg?.id || m.id === msg.id) return false;
-      if (m.threadParentId === msg.id) return true;
-      if (typeof m.text === "string" && m.text.includes(msg.id)) {
-        if (m.text.includes(`"threadParentId":"${msg.id}"`) || m.text.includes(`"threadParentId": "${msg.id}"`)) {
+      if (!m || !safeMsg?.id || m.id === safeMsg.id) return false;
+      if (m.threadParentId === safeMsg.id) return true;
+      if (typeof m.text === "string" && m.text.includes(safeMsg.id)) {
+        if (m.text.includes(`"threadParentId":"${safeMsg.id}"`) || m.text.includes(`"threadParentId": "${safeMsg.id}"`)) {
           return true;
         }
         try {
           const parsed = JSON.parse(m.text);
-          if (parsed?.threadParentId === msg.id) return true;
-          if (typeof parsed?.body === "string" && parsed.body.includes(msg.id)) {
+          if (parsed?.threadParentId === safeMsg.id) return true;
+          if (typeof parsed?.body === "string" && parsed.body.includes(safeMsg.id)) {
             const inner = JSON.parse(parsed.body);
-            if (inner?.threadParentId === msg.id) return true;
+            if (inner?.threadParentId === safeMsg.id) return true;
           }
         } catch (_) {}
       }
       return false;
-    }, [msg?.id]);
+    }, [safeMsg?.id]);
 
     const threadRepliesCount = useMemo(() => {
+      if (isHiddenLog) return 0;
       if (passedThreadRepliesCount !== undefined) return passedThreadRepliesCount;
-      if (!fullChannelMessages || !Array.isArray(fullChannelMessages) || isReplyPreview || disableThreadAction || !msg?.id) return 0;
+      if (!fullChannelMessages || !Array.isArray(fullChannelMessages) || isReplyPreview || disableThreadAction || !safeMsg?.id) return 0;
       return fullChannelMessages.filter(checkIsThreadReply).length;
-    }, [passedThreadRepliesCount, fullChannelMessages, checkIsThreadReply, isReplyPreview, disableThreadAction, msg?.id]);
+    }, [isHiddenLog, passedThreadRepliesCount, fullChannelMessages, checkIsThreadReply, isReplyPreview, disableThreadAction, safeMsg?.id]);
 
     const threadParticipants = useMemo(() => {
-      if (!fullChannelMessages || !Array.isArray(fullChannelMessages) || isReplyPreview || disableThreadAction || !msg?.id) return [];
+      if (isHiddenLog || isReplyPreview || disableThreadAction || !safeMsg?.id) return [];
+      if (Array.isArray(precomputedThreadParticipants)) return precomputedThreadParticipants;
+      if (!fullChannelMessages || !Array.isArray(fullChannelMessages)) return [];
       const replies = fullChannelMessages.filter(checkIsThreadReply);
 
       const userMap = new Map();
@@ -292,7 +302,11 @@ const ChatMessageItem = memo(
       });
 
       return Array.from(userMap.values());
-    }, [fullChannelMessages, checkIsThreadReply, isReplyPreview, disableThreadAction, profile, peersLookup, msg?.id]);
+    }, [isHiddenLog, precomputedThreadParticipants, fullChannelMessages, checkIsThreadReply, isReplyPreview, disableThreadAction, profile, peersLookup, safeMsg?.id, server]);
+
+    if (isHiddenLog) {
+      return null;
+    }
 
     let allAttachments = [];
     if (isFilePayload && textContent) {
@@ -337,6 +351,10 @@ const ChatMessageItem = memo(
 
     const handleJumpToMessage = (targetId) => {
       if (!targetId) return;
+      if (typeof onJumpToMessage === "function") {
+        onJumpToMessage(null, targetId);
+        return;
+      }
       const el = document.getElementById(`msg-${targetId}`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });

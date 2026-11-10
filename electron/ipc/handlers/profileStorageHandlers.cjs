@@ -111,7 +111,55 @@ function registerProfileStorageHandlers() {
   ipcMain.handle("storage:readBinaryFile", async (_event, filePath) => {
     try {
       if (!filePath || typeof filePath !== "string") return null;
+      if (filePath.includes("..") || filePath.includes("\0")) return null;
       const absolutePath = path.resolve(filePath);
+      const baseName = path.basename(absolutePath).toLowerCase();
+      if (baseName === "drive-tokens.enc" || baseName === ".env" || baseName.startsWith(".env.")) {
+        console.warn(`[Storage] Blocked sensitive file read attempt: ${baseName}`);
+        return null;
+      }
+
+      const allowedRoots = ["userData", "downloads", "temp"]
+        .map((key) => {
+          try {
+            const p = app.getPath(key);
+            return p ? path.resolve(p) + path.sep : null;
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
+
+      const normTarget = process.platform === "win32" ? absolutePath.toLowerCase() : absolutePath;
+      let isAllowed = allowedRoots.some((root) => {
+        const normRoot = process.platform === "win32" ? root.toLowerCase() : root;
+        return normTarget.startsWith(normRoot);
+      });
+
+      if (!isAllowed) {
+        try {
+          const userData = app.getPath("userData");
+          const dbMgr = DbManager.getInstance(userData);
+          const appConfigDb = dbMgr.getGlobalDb("app_config");
+          const dlRow = appConfigDb
+            .prepare("SELECT 1 FROM downloads WHERE LOWER(file_path) = LOWER(?) LIMIT 1")
+            .get(absolutePath);
+          if (dlRow) {
+            isAllowed = true;
+          } else if (global.roomManager?.fileIndexStore && global.roomManager.roomCode) {
+            const records = await global.roomManager.fileIndexStore.load(global.roomManager.roomCode);
+            if (records.some((r) => r?.realPath && path.resolve(r.realPath).toLowerCase() === absolutePath.toLowerCase())) {
+              isAllowed = true;
+            }
+          }
+        } catch {}
+      }
+
+      if (!isAllowed) {
+        console.warn(`[Storage] Blocked unauthorized binary file read: ${absolutePath}`);
+        return null;
+      }
+
       if (!fs.existsSync(absolutePath)) return null;
       return fs.readFileSync(absolutePath);
     } catch (err) {
@@ -356,6 +404,9 @@ function registerProfileStorageHandlers() {
   });
 
   ipcMain.handle("dev:save-default-layout", async (_event, layoutMap) => {
+    if (app.isPackaged) {
+      return { success: false, error: "Not available in production" };
+    }
     if (!layoutMap || typeof layoutMap !== "object") {
       return { success: false, error: "Invalid layout map" };
     }
@@ -383,7 +434,17 @@ function registerProfileStorageHandlers() {
         const widgetId = widgetIdMatch[1];
         const newGeo = layoutMap[widgetId];
 
-        if (newGeo && typeof newGeo.x === "number") {
+        if (
+          newGeo &&
+          typeof newGeo.x === "number" &&
+          typeof newGeo.y === "number" &&
+          typeof newGeo.w === "number" &&
+          typeof newGeo.h === "number" &&
+          Number.isFinite(newGeo.x) &&
+          Number.isFinite(newGeo.y) &&
+          Number.isFinite(newGeo.w) &&
+          Number.isFinite(newGeo.h)
+        ) {
           const defaultGeoRegex = /(\w+\.defaultGeo\s*=\s*\{)[^\}]+(\};)/;
           const replacement = `$1 x: ${newGeo.x}, y: ${newGeo.y}, w: ${newGeo.w}, h: ${newGeo.h} $2`;
 

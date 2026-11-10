@@ -248,66 +248,72 @@ export function parseInlineStyles(
     content: match[1],
   }));
 
-  // 2. Match known Role names (sort longest names first for multi-word roles)
-  const validRoles = (roles || [])
-    .filter((r) => r && r.name && typeof r.name === "string" && r.name.trim())
-    .sort((a, b) => b.name.length - a.name.length);
+  const hasAtMentionCandidate = tokens.some(
+    (t) => t.type === "text" && typeof t.content === "string" && t.content.includes("@")
+  );
 
-  for (const role of validRoles) {
-    const escapedName = role.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-    const roleRegex = new RegExp(`@(${escapedName})(?=[\\s,.!?;:]|$)`, "gi");
-    tokens = parseRegexToken(tokens, roleRegex, (match) => ({
-      type: "roleMention",
-      content: role.name,
-      roleId: role.id,
-      color: role.color || "#5865F2",
-    }));
-  }
+  if (hasAtMentionCandidate) {
+    // 2. Match known Role names (sort longest names first for multi-word roles)
+    const validRoles = (roles || [])
+      .filter((r) => r && r.name && typeof r.name === "string" && r.name.trim())
+      .sort((a, b) => b.name.length - a.name.length);
 
-  // 3. Match known User nicknames (sort longest nicknames first)
-  const validUsers = (allUsers || [])
-    .filter((u) => u && u.nickname && typeof u.nickname === "string" && u.nickname.trim())
-    .sort((a, b) => b.nickname.length - a.nickname.length);
-
-  for (const user of validUsers) {
-    const escapedNick = user.nickname.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-    const userRegex = new RegExp(`@(${escapedNick})(?=[\\s,.!?;:]|$)`, "gi");
-    tokens = parseRegexToken(tokens, userRegex, (match) => ({
-      type: "mention",
-      content: user.nickname,
-      userId: user.id,
-    }));
-  }
-
-  // 4. Fallback for generic single-word @mentions
-  const fallbackMentionRegex = /@([a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_.-]+)/g;
-  tokens = parseRegexToken(tokens, fallbackMentionRegex, (match) => {
-    const handle = match[1].toLowerCase();
-    const userMatch = (allUsers || []).find(
-      (u) => u.nickname?.toLowerCase() === handle
-    );
-    if (userMatch) {
-      return {
-        type: "mention",
-        content: userMatch.nickname,
-        userId: userMatch.id,
-      };
-    }
-
-    const roleMatch = (roles || []).find(
-      (r) => r.name?.toLowerCase() === handle
-    );
-    if (roleMatch) {
-      return {
+    for (const role of validRoles) {
+      const escapedName = role.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      const roleRegex = new RegExp(`@(${escapedName})(?=[\\s,.!?;:]|$)`, "gi");
+      tokens = parseRegexToken(tokens, roleRegex, (match) => ({
         type: "roleMention",
-        content: roleMatch.name,
-        roleId: roleMatch.id,
-        color: roleMatch.color || "#5865F2",
-      };
+        content: role.name,
+        roleId: role.id,
+        color: role.color || "#5865F2",
+      }));
     }
 
-    return null;
-  });
+    // 3. Match known User nicknames (sort longest nicknames first)
+    const validUsers = (allUsers || [])
+      .filter((u) => u && u.nickname && typeof u.nickname === "string" && u.nickname.trim())
+      .sort((a, b) => b.nickname.length - a.nickname.length);
+
+    for (const user of validUsers) {
+      const escapedNick = user.nickname.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      const userRegex = new RegExp(`@(${escapedNick})(?=[\\s,.!?;:]|$)`, "gi");
+      tokens = parseRegexToken(tokens, userRegex, (match) => ({
+        type: "mention",
+        content: user.nickname,
+        userId: user.id,
+      }));
+    }
+
+    // 4. Fallback for generic single-word @mentions
+    const fallbackMentionRegex = /@([a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_.-]+)/g;
+    tokens = parseRegexToken(tokens, fallbackMentionRegex, (match) => {
+      const handle = match[1].toLowerCase();
+      const userMatch = (allUsers || []).find(
+        (u) => u.nickname?.toLowerCase() === handle
+      );
+      if (userMatch) {
+        return {
+          type: "mention",
+          content: userMatch.nickname,
+          userId: userMatch.id,
+        };
+      }
+
+      const roleMatch = (roles || []).find(
+        (r) => r.name?.toLowerCase() === handle
+      );
+      if (roleMatch) {
+        return {
+          type: "roleMention",
+          content: roleMatch.name,
+          roleId: roleMatch.id,
+          color: roleMatch.color || "#5865F2",
+        };
+      }
+
+      return null;
+    });
+  }
 
   return tokens.map((token, i) => {
     switch (token.type) {

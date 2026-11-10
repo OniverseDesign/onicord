@@ -9,6 +9,7 @@ import { notificationManager } from "../lib/notificationManager";
 import { soundEngine } from "../lib/soundEngine";
 import { recordUserInteraction } from "../lib/flameService";
 import { isTypingInInput } from "../lib/inputUtils";
+import { useVoiceStore } from "../stores/useVoiceStore";
 
 /**
  * Custom React hook that orchestrates the local WebRTC voice session.
@@ -290,6 +291,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     const unsubSpeaking = api.onSpeakingUpdated?.(
       ({ peerId, isSpeaking }) => {
         const boolSpeaking = Boolean(isSpeaking);
+        useVoiceStore.getState().setPeerSpeaking(peerId, boolSpeaking);
         window.dispatchEvent(
           new CustomEvent("peer-speaking-change", {
             detail: { peerId, isSpeaking: boolSpeaking },
@@ -684,6 +686,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
 
     setInVoice(false);
     setVoiceChannelId(null);
+    useVoiceStore.getState().resetVoice();
     setIsStreaming(false);
     await refreshState();
   }, [refreshState]);
@@ -822,6 +825,10 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
         );
 
         const boolSpeaking = Boolean(isSpeaking);
+        useVoiceStore.getState().setPeerSpeaking("self", boolSpeaking, volumeLevel);
+        if (localPeerId) {
+          useVoiceStore.getState().setPeerSpeaking(localPeerId, boolSpeaking, volumeLevel);
+        }
         setMembers((prev) => {
           const selfMember = prev.find((m) => m.isSelf);
           if (!selfMember || Boolean(selfMember.isSpeaking) === boolSpeaking) {

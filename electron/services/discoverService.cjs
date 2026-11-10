@@ -72,6 +72,7 @@ class DiscoverService {
     this.lastToastNotification = 0;
     this.saveTimeout = null;
     this.announceInterval = null;
+    this.cleanupInterval = null;
     this.isInitialized = false;
   }
 
@@ -173,6 +174,22 @@ class DiscoverService {
     }, 500);
 
     console.log("[DiscoverService] Servicio nativo de descubrimiento P2P inicializado con blindaje de seguridad.");
+  }
+
+  stop() {
+    if (this.announceInterval) {
+      clearInterval(this.announceInterval);
+      this.announceInterval = null;
+    }
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+      this.saveTimeout = null;
+    }
+    this.isInitialized = false;
   }
 
   async syncAndAnnounceLocalServers(targetPeerId = null) {
@@ -355,19 +372,66 @@ class DiscoverService {
     const applicantId = sanitizeString(payload.applicant?.id, 64);
     if (!applicantId) return { success: false, error: "ID inválido" };
 
-    // Rate-limiting check: Prevent flooding from same applicant
-    const now = Date.now();
-    const lastKnock = this.knockRateLimits.get(applicantId) || 0;
-    if (now - lastKnock < KNOCK_RATE_LIMIT_MS) {
-      console.warn(`[DiscoverService] Rate-limit activo: knock bloqueado para ${applicantId}`);
-      return { success: false, error: "Espera un momento antes de volver a solicitar." };
-    }
-    this.knockRateLimits.set(applicantId, now);
-
     try {
       const store = serverService.getServerStore();
       const server = await store.getServerByRoomCode(targetCode);
       if (!server) return { success: false, error: "Servidor no encontrado" };
+
+      // Verify that the local user is the server owner or has admin / manage_server permissions
+      const profileService = require("./profileService.cjs");
+      const localUserId =
+        profileService.activeProfile?.id ||
+        global.roomManager?.profile?.id ||
+        global.roomManager?.p2pService?.profile?.id ||
+        null;
+      const { RoomMetaStore, checkAdminPermission } = require("../p2p/roomMetaStore.cjs");
+      const roomMetaStore =
+        global.roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
+      const meta = await roomMetaStore.load(targetCode);
+
+      const isOwner = Boolean(
+        server.isOwner ||
+        (localUserId &&
+          (server.ownerId === localUserId ||
+            server.creatorId === localUserId ||
+            server.creatorID === localUserId ||
+            meta?.ownerId === localUserId ||
+            meta?.creatorId === localUserId ||
+            meta?.creatorID === localUserId))
+      );
+
+      let hasAdminOrManagePerm = false;
+      if (localUserId && meta) {
+        if (checkAdminPermission(meta, localUserId)) {
+          hasAdminOrManagePerm = true;
+        } else if (meta.roles && meta.userRoles?.[localUserId]) {
+          const uRoles = meta.userRoles[localUserId];
+          const roleIds = Array.isArray(uRoles) ? uRoles : [uRoles];
+          for (const rId of roleIds) {
+            const role = meta.roles.find((r) => r.id === rId);
+            if (
+              role?.permissions &&
+              (role.permissions.admin === true || role.permissions.manage_server === true)
+            ) {
+              hasAdminOrManagePerm = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!isOwner && !hasAdminOrManagePerm) {
+        return { success: false, ignored: true, error: "Sin permisos de administrador" };
+      }
+
+      // Rate-limiting check: Prevent flooding from same applicant
+      const now = Date.now();
+      const lastKnock = this.knockRateLimits.get(applicantId) || 0;
+      if (now - lastKnock < KNOCK_RATE_LIMIT_MS) {
+        console.warn(`[DiscoverService] Rate-limit activo: knock bloqueado para ${applicantId}`);
+        return { success: false, error: "Espera un momento antes de volver a solicitar." };
+      }
+      this.knockRateLimits.set(applicantId, now);
 
       const conf = server.discoverConfig || {
         enabled: true,
@@ -394,13 +458,15 @@ class DiscoverService {
         avatar: sanitizeImage(payload.applicant?.avatar),
       };
 
+      const knockEntry = {
+        applicant: sanitizedApplicant,
+        message: sanitizeString(payload.message, LIMITS.knockMessage, null),
+        timestamp: now,
+      };
+
       const updatedRequests = [
         ...existingRequests,
-        {
-          applicant: sanitizedApplicant,
-          message: sanitizeString(payload.message, LIMITS.knockMessage, null),
-          timestamp: now,
-        },
+        knockEntry,
       ];
 
       const updatedServer = await serverService.updateServer(
@@ -425,6 +491,10 @@ class DiscoverService {
         });
       }
 
+      this._broadcast("discover:knock-received", {
+        roomCode: targetCode,
+        ...knockEntry,
+      });
       this._broadcast("server:updated", updatedServer);
       return { success: true };
     } catch (err) {

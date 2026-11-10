@@ -1,6 +1,6 @@
 {
   "name": "onicord",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Onicord",
   "main": "electron/main.cjs",
   "type": "module",
@@ -18,11 +18,12 @@
     "start:concurrent": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"npm run dev\" \"npm run electron:dev\"",
     "build": "vite build",
     "icons": "node scripts/prepare-icons.cjs",
-    "pack": "npm run icons && npm run build && electron-builder --win nsis",
-    "pack:portable": "npm run icons && npm run build && electron-builder --win portable",
-    "pack:linux": "npm run icons && npm run build && electron-builder --linux AppImage deb",
-    "pack:mac": "npm run icons && npm run build && electron-builder --mac dmg zip",
-    "pack:all": "npm run icons && npm run build && electron-builder -mwl",
+    "ensure-ytdlp": "node scripts/ensure-ytdlp.cjs",
+    "pack": "node scripts/ensure-ytdlp.cjs --platform=win && npm run icons && npm run build && electron-builder --win nsis",
+    "pack:portable": "node scripts/ensure-ytdlp.cjs --platform=win && npm run icons && npm run build && electron-builder --win portable",
+    "pack:linux": "node scripts/ensure-ytdlp.cjs --platform=linux && npm run icons && npm run build && electron-builder --linux AppImage deb",
+    "pack:mac": "node scripts/ensure-ytdlp.cjs --platform=mac && npm run icons && npm run build && electron-builder --mac dmg zip",
+    "pack:all": "node scripts/ensure-ytdlp.cjs --platform=all && npm run icons && npm run build && electron-builder -mwl",
     "dist": "npm run pack",
     "export:github": "node scripts/export-to-github.cjs",
     "check:i18n": "node check-i18n.js",
@@ -36,14 +37,13 @@
     "b4a": "^1.6.9",
     "better-sqlite3": "^12.11.1",
     "electron-updater": "^6.8.9",
-    "hls.js": "^1.7.4",
     "hyperswarm": "^4.9.0",
     "torrent-stream": "^1.2.1",
     "uiohook-napi": "^1.5.5"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@tanstack/react-virtual": "^3.14.26",
     "@vitejs/plugin-react-swc": "^3.7.2",
     "autoprefixer": "^10.4.20",
     "clsx": "^2.1.1",
@@ -53,12 +53,12 @@
     "electron": "33.4.11",
     "electron-builder": "25.1.8",
     "eslint": "^10.4.1",
+    "hls.js": "^1.7.4",
     "i18next": "^26.3.3",
     "kill-port": "^2.0.1",
     "pdfjs-dist": "^4.9.155",
     "postcss": "^8.4.49",
     "react": "^18.3.1",
-    "react-devtools": "^7.0.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^17.0.8",
     "react-resizable-panels": "^4.11.1",
@@ -68,7 +68,8 @@
     "uisfx": "^0.4.0",
     "vite": "^5.4.14",
     "vite-plugin-svgr": "^5.2.0",
-    "wait-on": "^8.0.2"
+    "wait-on": "^8.0.2",
+    "zustand": "^5.1.0"
   },
   "build": {
     "npmRebuild": false,
@@ -106,15 +107,15 @@
     },
     "files": [
       "dist/**/*",
+      "!dist/join/**",
       "electron/**/*",
-      "public/**/*",
+      "!electron/bin/**",
       "build/icon.png",
       "package.json"
     ],
     "asar": true,
     "asarUnpack": [
       "**/*.node",
-      "electron/bin/**",
       "node_modules/@ffmpeg-installer/**"
     ],
     "win": {
@@ -122,6 +123,10 @@
         {
           "from": "build/icon.png",
           "to": "icon.png"
+        },
+        {
+          "from": "electron/bin/win/yt-dlp.exe",
+          "to": "bin/yt-dlp.exe"
         }
       ],
       "target": [
@@ -152,6 +157,12 @@
       "artifactName": "${productName}-Portable-${version}.${ext}"
     },
     "linux": {
+      "extraResources": [
+        {
+          "from": "electron/bin/linux/yt-dlp",
+          "to": "bin/yt-dlp"
+        }
+      ],
       "maintainer": "Oniverse <oniverse.dsg@gmail.com>",
       "target": [
         "AppImage",
@@ -162,6 +173,12 @@
       "icon": "build/icon.png"
     },
     "mac": {
+      "extraResources": [
+        {
+          "from": "electron/bin/mac/yt-dlp",
+          "to": "bin/yt-dlp"
+        }
+      ],
       "target": [
         "dmg",
         "zip"

@@ -540,12 +540,17 @@ class DbManager {
     this._maxOpenDynamicDbs = 40;
   }
 
-  _configureDb(db, schemaSql) {
+  _configurePragmas(db) {
     db.pragma("journal_mode = WAL");
     db.pragma("synchronous = NORMAL");
     db.pragma("foreign_keys = ON");
+    db.pragma("cache_size = -16000");
     db.pragma("temp_store = MEMORY");
     db.pragma("busy_timeout = 5000");
+  }
+
+  _configureDb(db, schemaSql) {
+    this._configurePragmas(db);
     if (schemaSql) {
       db.exec(schemaSql);
     }

@@ -72,9 +72,9 @@ class MigrationService {
       .prepare("SELECT value_json FROM app_settings WHERE key = 'sqlite_cas_migration_v1'")
       .get();
 
-    // Even if already marked migrated, clean up any stray legacy history_*.json if present
+    // Even if already marked migrated, clean up any stray legacy history_*.json once (gated by legacy_stray_cleanup_v2)
     if (migRow) {
-      MigrationService._cleanupStrayLegacyFiles(userDataPath, dbManager);
+      MigrationService._cleanupStrayLegacyFiles(userDataPath, dbManager, appConfigDb);
       return;
     }
 
@@ -166,16 +166,24 @@ class MigrationService {
         Date.now()
       );
 
-    MigrationService._cleanupStrayLegacyFiles(userDataPath, dbManager);
+    MigrationService._cleanupStrayLegacyFiles(userDataPath, dbManager, appConfigDb);
 
     console.log(
       `[MigrationService] Completed SQLite + CAS migration for ${userDataPath} in ${Date.now() - startTime}ms`
     );
   }
 
-  static _cleanupStrayLegacyFiles(userDataPath, dbManager = null) {
+  static _cleanupStrayLegacyFiles(userDataPath, dbManager = null, passedAppConfigDb = null) {
     const backupRoot = path.join(userDataPath, "backups", "legacy-json-v1");
     try {
+      const appConfigDb = passedAppConfigDb || (dbManager ? dbManager.getGlobalDb("app_config") : null);
+      if (appConfigDb) {
+        const cleanupRow = appConfigDb
+          .prepare("SELECT value_json FROM app_settings WHERE key = 'legacy_stray_cleanup_v2'")
+          .get();
+        if (cleanupRow) return;
+      }
+
       const entries = fs.readdirSync(userDataPath);
       for (const name of entries) {
         if (
@@ -240,6 +248,16 @@ class MigrationService {
             }
           }
         }
+      }
+
+      if (appConfigDb) {
+        appConfigDb
+          .prepare("INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)")
+          .run(
+            "legacy_stray_cleanup_v2",
+            JSON.stringify({ cleanedAt: Date.now() }),
+            Date.now()
+          );
       }
     } catch {}
   }

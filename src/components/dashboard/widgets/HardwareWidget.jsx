@@ -1,21 +1,41 @@
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
+const telemetryHistoryCache = {
+  history: Array(40).fill(1),
+  cpuReal: "0.0",
+  ramReal: "0 MB",
+  netSpeed: "0.0 KB/s",
+  cpuMax: 1.0,
+};
+
 export default function HardwareWidget({
   ping = 0,
   activeConnectionsCount = 0,
+  isActive = true,
 }) {
   const { t } = useTranslation();
   const containerRef = useRef(null);
   const [barCount, setBarCount] = useState(25);
-  const historyRef = useRef(Array(40).fill(1)); 
+  const historyRef = useRef(telemetryHistoryCache.history);
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
+
+  const [cpuReal, setCpuReal] = useState(telemetryHistoryCache.cpuReal);
+  const [ramReal, setRamReal] = useState(telemetryHistoryCache.ramReal);
+  const [netSpeed, setNetSpeed] = useState(telemetryHistoryCache.netSpeed);
+  const [cpuMax, setCpuMax] = useState(telemetryHistoryCache.cpuMax);
   const [, forceUpdate] = useState({});
 
-  const [cpuReal, setCpuReal] = useState("0.0");
-  const [ramReal, setRamReal] = useState("0 MB");
-  const [netSpeed, setNetSpeed] = useState("0.0 KB/s");
-
-  const [cpuMax, setCpuMax] = useState(1.0); 
+  useEffect(() => {
+    if (isActive) {
+      setCpuReal(telemetryHistoryCache.cpuReal);
+      setRamReal(telemetryHistoryCache.ramReal);
+      setNetSpeed(telemetryHistoryCache.netSpeed);
+      setCpuMax(telemetryHistoryCache.cpuMax);
+      forceUpdate({});
+    }
+  }, [isActive]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -40,24 +60,28 @@ export default function HardwareWidget({
         const ram = await api.getRealRAM();
         const net = await api.getNetworkSpeed();
 
-        setCpuReal(cpu || "0.0");
-        setRamReal(ram || "0 MB");
-        setNetSpeed(net || "0.0 KB/s");
-
         const numericCpu = parseFloat(cpu) || 0.1;
 
-        setCpuMax((currentMax) => {
-          const nextMax = Math.max(currentMax, numericCpu);
+        telemetryHistoryCache.cpuReal = cpu || "0.0";
+        telemetryHistoryCache.ramReal = ram || "0 MB";
+        telemetryHistoryCache.netSpeed = net || "0.0 KB/s";
 
-          historyRef.current.push(numericCpu);
-          if (historyRef.current.length > 50) {
-            historyRef.current.shift();
-          }
+        historyRef.current.push(numericCpu);
+        if (historyRef.current.length > 50) {
+          historyRef.current.shift();
+        }
+        telemetryHistoryCache.history = historyRef.current;
 
-          return nextMax;
-        });
+        const nextMax = Math.max(telemetryHistoryCache.cpuMax, numericCpu);
+        telemetryHistoryCache.cpuMax = nextMax;
 
-        forceUpdate({});
+        if (isActiveRef.current) {
+          setCpuReal(telemetryHistoryCache.cpuReal);
+          setRamReal(telemetryHistoryCache.ramReal);
+          setNetSpeed(telemetryHistoryCache.netSpeed);
+          setCpuMax(nextMax);
+          forceUpdate({});
+        }
       } catch (err) {
         console.error("Error consultando telemetría nativa:", err);
       }

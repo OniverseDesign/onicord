@@ -125,7 +125,7 @@ class ChatService {
     const files = (await this.fileIndexStore.load(code))
       .filter((f) => (f.updatedAt || f.uploadedAt || 0) > filesSince)
       .map((f) => {
-        const { realPath, ...safe } = f || {};
+        const { realPath, local_path, ...safe } = f || {};
         return safe;
       });
     const theirV = watermarks._metaVersion || 0;
@@ -199,9 +199,12 @@ class ChatService {
       await this.applyRemoteMeta(payload.meta, fromPeerId, code);
     }
     if (payload.files?.length && this.fileIndexStore) {
+      const sanitizedFiles = payload.files
+        .filter((f) => f && typeof f === "object")
+        .map(({ realPath: _rp, local_path: _lp, ...safe }) => safe);
       const { added } = await this.fileIndexStore.merge(
         code,
-        payload.files
+        sanitizedFiles
       );
       filesAdded = added;
     }
@@ -455,7 +458,7 @@ class ChatService {
         console.log(`[DM] Recipient ${recipientUserId} is offline, message stored locally.`);
       }
     } else {
-      this.p2p._broadcast("chat", message);
+      this.p2p._broadcast("chat", message, code);
     }
     return message;
   }
@@ -483,7 +486,7 @@ class ChatService {
     };
 
     await this.persistAndEmit(message, code);
-    this.p2p._broadcast("chat", message);
+    this.p2p._broadcast("chat", message, code);
     return message;
   }
 
@@ -509,7 +512,7 @@ class ChatService {
     };
 
     await this.persistAndEmit(message, code);
-    this.p2p._broadcast("chat", message);
+    this.p2p._broadcast("chat", message, code);
     return message;
   }
 
@@ -524,17 +527,58 @@ class ChatService {
       await this.fileIndexStore.removeByMessageId(code, id).catch(() => {});
     }
     this.callbacks.onChatMessageDeleted?.(id);
-    this.p2p._broadcast("chat-delete", { channelId: ch, id, roomCode: code });
+    this.p2p._broadcast("chat-delete", { channelId: ch, id, roomCode: code }, code);
     return res || { ok: true, deleted: 1 };
   }
 
   async handleIncomingChatDelete(payload, fromPeerId) {
-    if (!payload?.id) return;
+    if (!payload?.id || !fromPeerId) return;
     const ch = payload.channelId || "general";
     const id = String(payload.id).trim();
     if (!id) return;
     const code = this._resolveRoomCode(payload.roomCode);
     if (!code) return;
+
+    const peer = this.p2p?.peers?.get(fromPeerId);
+    const senderUserId = peer?.userId || null;
+
+    let msgAuthorId = null;
+    if (this.chatStore) {
+      if (typeof this.chatStore.getMessageAuthor === "function") {
+        msgAuthorId = await this.chatStore.getMessageAuthor(code, ch, id);
+      } else {
+        const msgs = await this.chatStore.load(code, ch);
+        msgAuthorId = msgs.find((m) => m?.id === id)?.authorId || null;
+      }
+    }
+
+    const isAuthor = Boolean(
+      msgAuthorId && (msgAuthorId === senderUserId || msgAuthorId === fromPeerId)
+    );
+
+    let isAdmin = false;
+    if (!isAuthor && senderUserId && this.roomMetaStore) {
+      try {
+        const { checkAdminPermission } = require("../p2p/roomMetaStore.cjs");
+        const meta = await this.roomMetaStore.load(code);
+        if (meta) {
+          isAdmin = Boolean(
+            meta.ownerId === senderUserId ||
+            meta.creatorID === senderUserId ||
+            meta.creatorId === senderUserId ||
+            checkAdminPermission(meta, senderUserId)
+          );
+        }
+      } catch {}
+    }
+
+    if (!isAuthor && !isAdmin) {
+      console.warn(
+        `[ChatService Security] Blocked unauthorized chat-delete for message ${id} from peer ${fromPeerId} (userId: ${senderUserId})`
+      );
+      return;
+    }
+
     await this.chatStore?.delete(code, ch, id);
     if (this.fileIndexStore && code) {
       await this.fileIndexStore.removeByMessageId(code, id).catch(() => {});
@@ -553,7 +597,7 @@ class ChatService {
       channelId: channelId || "general",
       nickname: (require("../services/profileService.cjs").getEffectiveProfile(this.p2p.profile, code)?.nickname) ?? this.p2p.profile?.nickname ?? "Alguien",
       roomCode: code,
-    });
+    }, code);
   }
 
   async getChatHistory(roomCodeOrChannel, channelIdArg) {
@@ -679,7 +723,11 @@ class ChatService {
   requestSticker(stickerId, ext = "webp", preferredPeerId = null) {
     if (!stickerId) return;
     const cleanId = String(stickerId).replace(/\.(png|jpg|jpeg|gif|webp)$/i, "").trim();
-    if (!cleanId) return;
+    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(cleanId)) return;
+
+    const allowedExts = new Set(["webp", "png", "jpg", "jpeg", "gif"]);
+    const cleanExt = String(ext || "webp").toLowerCase().replace(/^\./, "");
+    const safeExt = allowedExts.has(cleanExt) ? cleanExt : "webp";
 
     const stickersDir = path.join(app.getPath("userData"), "stickers");
     const exists = ["webp", "png", "jpg", "gif", "jpeg"].some((e) =>
@@ -699,27 +747,34 @@ class ChatService {
       `[ARES STICKER SYNC] Solicitando sticker faltante (${cleanId}) a los peers...`
     );
 
-    const payload = { stickerId: cleanId, ext: ext || "webp" };
+    const payload = { stickerId: cleanId, ext: safeExt };
     if (preferredPeerId) {
       this.p2p._sendToPeer(preferredPeerId, "sticker-request", payload);
     }
     // Also broadcast so any peer in the room holding the sticker can reply
-    this.p2p._broadcast("sticker-request", payload);
+    this.p2p._broadcast("sticker-request", payload, this.roomCode);
   }
 
   handleStickerRequest(peerId, payload) {
     try {
-      if (!payload?.stickerId) return;
-      const cleanId = String(payload.stickerId).replace(/\.(png|jpg|jpeg|gif|webp)$/i, "").trim();
+      const cleanId = String(payload?.stickerId || "").trim();
+      if (!/^[a-zA-Z0-9_-]{1,64}$/.test(cleanId)) return;
+
+      const allowedExts = new Set(["webp", "png", "jpg", "jpeg", "gif"]);
+      const ext = String(payload?.ext || "webp").toLowerCase().replace(/^\./, "");
+      if (!allowedExts.has(ext)) return;
+
       const stickersDir = path.join(app.getPath("userData"), "stickers");
       let foundPath = null;
       let foundExt = null;
 
-      for (const ext of ["webp", "png", "jpg", "gif", "jpeg"]) {
-        const testPath = path.join(stickersDir, `${cleanId}.${ext}`);
-        if (fs.existsSync(testPath)) {
-          foundPath = testPath;
-          foundExt = ext;
+      for (const candidateExt of ["webp", "png", "jpg", "gif", "jpeg"]) {
+        const targetPath = path.join(stickersDir, `${cleanId}.${candidateExt}`);
+        const resolvedTarget = path.resolve(targetPath);
+        if (!resolvedTarget.startsWith(path.resolve(stickersDir) + path.sep)) return;
+        if (fs.existsSync(resolvedTarget)) {
+          foundPath = resolvedTarget;
+          foundExt = candidateExt;
           break;
         }
       }
@@ -741,16 +796,27 @@ class ChatService {
   handleStickerResponse(payload) {
     try {
       if (!payload?.stickerId || !payload?.base64Data) return;
-      const cleanId = String(payload.stickerId).replace(/\.(png|jpg|jpeg|gif|webp)$/i, "").trim();
-      const ext = payload.ext || "webp";
+      const cleanId = String(payload?.stickerId || "").trim();
+      if (!/^[a-zA-Z0-9_-]{1,64}$/.test(cleanId)) return;
+
+      const allowedExts = new Set(["webp", "png", "jpg", "jpeg", "gif"]);
+      const ext = String(payload?.ext || "webp").toLowerCase().replace(/^\./, "");
+      if (!allowedExts.has(ext)) return;
+
+      if (!this._requestedStickers || !this._requestedStickers.has(cleanId)) return;
+
       const stickersDir = path.join(app.getPath("userData"), "stickers");
 
       if (!fs.existsSync(stickersDir))
         fs.mkdirSync(stickersDir, { recursive: true });
 
       const targetPath = path.join(stickersDir, `${cleanId}.${ext}`);
+      const resolvedTarget = path.resolve(targetPath);
+      if (!resolvedTarget.startsWith(path.resolve(stickersDir) + path.sep)) return;
+
       const buffer = Buffer.from(payload.base64Data, "base64");
-      fs.writeFileSync(targetPath, buffer);
+      fs.writeFileSync(resolvedTarget, buffer);
+      this._requestedStickers.delete(cleanId);
 
       console.log(
         `✅ [ARES STICKER SYNC] Sticker ${cleanId}.${ext} guardado exitosamente.`

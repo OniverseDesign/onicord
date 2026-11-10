@@ -5,14 +5,15 @@ import React, {
   useRef,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
-import { useGlobalVoice } from "./VoiceContext";
+import { useVoiceChannelInfo } from "./VoiceContext";
 import { extractYouTubeId } from "../components/chat/subcomponents/MessageEmbedCard";
 
 const WatchPartyContext = createContext(null);
 
 export function WatchPartyProvider({ profile, activeServer, children }) {
-  const globalVoice = useGlobalVoice();
+  const globalVoice = useVoiceChannelInfo();
   const {
     currentVoiceChannelId,
     currentVoiceRoomCode,
@@ -191,7 +192,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
   useEffect(() => {
     if (!isHost || !session?.videoId) return;
     const interval = setInterval(() => {
-      if (sessionRef.current?.isPlaying) {
+      if (sessionRef.current?.videoId) {
         broadcastState();
       }
     }, 3000);
@@ -205,9 +206,17 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
     const unsubscribe = window.electronAPI.onWatchPartyState((data) => {
       if (!data || !data.state) return;
       const remoteState = data.state;
+      const senderPeerId = data.peerId || data.senderPeerId || remoteState.hostPeerId;
 
       // Closed session
       if (!remoteState.videoId) {
+        if (
+          sessionRef.current?.hostPeerId &&
+          senderPeerId &&
+          senderPeerId !== sessionRef.current.hostPeerId
+        ) {
+          return;
+        }
         window.electronAPI?.setFullscreen?.(false);
         setSession(null);
         setHasJoined(false);
@@ -255,10 +264,19 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
     if (!inVoice) {
       if (joinPrompt) setJoinPrompt(null);
       if (session || hasJoined) {
-        stopWatchParty();
+        if (sessionRef.current?.hostPeerId && sessionRef.current.hostPeerId === localPeerId) {
+          stopWatchParty();
+        } else {
+          window.electronAPI?.setFullscreen?.(false);
+          setSession(null);
+          setHasJoined(false);
+          setIsFloating(false);
+          setIsFullscreen(false);
+          setJoinPrompt(null);
+        }
       }
     }
-  }, [inVoice, joinPrompt, session, hasJoined, stopWatchParty]);
+  }, [inVoice, joinPrompt, session, hasJoined, localPeerId, stopWatchParty]);
 
   // Listen to incoming commands (Host processes them)
   useEffect(() => {
@@ -377,29 +395,51 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
     setJoinPrompt(null);
   }, []);
 
-  const value = {
-    session,
-    hasJoined,
-    isHost,
-    isFloating,
-    isFullscreen,
-    joinPrompt,
-    volume,
-    isMuted,
-    startWatchParty,
-    startCinemaWatchParty,
-    stopWatchParty,
-    joinWatchParty,
-    dismissPrompt,
-    togglePlayPause,
-    sendSeek,
-    setIsFloating,
-    setIsFullscreen,
-    setVolume,
-    setIsMuted,
-    broadcastState,
-    updateHostPlaybackTime,
-  };
+  const value = useMemo(
+    () => ({
+      session,
+      hasJoined,
+      isHost,
+      isFloating,
+      isFullscreen,
+      joinPrompt,
+      volume,
+      isMuted,
+      startWatchParty,
+      startCinemaWatchParty,
+      stopWatchParty,
+      joinWatchParty,
+      dismissPrompt,
+      togglePlayPause,
+      sendSeek,
+      setIsFloating,
+      setIsFullscreen,
+      setVolume,
+      setIsMuted,
+      broadcastState,
+      updateHostPlaybackTime,
+    }),
+    [
+      session,
+      hasJoined,
+      isHost,
+      isFloating,
+      isFullscreen,
+      joinPrompt,
+      volume,
+      isMuted,
+      startWatchParty,
+      startCinemaWatchParty,
+      stopWatchParty,
+      joinWatchParty,
+      dismissPrompt,
+      togglePlayPause,
+      sendSeek,
+      setVolume,
+      broadcastState,
+      updateHostPlaybackTime,
+    ],
+  );
 
   return (
     <WatchPartyContext.Provider value={value}>

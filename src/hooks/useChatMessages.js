@@ -283,6 +283,7 @@ export function useChatMessages({
   useEffect(() => {
     setLoading(true);
     setMessages([]);
+    setPinnedMsgIds([]);
     if (messagesCountRef) messagesCountRef.current = 0;
   }, [channelId, roomCode]);
 
@@ -480,6 +481,8 @@ export function useChatMessages({
       const reactionsMap = {};
       const pluginActionsMap = {};
       const cleanMessages = [];
+      const byId = new Map();
+      const pinnedSet = new Set();
 
       for (const msg of rawHistory) {
         if (msg.text && msg.text.startsWith("[REACTION_ACTION]:")) {
@@ -515,9 +518,9 @@ export function useChatMessages({
             const payloadStr = msg.text.replace("[PIN_ACTION]:", "");
             const { messageId, isPinned } = JSON.parse(payloadStr);
             if (isPinned) {
-              setPinnedMsgIds((prev) => (prev.includes(messageId) ? prev : [...prev, messageId]));
+              pinnedSet.add(messageId);
             } else {
-              setPinnedMsgIds((prev) => prev.filter((id) => id !== messageId));
+              pinnedSet.delete(messageId);
             }
           } catch (e) {
             console.error("Error procesando PIN_ACTION en historial:", e);
@@ -526,7 +529,7 @@ export function useChatMessages({
           try {
             const payloadStr = msg.text.replace("[EDIT_MESSAGE]:", "");
             const { messageId, newText } = JSON.parse(payloadStr);
-            const targetMsg = cleanMessages.find((m) => m.id === messageId);
+            const targetMsg = byId.get(messageId);
             if (targetMsg) {
               targetMsg.text = newText;
               targetMsg.edited = true;
@@ -535,9 +538,15 @@ export function useChatMessages({
             console.error("Error procesando EDIT_MESSAGE en historial:", e);
           }
         } else {
-          cleanMessages.push(normalizeChatMessage(msg));
+          const normalized = normalizeChatMessage(msg);
+          cleanMessages.push(normalized);
+          if (normalized.id) {
+            byId.set(normalized.id, normalized);
+          }
         }
       }
+
+      setPinnedMsgIds(Array.from(pinnedSet));
 
       return cleanMessages.map((msg) => {
         let updatedMsg = msg;
@@ -630,7 +639,7 @@ export function useChatMessages({
     });
 
     const unsubSyncComplete = api.onSyncComplete?.((data) => {
-      if (data?.type === "sticker_pack_imported") return;
+      if (data?.type === "sticker_pack_imported" || data?.type === "sticker_imported") return;
       fetchFreshHistory(false);
     });
 

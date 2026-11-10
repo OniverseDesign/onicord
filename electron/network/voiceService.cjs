@@ -14,9 +14,12 @@ class VoiceService {
 
   getVoiceSnapshot(profile) {
     const localId = this.p2p._resolveLocalPeerId();
+    const localUserId = profile?.id || this.p2p?.profile?.id || null;
     const members = [];
     if (this.localVoice?.channelId) {
       members.push({
+        id: localUserId || localId,
+        userId: localUserId,
         peerId: localId,
         channelId: this.localVoice.channelId,
         nickname: profile?.nickname ?? "You",
@@ -36,8 +39,11 @@ class VoiceService {
     }
     for (const p of this.p2p.peers.values()) {
       if (p.voiceState?.channelId) {
+        const peerId = p.id;
         members.push({
-          peerId: p.id,
+          id: p?.userId || p?.profile?.id || peerId,
+          userId: p?.userId || p?.profile?.id || null,
+          peerId,
           channelId: p.voiceState.channelId,
           nickname: p.nickname,
           avatar: p.avatar,
@@ -82,7 +88,7 @@ class VoiceService {
       sfuScore: this.localVoice?.sfuScore ?? 0,
       bandwidth: this.localVoice?.bandwidth ?? 0,
       joinedAt: this.localVoice?.joinedAt ?? null,
-    });
+    }, this.p2p.roomCode);
   }
 
   joinVoice(channelId, profile, emitVoiceState, options = {}) {
@@ -244,7 +250,7 @@ class VoiceService {
     this.networkTopology = "sfu";
     console.log(`[SFU Service] Auto-promocionando mi PC a Servidor Central de Voz...`);
 
-    this.p2p._broadcast("sfu-host-claim", { peerId: localId });
+    this.p2p._broadcast("sfu-host-claim", { peerId: localId }, this.p2p.roomCode);
 
     global.mainWindow?.webContents.send("voice:sfu-migrated", {
       newHostId: localId,

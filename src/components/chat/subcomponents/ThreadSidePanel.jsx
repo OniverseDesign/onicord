@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 import ChatMessageItem from "../ChatMessageItem";
@@ -17,8 +17,9 @@ import ContextMenu from "../../ui/ContextMenu";
 import DeleteMessageModal from "../../modals/DeleteMessageModal";
 import ForwardMessageModal from "../../modals/ForwardMessageModal";
 import ConfirmDialogModal from "../../modals/ConfirmDialogModal";
-import MediaPreviewModal from "../../modals/MediaPreviewModal";
 import { formatBytes } from "./MessageMediaAttachment";
+
+const MediaPreviewModal = lazy(() => import("../../modals/MediaPreviewModal"));
 import { ONICORD_COMMANDS } from "../../../lib/commands";
 import { copyTextToClipboard, readTextFromClipboard } from "../../../lib/clipboard";
 import {
@@ -29,13 +30,7 @@ import {
 } from "../../../lib/inputFormatter";
 import { soundEngine } from "../../../lib/soundEngine";
 import { normalizeChatMessage } from "../../../hooks/useChatMessages";
-
-const measureTextWidth = (text, font) => {
-  const canvas = measureTextWidth.canvas || (measureTextWidth.canvas = document.createElement("canvas"));
-  const context = canvas.getContext("2d");
-  context.font = font || '15px "Roboto", system-ui, -apple-system, sans-serif';
-  return context.measureText(text).width;
-};
+import { useChatComposer } from "../composer/useChatComposer";
 
 export default function ThreadSidePanel({
   parentMessage,
@@ -52,14 +47,29 @@ export default function ThreadSidePanel({
   loading = false,
 }) {
   const { t } = useTranslation();
-  const [input, setInput] = useState("");
+  const {
+    input,
+    setInput,
+    selection,
+    setSelection,
+    isInputFocused,
+    setIsInputFocused,
+    showCommandsPopup,
+    setShowCommandsPopup,
+    showMentionsPopup,
+    setShowMentionsPopup,
+    stickersTargetRect,
+    setStickersTargetRect,
+    emojisTargetRect,
+    setEmojisTargetRect,
+    tyrannyInputRef,
+    isLocalTypingRef,
+    handleInputSelection,
+    handleSelectEmoji,
+    applyFormatting,
+  } = useChatComposer({ profile, peers });
+
   const [replyTarget, setReplyTarget] = useState(null);
-  const [stickersTargetRect, setStickersTargetRect] = useState(null);
-  const [emojisTargetRect, setEmojisTargetRect] = useState(null);
-  const [showCommandsPopup, setShowCommandsPopup] = useState(false);
-  const [showMentionsPopup, setShowMentionsPopup] = useState(false);
-  const [selection, setSelection] = useState(null);
-  const [isInputFocused, setIsInputFocused] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   // Context menu and message action states
@@ -86,8 +96,6 @@ export default function ThreadSidePanel({
   }, []);
 
   const endRef = useRef(null);
-  const tyrannyInputRef = useRef(null);
-  const isLocalTypingRef = useRef(false);
   const fileInputRef = useRef(null);
   const stickersBtnRef = useRef(null);
   const emojisBtnRef = useRef(null);
@@ -162,137 +170,76 @@ export default function ThreadSidePanel({
     setReplyTarget(null);
   }, [parentMessage?.id]);
 
-  useEffect(() => {
-    if (!input) {
-      setShowCommandsPopup(false);
-      setShowMentionsPopup(false);
-      return;
-    }
-    const partes = input.split(" ");
-    const ultimaPalabra = partes[partes.length - 1];
-    setShowCommandsPopup(partes.length === 1 && input.startsWith("/"));
-    setShowMentionsPopup(ultimaPalabra.startsWith("@"));
-  }, [input]);
-
-  const handleInputSelection = () => {
-    const inputEl = tyrannyInputRef.current;
-    if (!inputEl) return;
-
-    const { start, end } = getSelectionCharacterOffsets(inputEl);
-
-    if (start !== end) {
-      const styles = window.getComputedStyle(inputEl);
-      const font = `${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
-
-      const textVal = inputEl.textContent || "";
-      const textBefore = textVal.substring(0, start);
-      const textSelection = textVal.substring(start, end);
-
-      const widthBefore = measureTextWidth(textBefore, font);
-      const widthSelection = measureTextWidth(textSelection, font);
-
-      const paddingLeft = parseFloat(styles.paddingLeft) || 0;
-      const xPos = paddingLeft + widthBefore + (widthSelection / 2) - inputEl.scrollLeft;
-
-      const relativeLeft = inputEl.offsetLeft + xPos;
-
-      const chatPanelEl = inputEl.closest(".onicord-chat-input-bar") || inputEl.parentElement;
-      const containerWidth = chatPanelEl?.getBoundingClientRect().width || 400;
-      const constrainedLeft = Math.max(130, Math.min(relativeLeft, containerWidth - 130));
-
-      setSelection({
-        start,
-        end,
-        left: constrainedLeft,
-      });
-    } else {
-      setSelection(null);
-    }
-  };
-
-  useEffect(() => {
-    const el = tyrannyInputRef.current;
-    if (!el) return;
-
-    const isLocalTyping = isLocalTypingRef.current;
-    isLocalTypingRef.current = false;
-
-    // If the user is actively typing and the DOM text has advanced beyond this effect's input,
-    // do not clobber newer keystrokes with older state.
-    if (isLocalTyping && el.textContent !== input) {
-      return;
-    }
-
-    const allUsers = [
-      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
-      ...Object.values(peers || {}).map((p) => ({
-        id: p.id,
-        nickname: p.nickname,
-      })),
-    ];
-    const targetHTML = renderHTMLForInput(input, allUsers);
-
-    // If input has no markdown formatting spans (plain text) and already matches DOM text:
-    // Native contenteditable already holds the text and correct caret position.
-    const hasFormattingSpans = targetHTML.includes("<span");
-    if (!hasFormattingSpans && el.textContent === input) {
-      return;
-    }
-
-    if (el.innerHTML !== targetHTML) {
-      const offsets = getSelectionCharacterOffsets(el);
-      el.innerHTML = targetHTML;
-      setSelectionOffsets(el, offsets.start, offsets.end);
-    }
-  }, [input, profile, peers]);
-
-  const applyFormatting = (prefix, suffix = prefix) => {
-    const inputEl = tyrannyInputRef.current;
-    if (!inputEl) return;
-
-    let start = 0;
-    let end = 0;
-    const offsets = getSelectionCharacterOffsets(inputEl);
-    if (offsets.start !== offsets.end) {
-      start = offsets.start;
-      end = offsets.end;
-    } else if (selection && selection.start !== selection.end) {
-      start = selection.start;
-      end = selection.end;
-    } else {
-      start = offsets.start;
-      end = offsets.end;
-    }
-
-    const text = inputEl.textContent || input || "";
-    const { newText, newStart, newEnd } = applyMarkdownFormat(
-      text,
-      { start, end },
-      prefix,
-      suffix
-    );
-
-    setInput(newText);
-    setSelection(null);
-
-    const allUsers = [
-      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
-      ...Object.values(peers || {}).map((p) => ({
-        id: p.id,
-        nickname: p.nickname,
-      })),
-    ];
-    inputEl.innerHTML = renderHTMLForInput(newText, allUsers);
-
-    requestAnimationFrame(() => {
-      inputEl.focus();
-      setSelectionOffsets(inputEl, newStart, newEnd);
-    });
-  };
-
   const handleSend = (e) => {
     if (e) e.preventDefault();
-    if (!input.trim() || !parentMessage) return;
+    const text = input.trim();
+    if (!text || !parentMessage) return;
+
+    if (text.startsWith("/")) {
+      const partes = text.split(" ");
+      const comandoIdentificado = partes[0].toLowerCase();
+      const argumentos = partes.slice(1);
+      const comandoObjeto = ONICORD_COMMANDS[comandoIdentificado];
+      const targetChannelId = parentMessage.channelId || "general";
+
+      if (comandoObjeto) {
+        try {
+          comandoObjeto.execute(argumentos, {
+            setMessages: () => {},
+            injectSystemMessage: (txt) => {
+              setAlertModal({
+                isOpen: true,
+                title: "Onicord",
+                msg: txt,
+              });
+            },
+            resetInputState: () => {
+              setReplyTarget(null);
+            },
+            sendP2PMessage: async (payloadRendicion) => {
+              if (onSendThreadReply) {
+                await onSendThreadReply(parentMessage.id, payloadRendicion, null);
+              } else if (window.electronAPI?.sendChatMessage) {
+                await window.electronAPI.sendChatMessage(
+                  server?.roomCode,
+                  targetChannelId,
+                  JSON.stringify({
+                    body: payloadRendicion,
+                    threadParentId: parentMessage.id,
+                  }),
+                );
+              }
+            },
+            fullInput: text,
+          });
+        } catch (err) {
+          console.error("Error al ejecutar comando interno en hilo:", err);
+        } finally {
+          setInput("");
+          setReplyTarget(null);
+          setShowCommandsPopup(false);
+          setShowMentionsPopup(false);
+          if (tyrannyInputRef.current) {
+            tyrannyInputRef.current.innerText = "";
+          }
+        }
+        return;
+      } else if (window.electronAPI?.sendPluginCommand || window.electronAPI?.execPluginCommand) {
+        if (window.electronAPI?.sendPluginCommand) {
+          window.electronAPI.sendPluginCommand(server?.roomCode, targetChannelId, text);
+        } else {
+          window.electronAPI.execPluginCommand(server?.roomCode, targetChannelId, text);
+        }
+        setInput("");
+        setReplyTarget(null);
+        setShowCommandsPopup(false);
+        setShowMentionsPopup(false);
+        if (tyrannyInputRef.current) {
+          tyrannyInputRef.current.innerText = "";
+        }
+        return;
+      }
+    }
 
     let replyData = null;
     if (replyTarget) {
@@ -322,7 +269,7 @@ export default function ThreadSidePanel({
       };
     }
 
-    onSendThreadReply(parentMessage.id, input.trim(), replyData);
+    onSendThreadReply(parentMessage.id, text, replyData);
     soundEngine.playCue("send");
     setInput("");
     setReplyTarget(null);
@@ -372,14 +319,6 @@ export default function ThreadSidePanel({
     }
   };
 
-  const handleSelectEmoji = (emoji) => {
-    const inputEl = tyrannyInputRef.current;
-    if (!inputEl) return;
-    inputEl.focus();
-    document.execCommand("insertText", false, emoji);
-    setInput(inputEl.textContent || "");
-  };
-
   const handleSendSticker = (stickerObj) => {
     const stickerPayload = JSON.stringify({
       type: "sticker",
@@ -393,25 +332,63 @@ export default function ThreadSidePanel({
     setStickersTargetRect(null);
   };
 
-  const handleFileChange = async (e) => {
-    const files = e.target.files;
-    if (files && files.length > 0 && window.electronAPI?.sendChatFile) {
+  const uploadAndSendThreadFiles = async (fileList) => {
+    if (!fileList || fileList.length === 0 || !parentMessage || !server?.roomCode) return;
+    const processedAttachments = [];
+
+    for (const file of Array.from(fileList)) {
       try {
-        const file = files[0];
-        const fileData = {
-          name: file.name,
-          size: file.size,
-          path: file.path,
-        };
-        await window.electronAPI.sendChatFile(
+        const realPath =
+          file.path ||
+          (window.electronAPI?.getNativePath
+            ? await window.electronAPI.getNativePath(file)
+            : null);
+
+        let meta = null;
+        if (realPath && window.electronAPI?.processDroppedMeta) {
+          meta = await window.electronAPI.processDroppedMeta(server.roomCode, realPath);
+        } else if (file.arrayBuffer && window.electronAPI?.uploadClipboardImage) {
+          const arrayBuffer = await file.arrayBuffer();
+          meta = await window.electronAPI.uploadClipboardImage(server.roomCode, arrayBuffer);
+        }
+
+        if (meta && meta.id) {
+          processedAttachments.push({
+            id: meta.id,
+            name: meta.name || file.name,
+            size: meta.size ?? file.size,
+          });
+        }
+      } catch (err) {
+        console.error("Error uploading file in thread:", err);
+      }
+    }
+
+    if (processedAttachments.length > 0) {
+      const attachmentsPayload = processedAttachments
+        .map((att) => `[FILE_ATTACHMENT]:${JSON.stringify(att)}`)
+        .join("");
+
+      if (onSendThreadReply) {
+        await onSendThreadReply(parentMessage.id, attachmentsPayload);
+      } else if (window.electronAPI?.sendChatMessage) {
+        await window.electronAPI.sendChatMessage(
           server.roomCode,
           parentMessage.channelId || "general",
-          fileData,
-          parentMessage.id
+          JSON.stringify({
+            body: attachmentsPayload,
+            threadParentId: parentMessage.id,
+          }),
         );
-      } catch (err) {
-        console.error("Error sending file in thread:", err);
       }
+      soundEngine.playCue("send");
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      await uploadAndSendThreadFiles(files);
     }
     e.target.value = null;
   };
@@ -436,24 +413,9 @@ export default function ThreadSidePanel({
     setIsDragging(false);
 
     const files = e.dataTransfer.files;
-    if (files && files.length > 0 && window.electronAPI?.sendChatFile) {
+    if (files && files.length > 0) {
       soundEngine.playCue("drop");
-      try {
-        const file = files[0];
-        const fileData = {
-          name: file.name,
-          size: file.size,
-          path: file.path,
-        };
-        await window.electronAPI.sendChatFile(
-          server.roomCode,
-          parentMessage.channelId || "general",
-          fileData,
-          parentMessage.id
-        );
-      } catch (err) {
-        console.error("Error sending dropped file in thread:", err);
-      }
+      await uploadAndSendThreadFiles(files);
     }
   };
 
@@ -1180,31 +1142,35 @@ export default function ThreadSidePanel({
         onConfirm={() => setAlertModal({ isOpen: false, title: "", msg: "" })}
       />
 
-      <MediaPreviewModal
-        isOpen={previewMedia.isOpen}
-        onClose={() => setPreviewMedia({ ...previewMedia, isOpen: false })}
-        localPath={previewMedia.localPath}
-        fileName={previewMedia.fileName}
-        fileSize={previewMedia.fileSize}
-        isImage={previewMedia.isImage}
-        isVideo={previewMedia.isVideo}
-        initialTime={previewMedia.initialTime}
-        formatBytes={formatBytes}
-        filesList={previewMedia.filesList || []}
-        currentIndex={previewMedia.currentIndex || 0}
-        onNavigate={(newIdx) => {
-          setPreviewMedia((prev) => {
-            const nextItem = prev.filesList?.[newIdx];
-            return {
-              ...prev,
-              currentIndex: newIdx,
-              localPath: nextItem?.localPath || prev.localPath,
-              fileName: nextItem?.name || prev.fileName,
-              fileSize: nextItem?.size || prev.fileSize,
-            };
-          });
-        }}
-      />
+      {previewMedia.isOpen && (
+        <Suspense fallback={null}>
+          <MediaPreviewModal
+            isOpen={previewMedia.isOpen}
+            onClose={() => setPreviewMedia({ ...previewMedia, isOpen: false })}
+            localPath={previewMedia.localPath}
+            fileName={previewMedia.fileName}
+            fileSize={previewMedia.fileSize}
+            isImage={previewMedia.isImage}
+            isVideo={previewMedia.isVideo}
+            initialTime={previewMedia.initialTime}
+            formatBytes={formatBytes}
+            filesList={previewMedia.filesList || []}
+            currentIndex={previewMedia.currentIndex || 0}
+            onNavigate={(newIdx) => {
+              setPreviewMedia((prev) => {
+                const nextItem = prev.filesList?.[newIdx];
+                return {
+                  ...prev,
+                  currentIndex: newIdx,
+                  localPath: nextItem?.localPath || prev.localPath,
+                  fileName: nextItem?.name || prev.fileName,
+                  fileSize: nextItem?.size || prev.fileSize,
+                };
+              });
+            }}
+          />
+        </Suspense>
+      )}
     </aside>
   );
 }

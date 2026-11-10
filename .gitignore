@@ -29,6 +29,7 @@ implementation_plan.md
 scripts/pack-addons-repo.cjs
 client_secret_*.json
 .local_backup/
+.antigravityrc
 
 
 stickers/
@@ -41,3 +42,8 @@ src/components/plugins/PluginViewHost.jsx
 
 # Repositorio dedicado externo (onicord-addons)
 addons/
+
+# Binarios descargados bajo demanda para empaquetado multi-SO
+electron/bin/win/
+electron/bin/linux/
+electron/bin/mac/

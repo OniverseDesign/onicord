@@ -2,7 +2,7 @@ const net = require("net");
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
-const { exec } = require("child_process");
+const { execFile } = require("child_process");
 const { setRpcActivity, clearRpcActivity } = require("../gameScanner.cjs");
 
 const OPCODES = {
@@ -149,12 +149,19 @@ function isEmulator(appName) {
  */
 function getProcessNameByPid(pid) {
   return new Promise((resolve) => {
-    if (!pid || process.platform !== "win32") return resolve(null);
-    exec(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`, { timeout: 1500 }, (err, stdout) => {
-      if (err || !stdout) return resolve(null);
-      const match = stdout.match(/^"([^"]+)"/);
-      resolve(match ? match[1] : null);
-    });
+    if (process.platform !== "win32") return resolve(null);
+    const safePid = Number(pid);
+    if (!Number.isInteger(safePid) || safePid <= 0) return resolve(null);
+    execFile(
+      "tasklist",
+      ["/FI", `PID eq ${safePid}`, "/FO", "CSV", "/NH"],
+      { timeout: 1500, windowsHide: true },
+      (err, stdout) => {
+        if (err || !stdout) return resolve(null);
+        const match = stdout.match(/^"([^"]+)"/);
+        resolve(match ? match[1] : null);
+      }
+    );
   });
 }
 
@@ -329,8 +336,9 @@ function handleClientMessage(socket, opcode, payload, clientInfo) {
           }
 
           // Process name (PID) fallback if application name is unregistered
-          if (!clientInfo.appName && pid) {
-            const proc = await getProcessNameByPid(pid);
+          const safePid = Number(pid);
+          if (!clientInfo.appName && Number.isInteger(safePid) && safePid > 0) {
+            const proc = await getProcessNameByPid(safePid);
             if (proc) {
               const cleanProc = proc.replace(/\.exe$/i, "");
               clientInfo.appName = cleanProc.toUpperCase();

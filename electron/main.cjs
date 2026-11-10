@@ -145,20 +145,6 @@ app.on("open-url", (event, url) => {
   handleDeepLink(url);
 });
 
-try {
-  if (process.defaultApp) {
-    if (process.argv.length >= 2) {
-      app.setAsDefaultProtocolClient("onicord", process.execPath, [
-        path.resolve(process.argv[1]),
-      ]);
-    }
-  } else {
-    app.setAsDefaultProtocolClient("onicord");
-  }
-} catch (protoErr) {
-  console.warn("[Protocol Client] No se pudo registrar onicord://", protoErr.message);
-}
-
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   console.log(
@@ -304,12 +290,6 @@ function createWindow() {
     if (!overlayService.getHasVoiceData()) {
       setBackgroundMode(true);
     }
-    try {
-      session.defaultSession.clearCache();
-      if (typeof global.gc === "function") {
-        global.gc();
-      }
-    } catch (e) {}
   });
 
   global.mainWindow.on("restore", () => {
@@ -322,12 +302,6 @@ function createWindow() {
     if (!overlayService.getHasVoiceData()) {
       setBackgroundMode(true);
     }
-    try {
-      session.defaultSession.clearCache();
-      if (typeof global.gc === "function") {
-        global.gc();
-      }
-    } catch (e) {}
   });
 
   global.mainWindow.on("show", () => {
@@ -500,7 +474,15 @@ function createWindow() {
       // Isolation protection: block any requests originating from unauthorized remote origins
       const referrer = (request.referrer || "").toLowerCase();
       const origin = (request.headers?.Origin || request.headers?.origin || "").toLowerCase();
-      const isRemote = (u) => (u.startsWith("http://") || u.startsWith("https://")) && !u.startsWith("http://localhost") && !u.startsWith("http://127.0.0.1");
+      const isAllowedLocalHttp = (u) =>
+        u === "http://localhost" ||
+        u.startsWith("http://localhost:") ||
+        u.startsWith("http://localhost/") ||
+        u === "http://127.0.0.1" ||
+        u.startsWith("http://127.0.0.1:") ||
+        u.startsWith("http://127.0.0.1/");
+      const isRemote = (u) =>
+        (u.startsWith("http://") || u.startsWith("https://")) && !isAllowedLocalHttp(u);
 
       if (isRemote(referrer) || isRemote(origin)) {
         diagService.log("warn", "Security", `[Security] Acceso denegado a onicord-media desde origen remoto: ${referrer || origin}`);
@@ -549,7 +531,20 @@ function createWindow() {
 
       try {
         const absolutePath = path.resolve(urlPath);
+        const baseNameLower = path.basename(absolutePath).toLowerCase();
         const ext = path.extname(absolutePath).toLowerCase();
+        const sensitiveFiles = [
+          "drive-tokens.enc",
+          "drive-oauth-config.json",
+          ".env",
+          "app_config.db",
+          "app_config.db-wal",
+          "app_config.db-shm",
+        ];
+        if (sensitiveFiles.includes(baseNameLower)) {
+          console.warn(`🚨 Bloqueado acceso a archivo sensible: ${baseNameLower}`);
+          return callback({ error: -10 });
+        }
         const listaNegra = [
           ".js",
           ".cjs",
@@ -723,22 +718,42 @@ app.whenReady().then(async () => {
 
   // — Media and Hardware Permission Handlers —
   // Electron 33+ requires explicit permission grants for getUserMedia, displayMedia, and hardware devices.
+  const isTrustedLocalUrl = (urlStr) => {
+    if (!urlStr || typeof urlStr !== "string") return false;
+    const u = urlStr.toLowerCase();
+    return (
+      u.startsWith("file://") ||
+      u === "http://localhost" ||
+      u.startsWith("http://localhost:") ||
+      u.startsWith("http://localhost/") ||
+      u === "http://127.0.0.1" ||
+      u.startsWith("http://127.0.0.1:") ||
+      u.startsWith("http://127.0.0.1/")
+    );
+  };
+
   session.defaultSession.setPermissionRequestHandler(
     (webContents, permission, callback) => {
       const url = (webContents && !webContents.isDestroyed() && webContents.getURL()) || "";
-      const isLocalOrigin =
-        url.startsWith("file://") ||
-        url.startsWith("http://127.0.0.1") ||
-        url.startsWith("http://localhost");
+      const isLocalOrigin = isTrustedLocalUrl(url);
 
-      if (permission.startsWith("clipboard")) {
+      if (permission === "clipboard-sanitized-write") {
         return callback(true);
       }
-      const standardAllowed = [
+      if (permission.startsWith("clipboard")) {
+        return callback(isLocalOrigin);
+      }
+      const localOnlyMediaPerms = [
         "media",
-        "mediaKeySystem",
         "audioCapture",
         "videoCapture",
+        "display-capture",
+      ];
+      if (localOnlyMediaPerms.includes(permission)) {
+        return callback(isLocalOrigin);
+      }
+      const standardAllowed = [
+        "mediaKeySystem",
         "fullscreen",
         "pointerLock",
         "accessibility-events",
@@ -747,9 +762,6 @@ app.whenReady().then(async () => {
       ];
       if (standardAllowed.includes(permission)) {
         return callback(true);
-      }
-      if (permission === "display-capture") {
-        return callback(isLocalOrigin);
       }
       // Restrict hardware peripheral access strictly to local app origin
       const hardwarePerms = ["hid", "usb", "serial", "gamepad", "gamepads"];
@@ -761,21 +773,30 @@ app.whenReady().then(async () => {
   );
 
   session.defaultSession.setPermissionCheckHandler(
-    (webContents, permission) => {
-      const url = (webContents && !webContents.isDestroyed() && webContents.getURL()) || "";
-      const isLocalOrigin =
-        url.startsWith("file://") ||
-        url.startsWith("http://127.0.0.1") ||
-        url.startsWith("http://localhost");
+    (webContents, permission, requestingOrigin) => {
+      const url =
+        requestingOrigin ||
+        (webContents && !webContents.isDestroyed() && webContents.getURL()) ||
+        "";
+      const isLocalOrigin = isTrustedLocalUrl(url);
 
-      if (permission.startsWith("clipboard")) {
+      if (permission === "clipboard-sanitized-write") {
         return true;
       }
-      const standardAllowed = [
+      if (permission.startsWith("clipboard")) {
+        return isLocalOrigin;
+      }
+      const localOnlyMediaPerms = [
         "media",
-        "mediaKeySystem",
         "audioCapture",
         "videoCapture",
+        "display-capture",
+      ];
+      if (localOnlyMediaPerms.includes(permission)) {
+        return isLocalOrigin;
+      }
+      const standardAllowed = [
+        "mediaKeySystem",
         "fullscreen",
         "pointerLock",
         "accessibility-events",
@@ -784,9 +805,6 @@ app.whenReady().then(async () => {
       ];
       if (standardAllowed.includes(permission)) {
         return true;
-      }
-      if (permission === "display-capture") {
-        return isLocalOrigin;
       }
       const hardwarePerms = ["hid", "usb", "serial", "gamepad", "gamepads"];
       if (hardwarePerms.includes(permission)) {
@@ -798,10 +816,7 @@ app.whenReady().then(async () => {
 
   session.defaultSession.setDevicePermissionHandler((details) => {
     const origin = details.origin || "";
-    const isLocalOrigin =
-      origin.startsWith("file://") ||
-      origin.startsWith("http://127.0.0.1") ||
-      origin.startsWith("http://localhost");
+    const isLocalOrigin = isTrustedLocalUrl(origin);
     if (isLocalOrigin && (details.deviceType === "hid" || details.deviceType === "usb")) {
       return true;
     }
@@ -824,7 +839,6 @@ app.whenReady().then(async () => {
     handleOnipkgFile(startupOnipkg);
   }
 
-  await ytdlpService.autoUpdateYtdlp();
   ytdlpService.startLocalStreamServer();
 
   adBlockerService.initAdBlocker(session.defaultSession);
@@ -945,6 +959,9 @@ app.whenReady().then(async () => {
 
   createWindow();
   updateService.init(global.mainWindow);
+  ytdlpService.autoUpdateYtdlp().catch((err) => {
+    console.warn("[yt-dlp] Fallo al buscar actualización en segundo plano:", err?.message || err);
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -1010,6 +1027,20 @@ app.on("before-quit", () => {
   rpcServerService.stopRpcServer();
   overlayService.destroyOverlay();
   torrentService.destroyAll();
+  try {
+    mcpBridgeService.stop?.();
+  } catch (_) {}
+  try {
+    ytdlpService.stop?.();
+  } catch (_) {}
+  try {
+    const discoverService = require("./services/discoverService.cjs");
+    discoverService.stop?.();
+  } catch (_) {}
+  try {
+    const { DbManager } = require("./storage/dbManager.cjs");
+    DbManager.getInstance(app.getPath("userData")).closeAll();
+  } catch (_) {}
 });
 
 app.on("window-all-closed", async () => {

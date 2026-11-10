@@ -225,15 +225,41 @@ class ChatStore {
     return cleanMsg;
   }
 
-  async append(roomCode, channelId, message) {
-    if (!message || !message.id) return [];
+  async getMessageAuthor(roomCode, channelId, messageId) {
     const safeCode = this._safeCode(roomCode);
-    if (!safeCode) return [];
+    const safeId = String(messageId || "").trim();
+    if (!safeCode || !safeId) return null;
+    try {
+      if (channelId && this._isDmChannel(channelId)) {
+        const peerId = this._resolveDmPeerId(channelId);
+        const dmDb = this._dbMgr().getServerDmDb(safeCode, peerId);
+        const row = dmDb
+          .prepare("SELECT sender_id, extra_json FROM dm_messages WHERE id = ?")
+          .get(safeId);
+        if (row) {
+          return row.sender_id || safeParse(row.extra_json, {}).authorId || null;
+        }
+      }
+      const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
+      const row = msgDb
+        .prepare("SELECT sender_id, extra_json FROM messages WHERE id = ?")
+        .get(safeId);
+      if (row) {
+        return row.sender_id || safeParse(row.extra_json, {}).authorId || null;
+      }
+    } catch {}
+    return null;
+  }
+
+  async append(roomCode, channelId, message) {
+    if (!message || !message.id) return false;
+    const safeCode = this._safeCode(roomCode);
+    if (!safeCode) return false;
 
     const targetChannel = String(channelId || message.channelId || DEFAULT_CHANNEL);
     const dedupKey = `${safeCode}:${targetChannel}:${message.id}`;
     if (this._recentMessageIds.has(dedupKey)) {
-      return this.load(safeCode, targetChannel);
+      return true;
     }
     this._recentMessageIds.add(dedupKey);
     if (this._recentMessageIds.size > 20000) {
@@ -245,7 +271,7 @@ class ChatStore {
 
     const tombstones = await this.getTombstones(safeCode);
     if (tombstones.has(message.id)) {
-      return this.load(safeCode, targetChannel);
+      return false;
     }
 
     const cleanMsg = this._insertMessageSync(safeCode, targetChannel, message);
@@ -256,7 +282,7 @@ class ChatStore {
       searchStore?.indexMessage(safeCode, { ...cleanMsg, channelId: targetChannel });
     } catch {}
 
-    return this.load(safeCode, targetChannel);
+    return true;
   }
 
   async getTombstones(roomCode) {
@@ -413,63 +439,130 @@ class ChatStore {
     return watermarks;
   }
 
-  async getMessagesSince(roomCode, watermarks = {}, limit = 400) {
+  async getMessagesSince(roomCode, sinceTimestamp = {}, limit = 400) {
     const safeCode = this._safeCode(roomCode);
     if (!safeCode) return [];
-    const tombstones = await this.getTombstones(safeCode);
-    const channels = await this.listChannelIds(safeCode);
     const out = [];
 
-    for (const channelId of channels) {
-      const since = watermarks[channelId] || 0;
-      const messages = await this.load(safeCode, channelId);
-      for (const m of messages) {
-        if ((m.timestamp || 0) > since && !tombstones.has(m.id)) {
-          out.push(m);
+    try {
+      const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
+      const isNumericSince = typeof sinceTimestamp === "number";
+      const watermarks = !isNumericSince && sinceTimestamp && typeof sinceTimestamp === "object"
+        ? sinceTimestamp
+        : {};
+      const globalSince = isNumericSince ? Number(sinceTimestamp) || 0 : 0;
+
+      if (isNumericSince) {
+        const rows = msgDb
+          .prepare(
+            `SELECT * FROM messages
+             WHERE timestamp > ? AND id NOT IN (SELECT message_id FROM tombstones)
+             ORDER BY timestamp ASC
+             LIMIT 5000`
+          )
+          .all(globalSince);
+        for (const r of rows) {
+          out.push(this._rowToMessageObject(r, r.channel_id || DEFAULT_CHANNEL));
+        }
+      } else {
+        const channels = await this.listChannelIds(safeCode);
+        const regularChannels = channels.filter((c) => !this._isDmChannel(c));
+        const stmtByChannel = msgDb.prepare(
+          `SELECT * FROM messages
+           WHERE channel_id = ? AND timestamp > ? AND id NOT IN (SELECT message_id FROM tombstones)
+           ORDER BY timestamp ASC
+           LIMIT 5000`
+        );
+        for (const channelId of regularChannels) {
+          const since = Number(watermarks[channelId]) || 0;
+          const rows = stmtByChannel.all(channelId, since);
+          for (const r of rows) {
+            out.push(this._rowToMessageObject(r, channelId));
+          }
         }
       }
+
+      const allChannels = await this.listChannelIds(safeCode);
+      const dmChannels = allChannels.filter((c) => this._isDmChannel(c));
+      for (const dmCh of dmChannels) {
+        try {
+          const peerId = this._resolveDmPeerId(dmCh);
+          const dmDb = this._dbMgr().getServerDmDb(safeCode, peerId);
+          const since = isNumericSince ? globalSince : Number(watermarks[dmCh]) || 0;
+          const dmRows = dmDb
+            .prepare(
+              `SELECT * FROM dm_messages
+               WHERE timestamp > ? AND id NOT IN (SELECT message_id FROM dm_tombstones)
+               ORDER BY timestamp ASC
+               LIMIT 5000`
+            )
+            .all(since);
+          for (const r of dmRows) {
+            out.push(this._rowToMessageObject(r, dmCh));
+          }
+        } catch {}
+      }
+    } catch (err) {
+      console.error(`[ChatStore] Error in getMessagesSince (${safeCode}):`, err.message);
     }
+
     out.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     return out.slice(-limit);
   }
 
-  async mergeBatch(roomCode, messages, { onMessage } = {}) {
+  async mergeBatch(roomCode, incomingMessages, { onMessage } = {}) {
     const safeCode = this._safeCode(roomCode);
-    if (!safeCode || !Array.isArray(messages) || messages.length === 0) {
+    if (!safeCode || !Array.isArray(incomingMessages) || incomingMessages.length === 0) {
       return { added: 0 };
     }
 
     const tombstones = await this.getTombstones(safeCode);
-    let totalAdded = 0;
-    const byChannel = new Map();
+    const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
+    const checkMsgExists = msgDb.prepare("SELECT 1 FROM messages WHERE id = ?");
+    const insertedList = [];
+    const seenIds = new Set();
 
-    for (const msg of messages) {
-      if (!msg?.id || tombstones.has(msg.id)) continue;
-      const channelId = msg.channelId || DEFAULT_CHANNEL;
-      if (!byChannel.has(channelId)) byChannel.set(channelId, []);
-      byChannel.get(channelId).push(msg);
-    }
+    const sortedIncoming = [...incomingMessages].sort(
+      (a, b) => (a?.timestamp || 0) - (b?.timestamp || 0)
+    );
 
-    for (const [channelId, batch] of byChannel) {
-      const existing = await this.load(safeCode, channelId);
-      const existingIds = new Set(existing.map((m) => m.id));
-      const sortedBatch = [...batch].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    const tx = msgDb.transaction((items) => {
+      for (const msg of items) {
+        if (!msg?.id || tombstones.has(msg.id) || seenIds.has(msg.id)) continue;
+        const channelId = msg.channelId || DEFAULT_CHANNEL;
 
-      for (const msg of sortedBatch) {
-        if (existingIds.has(msg.id) || tombstones.has(msg.id)) continue;
-        existingIds.add(msg.id);
+        if (this._isDmChannel(channelId)) {
+          const peerId = this._resolveDmPeerId(channelId);
+          const dmDb = this._dbMgr().getServerDmDb(safeCode, peerId);
+          const exists = dmDb.prepare("SELECT 1 FROM dm_messages WHERE id = ?").get(String(msg.id));
+          if (exists) continue;
+        } else {
+          const exists = checkMsgExists.get(String(msg.id));
+          if (exists) continue;
+        }
+
+        seenIds.add(msg.id);
         const cleanMsg = this._insertMessageSync(safeCode, channelId, msg);
-        totalAdded++;
-        if (onMessage) await onMessage(cleanMsg);
-        try {
-          const { getSearchStore } = require("./searchStore.cjs");
-          const searchStore = getSearchStore(this);
-          searchStore?.indexMessage(safeCode, { ...cleanMsg, channelId });
-        } catch {}
+        insertedList.push({ cleanMsg, channelId });
       }
+    });
+
+    tx(sortedIncoming);
+
+    let searchStore = null;
+    try {
+      const { getSearchStore } = require("./searchStore.cjs");
+      searchStore = getSearchStore(this);
+    } catch {}
+
+    for (const { cleanMsg, channelId } of insertedList) {
+      if (onMessage) await onMessage(cleanMsg);
+      try {
+        searchStore?.indexMessage(safeCode, { ...cleanMsg, channelId });
+      } catch {}
     }
 
-    return { added: totalAdded };
+    return { added: insertedList.length };
   }
 }
 

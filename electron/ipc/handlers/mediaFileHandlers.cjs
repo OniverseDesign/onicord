@@ -192,7 +192,9 @@ function registerMediaFileHandlers() {
     if (!global.roomManager || !targetCode)
       throw new Error("No hay sala activa");
     const id = String(fileId || "");
-    const defaultName = fileName ? String(fileName) : "archivo";
+    const safeFileName =
+      path.basename(String(fileName || "archivo")).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_") || "archivo";
+    const defaultName = safeFileName;
 
     // 1. Check historical download cache (app_config.db -> downloads)
     try {
@@ -471,7 +473,10 @@ function registerMediaFileHandlers() {
     return stickerService.listLocalStickers();
   });
 
-  ipcMain.handle("delete-sticker-local", async (event, { id, ext }) => {
+  ipcMain.handle("delete-sticker-local", async (event, data) => {
+    const id = typeof data === "string" ? data : data?.id;
+    const ext = typeof data === "object" && data !== null ? data?.ext : undefined;
+    if (!id) return false;
     return stickerService.deleteStickerLocal(id, ext);
   });
 

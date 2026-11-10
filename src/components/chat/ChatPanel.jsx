@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import DeleteMessageModal from "../modals/DeleteMessageModal";
 import PinnedMessagesModal from "../modals/PinnedMessagesModal";
@@ -18,8 +18,9 @@ import { ONICORD_COMMANDS } from "../../lib/commands";
 import { getSelectionCharacterOffsets, setSelectionOffsets, renderHTMLForInput, applyMarkdownFormat } from "../../lib/inputFormatter";
 import { checkPermission, canSpeakInChannel } from "../../lib/permissionsHelper";
 import { copyTextToClipboard, readTextFromClipboard } from "../../lib/clipboard";
-import MediaPreviewModal from "../modals/MediaPreviewModal";
 import ForwardMessageModal from "../modals/ForwardMessageModal";
+
+const MediaPreviewModal = lazy(() => import("../modals/MediaPreviewModal"));
 import { notificationManager } from "../../lib/notificationManager";
 import { soundEngine } from "../../lib/soundEngine";
 import { recordUserInteraction } from "../../lib/flameService";
@@ -30,13 +31,7 @@ import ChatDropZone from "./subcomponents/ChatDropZone";
 import ChatMessageList from "./subcomponents/ChatMessageList";
 import ChatInputArea from "./subcomponents/ChatInputArea";
 import { useVoiceChannelInfo } from "../../context/VoiceContext";
-
-const measureTextWidth = (text, font) => {
-  const canvas = measureTextWidth.canvas || (measureTextWidth.canvas = document.createElement("canvas"));
-  const context = canvas.getContext("2d");
-  context.font = font || '15px "Roboto", system-ui, -apple-system, sans-serif';
-  return context.measureText(text).width;
-};
+import { useChatComposer } from "./composer/useChatComposer";
 
 function formatBytes(bytes) {
   if (!bytes) return "0 Bytes";
@@ -65,12 +60,29 @@ export default function ChatPanel({
 }) {
   const { t } = useTranslation();
   const { inVoice } = useVoiceChannelInfo();
-  const [stickersTargetRect, setStickersTargetRect] = useState(null);
-  const [emojisTargetRect, setEmojisTargetRect] = useState(null);
-  const [input, setInput] = useState("");
+  const {
+    input,
+    setInput,
+    selection,
+    setSelection,
+    isInputFocused,
+    setIsInputFocused,
+    showCommandsPopup,
+    setShowCommandsPopup,
+    showMentionsPopup,
+    setShowMentionsPopup,
+    stickersTargetRect,
+    setStickersTargetRect,
+    emojisTargetRect,
+    setEmojisTargetRect,
+    tyrannyInputRef,
+    isLocalTypingRef,
+    handleInputSelection,
+    handleSelectEmoji,
+    applyFormatting,
+  } = useChatComposer({ profile, peers });
+
   const [postTitle, setPostTitle] = useState("");
-  const [showCommandsPopup, setShowCommandsPopup] = useState(false);
-  const [showMentionsPopup, setShowMentionsPopup] = useState(false);
 
   const currentChannel = useMemo(
     () => server?.channels?.find((c) => c.id === channelId),
@@ -82,8 +94,6 @@ export default function ChatPanel({
   const chatContainerRef = useRef(null);
   const bottomRef = useRef(null);
   const messagesCountRef = useRef(0);
-  const tyrannyInputRef = useRef(null);
-  const isLocalTypingRef = useRef(false);
 
   useEffect(() => {
     setPostTitle("");
@@ -254,9 +264,6 @@ export default function ChatPanel({
     return uniqueTexts.slice(0, 6);
   }, [messages, profile?.general?.enableQuickSuggestions, profile?.id]);
 
-  const [selection, setSelection] = useState(null);
-  const [isInputFocused, setIsInputFocused] = useState(false);
-
   const visibleSuggestions = useMemo(() => {
     if (!isInputFocused) return [];
     if (!input) return suggestions;
@@ -267,162 +274,6 @@ export default function ChatPanel({
       return text.toLowerCase().includes(input.toLowerCase());
     });
   }, [suggestions, isInputFocused, input]);
-
-  const handleInputSelection = () => {
-    const inputEl = tyrannyInputRef.current;
-    if (!inputEl) return;
-
-    const { start, end } = getSelectionCharacterOffsets(inputEl);
-
-    if (start !== end) {
-      const styles = window.getComputedStyle(inputEl);
-      const font = `${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
-
-      const textVal = inputEl.textContent || "";
-      const textBefore = textVal.substring(0, start);
-      const textSelection = textVal.substring(start, end);
-
-      const widthBefore = measureTextWidth(textBefore, font);
-      const widthSelection = measureTextWidth(textSelection, font);
-
-      const paddingLeft = parseFloat(styles.paddingLeft) || 0;
-      const xPos = paddingLeft + widthBefore + (widthSelection / 2) - inputEl.scrollLeft;
-
-      const relativeLeft = inputEl.offsetLeft + xPos;
-
-      const chatPanelEl = inputEl.closest(".onicord-chat-input-bar") || inputEl.parentElement;
-      const containerWidth = chatPanelEl?.getBoundingClientRect().width || 400;
-      const constrainedLeft = Math.max(130, Math.min(relativeLeft, containerWidth - 130));
-
-      setSelection({
-        start,
-        end,
-        left: constrainedLeft,
-      });
-    } else {
-      setSelection(null);
-    }
-  };
-
-  useEffect(() => {
-    const el = tyrannyInputRef.current;
-    if (!el) return;
-
-    const isLocalTyping = isLocalTypingRef.current;
-    isLocalTypingRef.current = false;
-
-    // If the user is actively typing and the DOM text has advanced beyond this effect's input,
-    // do not clobber newer keystrokes with older state.
-    if (isLocalTyping && el.textContent !== input) {
-      return;
-    }
-
-    const allUsers = [
-      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
-      ...Object.values(peers || {}).map((p) => ({
-        id: p.id,
-        nickname: p.nickname,
-      })),
-    ];
-    const targetHTML = renderHTMLForInput(input, allUsers);
-
-    // If input has no markdown formatting spans (plain text) and already matches DOM text:
-    // Native contenteditable already holds the text and correct caret position.
-    const hasFormattingSpans = targetHTML.includes("<span");
-    if (!hasFormattingSpans && el.textContent === input) {
-      return;
-    }
-
-    if (el.innerHTML !== targetHTML) {
-      const offsets = getSelectionCharacterOffsets(el);
-      el.innerHTML = targetHTML;
-      setSelectionOffsets(el, offsets.start, offsets.end);
-    }
-  }, [input, profile, peers]);
-
-  const handleSelectEmoji = (emoji) => {
-    const el = tyrannyInputRef.current;
-    if (!el) return;
-    el.focus();
-
-    const sel = window.getSelection();
-    if (sel.getRangeAt && sel.rangeCount) {
-      const range = sel.getRangeAt(0);
-      if (el.contains(range.commonAncestorContainer)) {
-        range.deleteContents();
-        const textNode = document.createTextNode(emoji);
-        range.insertNode(textNode);
-        range.setStartAfter(textNode);
-        range.setEndAfter(textNode);
-        sel.removeAllRanges();
-        sel.addRange(range);
-      } else {
-        el.innerText += emoji;
-      }
-    } else {
-      el.innerText += emoji;
-    }
-
-    setInput(el.textContent || "");
-  };
-
-  const applyFormatting = (prefix, suffix = prefix) => {
-    const inputEl = tyrannyInputRef.current;
-    if (!inputEl) return;
-
-    let start = 0;
-    let end = 0;
-    const offsets = getSelectionCharacterOffsets(inputEl);
-    if (offsets.start !== offsets.end) {
-      start = offsets.start;
-      end = offsets.end;
-    } else if (selection && selection.start !== selection.end) {
-      start = selection.start;
-      end = selection.end;
-    } else {
-      start = offsets.start;
-      end = offsets.end;
-    }
-
-    const text = inputEl.textContent || input || "";
-    const { newText, newStart, newEnd } = applyMarkdownFormat(
-      text,
-      { start, end },
-      prefix,
-      suffix
-    );
-
-    setInput(newText);
-    setSelection(null);
-
-    const allUsers = [
-      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
-      ...Object.values(peers || {}).map((p) => ({
-        id: p.id,
-        nickname: p.nickname,
-      })),
-    ];
-    inputEl.innerHTML = renderHTMLForInput(newText, allUsers);
-
-    requestAnimationFrame(() => {
-      inputEl.focus();
-      setSelectionOffsets(inputEl, newStart, newEnd);
-    });
-  };
-
-  useEffect(() => {
-    if (!input) {
-      setShowCommandsPopup(false);
-      setShowMentionsPopup(false);
-      return;
-    }
-
-    const partes = input.split(" ");
-    const ultimaPalabra = partes[partes.length - 1];
-
-    setShowCommandsPopup(partes.length === 1 && input.startsWith("/"));
-    setShowMentionsPopup(ultimaPalabra.startsWith("@"));
-  }, [input]);
 
   const [sending, setSending] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -492,7 +343,7 @@ export default function ChatPanel({
       scrollToBottom("smooth");
     }, 80);
     return () => clearTimeout(timer);
-  }, [input, visibleSuggestions.length, replyTarget, scrollToBottom]);
+  }, [visibleSuggestions.length, replyTarget, scrollToBottom]);
 
   const handleInputChange = (e) => {
     isLocalTypingRef.current = true;
@@ -1540,7 +1391,7 @@ export default function ChatPanel({
                 if (/youtube\.com|youtu\.be/i.test(clickedUrl)) {
                   menuItems.push({
                     label: t("contextMenu.startWatchParty"),
-                    icon: <MaterialIcon icon="smart_display" size={18} />,
+                    icon: <MaterialIcon name="smart_display" size={18} />,
                     onClick: () => {
                       window.dispatchEvent(
                         new CustomEvent("onicord:start-watch-party", {
@@ -1737,31 +1588,35 @@ export default function ChatPanel({
         />
       )}
 
-      <MediaPreviewModal
-        isOpen={previewMedia.isOpen}
-        onClose={() => setPreviewMedia({ ...previewMedia, isOpen: false })}
-        localPath={previewMedia.localPath}
-        fileName={previewMedia.fileName}
-        fileSize={previewMedia.fileSize}
-        isImage={previewMedia.isImage}
-        isVideo={previewMedia.isVideo}
-        initialTime={previewMedia.initialTime}
-        formatBytes={formatBytes}
-        filesList={previewMedia.filesList || []}
-        currentIndex={previewMedia.currentIndex || 0}
-        onNavigate={(newIdx) => {
-          setPreviewMedia((prev) => {
-            const nextItem = prev.filesList?.[newIdx];
-            return {
-              ...prev,
-              currentIndex: newIdx,
-              localPath: nextItem?.localPath || prev.localPath,
-              fileName: nextItem?.name || prev.fileName,
-              fileSize: nextItem?.size || prev.fileSize,
-            };
-          });
-        }}
-      />
+      {previewMedia.isOpen && (
+        <Suspense fallback={null}>
+          <MediaPreviewModal
+            isOpen={previewMedia.isOpen}
+            onClose={() => setPreviewMedia({ ...previewMedia, isOpen: false })}
+            localPath={previewMedia.localPath}
+            fileName={previewMedia.fileName}
+            fileSize={previewMedia.fileSize}
+            isImage={previewMedia.isImage}
+            isVideo={previewMedia.isVideo}
+            initialTime={previewMedia.initialTime}
+            formatBytes={formatBytes}
+            filesList={previewMedia.filesList || []}
+            currentIndex={previewMedia.currentIndex || 0}
+            onNavigate={(newIdx) => {
+              setPreviewMedia((prev) => {
+                const nextItem = prev.filesList?.[newIdx];
+                return {
+                  ...prev,
+                  currentIndex: newIdx,
+                  localPath: nextItem?.localPath || prev.localPath,
+                  fileName: nextItem?.name || prev.fileName,
+                  fileSize: nextItem?.size || prev.fileSize,
+                };
+              });
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

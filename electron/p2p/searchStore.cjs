@@ -116,14 +116,23 @@ class SearchStore {
 
   _getOrCreateIndex(roomCode) {
     const safeCode = this.chatStore._safeCode(roomCode);
-    if (!this.indices.has(safeCode)) {
-      this.indices.set(safeCode, {
-        indexed: false,
-        indexingPromise: null,
-        docs: new Map(),
-        inverted: new Map(),
-        totalTokens: 0,
-      });
+    if (this.indices.has(safeCode)) {
+      const existing = this.indices.get(safeCode);
+      this.indices.delete(safeCode);
+      this.indices.set(safeCode, existing);
+      return existing;
+    }
+    this.indices.set(safeCode, {
+      indexed: false,
+      indexingPromise: null,
+      docs: new Map(),
+      inverted: new Map(),
+      totalTokens: 0,
+    });
+    while (this.indices.size > 5) {
+      const oldestKey = this.indices.keys().next().value;
+      if (oldestKey === undefined) break;
+      this.indices.delete(oldestKey);
     }
     return this.indices.get(safeCode);
   }

@@ -14,10 +14,17 @@ class McpBridgeService {
     const targetPort = attemptPort || this.port;
 
     const server = http.createServer((req, res) => {
-      // Allow local CORS
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      const origin = String(req.headers.origin || "").toLowerCase();
+      if (
+        origin &&
+        !origin.startsWith("file://") &&
+        !origin.startsWith("http://127.0.0.1") &&
+        !origin.startsWith("http://localhost")
+      ) {
+        res.writeHead(403, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Forbidden: External Origin not allowed." }));
+        return;
+      }
 
       if (req.method === "OPTIONS") {
         res.writeHead(204);
@@ -191,9 +198,10 @@ class McpBridgeService {
           } catch (e) {}
         }
 
+        const activeCode = global.roomManager?.roomCode || global.roomManager?.activeRoomCode || null;
         return {
-          roomActive: Boolean(global.roomManager?.activeRoomCode),
-          roomCode: global.roomManager?.activeRoomCode || null,
+          roomActive: Boolean(activeCode),
+          roomCode: activeCode,
           localProfile: p2p?.profile || null,
           connectedP2pPeers: p2p?.peers ? [...p2p.peers.keys()] : [],
           voiceActive: rendererVoiceActive,

@@ -99,8 +99,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setLastServer: (serverId) =>
     ipcRenderer.invoke("servers:setLastActive", serverId),
   getLastServer: () => ipcRenderer.invoke("servers:getLastActive"),
-  writeClipboard: (text) => ipcRenderer.invoke("clipboard:writeText", text),
-  readClipboard: () => ipcRenderer.invoke("clipboard:readText"),
 
   // Webhooks P2P
   getWebhookInfo: () => ipcRenderer.invoke("webhook:getInfo"),
@@ -162,7 +160,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       "plugins:chat-clear-outbound", "onicord:widget-p2p-data",
       "plugins:dashboard-widgets-updated", "drive:progress", "update:status",
       "plugins:rail-actions-updated", "plugins:server-settings-tabs-updated", "plugins:custom-views-updated",
-      "plugins:discover-servers-updated",
+      "plugins:discover-servers-updated", "discover:knock-status-changed",
+      "plugins:package-dropped", "backup:package-dropped",
       "game-activity-changed", "profile:updated", "onicord:mcp-trigger-action",
       "onicord:global-keybind",
       "voice:join-channel", "voice:leave-channel", "voice:toggle-media"
@@ -196,6 +195,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("import-sticker-pack-raw", jsonStr),
   listLocalStickers: () => ipcRenderer.invoke("list-local-stickers"),
   deleteStickerLocal: (data) =>
+    ipcRenderer.invoke("delete-sticker-local", data),
+  deleteLocalSticker: (data) =>
     ipcRenderer.invoke("delete-sticker-local", data),
 
   extractMusicTrack: (url) => ipcRenderer.invoke("music:extract-track", url),
@@ -291,6 +292,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("server:updated", handler);
     return () => ipcRenderer.removeListener("server:updated", handler);
   },
+  onRoomJoined: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("room:joined", handler);
+    return () => ipcRenderer.removeListener("room:joined", handler);
+  },
+  onRoomCreated: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("room:created", handler);
+    return () => ipcRenderer.removeListener("room:created", handler);
+  },
   onP2PError: (callback) => {
     const handler = (_event, message) => callback(message);
     ipcRenderer.on("p2p:error", handler);
@@ -376,6 +387,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getScreenSources: () => ipcRenderer.invoke("stream:get-sources"),
 
   openExternalLink: (url) => ipcRenderer.send("window:open-external", url),
+  openExternal: (url) => ipcRenderer.send("window:open-external", url),
   fetchOpenGraph: (url) => ipcRenderer.invoke("opengraph:fetch", url),
   fetchMediaLocalPath: (fileId, roomCode) =>
     ipcRenderer.invoke("files:getLocalPath", fileId, roomCode),
@@ -403,6 +415,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   resolveInvite: (code, profile) => ipcRenderer.invoke("deeplink:resolve-invite", code, profile),
   cancelInviteResolve: (code) => ipcRenderer.send("deeplink:cancel-resolve-invite", code),
+  cancelResolveInvite: (code) => ipcRenderer.send("deeplink:cancel-resolve-invite", code),
   onInviteDetailsUpdated: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("invite:details-updated", handler);
@@ -538,6 +551,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const h = (_event, filePath) => cb(filePath);
     ipcRenderer.on("backup:package-dropped", h);
     return () => ipcRenderer.removeListener("backup:package-dropped", h);
+  },
+  onPluginPackageDropped: (cb) => {
+    const h = (_event, filePath) => cb(filePath);
+    ipcRenderer.on("plugins:package-dropped", h);
+    return () => ipcRenderer.removeListener("plugins:package-dropped", h);
   },
 
   // ─── Google Drive Backup (Deprecated) ──────────────────────────────────────

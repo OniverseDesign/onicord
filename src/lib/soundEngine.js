@@ -238,8 +238,16 @@ class SoundEngine {
     this.typingSoundsEnabled = Boolean(enabled);
   }
 
+  setTypingSoundsEnabled(enabled) {
+    this.typingSoundsEnabled = Boolean(enabled);
+  }
+
   isTypingEnabled() {
-    return this.level >= SFX_LEVEL.COMMUNICATION;
+    return Boolean(this.enabled && this.typingSoundsEnabled);
+  }
+
+  isTypingSoundsEnabled() {
+    return Boolean(this.enabled && this.typingSoundsEnabled);
   }
 
   setWidgetSoundsEnabled(enabled) {
@@ -247,7 +255,7 @@ class SoundEngine {
   }
 
   isWidgetSoundsEnabled() {
-    return this.level >= SFX_LEVEL.ALL;
+    return Boolean(this.enabled && this.widgetSoundsEnabled);
   }
 
   setNavSoundsEnabled(enabled) {
@@ -255,7 +263,7 @@ class SoundEngine {
   }
 
   isNavSoundsEnabled() {
-    return this.level >= SFX_LEVEL.ALL;
+    return Boolean(this.enabled && this.navSoundsEnabled);
   }
 
   playCue(cueName, options = {}) {
@@ -274,7 +282,7 @@ class SoundEngine {
 
   // Rate-limited typing sound for chat
   playTyping() {
-    if (this.level < SFX_LEVEL.COMMUNICATION || !this.player) return;
+    if (!this.isTypingSoundsEnabled() || this.level < SFX_LEVEL.COMMUNICATION || !this.player) return;
 
     // Suppress if window is not focused
     if (typeof document !== "undefined" && !document.hasFocus()) return;
@@ -288,7 +296,7 @@ class SoundEngine {
 
   // Rate-limited snap sound for widget grid movement
   playWidgetSnap() {
-    if (this.level < SFX_LEVEL.ALL || !this.player) return;
+    if (!this.isWidgetSoundsEnabled() || this.level < SFX_LEVEL.ALL || !this.player) return;
 
     const now = Date.now();
     if (now - this._lastSnapPlay < 120) return;
@@ -309,7 +317,7 @@ class SoundEngine {
   }
 
   playNav(cueName, options = {}) {
-    if (this.level < SFX_LEVEL.ALL || !this.player) return;
+    if (!this.isNavSoundsEnabled() || this.level < SFX_LEVEL.ALL || !this.player) return;
     this.playCue(cueName, options);
   }
 

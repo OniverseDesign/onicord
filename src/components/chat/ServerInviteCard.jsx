@@ -93,7 +93,7 @@ export default function ServerInviteCard({ roomCode, fullUrl, ip, port }) {
     return () => {
       isMounted = false;
       if (offInviteUpdated) offInviteUpdated();
-      window.electronAPI?.cancelResolveInvite?.(cleanCode);
+      window.electronAPI?.cancelInviteResolve?.(cleanCode);
     };
   }, [cleanCode]);
 

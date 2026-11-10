@@ -856,13 +856,15 @@ export class VoicePeerManager {
         this._remoteVideoStreams.set(ownerId, remoteStream);
       }
       if (remoteStream.getAudioTracks().length > 0 && remoteStream.getVideoTracks().length === 0) {
-        this.audioEngine.attachRemoteAudio({
-          peerId: ownerId,
-          stream: remoteStream,
-          volumeValue: this.getPeerVolume(ownerId),
-          deafened: this.deafened,
-          peersMap: this.peers,
-        });
+        if (!this.audioEngine.peerAudio.has(ownerId)) {
+          this.audioEngine.attachRemoteAudio({
+            peerId: ownerId,
+            stream: remoteStream,
+            volumeValue: this.getPeerVolume(ownerId),
+            deafened: this.deafened,
+            peersMap: this.peers,
+          });
+        }
       }
       this.onRemoteStream?.(ownerId, remoteStream);
     });
@@ -1180,6 +1182,7 @@ export class VoicePeerManager {
   }
 
   updatePeerIdentities(members) {
+    this.voiceMembers = Array.isArray(members) ? members : [];
     this.sfuRouter.updateMembers(members);
 
     for (const member of members) {
@@ -1252,6 +1255,16 @@ export class VoicePeerManager {
         });
       } catch {}
       this.localStream = null;
+    }
+
+    if (this.localVideoStream) {
+      try {
+        this.localVideoStream.getTracks().forEach((track) => {
+          track.enabled = false;
+          track.stop();
+        });
+      } catch {}
+      this.localVideoStream = null;
     }
 
     this.audioEngine.destroy();

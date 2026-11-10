@@ -1,11 +1,22 @@
 const crypto = require("crypto");
 
 const SALT = Buffer.from("Onicord::E2EE::Salt::2026");
+const keyCache = new Map();
+const MAX_KEY_CACHE_SIZE = 256;
 
 class CryptoService {
   _deriveKey(roomCode) {
     const raw = String(roomCode).trim().toUpperCase();
-    return crypto.pbkdf2Sync(raw, SALT, 10000, 32, "sha256");
+    if (keyCache.has(raw)) {
+      return keyCache.get(raw);
+    }
+    const derived = crypto.pbkdf2Sync(raw, SALT, 10000, 32, "sha256");
+    if (keyCache.size >= MAX_KEY_CACHE_SIZE) {
+      const oldestKey = keyCache.keys().next().value;
+      keyCache.delete(oldestKey);
+    }
+    keyCache.set(raw, derived);
+    return derived;
   }
 
   _deriveLegacyKey(roomCode) {
@@ -25,7 +36,7 @@ class CryptoService {
       return `[E2EE]:${iv.toString("hex")}:${encrypted}:${authTag}`;
     } catch (err) {
       console.error("[E2EE Node Encryption Error]:", err.message);
-      return plaintext;
+      return "";
     }
   }
 

@@ -94,7 +94,9 @@ export default function ToastContainer() {
 
         case "open_url":
           if (toast.action.url) {
-            if (window.electronAPI?.openExternal) {
+            if (window.electronAPI?.openExternalLink) {
+              window.electronAPI.openExternalLink(toast.action.url);
+            } else if (window.electronAPI?.openExternal) {
               window.electronAPI.openExternal(toast.action.url);
             } else {
               window.open(toast.action.url, "_blank", "noopener,noreferrer");
@@ -218,7 +220,7 @@ export default function ToastContainer() {
                   className="text-onicord-muted/60 group-hover:text-onicord-accent group-hover:translate-x-0.5 transition-all flex items-center justify-center"
                   title="Abrir"
                 >
-                  <MaterialIcon icon="chevron_right" size={20} />
+                  <MaterialIcon name="chevron_right" size={20} />
                 </div>
               )}
 

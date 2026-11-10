@@ -1,7 +1,18 @@
-import React from 'react'
+import React, { memo } from 'react'
 
-export default function MaterialIcon({
+const presetSizes = {
+  xs: 14,
+  sm: 16,
+  base: 18,
+  lg: 22,
+  xl: 24,
+  '2xl': 30,
+  '3xl': 36,
+}
+
+const MaterialIcon = memo(function MaterialIcon({
   name,
+  icon,
   className = '',
   size = 24,
   fill = false,
@@ -9,19 +20,9 @@ export default function MaterialIcon({
   grade = 0,
   onClick,
   style = {},
+  children,
   ...props
 }) {
-
-  const presetSizes = {
-    xs: 14,
-    sm: 16,
-    base: 18,
-    lg: 22,
-    xl: 24,
-    '2xl': 30,
-    '3xl': 36,
-  }
-
   const resolvedSize =
     typeof size === 'string'
       ? presetSizes[size] || 24
@@ -56,7 +57,9 @@ export default function MaterialIcon({
       }}
       {...props}
     >
-      {name || props.icon || props.children}
+      {name || icon || children}
     </span>
   )
-}
+})
+
+export default MaterialIcon

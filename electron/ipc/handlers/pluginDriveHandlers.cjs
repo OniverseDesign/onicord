@@ -2,7 +2,6 @@ const { ipcMain, BrowserWindow, dialog } = require("electron");
 const pluginService = require("../../services/pluginService.cjs");
 const pluginSandboxService = require("../../services/pluginSandboxService.cjs");
 const driveAuthService = require("../../services/driveAuthService.cjs");
-const driveService = require("../../services/driveService.cjs");
 const backupService = require("../../services/backupService.cjs");
 const updateService = require("../../services/updateService.cjs");
 const overlayService = require("../../services/overlayService.cjs");

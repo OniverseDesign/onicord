@@ -445,7 +445,7 @@ export default function AppSettingsModal({
     setShowResetConfirm(true);
   };
 
-  const hasUnsavedChanges = (() => {
+  const hasUnsavedChanges = useMemo(() => {
     const origNickname = profile?.nickname ?? "";
     const origAvatar = profile?.avatar ?? null;
     const origCustomLink = profile?.customLink ?? "";
@@ -538,7 +538,21 @@ export default function AppSettingsModal({
 
     if (JSON.stringify(serverProfiles) !== JSON.stringify(profile?.serverProfiles || {})) return true;
     return false;
-  })();
+  }, [
+    profile,
+    nickname,
+    avatar,
+    customLink,
+    profileColor,
+    showRichPresence,
+    customStatus,
+    audio,
+    general,
+    keybindings,
+    overlay,
+    customGames,
+    serverProfiles,
+  ]);
 
   const handleRevertChanges = () => {
     if (i18n.language !== initialLanguageRef.current) {
@@ -742,7 +756,7 @@ export default function AppSettingsModal({
         <PluginsTab profile={profile} onSaved={onSaved} />
       )}
 
-      {(section === "backup" || section === "cloud") && <BackupTab />}
+      {section === "backup" && <BackupTab />}
 
       {section === "about" && <AboutTab />}
 

@@ -1,3 +1,18 @@
+# Onicord v0.2.5
+
+## Changes
+
+- **Virtual Chat Rendering & Feed Virtualization**: Integrated `@tanstack/react-virtual` for 60 FPS message feed scrolling, smooth jump-to-message transitions, and O(M) single-pass thread participant precomputations.
+- **Zustand State Architecture & Voice Isolation**: Decoupled voice telemetry and speaking indicators into atomic Zustand selectors (`useVoiceStore`), eliminating whole-tree re-renders, while centralizing application state (`useAppStore`).
+- **Modular Room & P2P Packet Architecture**: Decomposed monolithic `RoomView` and `RoomManager` packet routers into dedicated domain submodules (`RoomHeader`, `RoomOverlays`, `RoomRightSidebar`, and modular P2P packet handlers).
+- **Swarm P2P File Distribution & Streaming**: Multi-source block downloading with dynamic seeder scheduling, automated local database seeding, file handle pooling, and executable permission safeguards.
+- **Unified Sandboxed Plugin Host**: Consolidated iframe runtime into `SandboxedPluginFrame` with strict permission checking, isolated storage, and collaborative P2P sync.
+- **Asset Diet, WOFF2 Fonts & Bundling Optimization**: Replaced the 10.5 MB TTF icon font with compressed WOFF2, removed external Google Fonts dependencies, added dynamic on-demand i18n locale loading, and optimized Vite vendor chunking.
+- **WebRTC Voice Engine & Audio Resource Cleanup**: Plugged audio node leaks, ensured complete camera/screen track deallocation on disconnect, and guarded against duplicate remote stream attachments.
+- **Automated yt-dlp Multi-Platform Binary Tooling**: Introduced automated per-platform binary provisioning (`ensure-ytdlp.cjs`), offloading binaries from the main asar package to reduce installer overhead.
+- **Security & Media Protocol Hardening**: Enforced strict origin guards on hardware/media capture and blocked unauthorized access to local database and credential files via internal media protocols.
+- **Dead Code & Legacy Deprecation Cleanup**: Purged obsolete components (`WelcomeScreen`, `JoinModal`, `e2ee.js`, `CloudBackupTab`), stripping over 2,500 lines of technical debt.
+
 # Onicord v0.2.4
 
 ## Changes

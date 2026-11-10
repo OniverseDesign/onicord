@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import ProfileSetup from "./components/views/ProfileSetup";
 import HomeView from "./components/views/HomeView";
 import LoadingScreen from "./components/views/LoadingScreen";
 import ToastContainer from "./components/ui/ToastContainer";
-import InviteModal from "./components/modals/InviteModal";
+const InviteModal = lazy(() => import("./components/modals/InviteModal"));
 import { notificationManager } from "./lib/notificationManager";
 import { soundEngine } from "./lib/soundEngine";
 import { ACCENT_PALETTE, applyDynamicTheme } from "./lib/colors";
@@ -47,22 +47,25 @@ if (window.electronAPI?.diagLog) {
   const originalWarn = console.warn;
   const originalError = console.error;
 
+  const sendDiagLog = (level, args) => {
+    if (!import.meta.env.DEV && level === "info") return;
+    const msg = args.map(safeSerialize).join(" ");
+    window.electronAPI.diagLog(level, "UI-Console", msg);
+  };
+
   console.log = (...args) => {
     originalLog(...args);
-    const msg = args.map(safeSerialize).join(" ");
-    window.electronAPI.diagLog("info", "UI-Console", msg);
+    sendDiagLog("info", args);
   };
 
   console.warn = (...args) => {
     originalWarn(...args);
-    const msg = args.map(safeSerialize).join(" ");
-    window.electronAPI.diagLog("warn", "UI-Console", msg);
+    sendDiagLog("warn", args);
   };
 
   console.error = (...args) => {
     originalError(...args);
-    const msg = args.map(safeSerialize).join(" ");
-    window.electronAPI.diagLog("error", "UI-Console", msg);
+    sendDiagLog("error", args);
   };
 
   window.addEventListener("error", (e) => {
@@ -159,6 +162,7 @@ function TitleBar() {
 }
 
 export default function App() {
+  const { t } = useTranslation();
   useAppUpdater();
 
   useEffect(() => {
@@ -283,8 +287,6 @@ export default function App() {
             new CustomEvent("onicord:general-settings-updated", { detail: storedProfile.general })
           );
         }
-
-        await new Promise((resolve) => setTimeout(resolve, 50));
 
         const lastActive = await api.getLastServer?.();
         const lastActiveId = typeof lastActive === "object" ? lastActive?.id : lastActive;
@@ -626,24 +628,26 @@ export default function App() {
             <ToastContainer />
             {/* Invite modal — shown when a deep link is received */}
             {inviteData && (
-              <InviteModal
-                serverName={inviteData.serverName}
-                serverAvatar={inviteData.serverAvatar}
-                memberCount={inviteData.memberCount}
-                onlineCount={inviteData.onlineCount}
-                roomCode={inviteData.code}
-                isAlreadyMember={inviteData.isAlreadyMember}
-                busy={inviteBusy}
-                onAccept={handleAcceptInvite}
-                onClose={() => {
-                  if (!inviteBusy) {
-                    if (window.electronAPI.cancelInviteResolve) {
-                      window.electronAPI.cancelInviteResolve(inviteData.code);
+              <Suspense fallback={null}>
+                <InviteModal
+                  serverName={inviteData.serverName}
+                  serverAvatar={inviteData.serverAvatar}
+                  memberCount={inviteData.memberCount}
+                  onlineCount={inviteData.onlineCount}
+                  roomCode={inviteData.code}
+                  isAlreadyMember={inviteData.isAlreadyMember}
+                  busy={inviteBusy}
+                  onAccept={handleAcceptInvite}
+                  onClose={() => {
+                    if (!inviteBusy) {
+                      if (window.electronAPI.cancelInviteResolve) {
+                        window.electronAPI.cancelInviteResolve(inviteData.code);
+                      }
+                      setInviteData(null);
                     }
-                    setInviteData(null);
-                  }
-                }}
-              />
+                  }}
+                />
+              </Suspense>
             )}
           </WatchPartyProvider>
         </MusicProvider>

@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import MaterialIcon from "../../icons/MaterialIcon";
 import ChatMessageItem from "../ChatMessageItem";
 import ForumPostCard from "./ForumPostCard";
 import ChatLoadingSkeleton, { TopHistoryLoadingSkeleton } from "./ChatLoadingSkeleton";
-import { buildPeerLookup } from "../../../lib/profileUtils";
+import { buildPeerLookup, resolveAuthorDisplay } from "../../../lib/profileUtils";
 import { useAnimatedMount } from "../../../hooks/useAnimatedMount";
 
 export function isSameDay(ts1, ts2) {
@@ -81,11 +82,14 @@ export default function ChatMessageList({
 
   const peersLookup = useMemo(() => buildPeerLookup(peers), [peers]);
 
-  // Precompute thread replies count map in a single pass O(M) across messages
+  // Precompute thread replies count map and participants map in a single pass O(M) across messages
   // to avoid O(N * M) JSON parse loops inside each card
-  const threadRepliesCountMap = useMemo(() => {
-    const map = new Map();
-    if (!Array.isArray(messages) || messages.length === 0) return map;
+  const { threadRepliesCountMap, threadParticipantsMap } = useMemo(() => {
+    const countMap = new Map();
+    const participantsByParent = new Map();
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return { threadRepliesCountMap: countMap, threadParticipantsMap: new Map() };
+    }
 
     for (let i = 0; i < messages.length; i++) {
       const m = messages[i];
@@ -103,12 +107,69 @@ export default function ChatMessageList({
         } catch {}
       }
 
-      if (parentId) {
-        map.set(parentId, (map.get(parentId) || 0) + 1);
+      if (parentId && parentId !== m.id) {
+        countMap.set(parentId, (countMap.get(parentId) || 0) + 1);
+        let userMap = participantsByParent.get(parentId);
+        if (!userMap) {
+          userMap = new Map();
+          participantsByParent.set(parentId, userMap);
+        }
+        if (!userMap.has(m.authorId)) {
+          userMap.set(
+            m.authorId,
+            resolveAuthorDisplay(m.authorId, profile, peersLookup, m, server)
+          );
+        }
       }
     }
-    return map;
-  }, [messages]);
+
+    const finalParticipantsMap = new Map();
+    for (const [parentId, userMap] of participantsByParent.entries()) {
+      finalParticipantsMap.set(parentId, Array.from(userMap.values()));
+    }
+
+    return {
+      threadRepliesCountMap: countMap,
+      threadParticipantsMap: finalParticipantsMap,
+    };
+  }, [messages, profile, peersLookup, server]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: mainStreamMessages.length,
+    getScrollElement: () => chatContainerRef.current,
+    estimateSize: () => (isForum ? 140 : 64),
+    overscan: 8,
+    getItemKey: (index) => {
+      const msg = mainStreamMessages[index];
+      return msg?.clientTempId || msg?.id || index;
+    },
+  });
+
+  const handleJumpToMessageLocal = useCallback(
+    (targetChannelId, targetMsgId) => {
+      const targetId = targetMsgId || targetChannelId;
+      if (targetChannelId && targetChannelId !== channelId) {
+        onJumpToMessage?.(targetChannelId, targetMsgId);
+        return;
+      }
+      const idx = mainStreamMessages.findIndex(
+        (m) => (m.id && m.id === targetId) || (m.clientTempId && m.clientTempId === targetId)
+      );
+      if (idx !== -1) {
+        rowVirtualizer.scrollToIndex(idx, { align: "center", behavior: "smooth" });
+        setTimeout(() => {
+          const el = document.getElementById(`msg-${targetId}`);
+          if (el) {
+            el.classList.add("onicord-highlight-flash");
+            setTimeout(() => el.classList.remove("onicord-highlight-flash"), 2000);
+          }
+        }, 150);
+      } else {
+        onJumpToMessage?.(targetChannelId, targetMsgId);
+      }
+    },
+    [channelId, mainStreamMessages, onJumpToMessage, rowVirtualizer]
+  );
 
   return (
     <div className="flex-1 min-h-0 relative flex w-full overflow-hidden">
@@ -182,84 +243,105 @@ export default function ChatMessageList({
                 )}
               </div>
             ) : (
-              <ul className={`${isForum ? "py-6 px-2 sm:px-4 md:px-6 max-w-6xl mx-auto w-full" : "py-4"} animate-fade-in`}>
-                {/* Top skeleton when scrolling up */}
+              <div className="relative w-full">
                 {isScrollingUpLoading && <TopHistoryLoadingSkeleton />}
+                <ul
+                  className={`${isForum ? "py-6 px-2 sm:px-4 md:px-6 max-w-6xl mx-auto w-full" : "py-4"} relative w-full`}
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const idx = virtualRow.index;
+                    const msg = mainStreamMessages[idx];
+                    if (!msg) return null;
+                    const prevMsg = idx > 0 ? mainStreamMessages[idx - 1] : null;
+                    const showDivider =
+                      !isForum && (!prevMsg || !isSameDay(msg.timestamp, prevMsg.timestamp));
 
-              {mainStreamMessages.map((msg, idx) => {
-                const prevMsg = idx > 0 ? mainStreamMessages[idx - 1] : null;
-                const showDivider =
-                  !isForum && (!prevMsg || !isSameDay(msg.timestamp, prevMsg.timestamp));
+                    return (
+                      <li
+                        key={virtualRow.key}
+                        data-index={virtualRow.index}
+                        ref={rowVirtualizer.measureElement}
+                        className="w-full"
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                      >
+                        {showDivider && (
+                          <div className="relative flex items-center justify-center my-4 select-none">
+                            <div className="absolute inset-0 flex items-center">
+                              <div className="w-full border-t border-onicord-accent/20" />
+                            </div>
+                            <span className="relative bg-onicord-base px-3 text-[11px] font-semibold text-onicord-accent/50 uppercase tracking-wider">
+                              {formatDateDivider(msg.timestamp)}
+                            </span>
+                          </div>
+                        )}
 
-                return (
-                  <li key={msg.clientTempId || msg.id || idx}>
-                    {showDivider && (
-                      <div className="relative flex items-center justify-center my-4 select-none">
-                        <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-onicord-accent/20" />
-                        </div>
-                        <span className="relative bg-onicord-base px-3 text-[11px] font-semibold text-onicord-accent/50 uppercase tracking-wider">
-                          {formatDateDivider(msg.timestamp)}
-                        </span>
-                      </div>
-                    )}
-
-                    {isForum ? (
-                      <ForumPostCard
-                        msg={msg}
-                        allMessages={messages}
-                        threadRepliesCount={threadRepliesCountMap.get(msg.id) || 0}
-                        peersLookup={peersLookup}
-                        profile={profile}
-                        peers={peers}
-                        server={server}
-                        nameColor={userRoleColorMap.get(msg.authorId) || null}
-                        fileProgress={fileProgress}
-                        onDownloadFile={onDownloadFile}
-                        onCancelDownload={onCancelDownload}
-                        onOpenDeleteModal={onOpenDeleteModal}
-                        onContextMenu={onContextMenu}
-                        onOpenPreview={onOpenPreview}
-                        onToggleReaction={onToggleReaction}
-                        onForwardClick={onForwardClick}
-                        onOpenThread={onOpenThread}
-                        onSelectTag={onSelectTag}
-                        searchQuery={searchQuery}
-                      />
-                    ) : (
-                      <ChatMessageItem
-                        msg={msg}
-                        index={idx}
-                        messages={mainStreamMessages}
-                        allMessages={messages}
-                        threadRepliesCount={threadRepliesCountMap.get(msg.id) || 0}
-                        peersLookup={peersLookup}
-                        showDivider={showDivider}
-                        profile={profile}
-                        peers={peers}
-                        server={server}
-                        fileProgress={fileProgress}
-                        nameColor={userRoleColorMap.get(msg.authorId) || null}
-                        onDownloadFile={onDownloadFile}
-                        onCancelDownload={onCancelDownload}
-                        onOpenDeleteModal={onOpenDeleteModal}
-                        onContextMenu={onContextMenu}
-                        onShowAlert={onShowAlert}
-                        onOpenPreview={onOpenPreview}
-                        onToggleReaction={onToggleReaction}
-                        onForwardClick={onForwardClick}
-                        onOpenThread={onOpenThread}
-                        onJumpToMessage={onJumpToMessage}
-                        onPluginAction={onPluginAction}
-                        onReplyClick={onReplyClick}
-                        searchQuery={searchQuery}
-                      />
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          ))}
+                        {isForum ? (
+                          <ForumPostCard
+                            msg={msg}
+                            allMessages={messages}
+                            threadRepliesCount={threadRepliesCountMap.get(msg.id) || 0}
+                            peersLookup={peersLookup}
+                            profile={profile}
+                            peers={peers}
+                            server={server}
+                            nameColor={userRoleColorMap.get(msg.authorId) || null}
+                            fileProgress={fileProgress}
+                            onDownloadFile={onDownloadFile}
+                            onCancelDownload={onCancelDownload}
+                            onOpenDeleteModal={onOpenDeleteModal}
+                            onContextMenu={onContextMenu}
+                            onOpenPreview={onOpenPreview}
+                            onToggleReaction={onToggleReaction}
+                            onForwardClick={onForwardClick}
+                            onOpenThread={onOpenThread}
+                            onSelectTag={onSelectTag}
+                            searchQuery={searchQuery}
+                          />
+                        ) : (
+                          <ChatMessageItem
+                            msg={msg}
+                            index={idx}
+                            messages={mainStreamMessages}
+                            allMessages={messages}
+                            threadRepliesCount={threadRepliesCountMap.get(msg.id) || 0}
+                            precomputedThreadParticipants={threadParticipantsMap.get(msg.id) || []}
+                            peersLookup={peersLookup}
+                            showDivider={showDivider}
+                            profile={profile}
+                            peers={peers}
+                            server={server}
+                            fileProgress={fileProgress}
+                            nameColor={userRoleColorMap.get(msg.authorId) || null}
+                            onDownloadFile={onDownloadFile}
+                            onCancelDownload={onCancelDownload}
+                            onOpenDeleteModal={onOpenDeleteModal}
+                            onContextMenu={onContextMenu}
+                            onShowAlert={onShowAlert}
+                            onOpenPreview={onOpenPreview}
+                            onToggleReaction={onToggleReaction}
+                            onForwardClick={onForwardClick}
+                            onOpenThread={onOpenThread}
+                            onJumpToMessage={handleJumpToMessageLocal}
+                            onPluginAction={onPluginAction}
+                            onReplyClick={onReplyClick}
+                            searchQuery={searchQuery}
+                          />
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           <div ref={bottomRef} className="h-4" />
         </div>
 

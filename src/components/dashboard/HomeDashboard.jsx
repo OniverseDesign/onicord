@@ -14,6 +14,7 @@ import {
 import { soundEngine } from "../../lib/soundEngine";
 
 export default function HomeDashboard({
+  isActive = true,
   profile,
   servers,
   onAddServer,
@@ -115,6 +116,7 @@ export default function HomeDashboard({
     ping,
     musicState,
     activeGame,
+    isActive,
   };
 
   useEffect(() => {
@@ -592,6 +594,7 @@ export default function HomeDashboard({
                     peerId={profile?.id}
                     profile={profile}
                     activeGame={activeGame}
+                    isActive={isActive}
                     voiceState={{ isConnected: activeConnectionsCount > 0, peers }}
                     serverDetails={{ name: connectedServer?.name, memberCount: activeConnectionsCount + 1 }}
                     setCustomBackground={(bgData) => handleUpdateWidgetBg(key, bgData)}

@@ -1,25 +1,17 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import ChatPanel from "../chat/ChatPanel";
-import MembersSidebar from "../navigation/MembersSidebar";
-import RichPresenceCard from "../ui/RichPresenceCard";
-import AddServerModal from "../modals/AddServerModal";
-import ServerSettingsModal from "../modals/ServerSettingsModal";
-import AppSettingsModal from "../modals/AppSettingsModal";
-import ConfirmDialogModal from "../modals/ConfirmDialogModal";
-import VoiceUserVolumeMenu from "../voice/VoiceUserVolumeMenu";
+import RoomHeader from "./room/RoomHeader";
+import RoomRightSidebar from "./room/RoomRightSidebar";
+import RoomOverlays from "./room/RoomOverlays";
 import { useGlobalVoice } from "../../context/VoiceContext";
-import PluginIsland from "../plugins/PluginIsland";
 import PluginBannerNotice from "../plugins/PluginBannerNotice";
 import MaterialIcon from "../icons/MaterialIcon";
 import ThreadSidePanel from "../chat/subcomponents/ThreadSidePanel";
 import ForumTagsBar from "../chat/subcomponents/ForumTagsBar";
-import ContextMenu from "../ui/ContextMenu";
 import { notificationManager } from "../../lib/notificationManager";
 import { evaluateServerFlame } from "../../lib/flameService";
 import { checkPermission, hasChannelAccess } from "../../lib/permissionsHelper";
-import UserProfilePopout from "../ui/UserProfilePopout";
-import { IconSearch, IconClose, IconTag } from "../icons/StreamIcons";
 import { buildPeerLookup, getEffectiveProfile } from "../../lib/profileUtils";
 
 import { useRoomResizers } from "../../hooks/useRoomResizers";
@@ -51,7 +43,6 @@ export default function RoomView({
   const { t } = useTranslation();
   const [peers, setPeers] = useState([]);
   const peersLookup = useMemo(() => buildPeerLookup(peers), [peers]);
-  const [showAdd, setShowAdd] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [moderationConfirm, setModerationConfirm] = useState(null);
@@ -117,6 +108,7 @@ export default function RoomView({
 
   const [channelMessages, setChannelMessages] = useState([]);
   const [selectedTagFilter, setSelectedTagFilter] = useState(null);
+  const isForumChannelRef = useRef(false);
 
   useEffect(() => {
     setSelectedTagFilter(null);
@@ -125,7 +117,9 @@ export default function RoomView({
 
   const handleMessagesUpdate = useCallback((msgs) => {
     roomMessagesRef.current = msgs;
-    setChannelMessages(msgs);
+    if (isForumChannelRef.current) {
+      setChannelMessages(msgs);
+    }
     if (activeThreadRef.current) {
       setThreadMessages(msgs);
     }
@@ -325,6 +319,9 @@ export default function RoomView({
   }, []);
 
   const handleUserClick = useCallback((e, member) => {
+    const clientX = e?.clientX ?? Math.round(window.innerWidth / 2);
+    const clientY = e?.clientY ?? Math.round(window.innerHeight / 3);
+    e?.stopPropagation?.();
     const getMemberId = (m) => (m ? (m.id || m.userId || m.peerId) : null);
     const clickedId = getMemberId(member);
 
@@ -340,7 +337,7 @@ export default function RoomView({
       }
       // If menu was closing or targeting a different user, open fresh popout
       if (closingPopoutTimerRef.current) clearTimeout(closingPopoutTimerRef.current);
-      return { x: e.clientX, y: e.clientY, member, isClosing: false };
+      return { x: clientX, y: clientY, member, isClosing: false };
     });
   }, []);
 
@@ -458,6 +455,7 @@ export default function RoomView({
 
   const activeTextChannel =
     textChannels.find((c) => c.id === textChannelId) ?? textChannels[0];
+  isForumChannelRef.current = activeTextChannel?.type === "forum";
   const globalVoice = useGlobalVoice();
   const isCurrentServerVoice =
     (globalVoice.currentVoiceServerId && globalVoice.currentVoiceServerId === server.id) ||
@@ -824,20 +822,6 @@ export default function RoomView({
       }
     }
   }, [activeStreamUserId, voiceMembersDisplay]);
-
-  useEffect(() => {
-    if (window.electronAPI?.updateOverlayMembers) {
-      const serialized = (voiceMembersDisplay || []).map((m) => ({
-        peerId: m.peerId || m.id,
-        nickname: m.nickname,
-        avatar: m.avatar,
-        isSpeaking: Boolean(m.isSpeaking),
-        muted: Boolean(m.muted || m.isMuted),
-        deafened: Boolean(m.deafened || m.isDeafened),
-      }));
-      window.electronAPI.updateOverlayMembers(serialized);
-    }
-  }, [voiceMembersDisplay]);
 
   const serverFlame = useMemo(() => {
     return evaluateServerFlame(server || {}, sanitizedMembersList);
@@ -1300,178 +1284,16 @@ export default function RoomView({
         className="flex-1 min-w-0 h-full flex flex-col relative"
         style={{ gap: "calc(var(--gap) + 3px)" }}
       >
-        <div
-          className="flex min-w-0"
-          style={{ gap: "calc(var(--gap) + 3px)" }}
-        >
-          <header className="h-12 shrink-0 flex items-center justify-between gap-2 pl-3 pr-4 bg-onicord-base rounded-full border border-onicord-island select-none">
-            <div className="flex items-center gap-2 min-w-0">
-              {resolvedDmUser ? (
-                <>
-                  <div className="h-6 w-6 rounded-full overflow-hidden bg-onicord-accent flex items-center justify-center shrink-0">
-                    {resolvedDmUser.avatar ? (
-                      <img
-                        src={resolvedDmUser.avatar}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-[10px] font-bold text-white uppercase select-none">
-                        {(resolvedDmUser.nickname || "?").charAt(0)}
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="font-semibold text-onicord-text truncate max-w-[150px]">
-                    {resolvedDmUser.nickname}
-                  </h2>
-                </>
-              ) : (
-                <>
-                  {activeTextChannel?.type === "forum" ? (
-                    <MaterialIcon name="forum" size={20} className="text-onicord-accent" />
-                  ) : (
-                    <IconTag size="lg" className="text-onicord-accent" />
-                  )}
-                  <h2 className="font-semibold text-onicord-text">
-                    {activeTextChannel?.name === "general"
-                      ? t("serverSettings.channels.defaultTextChannelName", "general")
-                      : activeTextChannel?.name || "general"}
-                  </h2>
-                </>
-              )}
-            </div>
-          </header>
-
-          <div className="h-12 flex-1 min-w-0 flex items-center gap-4 px-4 bg-onicord-base rounded-full border border-onicord-island relative">
-            <IconSearch size="lg" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  setInputValue("");
-                  setSearchQuery("");
-                  e.target.blur();
-                }
-              }}
-              placeholder={
-                isSearchFocused
-                  ? t("chat.searchPlaceholderActive", "Prueba: from:usuario, has:file, has:image, in:canal...")
-                  : t("chat.searchPlaceholder", "Buscar mensajes o archivos...")
-              }
-              className="flex-1 min-w-0 bg-transparent text-sm text-onicord-text placeholder:text-onicord-muted outline-none border-none"
-            />
-            {inputValue && (
-              <button
-                type="button"
-                onClick={() => {
-                  setInputValue("");
-                  setSearchQuery("");
-                }}
-                className="flex items-center justify-center text-onicord-muted hover:text-onicord-text transition-colors cursor-pointer"
-              >
-                <IconClose size="lg" />
-              </button>
-            )}
-
-            {isSearchFocused && !inputValue && (
-              <div
-                onMouseDown={(e) => e.preventDefault()}
-                className="absolute top-full left-0 right-0 mt-2 p-3 bg-onicord-base/95 backdrop-blur-md rounded-2xl border border-onicord-island shadow-2xl z-50 onicord-animate-popup-in origin-top"
-              >
-                <div className="text-[11px] font-semibold text-onicord-muted uppercase tracking-wider px-2 mb-2">
-                  {t("chat.searchFilterOptions", "Filtros de búsqueda disponibles")}
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputValue("from:");
-                      searchInputRef.current?.focus();
-                    }}
-                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
-                  >
-                    <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-[11px]">from:</code>
-                    <span className="text-onicord-text text-[11px] group-hover:text-white truncate">{t("chat.searchFilterFrom", "Filtrar por autor o apodo")}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputValue("has:image ");
-                      searchInputRef.current?.focus();
-                    }}
-                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
-                  >
-                    <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-[11px]">has:image</code>
-                    <span className="text-onicord-text text-[11px] group-hover:text-white truncate">{t("chat.searchFilterImage", "Solo fotos e imágenes")}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputValue("has:file ");
-                      searchInputRef.current?.focus();
-                    }}
-                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
-                  >
-                    <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-[11px]">has:file</code>
-                    <span className="text-onicord-text text-[11px] group-hover:text-white truncate">{t("chat.searchFilterFile", "Archivos y documentos")}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputValue("has:link ");
-                      searchInputRef.current?.focus();
-                    }}
-                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
-                  >
-                    <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-[11px]">has:link</code>
-                    <span className="text-onicord-text text-[11px] group-hover:text-white truncate">{t("chat.searchFilterLink", "Mensajes con enlaces web")}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputValue("in:");
-                      searchInputRef.current?.focus();
-                    }}
-                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
-                  >
-                    <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-[11px]">in:</code>
-                    <span className="text-onicord-text text-[11px] group-hover:text-white truncate">{t("chat.searchFilterIn", "Buscar en canal específico")}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputValue('""');
-                      searchInputRef.current?.focus();
-                    }}
-                    className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
-                  >
-                    <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-[11px]">"frase"</code>
-                    <span className="text-onicord-text text-[11px] group-hover:text-white truncate">{t("chat.searchFilterPhrase", "Coincidencia exacta")}</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("onicord:open-pinned-modal"))}
-            className="h-12 w-12 rounded-full bg-onicord-base border border-onicord-island hover:bg-white/10 text-onicord-muted hover:text-onicord-accent transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-            title={t("chat.pinnedMessages", "Mensajes Fijados")}
-          >
-            <MaterialIcon name="push_pin" size="lg" />
-          </button>
-        </div>
+        <RoomHeader
+          resolvedDmUser={resolvedDmUser}
+          activeTextChannel={activeTextChannel}
+          inputValue={inputValue}
+          setInputValue={setInputValue}
+          setSearchQuery={setSearchQuery}
+          isSearchFocused={isSearchFocused}
+          setIsSearchFocused={setIsSearchFocused}
+          searchInputRef={searchInputRef}
+        />
 
         {/* Forum Channel Hashtag Filters Bar */}
         {activeTextChannel?.type === "forum" && (
@@ -1678,346 +1500,51 @@ export default function RoomView({
       />
 
       {/* Barra Derecha: Rich Presence + Plugins + Miembros */}
-      <div
-        style={{
-          width: `${rightWidth}px`,
-          minWidth: `${rightWidth}px`,
-          maxWidth: `${rightWidth}px`,
-          gap: "calc(var(--gap) + 3px)",
-        }}
-        className="h-full shrink-0 flex-shrink-0 flex flex-col"
-      >
-        {/* Draggable Rich Presence island */}
-        <div
-          className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
-            hasActiveGame
-              ? "max-h-48 opacity-100 scale-100 pointer-events-auto"
-              : "max-h-0 opacity-0 scale-95 pointer-events-none -mb-[calc(var(--gap)+3px)]"
-          }`}
-        >
-          {displayGame && displayGame.name && (
-            <RichPresenceCard
-              gameName={displayGame.name}
-              cover={displayGame.cover}
-              smallCover={displayGame.smallCover}
-              startTime={displayGame.startTime}
-              type={displayGame.type || "game"}
-              state={displayGame.state}
-              party={displayGame.party}
-              details={
-                displayGame.details ||
-                (displayGame.type === "music"
-                  ? t("userPanel.listeningTo", "Escuchando a")
-                  : displayGame.type === "movie" || displayGame.type === "cinema" || displayGame.name === "Cinema" || displayGame.source === "addon:onicord-cinema"
-                    ? (displayGame.isCatalog ? t("userPanel.exploring", "Explorando") : t("userPanel.watching", "Viendo"))
-                    : displayGame.type === "app"
-                      ? t("gamesTab.usingNow", "Usando ahora")
-                      : displayGame.type === "client"
-                        ? t("userPopout.inMenus", "En los menús")
-                        : t("userPanel.playing", "Jugando a"))
-              }
-            />
-          )}
-        </div>
+      <RoomRightSidebar
+        rightWidth={rightWidth}
+        hasActiveGame={hasActiveGame}
+        displayGame={displayGame}
+        sanitizedMembersList={sanitizedMembersList}
+        voiceMembersDisplay={voiceMembersDisplay}
+        voice={voice}
+        handleVoiceUserContextMenu={handleVoiceUserContextMenu}
+        handleMemberContextMenu={handleMemberContextMenu}
+        handleUserClick={handleUserClick}
+        profile={profile}
+        server={server}
+        onOpenAppSettings={onOpenAppSettings}
+        getChannelUnreadCount={getChannelUnreadCount}
+        handleMessageUser={handleMessageUser}
+      />
 
-        <MembersSidebar
-          members={sanitizedMembersList}
-          voiceMembers={voiceMembersDisplay}
-          onVoiceUserContextMenu={
-            voice.inVoice ? handleVoiceUserContextMenu : undefined
-          }
-          onMemberContextMenu={handleMemberContextMenu}
-          onUserClick={handleUserClick}
-          profile={profile}
-          roomCode={server.roomCode}
-          serverId={server.roomCode || server.id}
-          onEditProfile={() => {
-            onOpenAppSettings?.("profile", { serverId: server.roomCode || server.id });
-          }}
-          getChannelUnreadCount={getChannelUnreadCount}
-          onMessageUser={handleMessageUser}
-          disableFlameSystem={server?.disableFlameSystem}
-          ownerId={server?.ownerId}
-          server={server}
-        />
-
-        <PluginIsland
-          roomCode={server?.roomCode}
-          profile={profile}
-          server={server}
-          voice={voice}
-        />
-      </div>
-
-      {/* Modales y Popouts */}
-      {volumeMenu && (
-        <VoiceUserVolumeMenu
-          x={volumeMenu.x}
-          y={volumeMenu.y}
-          nickname={volumeMenu.nickname}
-          volume={volumeMenu.volume}
-          onVolumeChange={(v) => {
-            setVolumeMenu((prev) => (prev ? { ...prev, volume: v } : null));
-            voice.setPeerVolume?.(volumeMenu.peerId, v);
-          }}
-          onClose={() => setVolumeMenu(null)}
-        />
-      )}
-
-      {userPopout && (
-        <UserProfilePopout
-          key={
-            userPopout.member.id ||
-            userPopout.member.userId ||
-            userPopout.member.peerId
-          }
-          x={userPopout.x}
-          y={userPopout.y}
-          member={userPopout.member}
-          isClosing={userPopout.isClosing}
-          onClose={handleCloseUserPopout}
-          disableFlameSystem={server?.disableFlameSystem}
-          serverId={server.roomCode || server.id}
-          onEditProfile={() => {
-            onOpenAppSettings?.("profile", { serverId: server.roomCode || server.id });
-          }}
-          userRolesList={(() => {
-            const mId =
-              userPopout.member.id ||
-              userPopout.member.userId ||
-              userPopout.member.peerId;
-
-            const list = (() => {
-              if (!server?.roles || !server?.userRoles) return [];
-              const uRoles = server.userRoles[mId];
-              if (!uRoles) return [];
-
-              const roleIds = Array.isArray(uRoles) ? uRoles : [uRoles];
-              return roleIds
-                .map((id) => server.roles.find((r) => r.id === id))
-                .filter(Boolean)
-                .sort(
-                  (a, b) =>
-                    server.roles.findIndex((r) => r.id === a.id) -
-                    server.roles.findIndex((r) => r.id === b.id),
-                );
-            })();
-
-            if (server?.ownerId && mId === server.ownerId) {
-              list.unshift({ id: "owner", name: "crown", color: "#FFD700" });
-            }
-            return list;
-          })()}
-        />
-      )}
-
-      {showAdd && (
-        <AddServerModal
-          profile={profile}
-          onClose={() => setShowAdd(false)}
-          onCreated={async (newServer) => {
-            setShowAdd(false);
-            onRefreshServers();
-            await handleSwitchServer(newServer.id);
-          }}
-        />
-      )}
-
-      {showSettings && (
-        <ServerSettingsModal
-          server={server}
-          peers={peers}
-          profile={profile}
-          servers={servers}
-          onClose={() => setShowSettings(false)}
-          onSave={onServerUpdated}
-          onSaved={onServerUpdated}
-          onLeave={onLeave}
-          onRefreshServers={onRefreshServers}
-          onProfileChange={onProfileChange}
-          sanitizedMembersList={sanitizedMembersList}
-        />
-      )}
-
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          title={contextMenu.title}
-          onClose={() => setContextMenu(null)}
-          items={(() => {
-            if (contextMenu.type === "member") {
-              const { targetUser } = contextMenu;
-              const targetId = targetUser.id || targetUser.userId;
-              const isSelf = targetId === profile?.id;
-              const ownerId = server?.ownerId;
-              const isLocalOwner = Boolean(server?.isOwner || (ownerId && ownerId === profile?.id));
-              const isLocalAdmin = isLocalOwner || checkPermission(server, profile?.id, "admin");
-              const targetIsOwner = Boolean(ownerId && targetId === ownerId);
-              const targetIsAdmin = checkPermission(server, targetId, "admin");
-              const canModerate = !isSelf && !targetIsOwner && (isLocalOwner || (isLocalAdmin && !targetIsAdmin));
-
-              const menuItems = [
-                {
-                  label: t("contextMenu.viewProfile", "Ver perfil"),
-                  icon: <MaterialIcon name="person" size={16} />,
-                  onClick: () => {
-                    handleUserClick(null, targetUser);
-                    setContextMenu(null);
-                  },
-                },
-              ];
-
-              if (!isSelf) {
-                menuItems.push({
-                  label: t("contextMenu.sendDirectMessage", "Mensaje directo"),
-                  icon: <MaterialIcon name="chat" size={16} />,
-                  onClick: () => {
-                    handleMessageUser(targetUser);
-                    setContextMenu(null);
-                  },
-                });
-              }
-
-              if (canModerate) {
-                menuItems.push(
-                  {
-                    label: t("settings.members.kickButton", "Expulsar miembro"),
-                    icon: <MaterialIcon name="person_remove" size={16} />,
-                    danger: true,
-                    onClick: () => {
-                      setContextMenu(null);
-                      setModerationConfirm({
-                        type: "kick",
-                        targetId,
-                        nickname: targetUser.nickname || "este usuario",
-                      });
-                    },
-                  },
-                  {
-                    label: t("settings.members.banButton", "Banear miembro"),
-                    icon: <MaterialIcon name="block" size={16} />,
-                    danger: true,
-                    onClick: () => {
-                      setContextMenu(null);
-                      setModerationConfirm({
-                        type: "ban",
-                        targetId,
-                        nickname: targetUser.nickname || "este usuario",
-                      });
-                    },
-                  }
-                );
-              }
-
-              return menuItems;
-            }
-            if (contextMenu.type === "voice_user") {
-              const { targetUser } = contextMenu;
-              return [
-                {
-                  label: t("voice.userVolume", "Volumen de usuario"),
-                  icon: <MaterialIcon name="volume_up" size={16} />,
-                  onClick: () => {
-                    const currentVol = voice.getPeerVolume?.(targetUser.peerId) ?? 100;
-                    setVolumeMenu({
-                      x: contextMenu.x,
-                      y: contextMenu.y,
-                      peerId: targetUser.peerId,
-                      nickname: targetUser.nickname,
-                      volume: currentVol,
-                    });
-                    setContextMenu(null);
-                  },
-                },
-              ];
-            }
-            if (contextMenu.type === "channel") {
-              const { channel } = contextMenu;
-              const isChMuted = localStorage.getItem(`channel_notif_mode_${channel.id}`) === "nothing";
-              return [
-                {
-                  label: t("contextMenu.markAsRead", "Marcar como leído"),
-                  icon: <MaterialIcon name="done_all" size={16} />,
-                  onClick: () => {
-                    markChannelAsRead?.(server?.roomCode, channel.id);
-                    setContextMenu(null);
-                  },
-                },
-                {
-                  label: isChMuted
-                    ? t("contextMenu.unmuteChannel", "Desilenciar canal")
-                    : t("contextMenu.muteChannel", "Silenciar canal"),
-                  icon: <MaterialIcon name={isChMuted ? "notifications" : "notifications_off"} size={16} />,
-                  onClick: () => {
-                    if (isChMuted) {
-                      localStorage.removeItem(`channel_notif_mode_${channel.id}`);
-                    } else {
-                      localStorage.setItem(`channel_notif_mode_${channel.id}`, "nothing");
-                    }
-                    window.dispatchEvent(new CustomEvent("onicord:channel-mute-changed", { detail: { channelId: channel.id } }));
-                    setContextMenu(null);
-                  },
-                },
-              ];
-            }
-            return [];
-          })()}
-        />
-      )}
-
-      {moderationConfirm && (
-        <ConfirmDialogModal
-          isOpen={Boolean(moderationConfirm)}
-          title={
-            moderationConfirm.type === "ban"
-              ? t("settings.members.banTitle", "Banear miembro")
-              : t("settings.members.kickTitle", "Expulsar miembro")
-          }
-          message={
-            moderationConfirm.type === "ban"
-              ? t("settings.members.confirmBan", `¿Estás seguro de que deseas banear a ${moderationConfirm.nickname}?`)
-              : t("settings.members.confirmKick", `¿Estás seguro de que deseas expulsar a ${moderationConfirm.nickname}?`)
-          }
-          warningMessage={
-            moderationConfirm.type === "ban"
-              ? t("settings.members.banWarning", "El usuario no podrá volver a unirse hasta que sea desbaneado.")
-              : t("settings.members.kickWarning", "El usuario será desconectado inmediatamente del servidor.")
-          }
-          confirmLabel={moderationConfirm.type === "ban" ? "Banear" : "Expulsar"}
-          cancelLabel="Cancelar"
-          type="danger"
-          onConfirm={async () => {
-            const { type, targetId } = moderationConfirm;
-            setModerationConfirm(null);
-            if (!server?.id || !targetId) return;
-            setPeers((prev) =>
-              prev.filter((p) => p.id !== targetId && p.userId !== targetId && p.peerId !== targetId)
-            );
-            try {
-              if (type === "kick") {
-                const currentKicked = { ...(server.kickedUsers || {}) };
-                currentKicked[targetId] = Date.now();
-                const updated = await window.electronAPI.updateServerSettings(server.id, {
-                  kickedUsers: currentKicked,
-                });
-                if (updated) onServerUpdated?.(updated);
-                soundEngine.playNav("leave");
-              } else if (type === "ban") {
-                const currentBanned = Array.from(new Set([...(server.bannedUsers || []), targetId]));
-                const updated = await window.electronAPI.updateServerSettings(server.id, {
-                  bannedUsers: currentBanned,
-                });
-                if (updated) onServerUpdated?.(updated);
-                soundEngine.playNav("leave");
-              }
-            } catch (err) {
-              console.error(`[Moderation Error (${type})]:`, err);
-            }
-          }}
-          onCancel={() => setModerationConfirm(null)}
-        />
-      )}
+      {/* Modales, Menús Contextuales y Popouts */}
+      <RoomOverlays
+        volumeMenu={volumeMenu}
+        setVolumeMenu={setVolumeMenu}
+        voice={voice}
+        userPopout={userPopout}
+        handleCloseUserPopout={handleCloseUserPopout}
+        server={server}
+        onOpenAppSettings={onOpenAppSettings}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+        peers={peers}
+        setPeers={setPeers}
+        profile={profile}
+        servers={servers}
+        onServerUpdated={onServerUpdated}
+        onLeave={onLeave}
+        onRefreshServers={onRefreshServers}
+        onProfileChange={onProfileChange}
+        sanitizedMembersList={sanitizedMembersList}
+        contextMenu={contextMenu}
+        setContextMenu={setContextMenu}
+        handleUserClick={handleUserClick}
+        handleMessageUser={handleMessageUser}
+        markChannelAsRead={markChannelAsRead}
+        moderationConfirm={moderationConfirm}
+        setModerationConfirm={setModerationConfirm}
+      />
     </div>
   );
 }

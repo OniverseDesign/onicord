@@ -30,13 +30,15 @@ class FileIndexStore {
 
   _rowToFile(row) {
     const extra = safeParse(row.extra_json, {});
+    delete extra.realPath;
+    delete extra.local_path;
     return {
       ...extra,
       id: row.file_id,
       ownerId: row.owner_id || extra.ownerId || null,
       name: row.name,
       size: Number(row.size_bytes) || extra.size || 0,
-      realPath: row.local_path || extra.realPath || null,
+      realPath: row.local_path || null,
       uploadedAt: Number(row.uploaded_at) || extra.uploadedAt || 0,
       updatedAt: Number(row.updated_at) || extra.updatedAt || 0,
     };
@@ -56,19 +58,30 @@ class FileIndexStore {
     }
   }
 
-  async merge(roomCode, incoming) {
+  async merge(roomCode, remoteFiles, options = {}) {
     const safeCode = this._safeCode(roomCode);
     if (!safeCode) return { added: 0, files: [] };
-    if (!incoming?.length) return { added: 0, files: await this.load(safeCode) };
+    if (!remoteFiles?.length) return { added: 0, files: await this.load(safeCode) };
 
     const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
     let added = 0;
+    const allowLocalPath = Boolean(options && options.isLocal === true);
 
     const getExisting = msgDb.prepare("SELECT * FROM shared_files WHERE file_id = ?");
     const upsertFile = msgDb.prepare(`
-      INSERT OR REPLACE INTO shared_files (
+      INSERT INTO shared_files (
         file_id, owner_id, name, size_bytes, mime_type, cas_hash, local_path, extra_json, uploaded_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(file_id) DO UPDATE SET
+        owner_id = excluded.owner_id,
+        name = excluded.name,
+        size_bytes = excluded.size_bytes,
+        mime_type = excluded.mime_type,
+        cas_hash = COALESCE(shared_files.cas_hash, excluded.cas_hash),
+        local_path = COALESCE(shared_files.local_path, excluded.local_path),
+        extra_json = excluded.extra_json,
+        uploaded_at = excluded.uploaded_at,
+        updated_at = excluded.updated_at
     `);
 
     const tx = msgDb.transaction((items) => {
@@ -77,26 +90,29 @@ class FileIndexStore {
         const fId = String(f.id);
         const existingRow = getExisting.get(fId);
         const now = Date.now();
+        const { realPath: _rp, local_path: _lp, ...safeIncoming } = f;
+        const trustedLocalPath = allowLocalPath ? (f.realPath || f.local_path || null) : null;
+
         if (!existingRow) {
           upsertFile.run(
             fId,
-            f.ownerId || null,
-            String(f.name || "archivo"),
-            Number(f.size) || 0,
-            f.mimeType || null,
+            safeIncoming.ownerId || null,
+            String(safeIncoming.name || "archivo"),
+            Number(safeIncoming.size) || 0,
+            safeIncoming.mimeType || null,
             null,
-            f.realPath || null,
-            JSON.stringify(f),
-            Number(f.uploadedAt) || now,
-            Number(f.updatedAt || f.uploadedAt) || now
+            trustedLocalPath,
+            JSON.stringify(safeIncoming),
+            Number(safeIncoming.uploadedAt) || now,
+            Number(safeIncoming.updatedAt || safeIncoming.uploadedAt) || now
           );
           added++;
         } else {
           const exFile = this._rowToFile(existingRow);
-          if ((f.updatedAt || f.uploadedAt || 0) > (exFile.updatedAt || exFile.uploadedAt || 0)) {
-            const keepRealPath = exFile.realPath && (f.realPath === undefined || f.realPath === null);
-            const merged = { ...exFile, ...f };
-            if (keepRealPath) merged.realPath = exFile.realPath;
+          if ((safeIncoming.updatedAt || safeIncoming.uploadedAt || 0) > (exFile.updatedAt || exFile.uploadedAt || 0)) {
+            const preservedLocalPath = existingRow.local_path || trustedLocalPath || null;
+            const { realPath: _exRp, local_path: _exLp, ...safeExisting } = exFile;
+            const merged = { ...safeExisting, ...safeIncoming };
             upsertFile.run(
               fId,
               merged.ownerId || null,
@@ -104,7 +120,7 @@ class FileIndexStore {
               Number(merged.size) || 0,
               merged.mimeType || null,
               null,
-              merged.realPath || null,
+              preservedLocalPath,
               JSON.stringify(merged),
               Number(merged.uploadedAt) || now,
               Number(merged.updatedAt || merged.uploadedAt) || now
@@ -114,7 +130,7 @@ class FileIndexStore {
         }
       }
     });
-    tx(incoming);
+    tx(remoteFiles);
 
     const files = await this.load(safeCode);
     return { added, files };

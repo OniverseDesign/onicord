@@ -14,23 +14,15 @@ import {
 
 export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
   const { t } = useTranslation();
-  if (!musicState)
-    return (
-      <div className="w-full h-full flex items-center justify-center p-4 opacity-40">
-        <p className="text-xs font-mono text-onicord-muted animate-pulse">
-          {t("common.loading", "Cargando...")}
-        </p>
-      </div>
-    );
 
   const {
     currentTrack,
-    playlist,
-    isPlaying,
-    volume,
+    playlist = [],
+    isPlaying = false,
+    volume = 1,
     setVolume,
-    playHistory,
-    repeatMode,
+    playHistory = [],
+    repeatMode = 0,
     audioRef,
     setPlaylist,
     canManageMusic = true,
@@ -44,7 +36,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
     enqueueTrack,
     toggleRepeat: contextToggleRepeat,
     setRepeatMode,
-  } = musicState;
+  } = musicState || {};
 
   // Dynamic text class depending on active playback state
   const textColor = isPlaying ? "text-white" : "text-onicord-text";
@@ -56,10 +48,11 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
   const [draggedIdx, setDraggedIdx] = useState(null);
 
   useEffect(() => {
+    if (!musicState) return;
     if (currentTrack?.thumbnail)
-      setCustomBackground({ type: "image", value: currentTrack.thumbnail });
-    else setCustomBackground(null);
-  }, [currentTrack?.thumbnail]);
+      setCustomBackground?.({ type: "image", value: currentTrack.thumbnail });
+    else setCustomBackground?.(null);
+  }, [musicState, currentTrack?.thumbnail, setCustomBackground]);
 
   useEffect(() => {
     setCurrentTime("0:00");
@@ -81,6 +74,16 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
     audioNode.addEventListener("timeupdate", syncProgress);
     return () => audioNode.removeEventListener("timeupdate", syncProgress);
   }, [currentTrack, audioRef]);
+
+  if (!musicState) {
+    return (
+      <div className="w-full h-full flex items-center justify-center p-4 opacity-40">
+        <p className="text-xs font-mono text-onicord-muted animate-pulse">
+          {t("common.loading", "Cargando...")}
+        </p>
+      </div>
+    );
+  }
 
   const togglePlayPause = () => {
     if (!canManageMusic) return;

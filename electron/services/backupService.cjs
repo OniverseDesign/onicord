@@ -375,8 +375,18 @@ async function restoreBackup(filePath, categoriesToRestore = null) {
     } catch {}
   }
 
-  const cats = categoriesToRestore || manifest.categories || ["profile", "servers", "addons", "stickers"];
+  const rawCats = categoriesToRestore || manifest.categories || ["profile", "servers", "addons", "stickers"];
+  const cats = Array.isArray(rawCats)
+    ? rawCats
+    : Object.keys(rawCats).filter((k) => Boolean(rawCats[k]));
   const ud = getUserDataPath();
+
+  try {
+    const { DbManager } = require("../storage/dbManager.cjs");
+    DbManager.getInstance(ud).closeAll();
+  } catch (closeErr) {
+    console.warn("[BackupService] Error closing DB handles before restore:", closeErr.message);
+  }
 
   const prefixMap = {
     profile: "profile/",
@@ -385,6 +395,7 @@ async function restoreBackup(filePath, categoriesToRestore = null) {
     stickers: "stickers/",
   };
 
+  const rootWithSep = path.resolve(ud) + path.sep;
   const totalEntries = entries.length;
   let processed = 0;
 
@@ -392,27 +403,56 @@ async function restoreBackup(filePath, categoriesToRestore = null) {
     processed++;
     if (entry.entryName === "manifest.json" || entry.isDirectory) continue;
 
-    const matchedCat = cats.find((c) => entry.entryName.startsWith(prefixMap[c] || `${c}/`));
-    if (!matchedCat) continue;
+    const normalizedEntry = entry.entryName.replace(/\\/g, "/");
+    let matchedCat = null;
+    let relPath = null;
+
+    if (
+      cats.includes("profile") &&
+      (normalizedEntry.startsWith("db/") ||
+        normalizedEntry.startsWith("cas/") ||
+        normalizedEntry.startsWith("profile/"))
+    ) {
+      matchedCat = "profile";
+      relPath = normalizedEntry.startsWith("profile/")
+        ? normalizedEntry.slice("profile/".length)
+        : normalizedEntry;
+    } else {
+      matchedCat = cats.find((c) => c !== "profile" && normalizedEntry.startsWith(prefixMap[c] || `${c}/`));
+      if (matchedCat) {
+        const prefix = prefixMap[matchedCat] || `${matchedCat}/`;
+        if (matchedCat === "servers" && !normalizedEntry.startsWith("servers/servers/")) {
+          relPath = normalizedEntry;
+        } else {
+          relPath = normalizedEntry.slice(prefix.length);
+        }
+      }
+    }
+
+    if (!matchedCat || !relPath) continue;
 
     try {
-      const prefix = prefixMap[matchedCat] || `${matchedCat}/`;
-      const relPath = entry.entryName.slice(prefix.length);
-
       // Prevenir vulnerabilidad Zip Slip / Path Traversal
       const safeRelPath = path.normalize(relPath).replace(/^(\.\.[\/\\])+/, "");
       const destPath = path.join(ud, safeRelPath);
+      const resolvedDest = path.resolve(destPath);
 
-      if (!destPath.startsWith(ud)) {
+      if (!resolvedDest.startsWith(rootWithSep)) {
         console.warn(`[BackupService] Bloqueada ruta insegura en backup: ${entry.entryName}`);
         continue;
       }
 
-      await fsPromises.mkdir(path.dirname(destPath), { recursive: true });
-      await fsPromises.writeFile(destPath, entry.getData());
+      await fsPromises.mkdir(path.dirname(resolvedDest), { recursive: true });
+      if (resolvedDest.endsWith(".db")) {
+        try {
+          if (fs.existsSync(`${resolvedDest}-wal`)) await fsPromises.unlink(`${resolvedDest}-wal`);
+          if (fs.existsSync(`${resolvedDest}-shm`)) await fsPromises.unlink(`${resolvedDest}-shm`);
+        } catch {}
+      }
+      await fsPromises.writeFile(resolvedDest, entry.getData());
 
       const percent = Math.min(95, Math.round(20 + (processed / Math.max(totalEntries, 1)) * 75));
-      sendProgress(`Restaurando ${path.basename(destPath)}...`, percent);
+      sendProgress(`Restaurando ${path.basename(resolvedDest)}...`, percent);
     } catch (err) {
       console.error(`[BackupService] Error al restaurar ${entry.entryName}:`, err.message);
     }

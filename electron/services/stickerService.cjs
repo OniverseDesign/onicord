@@ -232,7 +232,7 @@ class StickerService {
 
       let rawString = "";
       try {
-        rawString = zlib.gunzipSync(bufferToProcess).toString("utf8");
+        rawString = zlib.gunzipSync(bufferToProcess, { maxOutputLength: 50 * 1024 * 1024 }).toString("utf8");
       } catch {
         rawString = bufferToProcess.toString("utf8");
       }
@@ -243,10 +243,13 @@ class StickerService {
         throw new Error("Estructura de paquete .onipkg inválida o corrupta.");
       }
 
-      const cleanPackName = pack.name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      const cleanPackName = pack.name.toLowerCase().replace(/[^a-z0-9]+/g, "_") || "pack";
       const stickersDb = this._db();
       const cas = this._cas();
       const now = Date.now();
+
+      const stickersRoot = path.resolve(this.stickersDir) + path.sep;
+      const packsRoot = path.resolve(this.packsDir) + path.sep;
 
       const tx = stickersDb.transaction(() => {
         stickersDb
@@ -265,8 +268,12 @@ class StickerService {
 
         for (const stk of pack.stickers) {
           if (!stk?.id || !stk.base64) continue;
-          const cleanStickerId = String(stk.id).trim();
-          const extensionFinal = String(stk.ext || "png").toLowerCase();
+          const cleanStickerId = path.basename(String(stk.id).trim());
+          const extensionFinal = String(stk.ext || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+          const candidateDest = path.join(this.stickersDir, `${cleanStickerId}.${extensionFinal}`);
+          if (!path.resolve(candidateDest).startsWith(stickersRoot)) {
+            throw new Error("Ruta de sticker insegura en el paquete (Zip-Slip bloqueado).");
+          }
           const base64Parts = stk.base64.split(",");
           const targetBufferString = base64Parts[1] || base64Parts[0];
           const buffer = Buffer.from(targetBufferString, "base64");
@@ -300,6 +307,9 @@ class StickerService {
       };
 
       const finalPackPath = path.join(this.packsDir, `${cleanPackName}.onipkg`);
+      if (!path.resolve(finalPackPath).startsWith(packsRoot)) {
+        throw new Error("Ruta de paquete insegura (Zip-Slip bloqueado).");
+      }
       const compressedIndex = zlib.gzipSync(
         Buffer.from(JSON.stringify(packIndiceAlivianado, null, 2), "utf8")
       );
@@ -376,17 +386,24 @@ class StickerService {
 
   async deleteStickerLocal(id, ext) {
     try {
-      const cleanId = String(id || "").trim();
+      const cleanId = path.basename(String(id || "").trim());
+      if (!cleanId) return false;
       const info = this._db()
         .prepare("DELETE FROM stickers WHERE sticker_id = ?")
         .run(cleanId);
 
-      const filePath = path.join(this.stickersDir, `${cleanId}.${ext}`);
-      if (fs.existsSync(filePath)) {
-        await fsPromises.unlink(filePath);
-        return true;
+      const exts = ext
+        ? [String(ext).toLowerCase().replace(/^\.+/, "")]
+        : ["webp", "png", "gif", "jpg", "jpeg"];
+      let deletedFile = false;
+      for (const candidateExt of exts) {
+        const filePath = path.join(this.stickersDir, `${cleanId}.${candidateExt}`);
+        if (fs.existsSync(filePath)) {
+          await fsPromises.unlink(filePath);
+          deletedFile = true;
+        }
       }
-      return info.changes > 0;
+      return deletedFile || info.changes > 0;
     } catch (err) {
       console.error("[Sticker Service Error] Falló deleteStickerLocal:", err);
       throw err;
@@ -394,12 +411,29 @@ class StickerService {
   }
 
   async downloadAndInstallStickerPack(downloadUrl, timeoutMs = 15000) {
+    if (!downloadUrl || typeof downloadUrl !== "string") {
+      throw new Error("URL de descarga no válida.");
+    }
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(downloadUrl.trim());
+    } catch {
+      throw new Error("Formato de URL inválido.");
+    }
+    if (parsedUrl.protocol !== "https:") {
+      throw new Error("Solo se permiten URLs HTTPS para descargar packs de stickers.");
+    }
+    const openGraphService = require("./openGraphService.cjs");
+    if (openGraphService.isPrivateOrBlockedHost(parsedUrl.hostname)) {
+      throw new Error("No se permiten destinos de red privada o loopback.");
+    }
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      console.log(`[Sticker Service] Descargando pack de stickers desde: ${downloadUrl}`);
-      const response = await fetch(downloadUrl, { signal: controller.signal });
+      console.log(`[Sticker Service] Descargando pack de stickers desde: ${parsedUrl.toString()}`);
+      const response = await fetch(parsedUrl.toString(), { signal: controller.signal });
       clearTimeout(timer);
 
       if (!response.ok) {

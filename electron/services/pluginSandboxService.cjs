@@ -9,10 +9,66 @@ function resolvePluginAvatar(avatarProp, pluginId) {
   return pluginService.resolvePluginIcon(avatarProp, pluginId);
 }
 
+function hardenHostFn(fn) {
+  const safeFn = function (...args) {
+    try {
+      const res = fn.apply(null, args);
+      if (res && typeof res.then === "function") {
+        const thenable = Object.create(null);
+        thenable.then = hardenHostFn((onFulfilled, onRejected) =>
+          res.then(
+            typeof onFulfilled === "function" ? (v) => onFulfilled(v) : undefined,
+            typeof onRejected === "function" ? (e) => onRejected(new Error(e?.message || "Error")) : undefined
+          )
+        );
+        thenable.catch = hardenHostFn((onRejected) =>
+          res.catch(typeof onRejected === "function" ? (e) => onRejected(new Error(e?.message || "Error")) : undefined)
+        );
+        return Object.freeze(thenable);
+      }
+      return res;
+    } catch (err) {
+      throw new Error(err?.message || "Sandbox execution error");
+    }
+  };
+  Object.setPrototypeOf(safeFn, null);
+  return Object.freeze(safeFn);
+}
+
+function hardenHostObject(obj, seen = new WeakSet()) {
+  if (obj === null || typeof obj !== "object") {
+    return typeof obj === "function" ? hardenHostFn(obj) : obj;
+  }
+  if (seen.has(obj)) return obj;
+  seen.add(obj);
+
+  Object.setPrototypeOf(obj, null);
+  for (const key of Reflect.ownKeys(obj)) {
+    const desc = Object.getOwnPropertyDescriptor(obj, key);
+    if (!desc) continue;
+    if ("value" in desc) {
+      if (typeof desc.value === "function") {
+        obj[key] = hardenHostFn(desc.value);
+      } else if (desc.value && typeof desc.value === "object") {
+        hardenHostObject(desc.value, seen);
+      }
+    } else {
+      if (typeof desc.get === "function") desc.get = hardenHostFn(desc.get);
+      if (typeof desc.set === "function") desc.set = hardenHostFn(desc.set);
+      Object.defineProperty(obj, key, desc);
+    }
+  }
+  return Object.freeze(obj);
+}
+
 class PluginSandboxService {
   constructor() {
     this.activeSandboxes = new Map(); // pluginId -> { context, manifest, widgets, commandHandlers, p2pListeners }
     global.pluginSandboxService = this;
+  }
+
+  stopPlugin(pluginId, ipcBroadcaster) {
+    return this.unloadPlugin(pluginId, ipcBroadcaster);
   }
 
   unloadPlugin(pluginId, ipcBroadcaster) {
@@ -125,11 +181,19 @@ class PluginSandboxService {
 
     // Default system language
     const appLanguage = (app.getLocale ? app.getLocale() : "es").split("-")[0] || "es";
+    let currentActiveContext = null;
+    const safeManifestCopy = JSON.parse(JSON.stringify(manifest || {}));
 
     // Create isolated Onicord Sandbox API
     const sandboxAPI = {
-      manifest,
+      manifest: safeManifestCopy,
       language: appLanguage,
+      get _activeContext() {
+        return currentActiveContext;
+      },
+      set _activeContext(val) {
+        currentActiveContext = val;
+      },
       getLanguage: () => appLanguage,
       get config() {
         return sandboxAPI.getConfig();
@@ -609,54 +673,60 @@ class PluginSandboxService {
     };
 
     const activeTimers = new Set();
-    const safeSetTimeout = (fn, delay, ...args) => {
-      const id = setTimeout(() => {
-        activeTimers.delete(id);
+    const timerHandleMap = new Map();
+    let timerIdCounter = 0;
+
+    const safeSetTimeout = hardenHostFn((fn, delay, ...args) => {
+      const numericId = ++timerIdCounter;
+      const handle = setTimeout(() => {
+        activeTimers.delete(handle);
+        timerHandleMap.delete(numericId);
         if (typeof fn === "function") fn(...args);
       }, delay);
-      activeTimers.add(id);
-      return id;
-    };
-    const safeClearTimeout = (id) => {
-      activeTimers.delete(id);
-      clearTimeout(id);
-    };
-    const safeSetInterval = (fn, delay, ...args) => {
-      const id = setInterval((...a) => {
+      activeTimers.add(handle);
+      timerHandleMap.set(numericId, handle);
+      return numericId;
+    });
+    const safeClearTimeout = hardenHostFn((id) => {
+      const handle = timerHandleMap.get(id) || id;
+      timerHandleMap.delete(id);
+      activeTimers.delete(handle);
+      clearTimeout(handle);
+    });
+    const safeSetInterval = hardenHostFn((fn, delay, ...args) => {
+      const numericId = ++timerIdCounter;
+      const handle = setInterval((...a) => {
         if (typeof fn === "function") fn(...a);
       }, delay, ...args);
-      activeTimers.add(id);
-      return id;
-    };
-    const safeClearInterval = (id) => {
-      activeTimers.delete(id);
-      clearInterval(id);
-    };
+      activeTimers.add(handle);
+      timerHandleMap.set(numericId, handle);
+      return numericId;
+    });
+    const safeClearInterval = hardenHostFn((id) => {
+      const handle = timerHandleMap.get(id) || id;
+      timerHandleMap.delete(id);
+      activeTimers.delete(handle);
+      clearInterval(handle);
+    });
+
+    hardenHostObject(sandboxAPI);
 
     // Isolated execution context (VM Sandbox)
-    const contextObject = {
-      Onicord: sandboxAPI,
-      setTimeout: safeSetTimeout,
-      clearTimeout: safeClearTimeout,
-      setInterval: safeSetInterval,
-      clearInterval: safeClearInterval,
-      Math,
-      Date,
-      JSON,
-      Array,
-      Object,
-      String,
-      Number,
-      Boolean,
-      encodeURIComponent,
-      decodeURIComponent,
-    };
+    const contextObject = Object.create(null);
+    contextObject.Onicord = sandboxAPI;
+    contextObject.setTimeout = safeSetTimeout;
+    contextObject.clearTimeout = safeClearTimeout;
+    contextObject.setInterval = safeSetInterval;
+    contextObject.clearInterval = safeClearInterval;
 
     if (manifest.permissions?.includes("network.outbound")) {
-      contextObject.fetch = global.fetch || require("node-fetch");
+      const rawFetch = global.fetch || require("node-fetch");
+      contextObject.fetch = hardenHostFn((url, opts) => rawFetch(url, opts));
     }
 
-    const context = vm.createContext(contextObject);
+    const context = vm.createContext(contextObject, {
+      codeGeneration: { strings: false, wasm: false },
+    });
 
     try {
       vm.runInContext(code, context, { filename: manifest.main || "index.js", timeout: 5000 });
@@ -685,6 +755,12 @@ class PluginSandboxService {
         ipcBroadcaster("plugins:custom-views-updated", this.getAllCustomViews());
       }
     } catch (err) {
+      for (const timer of activeTimers) {
+        clearTimeout(timer);
+        clearInterval(timer);
+      }
+      activeTimers.clear();
+      timerHandleMap.clear();
       console.error(`[SANDBOX] Error ejecutando complemento ${manifest.name}:`, err);
     }
   }

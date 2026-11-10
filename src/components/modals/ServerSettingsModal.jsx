@@ -42,7 +42,6 @@ export default function ServerSettingsModal({
   onRefreshServers,
   onProfileChange,
 }) {
-  if (!server) return null;
   const { t } = useTranslation();
 
   const serverWithCopy = useMemo(() => {
@@ -190,34 +189,34 @@ export default function ServerSettingsModal({
     [t, hasAdvanced, hasAdmin]
   );
   const [section, setSection] = useState("overview");
-  const [name, setName] = useState(server.name);
-  const [icon, setIcon] = useState(server.icon ?? null);
-  const [banner, setBanner] = useState(server.banner ?? null);
+  const [name, setName] = useState(server?.name ?? "");
+  const [icon, setIcon] = useState(server?.icon ?? null);
+  const [banner, setBanner] = useState(server?.banner ?? null);
   const [channels, setChannels] = useState(
-    server.channels?.map((c) => ({ ...c })) ?? [],
+    () => server?.channels?.map((c) => ({ ...c })) ?? [],
   );
   const [disableFlameSystem, setDisableFlameSystem] = useState(
-    server.disableFlameSystem ?? false,
+    server?.disableFlameSystem ?? false,
   );
   const [groupByRoles, setGroupByRoles] = useState(
-    server.groupByRoles ?? false,
+    server?.groupByRoles ?? false,
   );
   const [allowExecutableFiles, setAllowExecutableFiles] = useState(
-    server.allowExecutableFiles ?? false,
+    server?.allowExecutableFiles ?? false,
   );
 
-  const [roles, setRoles] = useState(server.roles ?? []);
-  const [userRoles, setUserRoles] = useState(server.userRoles ?? {});
+  const [roles, setRoles] = useState(server?.roles ?? []);
+  const [userRoles, setUserRoles] = useState(server?.userRoles ?? {});
   const [nuevoRoleName, setNuevoRoleName] = useState("");
-  const [iceServers, setIceServers] = useState(server.iceServers ?? []);
-  const [directConnectionEnabled, setDirectConnectionEnabled] = useState(server.directConnectionEnabled ?? false);
-  const [directIP, setDirectIP] = useState(server.directIP ?? "");
-  const [directPort, setDirectPort] = useState(server.directPort ?? 7777);
-  const [bannedUsers, setBannedUsers] = useState(server.bannedUsers ?? []);
-  const [kickedUsers, setKickedUsers] = useState(server.kickedUsers ?? {});
-  const [serverPlugins, setServerPlugins] = useState(server.plugins ?? []);
+  const [iceServers, setIceServers] = useState(server?.iceServers ?? []);
+  const [directConnectionEnabled, setDirectConnectionEnabled] = useState(server?.directConnectionEnabled ?? false);
+  const [directIP, setDirectIP] = useState(server?.directIP ?? "");
+  const [directPort, setDirectPort] = useState(server?.directPort ?? 7777);
+  const [bannedUsers, setBannedUsers] = useState(server?.bannedUsers ?? []);
+  const [kickedUsers, setKickedUsers] = useState(server?.kickedUsers ?? {});
+  const [serverPlugins, setServerPlugins] = useState(server?.plugins ?? []);
   const [discoverConfig, setDiscoverConfig] = useState(
-    server.discoverConfig ?? {
+    server?.discoverConfig ?? {
       enabled: false,
       accessMode: "public",
       category: "General",
@@ -231,10 +230,10 @@ export default function ServerSettingsModal({
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
   const [defaultRoleSettings, setDefaultRoleSettings] = useState(
-    server.defaultRoleSettings ?? { enabled: false, roleId: null }
+    server?.defaultRoleSettings ?? { enabled: false, roleId: null }
   );
   const [welcomeSettings, setWelcomeSettings] = useState(
-    server.welcomeSettings ?? { enabled: false, channelId: null, template: "" }
+    server?.welcomeSettings ?? { enabled: false, channelId: null, template: "" }
   );
 
   useEffect(() => {
@@ -687,6 +686,8 @@ export default function ServerSettingsModal({
     profile,
     t,
   ]);
+
+  if (!server) return null;
 
   return (
     <ModalShell

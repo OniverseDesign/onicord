@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
+import SandboxedPluginFrame from "./SandboxedPluginFrame";
 
 function IslandIframeWidget({
   widget,
@@ -13,192 +14,6 @@ function IslandIframeWidget({
   onIframeClick,
   onSummaryChange,
 }) {
-  const iframeRef = useRef(null);
-  const p2pListenersRef = useRef(new Set());
-  const onActivityRef = useRef(onActivity);
-  const voiceRef = useRef(voice);
-  useEffect(() => {
-    onActivityRef.current = onActivity;
-  }, [onActivity]);
-  useEffect(() => {
-    voiceRef.current = voice;
-  }, [voice]);
-  const widgetId = widget.id || "island-widget";
-  const pluginId = widget.pluginId || "unknown-plugin";
-  const permissions = new Set(
-    widget.permissions || [
-      "ui.plugin_island",
-      "p2p.network",
-      "storage",
-      "user.profile",
-      "server.info",
-      "chat.read",
-      "chat.send",
-    ]
-  );
-
-  useEffect(() => {
-    const api = window.electronAPI;
-    if (!api?.onWidgetP2PData) return;
-
-    const handleP2PMessage = (eventData) => {
-      const {
-        pluginId: msgPluginId,
-        widgetId: msgWidgetId,
-        fullId,
-        senderPeerId,
-        data,
-      } = eventData || {};
-      const matches =
-        (msgPluginId === pluginId && msgWidgetId === widgetId) ||
-        fullId === `${pluginId}:${widgetId}` ||
-        msgPluginId === pluginId;
-
-      if (matches) {
-        // 1. Post to iframe's window
-        if (iframeRef.current?.contentWindow) {
-          try {
-            iframeRef.current.contentWindow.postMessage(
-              { type: "ONICORD_P2P_RECEIVE", senderPeerId, data },
-              "*"
-            );
-          } catch (e) {}
-        }
-
-        // 2. Direct dispatch to registered listeners inside the widget
-        p2pListenersRef.current.forEach((cb) => {
-          try {
-            cb(data, senderPeerId);
-          } catch (err) {
-            console.error("[PluginIsland] Error in p2p listener callback:", err);
-          }
-        });
-
-        // 3. Notify parent PluginIsland of activity
-        onActivityRef.current?.(data, senderPeerId);
-      }
-    };
-
-    const unsub = api.onWidgetP2PData(handleP2PMessage);
-    return unsub;
-  }, [pluginId, widgetId]);
-
-  const handleIframeLoad = () => {
-    const iframeWin = iframeRef.current?.contentWindow;
-    if (!iframeWin) return;
-
-    try {
-      iframeWin.addEventListener("click", () => onIframeClick?.());
-      iframeWin.addEventListener("pointerdown", () => onIframeClick?.());
-    } catch (e) {}
-
-    iframeWin.OnicordWidgetAPI = {
-      meta: {
-        roomCode: roomCode || server?.roomCode || "",
-        peerId: profile?.id || "local",
-        widgetId,
-        pluginId,
-        type: "island",
-      },
-
-      user: {
-        getProfile: () => {
-          if (!permissions.has("user.profile")) return null;
-          return {
-            nickname: profile?.nickname || "Usuario",
-            avatar: profile?.avatar || null,
-            id: profile?.id || "local",
-          };
-        },
-      },
-
-      server: {
-        getInfo: () => {
-          if (!permissions.has("server.info")) return null;
-          return {
-            roomCode: roomCode || server?.roomCode || "",
-            serverName: server?.name || "Servidor Onicord",
-            memberCount: server?.memberCount || 1,
-          };
-        },
-      },
-
-      chat: {
-        send: (text) => {
-          if (!permissions.has("chat.send")) return;
-          if (window.electronAPI?.execPluginCommand) {
-            window.electronAPI.execPluginCommand(text);
-          }
-        },
-      },
-
-      island: {
-        setSummary: (text) => {
-          if (typeof text === "string" && text.trim()) {
-            onSummaryChange?.(text.trim());
-          }
-        },
-      },
-
-      p2p: {
-        broadcast: (data) => {
-          if (!permissions.has("p2p.network")) return;
-          onActivity?.(data, "local");
-          if (window.electronAPI?.sendWidgetP2PData) {
-            window.electronAPI.sendWidgetP2PData({
-              pluginId,
-              widgetId,
-              data,
-            });
-          }
-        },
-        onMessage: (callback) => {
-          if (typeof callback !== "function") return () => {};
-          p2pListenersRef.current.add(callback);
-          return () => {
-            p2pListenersRef.current.delete(callback);
-          };
-        },
-      },
-
-      storage: {
-        get: async (key) => {
-          if (!permissions.has("storage")) return null;
-          const storeKey = `widget_store_${pluginId}_${widgetId}_${key}`;
-          return localStorage.getItem(storeKey);
-        },
-        set: async (key, value) => {
-          if (!permissions.has("storage")) return;
-          const storeKey = `widget_store_${pluginId}_${widgetId}_${key}`;
-          localStorage.setItem(storeKey, value);
-        },
-      },
-
-      voice: {
-        isInVoice: () => Boolean(voiceRef.current?.inVoice),
-        getChannelId: () => voiceRef.current?.currentVoiceChannelId || null,
-        getChannelName: () => voiceRef.current?.resolvedVoiceChannelName || null,
-      },
-    };
-
-    iframeWin.dispatchEvent(new CustomEvent("onicord:widget-ready"));
-  };
-
-  useEffect(() => {
-    if (iframeRef.current?.contentWindow) {
-      try {
-        iframeRef.current.contentWindow.postMessage(
-          {
-            type: "ONICORD_VOICE_STATE",
-            inVoice: Boolean(voice?.inVoice),
-            channelId: voice?.currentVoiceChannelId || null,
-          },
-          "*"
-        );
-      } catch (_) {}
-    }
-  }, [voice?.inVoice, voice?.currentVoiceChannelId]);
-
   const widgetHeight = height || widget.height || 275;
 
   return (
@@ -206,13 +21,16 @@ function IslandIframeWidget({
       style={{ height: `${widgetHeight}px` }}
       className="w-full relative overflow-hidden"
     >
-      <iframe
-        ref={iframeRef}
-        srcDoc={widget.htmlContent || undefined}
-        src={!widget.htmlContent ? widget.entryUrl : undefined}
-        onLoad={handleIframeLoad}
-        sandbox="allow-scripts allow-same-origin"
-        className="w-full h-full border-none bg-transparent"
+      <SandboxedPluginFrame
+        widget={widget}
+        roomCode={roomCode}
+        profile={profile}
+        server={server}
+        voice={voice}
+        type="island"
+        onActivity={onActivity}
+        onIframeClick={onIframeClick}
+        onSummaryChange={onSummaryChange}
       />
     </div>
   );

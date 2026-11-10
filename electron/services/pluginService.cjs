@@ -22,6 +22,16 @@ function isNewerVersion(latest, current) {
 }
 
 class PluginService {
+  constructor() {
+    this._pluginsCache = null;
+    this._pluginsCacheTime = 0;
+  }
+
+  _invalidatePluginsCache() {
+    this._pluginsCache = null;
+    this._pluginsCacheTime = 0;
+  }
+
   getPluginsDir() {
     const dir = path.join(app.getPath("userData"), "plugins");
     if (!fs.existsSync(dir)) {
@@ -181,6 +191,11 @@ class PluginService {
   }
 
   async listPlugins() {
+    const now = Date.now();
+    if (this._pluginsCache && now - this._pluginsCacheTime < 3000) {
+      return this._pluginsCache;
+    }
+
     const uninstalledList = this._getUninstalledPlugins().map((id) => String(id).trim().toLowerCase());
     const pluginsDir = this.getPluginsDir();
     const entries = fs.readdirSync(pluginsDir, { withFileTypes: true });
@@ -287,6 +302,8 @@ class PluginService {
       }
     } catch (_) {}
 
+    this._pluginsCache = plugins;
+    this._pluginsCacheTime = Date.now();
     return plugins;
   }
 
@@ -298,7 +315,7 @@ class PluginService {
     const compressed = fs.readFileSync(archiveFilePath);
     let decompressed;
     try {
-      decompressed = zlib.gunzipSync(compressed).toString("utf-8");
+      decompressed = zlib.gunzipSync(compressed, { maxOutputLength: 50 * 1024 * 1024 }).toString("utf-8");
     } catch {
       decompressed = compressed.toString("utf-8");
     }
@@ -324,12 +341,12 @@ class PluginService {
     );
 
     if (packageData.files) {
+      const targetRoot = path.resolve(targetDir) + path.sep;
       for (const [filename, fileEntry] of Object.entries(packageData.files)) {
         const safeName = path.normalize(filename).replace(/^(\.\.[\/\\])+/, "");
         const filePath = path.resolve(targetDir, safeName);
-        if (!filePath.startsWith(path.resolve(targetDir))) {
-          console.warn(`[PLUGIN SERVICE] 🚨 Bloqueado intento de Zip Slip: ${filename}`);
-          continue;
+        if (!path.resolve(filePath).startsWith(targetRoot)) {
+          throw new Error("Ruta de archivo insegura en el paquete (Zip-Slip bloqueado).");
         }
         const fileDir = path.dirname(filePath);
         if (!fs.existsSync(fileDir)) {
@@ -367,6 +384,7 @@ class PluginService {
 
     this._removeUninstalledPlugin(manifest.id);
     this._removeUninstalledPlugin(pluginId);
+    this._invalidatePluginsCache();
     console.log(`[PLUGIN SERVICE] Complemento instalado con éxito: ${manifest.name} (${pluginId})`);
     return { success: true, manifest };
   }
@@ -412,6 +430,7 @@ class PluginService {
           this._removeUninstalledPlugin(cleanId);
           this._removeUninstalledPlugin(pluginId);
           if (manifest.id) this._removeUninstalledPlugin(manifest.id);
+          this._invalidatePluginsCache();
           return { success: true, manifest };
         }
         if (err.name === "AbortError") {
@@ -424,7 +443,7 @@ class PluginService {
     try {
       let decompressed;
       try {
-        decompressed = zlib.gunzipSync(buffer).toString("utf-8");
+        decompressed = zlib.gunzipSync(buffer, { maxOutputLength: 50 * 1024 * 1024 }).toString("utf-8");
       } catch {
         decompressed = buffer.toString("utf-8");
       }
@@ -449,9 +468,13 @@ class PluginService {
       );
 
       if (packageData.files) {
+        const targetRoot = path.resolve(targetDir) + path.sep;
         for (const [filename, fileEntry] of Object.entries(packageData.files)) {
           const safeName = path.normalize(filename).replace(/^(\.\.[\/\\])+/, "");
           const filePath = path.join(targetDir, safeName);
+          if (!path.resolve(filePath).startsWith(targetRoot)) {
+            throw new Error("Ruta de archivo insegura en el paquete (Zip-Slip bloqueado).");
+          }
           const fileDir = path.dirname(filePath);
           if (!fs.existsSync(fileDir)) {
             fs.mkdirSync(fileDir, { recursive: true });
@@ -489,6 +512,7 @@ class PluginService {
       this._removeUninstalledPlugin(cleanId);
       this._removeUninstalledPlugin(pluginId);
       if (manifest.id) this._removeUninstalledPlugin(manifest.id);
+      this._invalidatePluginsCache();
       console.log(`[PLUGIN SERVICE] Complemento descargado e instalado con éxito desde GitHub: ${manifest.name} (${cleanId})`);
       return { success: true, manifest };
     } catch (err) {
@@ -642,9 +666,11 @@ class PluginService {
       } catch (err) {
         console.warn(`[PLUGIN SERVICE] No se pudo borrar ${targetDir} en disco (posible archivo en uso), pero se marcó desinstalado:`, err.message);
       }
+      this._invalidatePluginsCache();
       return { success: true };
     }
 
+    this._invalidatePluginsCache();
     return { success: true };
   }
 
@@ -704,6 +730,7 @@ class PluginService {
             now
           );
         } catch (_) {}
+        this._invalidatePluginsCache();
         return { success: true, enabled };
       }
     }

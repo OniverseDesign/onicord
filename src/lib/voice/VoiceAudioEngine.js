@@ -132,6 +132,15 @@ export class VoiceAudioEngine {
       } catch {}
       this.localVoiceSource = null;
     }
+    if (this._silentOsc) {
+      try { this._silentOsc.stop(); } catch {}
+      try { this._silentOsc.disconnect(); } catch {}
+      this._silentOsc = null;
+    }
+    if (this._silentGain) {
+      try { this._silentGain.disconnect(); } catch {}
+      this._silentGain = null;
+    }
     if (this.localPeerId) {
       this.activeSpeakers.delete(this.localPeerId);
     }
@@ -255,6 +264,10 @@ export class VoiceAudioEngine {
     try {
       this.activeSpeakers.delete(peerId);
       this._handleSpeakingStateChange();
+      if (entry.startTimeoutId) {
+        clearTimeout(entry.startTimeoutId);
+        entry.startTimeoutId = null;
+      }
       entry.cancelRaf?.();
       this.peerAudio.delete(peerId);
 
@@ -403,7 +416,8 @@ export class VoiceAudioEngine {
       rafId = requestAnimationFrame(checkSpeaking);
     };
 
-    setTimeout(() => {
+    let startTimeoutId = setTimeout(() => {
+      startTimeoutId = null;
       rafId = requestAnimationFrame(checkSpeaking);
     }, 100);
 
@@ -439,9 +453,14 @@ export class VoiceAudioEngine {
       keepAliveAudio,
       stream,
       isSpeaking: false,
+      startTimeoutId,
       rafId: null,
       getRafId: () => rafId,
       cancelRaf: () => {
+        if (startTimeoutId !== null) {
+          clearTimeout(startTimeoutId);
+          startTimeoutId = null;
+        }
         if (rafId !== null) {
           cancelAnimationFrame(rafId);
           rafId = null;
@@ -452,6 +471,15 @@ export class VoiceAudioEngine {
 
   createSilentAudioTrack() {
     try {
+      if (this._silentOsc) {
+        try { this._silentOsc.stop(); } catch {}
+        try { this._silentOsc.disconnect(); } catch {}
+        this._silentOsc = null;
+      }
+      if (this._silentGain) {
+        try { this._silentGain.disconnect(); } catch {}
+        this._silentGain = null;
+      }
       const ctx = this.ensureContext();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -460,6 +488,8 @@ export class VoiceAudioEngine {
       const dest = ctx.createMediaStreamDestination();
       gain.connect(dest);
       osc.start();
+      this._silentOsc = osc;
+      this._silentGain = gain;
       const track = dest.stream.getAudioTracks()[0];
       if (track) {
         track.enabled = false;

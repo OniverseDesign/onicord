@@ -188,6 +188,14 @@ export function createNativePeer({
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      if (iceBatchTimer) {
+        clearTimeout(iceBatchTimer);
+        iceBatchTimer = null;
+      }
+      if (gatheringTimeout) {
+        clearTimeout(gatheringTimeout);
+        gatheringTimeout = null;
+      }
       try {
         pc.close();
       } catch {}
@@ -232,6 +240,7 @@ export function createNativePeer({
   // — ICE candidate gathering with debounced batching —
   let iceCandidateQueue = [];
   let iceBatchTimer = null;
+  let gatheringTimeout = null;
 
   pc.onicecandidate = ({ candidate }) => {
     if (candidate) {
@@ -259,7 +268,6 @@ export function createNativePeer({
     }
   };
 
-  let gatheringTimeout = null;
   pc.onicegatheringstatechange = () => {
     console.log(
       `[WebRTC] ICE gathering state with ${remotePeerId}: ${pc.iceGatheringState}`,
@@ -294,6 +302,7 @@ export function createNativePeer({
         `[WebRTC] ICE failed for ${remotePeerId}, triggering restart...`,
       );
       try {
+        negotiationAllowed = true;
         pc.restartIce();
       } catch {}
     } else if (pc.iceConnectionState === "disconnected") {

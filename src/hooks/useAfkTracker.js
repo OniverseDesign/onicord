@@ -5,6 +5,8 @@ const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes AFK threshold
 export function useAfkTracker(explicitStatusMode = "online", onStatusChange) {
   const [isAfk, setIsAfk] = useState(false);
   const timeoutRef = useRef(null);
+  const onStatusChangeRef = useRef(onStatusChange);
+  onStatusChangeRef.current = onStatusChange;
 
   useEffect(() => {
     // Only auto-idle if explicit status is "online" (do not override explicit "dnd" or "invisible")
@@ -16,27 +18,38 @@ export function useAfkTracker(explicitStatusMode = "online", onStatusChange) {
     const resetTimer = () => {
       if (isAfk) {
         setIsAfk(false);
-        onStatusChange?.("online");
+        onStatusChangeRef.current?.("online");
       }
 
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       timeoutRef.current = setTimeout(() => {
         setIsAfk(true);
-        onStatusChange?.("idle");
+        onStatusChangeRef.current?.("idle");
       }, IDLE_TIMEOUT_MS);
     };
 
     resetTimer();
 
-    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
-    events.forEach((evt) => window.addEventListener(evt, resetTimer, { passive: true }));
+    let lastMove = 0;
+    const handleMouseMove = () => {
+      const now = Date.now();
+      if (now - lastMove > 2000) {
+        lastMove = now;
+        resetTimer();
+      }
+    };
+
+    const otherEvents = ["keydown", "click", "scroll", "touchstart"];
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    otherEvents.forEach((evt) => window.addEventListener(evt, resetTimer, { passive: true }));
 
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      events.forEach((evt) => window.removeEventListener(evt, resetTimer));
+      window.removeEventListener("mousemove", handleMouseMove);
+      otherEvents.forEach((evt) => window.removeEventListener(evt, resetTimer));
     };
-  }, [explicitStatusMode, isAfk, onStatusChange]);
+  }, [explicitStatusMode, isAfk]);
 
   return isAfk;
 }

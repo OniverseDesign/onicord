@@ -32,9 +32,12 @@ class ServerService {
     }
     if (!server) {
       console.warn(`[ServerService] enterServer: Server ${cleanId} not found in store, attempting recovery...`);
-      const data = await store._read();
-      await store.recoverMissingServersFromRoomMeta(data);
-      server = store._findServer(data, cleanId) || store._findServer(data, cleanId.toUpperCase());
+      const servers = await store.list();
+      const upperId = cleanId.toUpperCase();
+      server =
+        servers.find(
+          (s) => s.id === cleanId || s.id === upperId || String(s.roomCode || "").toUpperCase() === upperId
+        ) || null;
     }
     if (!server) throw new Error("Server not found");
 
@@ -281,6 +284,16 @@ class ServerService {
     const updated = await store.updateSettings(serverId, data);
     if (!updated) return null;
 
+    const targetServerRoomCode =
+      before?.roomCode || before?.id || updated?.roomCode || updated?.id || roomManager?.roomCode;
+    const metaStore = roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
+    let preloadedMeta = null;
+    if (targetServerRoomCode) {
+      try {
+        preloadedMeta = await metaStore.load(targetServerRoomCode, true);
+      } catch (_) {}
+    }
+
     const auditLogs = [];
     if (before && roomManager?.profile) {
       const profile = roomManager.profile;
@@ -301,6 +314,25 @@ class ServerService {
           timestamp: Date.now(),
           details: String(details || "").slice(0, 200),
         });
+      };
+
+      // Pre-build O(1) lookup Maps for channels, roles, and members
+      const oldChannels = new Map((before.channels || []).filter(Boolean).map((c) => [c.id, c]));
+      const newChannels = new Map((data.channels || []).filter(Boolean).map((c) => [c.id, c]));
+      const oldRoles = new Map((before.roles || []).filter(Boolean).map((r, idx) => [r.id, { ...r, _index: idx }]));
+      const newRoles = new Map((data.roles || []).filter(Boolean).map((r, idx) => [r.id, { ...r, _index: idx }]));
+      const oldMembers = new Map(
+        Object.entries(preloadedMeta?.savedMembers || before.savedMembers || {})
+      );
+      const getRoleNameById = (id) => {
+        if (id === "@everyone") return "@everyone";
+        return newRoles.get(id)?.name || oldRoles.get(id)?.name || id;
+      };
+      const getChannelNameById = (id) => {
+        return newChannels.get(id)?.name || oldChannels.get(id)?.name || id;
+      };
+      const getMemberNameById = (uId) => {
+        return oldMembers.get(uId)?.nickname || uId;
       };
 
       if (data.name !== undefined && before.name !== data.name) {
@@ -329,8 +361,7 @@ class ServerService {
           log("update_settings", "Default Role", nDef.enabled ? "Enabled automatic default role assignment for new members" : "Disabled automatic default role assignment");
         }
         if (nDef.roleId && bDef.roleId !== nDef.roleId) {
-          const allRoles = [...(data.roles || []), ...(before.roles || [])];
-          const rName = allRoles.find((r) => r.id === nDef.roleId)?.name || nDef.roleId;
+          const rName = getRoleNameById(nDef.roleId);
           log("update_settings", "Default Role", `Set default member role to "${rName}"`);
         }
       }
@@ -342,8 +373,7 @@ class ServerService {
           log("update_settings", "Welcome Messages", nWel.enabled ? "Enabled welcome messages for new members" : "Disabled welcome messages");
         }
         if (nWel.channelId && bWel.channelId !== nWel.channelId) {
-          const allChannels = [...(data.channels || []), ...(before.channels || [])];
-          const chName = allChannels.find((c) => c.id === nWel.channelId)?.name || nWel.channelId;
+          const chName = getChannelNameById(nWel.channelId);
           log("update_settings", "Welcome Messages", `Set welcome channel to "#${chName}"`);
         }
         if (nWel.template && bWel.template !== nWel.template) {
@@ -356,7 +386,7 @@ class ServerService {
         const newChs = data.channels || [];
 
         for (const bc of beforeChs) {
-          if (!newChs.some((nc) => nc.id === bc.id)) {
+          if (!newChannels.has(bc.id)) {
             const isCat = bc.type === "category" || String(bc.id).startsWith("cat-");
             const chTypeLabel = isCat ? "category" : bc.type === "voice" ? "voice channel" : bc.type === "forum" ? "forum channel" : "text channel";
             log("delete_channel", bc.name, `Deleted ${chTypeLabel} "${bc.name}"`);
@@ -364,7 +394,7 @@ class ServerService {
         }
 
         for (const nc of newChs) {
-          const bc = beforeChs.find((c) => c.id === nc.id);
+          const bc = oldChannels.get(nc.id);
           const isCat = nc.type === "category" || String(nc.id).startsWith("cat-");
           const chTypeLabel = isCat ? "category" : nc.type === "voice" ? "voice channel" : nc.type === "forum" ? "forum channel" : "text channel";
 
@@ -379,8 +409,8 @@ class ServerService {
               }
             }
             if (bc.parentId !== nc.parentId) {
-              const oldCatName = bc.parentId ? (beforeChs.find((c) => c.id === bc.parentId)?.name || "Category") : "Uncategorized";
-              const newCatName = nc.parentId ? (newChs.find((c) => c.id === nc.parentId)?.name || "Category") : "Uncategorized";
+              const oldCatName = bc.parentId ? (oldChannels.get(bc.parentId)?.name || "Category") : "Uncategorized";
+              const newCatName = nc.parentId ? (newChannels.get(nc.parentId)?.name || "Category") : "Uncategorized";
               log("update_channel", nc.name, `Moved channel "${nc.name}" from category "${oldCatName}" to "${newCatName}"`);
             }
             if (Boolean(bc.isPrivate) !== Boolean(nc.isPrivate)) {
@@ -390,9 +420,10 @@ class ServerService {
             const beforeAllowed = Array.isArray(bc.allowedRoles) ? bc.allowedRoles : [];
             const newAllowed = Array.isArray(nc.allowedRoles) ? nc.allowedRoles : [];
             if (JSON.stringify(beforeAllowed) !== JSON.stringify(newAllowed)) {
-              const allRoles = [...(data.roles || []), ...(before.roles || [])];
-              const added = newAllowed.filter((id) => !beforeAllowed.includes(id)).map((id) => allRoles.find((r) => r.id === id)?.name || id);
-              const removed = beforeAllowed.filter((id) => !newAllowed.includes(id)).map((id) => allRoles.find((r) => r.id === id)?.name || id);
+              const beforeAllowedSet = new Set(beforeAllowed);
+              const newAllowedSet = new Set(newAllowed);
+              const added = newAllowed.filter((id) => !beforeAllowedSet.has(id)).map(getRoleNameById);
+              const removed = beforeAllowed.filter((id) => !newAllowedSet.has(id)).map(getRoleNameById);
               if (added.length > 0) {
                 log("update_channel", nc.name, `Granted private access in "${nc.name}" to: ${added.join(", ")}`);
               }
@@ -409,10 +440,10 @@ class ServerService {
             const beforeDisallowed = Array.isArray(bc.disallowedSpeakRoles) ? bc.disallowedSpeakRoles : [];
             const newDisallowed = Array.isArray(nc.disallowedSpeakRoles) ? nc.disallowedSpeakRoles : [];
             if (JSON.stringify(beforeDisallowed) !== JSON.stringify(newDisallowed)) {
-              const allRoles = [...(data.roles || []), ...(before.roles || [])];
-              const getRoleName = (id) => id === "@everyone" ? "@everyone" : (allRoles.find((r) => r.id === id)?.name || id);
-              const newlyRestricted = newDisallowed.filter((id) => !beforeDisallowed.includes(id)).map(getRoleName);
-              const newlyUnrestricted = beforeDisallowed.filter((id) => !newDisallowed.includes(id)).map(getRoleName);
+              const beforeDisallowedSet = new Set(beforeDisallowed);
+              const newDisallowedSet = new Set(newDisallowed);
+              const newlyRestricted = newDisallowed.filter((id) => !beforeDisallowedSet.has(id)).map(getRoleNameById);
+              const newlyUnrestricted = beforeDisallowed.filter((id) => !newDisallowedSet.has(id)).map(getRoleNameById);
               if (newlyRestricted.length > 0) {
                 log("update_channel", nc.name, `Restricted communication in "${nc.name}" for: ${newlyRestricted.join(", ")}`);
               }
@@ -426,17 +457,17 @@ class ServerService {
 
       if (Array.isArray(data.roles)) {
         const beforeRoles = before.roles || [];
-        const newRoles = data.roles || [];
+        const newRolesList = data.roles || [];
 
         for (const br of beforeRoles) {
-          if (!newRoles.some((nr) => nr.id === br.id)) {
+          if (!newRoles.has(br.id)) {
             log("update_role", br.name, `Deleted role "${br.name}"`);
           }
         }
 
-        for (let i = 0; i < newRoles.length; i++) {
-          const nr = newRoles[i];
-          const br = beforeRoles.find((r) => r.id === nr.id);
+        for (let i = 0; i < newRolesList.length; i++) {
+          const nr = newRolesList[i];
+          const br = oldRoles.get(nr.id);
           if (!br) {
             log("update_role", nr.name, `Created role "${nr.name}"`);
           } else {
@@ -447,8 +478,8 @@ class ServerService {
               log("update_role", nr.name, `Changed role palette "${nr.name}" to ${nr.color}`);
             }
 
-            const oldIndex = beforeRoles.findIndex((r) => r.id === nr.id);
-            if (oldIndex !== -1 && oldIndex !== i) {
+            const oldIndex = br._index;
+            if (oldIndex !== undefined && oldIndex !== i) {
               log("update_role", nr.name, `Reordered role position for "${nr.name}"`);
             }
 
@@ -477,21 +508,20 @@ class ServerService {
 
       if (Array.isArray(data.bannedUsers)) {
         const beforeBanned = Array.isArray(before.bannedUsers) ? before.bannedUsers : [];
+        const beforeBannedSet = new Set(beforeBanned);
         const newBanned = data.bannedUsers;
+        const newBannedSet = new Set(newBanned);
 
-        const newlyBanned = newBanned.filter((u) => !beforeBanned.includes(u));
-        const newlyUnbanned = beforeBanned.filter((u) => !newBanned.includes(u));
-        const targetRoomCode = before.roomCode || before.id || roomManager?.roomCode;
+        const newlyBanned = newBanned.filter((u) => !beforeBannedSet.has(u));
+        const newlyUnbanned = beforeBanned.filter((u) => !newBannedSet.has(u));
 
         for (const uId of newlyBanned) {
-          const memberName = roomManager?.roomMetaStore ? 
-            await roomManager.roomMetaStore.load(targetRoomCode).then((meta) => meta.savedMembers?.[uId]?.nickname || uId).catch(() => uId) : uId;
+          const memberName = getMemberNameById(uId);
           log("update_settings", memberName, `Banned user "${memberName}" from server`);
         }
 
         for (const uId of newlyUnbanned) {
-          const memberName = roomManager?.roomMetaStore ? 
-            await roomManager.roomMetaStore.load(targetRoomCode).then((meta) => meta.savedMembers?.[uId]?.nickname || uId).catch(() => uId) : uId;
+          const memberName = getMemberNameById(uId);
           log("update_settings", memberName, `Unbanned user "${memberName}" from server`);
         }
       }
@@ -500,11 +530,9 @@ class ServerService {
         const beforeKicked = before.kickedUsers || {};
         const newKicked = data.kickedUsers;
 
-        const targetRoomCode = before.roomCode || before.id || roomManager?.roomCode;
         for (const [uId, kickTime] of Object.entries(newKicked)) {
           if (!beforeKicked[uId] || beforeKicked[uId] !== kickTime) {
-            const memberName = roomManager?.roomMetaStore ? 
-              await roomManager.roomMetaStore.load(targetRoomCode).then((meta) => meta.savedMembers?.[uId]?.nickname || uId).catch(() => uId) : uId;
+            const memberName = getMemberNameById(uId);
             log("update_settings", memberName, `Kicked user "${memberName}" from server`);
           }
         }
@@ -513,16 +541,18 @@ class ServerService {
       if (Array.isArray(data.plugins)) {
         const beforePlugins = before.plugins || [];
         const newPlugins = data.plugins || [];
+        const oldPluginsMap = new Map(beforePlugins.filter(Boolean).map((p) => [p.id, p]));
+        const newPluginsMap = new Map(newPlugins.filter(Boolean).map((p) => [p.id, p]));
 
         for (const bp of beforePlugins) {
-          if (!newPlugins.some((np) => np.id === bp.id)) {
+          if (!newPluginsMap.has(bp.id)) {
             const pName = bp.name || bp.id;
             log("update_plugin", pName, `Removed plugin "${pName}" from server`);
           }
         }
 
         for (const np of newPlugins) {
-          const bp = beforePlugins.find((p) => p.id === np.id);
+          const bp = oldPluginsMap.get(np.id);
           const pName = np.name || bp?.name || np.id;
 
           if (!bp) {
@@ -560,7 +590,6 @@ class ServerService {
       }
 
       if (data.userRoles && before.userRoles) {
-        const targetRoomCode = before.roomCode || before.id || roomManager?.roomCode;
         const beforeUserIds = Object.keys(before.userRoles || {});
         const newUserIds = Object.keys(data.userRoles || {});
         const allUserIds = Array.from(new Set([...beforeUserIds, ...newUserIds]));
@@ -568,33 +597,30 @@ class ServerService {
         for (const uId of allUserIds) {
           const bRoles = Array.isArray(before.userRoles[uId]) ? before.userRoles[uId] : (before.userRoles[uId] ? [before.userRoles[uId]] : []);
           const nRoles = Array.isArray(data.userRoles[uId]) ? data.userRoles[uId] : (data.userRoles[uId] ? [data.userRoles[uId]] : []);
-          
-          const addedRoles = nRoles.filter((r) => !bRoles.includes(r));
-          const removedRoles = bRoles.filter((r) => !nRoles.includes(r));
+          const bRolesSet = new Set(bRoles);
+          const nRolesSet = new Set(nRoles);
 
-          const memberName = roomManager.roomMetaStore ? 
-            await roomManager.roomMetaStore.load(targetRoomCode).then((meta) => meta.savedMembers?.[uId]?.nickname || uId).catch(() => uId) : uId;
+          const addedRoles = nRoles.filter((r) => !bRolesSet.has(r));
+          const removedRoles = bRoles.filter((r) => !nRolesSet.has(r));
 
-          const allRoles = [...(data.roles || []), ...(before.roles || [])];
-          
+          const memberName = getMemberNameById(uId);
+
           for (const ar of addedRoles) {
-            const roleName = allRoles.find((r) => r.id === ar)?.name || ar;
+            const roleName = getRoleNameById(ar);
             log("assign_role", memberName, `Assigned role "${roleName}" to "${memberName}"`);
           }
           for (const rr of removedRoles) {
-            const roleName = allRoles.find((r) => r.id === rr)?.name || rr;
+            const roleName = getRoleNameById(rr);
             log("assign_role", memberName, `Removed role "${roleName}" from "${memberName}"`);
           }
         }
       }
     }
 
-    const targetServerRoomCode = before?.roomCode || before?.id || updated?.roomCode || updated?.id || roomManager?.roomCode;
     let mergedAuditLog = [];
     if (targetServerRoomCode) {
       try {
-        const metaStore = roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
-        const meta = await metaStore.load(targetServerRoomCode, true);
+        const meta = preloadedMeta || (await metaStore.load(targetServerRoomCode, true));
         const existingLog = Array.isArray(meta.auditLog) ? meta.auditLog : [];
         const logMap = new Map();
         for (const entry of [...existingLog, ...auditLogs]) {
@@ -623,11 +649,12 @@ class ServerService {
       }
 
       let cleanedSavedMembers = null;
-      let latestMetaSnapshot = null;
-      const metaStore = roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
-      try {
-        latestMetaSnapshot = await metaStore.load(targetServerRoomCode);
-      } catch (_) {}
+      let latestMetaSnapshot = preloadedMeta;
+      if (!latestMetaSnapshot) {
+        try {
+          latestMetaSnapshot = await metaStore.load(targetServerRoomCode);
+        } catch (_) {}
+      }
 
       if (newlyPenalizedIds.size > 0) {
         try {
@@ -788,18 +815,6 @@ class ServerService {
     } catch (err) {
       console.error("[ServerService] Error getting last active server:", err);
       return null;
-    }
-  }
-
-  async setChannel(serverId, channelId) {
-    try {
-      const store = this.getServerStore();
-      if (typeof store.setLastChannel === "function") {
-        await store.setLastChannel(serverId, channelId);
-      }
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
     }
   }
 

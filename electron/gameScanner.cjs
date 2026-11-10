@@ -1,4 +1,4 @@
-const { exec } = require("child_process");
+const { exec, execFile } = require("child_process");
 const gamesDB = require("./games.json");
 
 const gamesMap = new Map();
@@ -114,17 +114,32 @@ function getSpotifySong() {
   return new Promise((resolve) => {
     const isWindows = process.platform === "win32";
     if (isWindows) {
-      exec(
-        `powershell -Command "Get-Process Spotify -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowTitle} | Select-Object -ExpandProperty MainWindowTitle"`,
-        { timeout: 2000 },
+      execFile(
+        "tasklist",
+        ["/FI", "IMAGENAME eq Spotify.exe", "/V", "/FO", "CSV", "/NH"],
+        { timeout: 2000, windowsHide: true },
         (err, stdout) => {
           if (err || !stdout) return resolve(null);
-          const title = stdout.trim();
-          if (title && title !== "") {
-            resolve(title);
-          } else {
-            resolve("Spotify");
+          const ignoredTitles = new Set([
+            "",
+            "n/a",
+            "n/d",
+            "olemainthreadwndname",
+            "default ime",
+            "msctfime ui",
+            "gdi+ window (spotify.exe)",
+          ]);
+          for (const line of stdout.split(/\r?\n/)) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('"')) continue;
+            const lastColMatch = trimmed.match(/,"([^"]*)"\s*$/);
+            if (!lastColMatch) continue;
+            const winTitle = lastColMatch[1].trim();
+            if (winTitle && !ignoredTitles.has(winTitle.toLowerCase())) {
+              return resolve(winTitle);
+            }
           }
+          resolve("Spotify");
         }
       );
     } else {

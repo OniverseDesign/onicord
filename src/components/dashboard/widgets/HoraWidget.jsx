@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
-export default function HoraWidget({ setCustomBackground }) {
+export default function HoraWidget({ setCustomBackground, isActive = true }) {
   const { t, i18n } = useTranslation();
   const [tiempo, setTiempo] = useState(new Date());
 
@@ -15,12 +15,14 @@ export default function HoraWidget({ setCustomBackground }) {
   }, [setCustomBackground]);
 
   useEffect(() => {
+    if (!isActive) return;
+    setTiempo(new Date());
     const selectorReloj = setInterval(() => {
       setTiempo(new Date());
     }, 1000);
 
     return () => clearInterval(selectorReloj);
-  }, []);
+  }, [isActive]);
 
   const horaFormateada = tiempo.toLocaleTimeString(i18n.language || "es", {
     hour: "2-digit",

@@ -1,15 +1,15 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import ServerRail from "../navigation/ServerRail";
 import RoomView from "./RoomView";
 import AddServerModal from "../modals/AddServerModal";
 import ContextMenu from "../ui/ContextMenu";
-import ServerSettingsModal from "../modals/ServerSettingsModal";
 import DeleteServerModal from "../modals/DeleteServerModal";
-import HomeDashboard from "../dashboard/HomeDashboard";
-import AppSettingsModal from "../modals/AppSettingsModal";
-import DiscoverView from "../discover/DiscoverView";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
+const ServerSettingsModal = lazy(() => import("../modals/ServerSettingsModal"));
+const HomeDashboard = lazy(() => import("../dashboard/HomeDashboard"));
+const AppSettingsModal = lazy(() => import("../modals/AppSettingsModal"));
+const DiscoverView = lazy(() => import("../discover/DiscoverView"));
 import { IconSettings, Delete } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import { CONFIG_ISLAS, STORAGE_KEY, getCombinedConfigs } from "../dashboard/dashboardConfig";
@@ -32,7 +32,7 @@ export default function HomeView({
   onDeleteAccount,
 }) {
   const { t } = useTranslation();
-  const { currentVoiceServerId } = useVoiceChannelInfo();
+  const { currentVoiceServerId, joinVoiceChannel, leaveVoiceChannel } = useVoiceChannelInfo();
   const [showAddModal, setShowAddModal] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -93,12 +93,14 @@ export default function HomeView({
   }, []);
 
   const explicitStatus = localStorage.getItem("onicord_explicit_status") || profile?.status || "online";
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
 
-  useAfkTracker(explicitStatus, async (newStatus) => {
-    if (window.electronAPI?.saveProfile) {
+  const handleAfkStatusChange = useCallback(async (newStatus) => {
+    if (window.electronAPI?.saveProfile && profileRef.current) {
       try {
         const saved = await window.electronAPI.saveProfile({
-          ...profile,
+          ...profileRef.current,
           status: newStatus,
         });
         onProfileChange?.(saved);
@@ -106,7 +108,9 @@ export default function HomeView({
         console.error("Error setting AFK status:", err);
       }
     }
-  });
+  }, [onProfileChange]);
+
+  useAfkTracker(explicitStatus, handleAfkStatusChange);
 
   const canonicalizeShortcut = useCallback((str) => {
     if (!str) return "";
@@ -233,11 +237,35 @@ export default function HomeView({
       ? window.electronAPI.onGlobalKeybind(handleGlobalKeybindData)
       : window.electronAPI?.on?.("onicord:global-keybind", handleGlobalKeybindData);
 
+    const unsubJoinVoice = window.electronAPI?.on?.("voice:join-channel", (data) => {
+      const chId = typeof data === "string" ? data : data?.channelId;
+      const targetServer = activeServer || servers?.[0];
+      if (chId && targetServer) {
+        joinVoiceChannel?.(targetServer, chId);
+      }
+    });
+
+    const unsubLeaveVoice = window.electronAPI?.on?.("voice:leave-channel", () => {
+      leaveVoiceChannel?.();
+    });
+
+    const unsubToggleMedia = window.electronAPI?.on?.("voice:toggle-media", (data) => {
+      const act = typeof data === "string" ? data : data?.action;
+      if (act === "deafen" || act === "toggle_deafen") {
+        executeKeybindingAction("toggle_deafen");
+      } else {
+        executeKeybindingAction("toggle_mute");
+      }
+    });
+
     return () => {
       unsubMcp?.();
       unsubGlobal?.();
+      unsubJoinVoice?.();
+      unsubLeaveVoice?.();
+      unsubToggleMedia?.();
     };
-  }, [executeKeybindingAction, profile?.keybindings]);
+  }, [executeKeybindingAction, profile?.keybindings, activeServer, servers, joinVoiceChannel, leaveVoiceChannel]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
@@ -437,8 +465,8 @@ export default function HomeView({
   const [onlinePeers, setOnlinePeers] = useState([]);
 
   useEffect(() => {
-    if (!currentConnectedServerId) {
-      setOnlinePeers([]);
+    if (!currentConnectedServerId || (activeView === "server" && activeServer)) {
+      if (!currentConnectedServerId) setOnlinePeers([]);
       return;
     }
 
@@ -460,7 +488,7 @@ export default function HomeView({
     fetchSwarmState();
     const interval = setInterval(fetchSwarmState, 3000);
     return () => clearInterval(interval);
-  }, [currentConnectedServerId]);
+  }, [currentConnectedServerId, activeView, activeServer]);
 
   useEffect(() => {
     if (activeServer?.id) {
@@ -750,17 +778,20 @@ export default function HomeView({
               : "opacity-0 pointer-events-none absolute inset-0 invisible"
           }`}
         >
-          <HomeDashboard
-            profile={profile}
-            servers={servers}
-            peers={onlinePeers}
-            currentConnectedServerId={currentConnectedServerId}
-            onAddServer={() => setShowAddModal(true)}
-            islas={islas}
-            setIslas={setIslas}
-            musicState={sharedMusicState}
-            activeGame={activeGame}
-          />
+          <Suspense fallback={null}>
+            <HomeDashboard
+              isActive={isHomeActive}
+              profile={profile}
+              servers={servers}
+              peers={onlinePeers}
+              currentConnectedServerId={currentConnectedServerId}
+              onAddServer={() => setShowAddModal(true)}
+              islas={islas}
+              setIslas={setIslas}
+              musicState={sharedMusicState}
+              activeGame={activeGame}
+            />
+          </Suspense>
         </div>
 
         {/* Native Discover View */}
@@ -771,29 +802,35 @@ export default function HomeView({
               : "opacity-0 pointer-events-none absolute inset-0 invisible"
           }`}
         >
-          <DiscoverView
-            profile={profile}
-            servers={servers}
-            onSelectServer={handleSelectServer}
-            onRefreshServers={refreshServers}
-          />
+          {isDiscoverActive && (
+            <Suspense fallback={null}>
+              <DiscoverView
+                profile={profile}
+                servers={servers}
+                onSelectServer={handleSelectServer}
+                onRefreshServers={refreshServers}
+              />
+            </Suspense>
+          )}
         </div>
       </div>
 
       {isAppSettingsOpen && (
-        <AppSettingsModal
-          profile={profile}
-          currentLayout={islas}
-          onUpdateLayout={setIslas}
-          onSaved={onProfileChange}
-          onClose={() => setIsAppSettingsOpen(false)}
-          servers={servers}
-          currentServer={activeServer}
-          activeServerId={activeServer?.id}
-          onDeleteAccount={onDeleteAccount}
-          initialSection={appSettingsInitialSection}
-          initialServerScope={appSettingsInitialServerScope}
-        />
+        <Suspense fallback={null}>
+          <AppSettingsModal
+            profile={profile}
+            currentLayout={islas}
+            onUpdateLayout={setIslas}
+            onSaved={onProfileChange}
+            onClose={() => setIsAppSettingsOpen(false)}
+            servers={servers}
+            currentServer={activeServer}
+            activeServerId={activeServer?.id}
+            onDeleteAccount={onDeleteAccount}
+            initialSection={appSettingsInitialSection}
+            initialServerScope={appSettingsInitialServerScope}
+          />
+        </Suspense>
       )}
 
       {showAddModal && (
@@ -810,36 +847,38 @@ export default function HomeView({
         />
       )}
       {showSettings && settingsServer && (
-        <ServerSettingsModal
-          server={servers.find((s) => s.id === settingsServer.id) || settingsServer}
-          peers={settingsServer.id === currentConnectedServerId ? onlinePeers : []}
-          profile={profile}
-          onClose={() => {
-            setShowSettings(false);
-            setSettingsServer(null);
-          }}
-          onSave={(updatedServer) => {
-            if (!updatedServer) return;
-            onServerUpdated?.(updatedServer);
-            setSettingsServer((prev) =>
-              prev && prev.id === updatedServer.id ? { ...prev, ...updatedServer } : prev
-            );
-            if (activeServer && activeServer.id === updatedServer.id) {
-              setActiveServer((prev) => ({ ...prev, ...updatedServer }));
-            }
-          }}
-          onSaved={async (updatedServer) => {
-            if (onServerUpdated) {
-              onServerUpdated(updatedServer);
-            }
-            if (activeServer && activeServer.id === updatedServer.id) {
-              setActiveServer(updatedServer);
-            }
-            await refreshServers();
-            setShowSettings(false);
-            setSettingsServer(null);
-          }}
-        />
+        <Suspense fallback={null}>
+          <ServerSettingsModal
+            server={servers.find((s) => s.id === settingsServer.id) || settingsServer}
+            peers={settingsServer.id === currentConnectedServerId ? onlinePeers : []}
+            profile={profile}
+            onClose={() => {
+              setShowSettings(false);
+              setSettingsServer(null);
+            }}
+            onSave={(updatedServer) => {
+              if (!updatedServer) return;
+              onServerUpdated?.(updatedServer);
+              setSettingsServer((prev) =>
+                prev && prev.id === updatedServer.id ? { ...prev, ...updatedServer } : prev
+              );
+              if (activeServer && activeServer.id === updatedServer.id) {
+                setActiveServer((prev) => ({ ...prev, ...updatedServer }));
+              }
+            }}
+            onSaved={async (updatedServer) => {
+              if (onServerUpdated) {
+                onServerUpdated(updatedServer);
+              }
+              if (activeServer && activeServer.id === updatedServer.id) {
+                setActiveServer(updatedServer);
+              }
+              await refreshServers();
+              setShowSettings(false);
+              setSettingsServer(null);
+            }}
+          />
+        </Suspense>
       )}
 
       {contextMenu &&

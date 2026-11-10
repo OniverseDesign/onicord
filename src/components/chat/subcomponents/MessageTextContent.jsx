@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { parseInlineStyles } from "../../../lib/messageParser";
 
 export function parseBlocks(text, allUsers, searchQuery, roles = []) {
@@ -202,6 +202,31 @@ export default function MessageTextContent({
   roles = [],
 }) {
   const content = textContent || text;
+
+  const allUsers = useMemo(
+    () => [
+      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
+      ...Object.values(peers || {}).map((p) => ({
+        id: p.id,
+        nickname: p.nickname,
+      })),
+    ],
+    [profile?.id, profile?.nickname, peers]
+  );
+
+  const renderedContent = useMemo(() => {
+    if (!content || content.length === 0) return null;
+    if (content.startsWith('{"type":"sticker"')) {
+      try {
+        const parsed = JSON.parse(content);
+        return `[Sticker: ${parsed.stickerName || parsed.stickerId}]`;
+      } catch (e) {
+        return "[Sticker]";
+      }
+    }
+    return parseBlocks(content, allUsers, searchQuery, roles);
+  }, [content, allUsers, searchQuery, roles]);
+
   if (!content || content.length === 0) return null;
 
   return (
@@ -209,7 +234,7 @@ export default function MessageTextContent({
       className="whitespace-pre-wrap break-words text-[15px] text-onicord-subtext select-text cursor-text"
       style={{ lineHeight: "var(--onicord-chat-line-height, 1.5)" }}
     >
-      {parseMessageText(content, peers, profile, searchQuery, false, roles)}
+      {renderedContent}
     </div>
   );
 }

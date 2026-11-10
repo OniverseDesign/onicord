@@ -15,6 +15,38 @@ const getContinuousAnimationsSetting = () => {
   return true; // default
 };
 
+const settingsSubscribers = new Set();
+let globalListenersAttached = false;
+
+function handleGlobalSettingsUpdate(e) {
+  const nextVal =
+    e?.detail?.enableContinuousAnimations !== undefined
+      ? Boolean(e.detail.enableContinuousAnimations)
+      : getContinuousAnimationsSetting();
+  for (const listener of settingsSubscribers) {
+    listener(nextVal);
+  }
+}
+
+function subscribeContinuousAnimations(listener) {
+  settingsSubscribers.add(listener);
+  if (!globalListenersAttached && typeof window !== "undefined") {
+    globalListenersAttached = true;
+    window.addEventListener("storage", handleGlobalSettingsUpdate);
+    window.addEventListener("onicord:general-settings-updated", handleGlobalSettingsUpdate);
+    window.addEventListener("onicord:settings-changed", handleGlobalSettingsUpdate);
+  }
+  return () => {
+    settingsSubscribers.delete(listener);
+    if (settingsSubscribers.size === 0 && globalListenersAttached && typeof window !== "undefined") {
+      globalListenersAttached = false;
+      window.removeEventListener("storage", handleGlobalSettingsUpdate);
+      window.removeEventListener("onicord:general-settings-updated", handleGlobalSettingsUpdate);
+      window.removeEventListener("onicord:settings-changed", handleGlobalSettingsUpdate);
+    }
+  };
+}
+
 export default function SmartAnimatedImage({
   src,
   alt = "",
@@ -23,7 +55,7 @@ export default function SmartAnimatedImage({
   timestamp = null,
   isAvatar = false,
 }) {
-  const [enableContinuousAnimations, setEnableContinuousAnimations] = useState(getContinuousAnimationsSetting());
+  const [enableContinuousAnimations, setEnableContinuousAnimations] = useState(getContinuousAnimationsSetting);
   const [isHovered, setIsHovered] = useState(false);
   const [isPlayingMinTime, setIsPlayingMinTime] = useState(false);
   const [isJustArrived, setIsJustArrived] = useState(() => {
@@ -34,24 +66,9 @@ export default function SmartAnimatedImage({
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
 
-  // Listen to storage changes or custom settings event without aggressive polling
+  // Listen to storage changes or custom settings event via shared module-level listener
   useEffect(() => {
-    const handleSettingsUpdate = (e) => {
-      if (e?.detail?.enableContinuousAnimations !== undefined) {
-        setEnableContinuousAnimations(Boolean(e.detail.enableContinuousAnimations));
-      } else {
-        setEnableContinuousAnimations(getContinuousAnimationsSetting());
-      }
-    };
-    window.addEventListener("storage", handleSettingsUpdate);
-    window.addEventListener("onicord:general-settings-updated", handleSettingsUpdate);
-    window.addEventListener("onicord:settings-changed", handleSettingsUpdate);
-
-    return () => {
-      window.removeEventListener("storage", handleSettingsUpdate);
-      window.removeEventListener("onicord:general-settings-updated", handleSettingsUpdate);
-      window.removeEventListener("onicord:settings-changed", handleSettingsUpdate);
-    };
+    return subscribeContinuousAnimations(setEnableContinuousAnimations);
   }, []);
 
   // Handle just arrived timer
@@ -176,17 +193,19 @@ export default function SmartAnimatedImage({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Static frame canvas rendered below when continuous animations are disabled */}
-      <canvas
-        ref={canvasRef}
-        className={`${cleanClassName} ${fitClass}`}
-        style={{
-          ...style,
-          display: !enableContinuousAnimations && showCanvas ? "block" : "none",
-          width: "100%",
-          height: "100%",
-          objectFit: isContain ? "contain" : "cover",
-        }}
-      />
+      {!enableContinuousAnimations && (
+        <canvas
+          ref={canvasRef}
+          className={`${cleanClassName} ${fitClass}`}
+          style={{
+            ...style,
+            display: showCanvas ? "block" : "none",
+            width: "100%",
+            height: "100%",
+            objectFit: isContain ? "contain" : "cover",
+          }}
+        />
+      )}
 
       {/* Actual image, transitions opacity on top of the canvas */}
       <img

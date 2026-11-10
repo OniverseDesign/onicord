@@ -173,8 +173,21 @@ class FeedPollerService {
   }
 
   async pollWebhook(roomCode, webhook, forcePostLatest = false) {
-    const url = webhook.targetUrl;
-    if (!url) return { success: false, error: "Missing targetUrl" };
+    const url = webhook?.targetUrl;
+    if (!url || typeof url !== "string") return { success: false, error: "Missing targetUrl" };
+
+    const openGraphService = require("./openGraphService.cjs");
+    try {
+      const parsed = new URL(url.trim());
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        return { success: false, error: "Protocolo de URL no permitido (solo HTTP/HTTPS)" };
+      }
+      if (openGraphService.isPrivateOrBlockedHost(parsed.hostname)) {
+        return { success: false, error: "Destino de red privada o loopback bloqueado" };
+      }
+    } catch {
+      return { success: false, error: "Formato de targetUrl inválido" };
+    }
 
     this._lastPolled.set(webhook.id, Date.now());
     const status = this._statusMap.get(webhook.id) || {
@@ -310,12 +323,26 @@ class FeedPollerService {
   }
 
   async fetchAndParseFeed(targetUrl) {
+    const openGraphService = require("./openGraphService.cjs");
+    let parsedTarget;
+    try {
+      parsedTarget = new URL(String(targetUrl || "").trim());
+    } catch {
+      throw new Error("Invalid Feed URL");
+    }
+    if (parsedTarget.protocol !== "https:" && parsedTarget.protocol !== "http:") {
+      throw new Error("Unsupported Feed URL protocol");
+    }
+    if (openGraphService.isPrivateOrBlockedHost(parsedTarget.hostname)) {
+      throw new Error("Blocked private or local Feed host");
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
 
     let res;
     try {
-      res = await fetch(targetUrl, {
+      res = await fetch(parsedTarget.toString(), {
         signal: controller.signal,
         headers: {
           "User-Agent":
@@ -325,6 +352,20 @@ class FeedPollerService {
       });
     } finally {
       clearTimeout(timeout);
+    }
+
+    if (res.url) {
+      try {
+        const finalUrl = new URL(res.url);
+        if (
+          (finalUrl.protocol !== "https:" && finalUrl.protocol !== "http:") ||
+          openGraphService.isPrivateOrBlockedHost(finalUrl.hostname)
+        ) {
+          throw new Error("Feed redirected to blocked private or local host");
+        }
+      } catch (redirErr) {
+        throw redirErr;
+      }
     }
 
     if (!res.ok) {

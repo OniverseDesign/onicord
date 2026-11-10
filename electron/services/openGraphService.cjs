@@ -62,12 +62,16 @@ class OpenGraphService {
 
   isPrivateOrBlockedHost(hostname) {
     if (!hostname || typeof hostname !== "string") return true;
-    const host = hostname.toLowerCase().trim();
+    const rawHost = hostname.toLowerCase().trim();
+    const host = rawHost.replace(/^\[|\]$/g, "");
 
     // Common local aliases & special top-level domains
     if (
       host === "localhost" ||
       host === "0.0.0.0" ||
+      host === "::" ||
+      host === "0:0:0:0:0:0:0:0" ||
+      host === "0:0:0:0:0:0:0:1" ||
       host.endsWith(".local") ||
       host.endsWith(".localhost") ||
       host.endsWith(".internal") ||
@@ -76,22 +80,38 @@ class OpenGraphService {
       return true;
     }
 
+    // IPv4-mapped IPv6 addresses (e.g. ::ffff:127.0.0.1, ::ffff:10.0.0.1, ::ffff:192.168.1.1, ::ffff:7f00:1)
+    if (
+      host.startsWith("::ffff:127.") ||
+      host.startsWith("::ffff:10.") ||
+      host.startsWith("::ffff:192.168.") ||
+      host.startsWith("::ffff:169.254.") ||
+      host.startsWith("::ffff:0.") ||
+      host.startsWith("::ffff:7f") ||
+      host.startsWith("::ffff:a00:") ||
+      host.startsWith("::ffff:c0a8:") ||
+      host.startsWith("::ffff:a9fe:")
+    ) {
+      return true;
+    }
+    if (host.startsWith("::ffff:")) {
+      const mappedPart = host.slice(7);
+      if (this.isPrivateOrBlockedHost(mappedPart)) return true;
+    }
+
     // IPv6 loopback, link-local, and unique-local prefixes
     if (
       host === "::1" ||
-      host === "[::1]" ||
+      rawHost === "[::1]" ||
       host.startsWith("fe80:") ||
-      host.startsWith("[fe80:") ||
       host.startsWith("fc00:") ||
-      host.startsWith("[fc00:") ||
-      host.startsWith("fd00:") ||
-      host.startsWith("[fd00:")
+      host.startsWith("fd00:")
     ) {
       return true;
     }
 
-    // IPv4 Loopback: 127.0.0.0/8
-    if (host.startsWith("127.")) return true;
+    // IPv4 Loopback: 127.0.0.0/8 or 0.0.0.0/8
+    if (host.startsWith("127.") || host.startsWith("0.")) return true;
 
     // IPv4 Private Networks
     // 10.0.0.0/8
@@ -154,6 +174,20 @@ class OpenGraphService {
         headers,
         redirect: "follow",
       });
+
+      if (response.url) {
+        try {
+          const finalUrlObj = new URL(response.url);
+          if (
+            (finalUrlObj.protocol !== "https:" && finalUrlObj.protocol !== "http:") ||
+            this.isPrivateOrBlockedHost(finalUrlObj.hostname)
+          ) {
+            return { ok: false, status: 403 };
+          }
+        } catch {
+          return { ok: false, status: 400 };
+        }
+      }
 
       if (!response.ok) {
         return { ok: false, status: response.status };

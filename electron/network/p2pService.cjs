@@ -2,6 +2,7 @@ const Hyperswarm = require("hyperswarm");
 const b4a = require("b4a");
 const crypto = require("crypto");
 const os = require("os");
+const { StringDecoder } = require("string_decoder");
 
 function getLocalIPs() {
   const interfaces = os.networkInterfaces();
@@ -100,6 +101,7 @@ class P2PService {
     this._buffers = new Map();
     this.localPeerId = null;
     this.profile = null;
+    this.roomCode = null;
     this.joinedRooms = new Set();
     this.roomDiscoveries = new Map();
     this.peerRooms = new Map(); // Map<peerId, Set<roomCode>>
@@ -142,6 +144,7 @@ class P2PService {
     const normalized = String(roomCode || "").trim().toUpperCase();
     if (!normalized) return null;
 
+    this.roomCode = normalized;
     if (this.joinedRooms.has(normalized) && this.roomDiscoveries.has(normalized)) {
       return this.roomDiscoveries.get(normalized);
     }
@@ -162,6 +165,9 @@ class P2PService {
     if (!normalized) return;
 
     this.joinedRooms.delete(normalized);
+    if (this.roomCode === normalized) {
+      this.roomCode = this.joinedRooms.size > 0 ? [...this.joinedRooms][0] : null;
+    }
     if (this.profile) {
       this.profile.joinedRooms = Array.from(this.joinedRooms);
     }
@@ -191,6 +197,7 @@ class P2PService {
     this.peerRooms.clear();
     this.joinedRooms.clear();
     this.roomDiscoveries.clear();
+    this.roomCode = null;
   }
 
   _broadcastJoinedRooms() {
@@ -199,7 +206,12 @@ class P2PService {
 
   _handleConnection(socket, peerInfo) {
     const peerId = b4a.toString(peerInfo.publicKey, "hex");
-    if (this.peers.has(peerId)) return;
+    if (this.peers.has(peerId)) {
+      try {
+        socket.destroy();
+      } catch {}
+      return;
+    }
 
     const peer = {
       id: peerId,
@@ -207,6 +219,7 @@ class P2PService {
       nickname: "Conectando…",
       avatar: null,
       socket,
+      decoder: new StringDecoder("utf8"),
       isDirectTCP: Boolean(peerInfo?.isDirectTCP),
     };
     this.peers.set(peerId, peer);
@@ -236,6 +249,9 @@ class P2PService {
     if (!peer) return;
 
     try {
+      peer.decoder?.end();
+    } catch {}
+    try {
       peer.socket?.destroy();
     } catch {}
 
@@ -247,8 +263,13 @@ class P2PService {
   }
 
   async _onSocketData(peerId, chunk) {
+    const peer = this.peers.get(peerId);
+    if (!peer) return;
+    if (!peer.decoder) peer.decoder = new StringDecoder("utf8");
+
     const prev = this._buffers.get(peerId) || "";
-    const combined = prev + chunk.toString("utf8");
+    const decoded = Buffer.isBuffer(chunk) ? peer.decoder.write(chunk) : String(chunk);
+    const combined = prev + decoded;
 
     // Guard: prevent OOM from a malicious/buggy peer that never terminates messages
     const MAX_BUFFER_SIZE = 50 * 1024 * 1024; // 50MB
@@ -260,9 +281,6 @@ class P2PService {
 
     const { messages, remaining } = decodeMessages(combined);
     this._buffers.set(peerId, remaining);
-
-    const peer = this.peers.get(peerId);
-    if (!peer) return;
 
     for (const msg of messages) {
       const { type } = msg;
@@ -447,14 +465,39 @@ class P2PService {
 
   _handleIncomingDirectTCP(socket) {
     let buffer = "";
-    
+    const decoder = new StringDecoder("utf8");
+    const MAX_BUFFER_SIZE = 50 * 1024 * 1024; // 50MB guard before handshake completion
+
+    const handshakeTimer = setTimeout(() => {
+      console.warn("[P2P Direct TCP] Handshake timeout (15s) on incoming socket. Destroying.");
+      cleanupHandshake();
+      try {
+        socket.destroy();
+      } catch {}
+    }, 15000);
+
+    const cleanupHandshake = () => {
+      clearTimeout(handshakeTimer);
+      socket.off("data", onData);
+      socket.off("error", onError);
+      socket.off("close", cleanupHandshake);
+    };
+
     if (this.swarm?.keyPair?.publicKey) {
       const myPubKey = b4a.toString(this.swarm.keyPair.publicKey, "hex");
       safeWriteSocket(socket, JSON.stringify({ type: "direct-handshake", payload: { publicKeyHex: myPubKey } }) + "\n");
     }
 
     const onData = (chunk) => {
-      buffer += chunk.toString("utf8");
+      buffer += Buffer.isBuffer(chunk) ? decoder.write(chunk) : String(chunk);
+      if (buffer.length > MAX_BUFFER_SIZE) {
+        console.error("[P2P Direct TCP] Handshake buffer overflow (>50MB). Destroying socket.");
+        cleanupHandshake();
+        try {
+          socket.destroy();
+        } catch {}
+        return;
+      }
       const lines = buffer.split("\n");
       const remaining = lines.pop() ?? "";
       buffer = remaining;
@@ -464,12 +507,11 @@ class P2PService {
         try {
           const msg = JSON.parse(line);
           if (msg.type === "direct-handshake" && msg.payload?.publicKeyHex) {
-            socket.off("data", onData);
-            socket.off("error", onError);
+            cleanupHandshake();
 
             const peerPublicKey = b4a.from(msg.payload.publicKeyHex, "hex");
             const peerInfo = { publicKey: peerPublicKey, isDirectTCP: true };
-            
+
             this._handleConnection(socket, peerInfo);
             return;
           }
@@ -480,11 +522,15 @@ class P2PService {
 
     const onError = (err) => {
       console.error("[P2P Direct TCP Handshake Error]:", err.message);
-      socket.destroy();
+      cleanupHandshake();
+      try {
+        socket.destroy();
+      } catch {}
     };
 
     socket.on("data", onData);
     socket.on("error", onError);
+    socket.on("close", cleanupHandshake);
   }
 
   _connectDirectTCPClient(ip, port) {
@@ -493,6 +539,19 @@ class P2PService {
     const socket = net.createConnection({ host: ip, port: port });
 
     let buffer = "";
+    const decoder = new StringDecoder("utf8");
+    const MAX_BUFFER_SIZE = 50 * 1024 * 1024; // 50MB guard before handshake completion
+
+    const handshakeTimer = setTimeout(() => {
+      console.warn(`[P2P Direct TCP] Handshake timeout (15s) connecting to ${ip}:${port}.`);
+      onError(new Error("Direct TCP handshake timeout (15s)"));
+    }, 15000);
+
+    const cleanupHandshake = () => {
+      clearTimeout(handshakeTimer);
+      socket.off("data", onData);
+      socket.off("error", onError);
+    };
 
     socket.on("connect", () => {
       if (this.swarm?.keyPair?.publicKey) {
@@ -502,7 +561,12 @@ class P2PService {
     });
 
     const onData = (chunk) => {
-      buffer += chunk.toString("utf8");
+      buffer += Buffer.isBuffer(chunk) ? decoder.write(chunk) : String(chunk);
+      if (buffer.length > MAX_BUFFER_SIZE) {
+        console.error("[P2P Direct TCP Client] Handshake buffer overflow (>50MB). Destroying socket.");
+        onError(new Error("Direct TCP handshake buffer overflow"));
+        return;
+      }
       const lines = buffer.split("\n");
       const remaining = lines.pop() ?? "";
       buffer = remaining;
@@ -512,13 +576,12 @@ class P2PService {
         try {
           const msg = JSON.parse(line);
           if (msg.type === "direct-handshake" && msg.payload?.publicKeyHex) {
-            socket.off("data", onData);
-            socket.off("error", onError);
+            cleanupHandshake();
             this.directClientConnecting = false;
 
             const peerPublicKey = b4a.from(msg.payload.publicKeyHex, "hex");
             const peerInfo = { publicKey: peerPublicKey, isDirectTCP: true };
-            
+
             console.log(`[P2P Direct TCP] ¡Conexión directa exitosa con host ${msg.payload.publicKeyHex}!`);
             this._handleConnection(socket, peerInfo);
             return;
@@ -529,9 +592,12 @@ class P2PService {
     };
 
     const onError = (err) => {
+      cleanupHandshake();
       console.warn("[P2P Direct TCP Client Connection Failed]:", err.message);
       this.directClientConnecting = false;
-      socket.destroy();
+      try {
+        socket.destroy();
+      } catch {}
 
       // Retry with exponential backoff (max 5 attempts, up to 15s delay)
       const retryCount = (this._directRetryCount || 0) + 1;

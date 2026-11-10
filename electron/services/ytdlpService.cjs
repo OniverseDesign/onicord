@@ -49,15 +49,20 @@ function sanitizeAndValidateMediaUrl(rawUrl) {
 
 class YtdlpService {
   constructor() {
-    const devPath = path.join(__dirname, "..", "bin", "yt-dlp.exe");
-    const prodPath = path.join(
-      process.resourcesPath || "",
-      "app.asar.unpacked",
-      "electron",
-      "bin",
-      "yt-dlp.exe"
-    );
-    this.ytdlpBinaryPath = fs.existsSync(devPath) ? devPath : prodPath;
+    const isWin = process.platform === "win32";
+    const platFolder = isWin ? "win" : process.platform === "darwin" ? "mac" : "linux";
+    const binName = isWin ? "yt-dlp.exe" : "yt-dlp";
+    const candidates = [
+      path.join(process.resourcesPath || "", "bin", binName),
+      path.join(process.resourcesPath || "", "app.asar.unpacked", "electron", "bin", platFolder, binName),
+      path.join(process.resourcesPath || "", "app.asar.unpacked", "electron", "bin", binName),
+      path.join(__dirname, "..", "bin", platFolder, binName),
+      path.join(__dirname, "..", "bin", binName),
+    ];
+    this.ytdlpBinaryPath = candidates.find((p) => p && fs.existsSync(p)) || candidates[candidates.length - 1];
+    if (!isWin && fs.existsSync(this.ytdlpBinaryPath)) {
+      try { fs.chmodSync(this.ytdlpBinaryPath, 0o755); } catch {}
+    }
 
     this.streamServer = null;
     this.streamTargetUrls = new Map(); // trackId -> targetStreamUrl
@@ -108,6 +113,20 @@ class YtdlpService {
       const parsedUrl = url.parse(req.url, true);
 
       if (parsedUrl.pathname && parsedUrl.pathname.startsWith("/torrent/")) {
+        const origin = String(req.headers.origin || "").toLowerCase();
+        if (
+          origin &&
+          origin !== "null" &&
+          !origin.startsWith("file://") &&
+          !origin.startsWith("onicord-media://") &&
+          !origin.startsWith("http://127.0.0.1") &&
+          !origin.startsWith("http://localhost") &&
+          !origin.startsWith("https://127.0.0.1") &&
+          !origin.startsWith("https://localhost")
+        ) {
+          res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+          return res.end("Forbidden: Cross-origin request blocked");
+        }
         return torrentService.handleHttpRequest(req, res, parsedUrl);
       }
 
@@ -158,13 +177,14 @@ class YtdlpService {
         req.url.includes("onicord-media://stream")
       ) {
         const trackId = parsedUrl.query.v;
+        const safeTrackId = path.basename(String(trackId || "")).replace(/[^a-zA-Z0-9_-]/g, "");
         const cacheDir = path.join(app.getPath("userData"), "music_cache");
         let diskFilePath = null;
 
-        if (trackId && fs.existsSync(cacheDir)) {
+        if (safeTrackId && fs.existsSync(cacheDir)) {
           const files = fs.readdirSync(cacheDir);
           const match = files.find(
-            (f) => f.startsWith(`${trackId}_`) && f.endsWith(".webm")
+            (f) => f.startsWith(`${safeTrackId}_`) && f.endsWith(".webm")
           );
           if (match) {
             const fullPath = path.join(cacheDir, match);
@@ -345,6 +365,41 @@ class YtdlpService {
     this.activeBackgroundDownloads.clear();
   }
 
+  stop() {
+    this.abortAllMusicDownloads();
+    if (this.streamServer) {
+      try {
+        this.streamServer.close();
+      } catch {}
+      this.streamServer = null;
+    }
+  }
+
+  async _pruneMusicCache(cacheDir) {
+    try {
+      if (!cacheDir || !fs.existsSync(cacheDir)) return;
+      const files = await fsPromises.readdir(cacheDir);
+      const webmFiles = files.filter((f) => f.endsWith(".webm") || f.endsWith(".part"));
+      if (webmFiles.length <= 40) return;
+
+      const entries = [];
+      for (const file of webmFiles) {
+        const fullPath = path.join(cacheDir, file);
+        try {
+          const stat = await fsPromises.stat(fullPath);
+          entries.push({ fullPath, mtimeMs: stat.mtimeMs || 0 });
+        } catch {}
+      }
+      entries.sort((a, b) => b.mtimeMs - a.mtimeMs);
+      const toDelete = entries.slice(40);
+      for (const item of toDelete) {
+        try {
+          await fsPromises.unlink(item.fullPath);
+        } catch {}
+      }
+    } catch {}
+  }
+
   async extractTrack(videoUrl, options = {}) {
     return new Promise((resolve) => {
       let isPromiseResolved = false;
@@ -396,7 +451,6 @@ class YtdlpService {
       "100",
       "--dump-json",
       "--no-warnings",
-      "--no-check-certificate",
       "--",
       targetUrl,
     ];
@@ -466,7 +520,6 @@ class YtdlpService {
       "--dump-json",
       "--simulate",
       "--no-warnings",
-      "--no-check-certificate",
       "--user-agent",
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       "--",
@@ -508,7 +561,6 @@ class YtdlpService {
       "--dump-json",
       "--simulate",
       "--no-warnings",
-      "--no-check-certificate",
       "--user-agent",
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, Gecko) Chrome/120.0.0.0 Safari/537.36",
     ];
@@ -584,7 +636,6 @@ class YtdlpService {
         "--dump-json",
         "--simulate",
         "--no-warnings",
-        "--no-check-certificate",
         "--cookies-from-browser",
         browser,
         "--extractor-args",
@@ -695,7 +746,6 @@ class YtdlpService {
 
     const downloadArgs = [
       "--no-warnings",
-      "--no-check-certificate",
       "--format",
       formatoDeAudio,
       "-o",
@@ -709,6 +759,13 @@ class YtdlpService {
     downloadArgs.push("--", urlFisica);
 
     console.log(`\n[Core Downloader] Abriendo cañería para [${source}]: "${title}" (Es Principal: ${esPrincipal})`);
+
+    if (esPrincipal && this.activeYoutubeProcess) {
+      try {
+        this.activeYoutubeProcess.kill("SIGKILL");
+      } catch {}
+      this.activeYoutubeProcess = null;
+    }
 
     const procesoDeDescarga = spawn(this.ytdlpBinaryPath, downloadArgs);
 
@@ -827,6 +884,9 @@ class YtdlpService {
       }
       if (esPrincipal) {
         this.activeYoutubeProcess = null;
+      }
+      if (code === 0) {
+        this._pruneMusicCache(cacheDir).catch(() => {});
       }
       if (code !== 0) {
         console.error(`El proceso falló con código: ${code}`);

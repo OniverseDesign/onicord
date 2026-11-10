@@ -7,6 +7,7 @@ export default function ConexionWidget({
   peers = [],
   ping = 0,
   profile,
+  isActive = true,
 }) {
   const { t } = useTranslation();
   const canvasRef = useRef(null);
@@ -43,6 +44,7 @@ export default function ConexionWidget({
   const ripplesRef = useRef([]);
 
   useEffect(() => {
+    if (!isActive) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -341,7 +343,7 @@ export default function ConexionWidget({
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
     };
-  }, [onlinePeers, connectedServer, ping]);
+  }, [onlinePeers, connectedServer, ping, isActive]);
 
   return (
     <div

@@ -29,7 +29,7 @@ export default function RoomStreamStage({
       onResetRemoteStream?.();
     } else {
       onStopScreenShare?.();
-      window.electronAPI?.voice?.setStreaming?.(false);
+      window.electronAPI?.setStreaming?.(false);
     }
   };
 

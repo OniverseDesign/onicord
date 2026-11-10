@@ -7,6 +7,10 @@ const { VoiceService } = require("../network/voiceService.cjs");
 const { ChatService } = require("../network/chatService.cjs");
 const { FileService } = require("../network/fileService.cjs");
 const diagService = require("../services/diagService.cjs");
+const { handleChatPacket } = require("./handlers/chatPacketHandlers.cjs");
+const { handleVoicePacket } = require("./handlers/voicePacketHandlers.cjs");
+const { handleFilePacket } = require("./handlers/filePacketHandlers.cjs");
+const { handleMetaPacket } = require("./handlers/metaPacketHandlers.cjs");
 
 // topicFromRoomCode is now imported from p2pService.cjs (single source of truth)
 
@@ -84,7 +88,8 @@ class RoomManager {
     this.fileService = new FileService(
       this.p2pService,
       this.fileIndexStore,
-      userDataPath
+      userDataPath,
+      this.roomMetaStore
     );
   }
 
@@ -437,6 +442,7 @@ class RoomManager {
 
     if (!isBackground) {
       this.roomCode = normalized;
+      this.p2pService.roomCode = normalized;
       this.isHost = Boolean(isHost);
       this.localJoinTimestamp = joinNow;
       this.fileService.setRoomCode(normalized);
@@ -677,25 +683,25 @@ class RoomManager {
       try {
         // Sync for ALL active rooms, not just the last one
         const activeRoomCodes = this.rooms.size > 0 ? [...this.rooms.keys()] : (this.roomCode ? [this.roomCode] : []);
-        for (const code of activeRoomCodes) {
-          const meta = await this.roomMetaStore?.load(code);
-          const chatWatermarks = (await this.chatStore?.getWatermarks(code)) || {};
+        for (const activeCode of activeRoomCodes) {
+          const meta = await this.roomMetaStore?.load(activeCode);
+          const chatWatermarks = (await this.chatStore?.getWatermarks(activeCode)) || {};
           const watermarks = {
             ...chatWatermarks,
             _metaVersion: meta?.version || 0,
             _metaUpdatedAt: meta?.updatedAt || 0,
           };
-          const files = (await this.fileIndexStore?.load(code)) || [];
+          const files = (await this.fileIndexStore?.load(activeCode)) || [];
           const filesSince = this.fileIndexStore?.getWatermark(files) || 0;
 
           for (const [peerId, peer] of this.p2pService.peers.entries()) {
-            if (!this.isPeerInRoom(peerId, code)) continue;
-            if (peer?.socket && !peer.socket.destroyed && !peer.syncBusy) {
+            if (!this.isPeerInRoom(peerId, activeCode)) continue;
+            if (peer?.socket && !peer.socket.destroyed && !(peer.syncBusyRooms && peer.syncBusyRooms.has(activeCode))) {
               this.p2pService._sendToPeer(peerId, "sync-req", {
                 watermarks,
                 filesSince,
                 from: this.p2pService._resolveLocalPeerId(),
-                roomCode: code,
+                roomCode: activeCode,
               });
             }
           }
@@ -927,8 +933,10 @@ class RoomManager {
           for (const code of sharedRooms) {
             this.roomMetaStore.load(code).then((meta) => {
               if (meta) {
+                const { webhooks: _wh, ...safeMeta } = meta;
                 this.p2pService._sendToPeer(peerId, "meta-update", {
-                  ...meta,
+                  ...safeMeta,
+                  webhooks: [],
                   roomCode: code,
                 });
               }
@@ -1267,440 +1275,11 @@ class RoomManager {
           });
         }
       }
-    } else if (type === "room-announce" && payload && Array.isArray(payload.rooms)) {
-      const announcedRooms = payload.rooms.map((r) => String(r || "").trim().toUpperCase()).filter(Boolean);
-      const announcedSet = new Set(announcedRooms);
-      if (peer.syncRequestedRooms) {
-        for (const r of Array.from(peer.syncRequestedRooms)) {
-          if (!announcedSet.has(r)) peer.syncRequestedRooms.delete(r);
-        }
-      }
-      const currentCode = this.roomCode ? String(this.roomCode).trim().toUpperCase() : null;
-      if (currentCode && !announcedSet.has(currentCode)) {
-        this._callbacks.onPeerLeft?.({ id: peer.userId || peerId, peerId, roomCode: currentCode });
-        this.voiceService.handlePeerLeft(peerId, () => this._emitVoiceState());
-      } else if (currentCode && announcedSet.has(currentCode) && peer.userId && !peer.isPreview) {
-        this._emitPeerProfile(peerId);
-        this.chatService.scheduleSync(peerId, currentCode);
-      }
-    } else if (type === "onicord:discover-request") {
-      try {
-        const discoverService = require("../services/discoverService.cjs");
-        discoverService.syncAndAnnounceLocalServers(peerId).catch(() => {});
-      } catch (_) {}
-    } else if (type === "invite-preview-req" && payload && payload.roomCode) {
-      const reqCode = String(payload.roomCode).trim().toUpperCase();
-      if (this.roomMetaStore && (this.roomCode === reqCode || (this.rooms && this.rooms.has(reqCode)))) {
-        this.roomMetaStore.load(reqCode).then((meta) => {
-          if (meta) {
-            const onlinePeers = this.getPeersForRoom ? this.getPeersForRoom(reqCode) : [];
-            const membersCount = meta.savedMembers ? Object.keys(meta.savedMembers).length : 1;
-            this.p2pService._sendToPeer(peerId, "invite-preview-res", {
-              roomCode: reqCode,
-              name: meta.name,
-              icon: meta.icon,
-              banner: meta.banner,
-              memberCount: Math.max(1, membersCount),
-              onlineCount: onlinePeers.length + 1,
-            });
-          }
-        }).catch(() => {});
-      }
-    } else if (type === "invite-preview-res" && payload && payload.roomCode) {
-      global.mainWindow?.webContents.send("invite:details-updated", payload);
-    } else if (type === "member-profile-update" && payload && payload.roomCode && payload.memberData) {
-      const targetRoom = String(payload.roomCode).trim().toUpperCase();
-      const currentCode = this.roomCode ? String(this.roomCode).trim().toUpperCase() : null;
-      if (currentCode === targetRoom || (this.rooms && this.rooms.has(targetRoom))) {
-        const m = payload.memberData;
-        if (!peer.userId && m.id) {
-          peer.userId = m.id;
-        }
-        if (peer.userId && m.id && peer.userId === m.id) {
-          if (this.roomMetaStore) {
-            this.roomMetaStore.load(targetRoom).then(async (meta) => {
-              if (!meta.savedMembers) meta.savedMembers = {};
-              const antiguo = meta.savedMembers[m.id];
-              meta.savedMembers[m.id] = {
-                ...(antiguo || {}),
-                id: m.id,
-                nickname: m.nickname || antiguo?.nickname || peer.nickname,
-                avatar: m.avatar !== undefined ? m.avatar : (antiguo?.avatar ?? peer.avatar),
-                customLink: m.customLink !== undefined ? m.customLink : (antiguo?.customLink ?? ""),
-                profileColor: m.profileColor !== undefined ? m.profileColor : (antiguo?.profileColor ?? ""),
-                customStatus: m.customStatus !== undefined ? m.customStatus : (antiguo?.customStatus ?? ""),
-                globalNickname: m.globalNickname || antiguo?.globalNickname || peer.nickname,
-                hasCustomProfile: Boolean(m.hasCustomProfile || (m.globalNickname && m.nickname !== m.globalNickname)),
-                updatedAt: m.updatedAt || Date.now(),
-                joinedAt: antiguo?.joinedAt || Date.now(),
-              };
-              await this.roomMetaStore.updateSavedMembers(targetRoom, meta.savedMembers);
-              this._callbacks.onServerMetaUpdated?.(targetRoom, meta);
-
-              if (this._callbacks.onPeerUpdated && currentCode === targetRoom) {
-                this._callbacks.onPeerUpdated({
-                  id: peer.userId,
-                  peerId: peer.id,
-                  nickname: meta.savedMembers[m.id].nickname,
-                  avatar: meta.savedMembers[m.id].avatar,
-                  customLink: meta.savedMembers[m.id].customLink,
-                  profileColor: meta.savedMembers[m.id].profileColor,
-                  customStatus: meta.savedMembers[m.id].customStatus,
-                  globalNickname: meta.savedMembers[m.id].globalNickname,
-                  online: true,
-                  activity: peer.activity || null,
-                  showRichPresence: peer.showRichPresence,
-                  flame: peer.flame,
-                  ping: peer.averagePing !== undefined ? Math.round(peer.averagePing) : null,
-                });
-              }
-            }).catch((err) => console.error("[RoomManager] Error en member-profile-update:", err.message));
-          }
-        }
-      }
-    } else if (type === "member-leave" && payload && payload.roomCode && payload.userId) {
-      const targetRoom = String(payload.roomCode).trim().toUpperCase();
-      const currentCode = this.roomCode ? String(this.roomCode).trim().toUpperCase() : null;
-      const isLocalRoomMember = currentCode === targetRoom || (this.rooms && this.rooms.has(targetRoom));
-      if (this.roomMetaStore && isLocalRoomMember) {
-        this.roomMetaStore.load(targetRoom).then(async (localMeta) => {
-          const { checkAdminPermission } = require("./roomMetaStore.cjs");
-          const senderId = peer.userId;
-          const isSelfLeave = Boolean(senderId && senderId === payload.userId);
-          const isAdminAction = Boolean(
-            senderId &&
-            localMeta &&
-            (localMeta.ownerId === senderId || localMeta.creatorID === senderId || checkAdminPermission(localMeta, senderId))
-          );
-          if (senderId && !isSelfLeave && !isAdminAction) {
-            return;
-          }
-
-          let leavingPeerSocketId = null;
-          for (const [pId, pObj] of this.p2pService.peers.entries()) {
-            if (pObj.userId === payload.userId || pId === payload.userId) {
-              leavingPeerSocketId = pId;
-              this.p2pService.peerRooms.get(pId)?.delete(targetRoom);
-              pObj.syncRequestedRooms?.delete(targetRoom);
-            }
-          }
-
-          const meta = await this.roomMetaStore.removeSavedMember(targetRoom, payload.userId);
-          if (meta) {
-            this._callbacks.onServerMetaUpdated?.(targetRoom, meta);
-          }
-          if (currentCode === targetRoom) {
-            this._callbacks.onPeerLeft?.({
-              id: payload.userId,
-              peerId: leavingPeerSocketId || payload.userId,
-              roomCode: targetRoom,
-            });
-            if (leavingPeerSocketId) {
-              this.voiceService.handlePeerLeft(leavingPeerSocketId, () => this._emitVoiceState());
-            }
-          }
-        }).catch((err) => console.error("[RoomManager] Error en member-leave:", err.message));
-      }
-    } else if (type === "voice-state" && payload) {
-      this.voiceService.handleVoiceState(peerId, payload, () => this._emitVoiceState());
-    } else if (type === "activity-state" && payload) {
-      if (payload.name) {
-        peer.activity = payload;
-      } else {
-        delete peer.activity;
-      }
-      this._callbacks.onPeerActivityUpdated?.({
-        peerId,
-        userId: peer.userId,
-        activity: peer.activity || null,
-      });
-    } else if (type === "typing-state" && payload) {
-      this._callbacks.onUserTyping?.({
-        userId: payload.userId,
-        channelId: payload.channelId,
-        nickname: payload.nickname,
-      });
-    } else if (type === "chat" && payload) {
-      this.chatService.handleIncomingChat(payload, peerId).catch((err) =>
-        console.error("[p2p] chat error", err.message)
-      );
-    } else if (type === "chat-delete" && payload) {
-      this.chatService.handleIncomingChatDelete(payload, peerId).catch((err) =>
-        console.error("[p2p] chat-delete error", err.message)
-      );
-    } else if (type === "sync-req" && payload) {
-      const syncRoomCode = payload?.roomCode || this.roomCode;
-      this.chatService.handleSyncRequest(peerId, payload, syncRoomCode).catch((err) =>
-        console.error("[p2p] sync-req error", err.message)
-      );
-    } else if (type === "sync-res" && payload) {
-      const syncRoomCode = payload?.roomCode || this.roomCode;
-      this.chatService.handleSyncResponse(peerId, payload, syncRoomCode).catch((err) =>
-        console.error("[p2p] sync-res error", err.message)
-      );
-    } else if (type === "meta-update" && payload) {
-      const metaRoomCode = payload?.roomCode || this.roomCode;
-      if (metaRoomCode) {
-        this.chatService.applyRemoteMeta(payload, peerId, metaRoomCode).catch((err) =>
-          console.error("[p2p] meta error", err.message)
-        );
-      }
-    } else if (type === "webrtc-signal" && payload) {
-      if (!payload?.signal) return;
-      this._callbacks.onVoiceSignal?.({
-        peerId: peerId,
-        fromPeerId: peerId,
-        channelId: payload.channelId,
-        signal: payload.signal,
-      });
-    } else if (type === "speaking-state" && payload) {
-      global.mainWindow?.webContents.send("voice:speaking-updated", {
-        peerId: payload.peerId,
-        isSpeaking: Boolean(payload.isSpeaking),
-        volumeLevel: Number(payload.volumeLevel),
-      });
-    } else if (type === "sketch-draw" && payload) {
-      global.mainWindow?.webContents.send("sketch:draw", payload);
-    } else if (type === "file-request-port" && payload) {
-      this.fileService.handleFileRequestPort(peerId, payload);
-    } else if (type === "file-response-chunk" && payload) {
-      this.fileService.handleFileResponseChunk(peerId, payload);
-    } else if (type === "file-response-error" && payload) {
-      this.fileService.handleFileResponseError(payload);
-    } else if (type === "file-cancel-transfer" && payload) {
-      this.fileService.handleFileCancelTransfer(peerId, payload);
-    } else if (type === "sticker-request" && payload) {
-      this.chatService.handleStickerRequest(peerId, payload);
-    } else if (type === "sticker-response" && payload) {
-      this.chatService.handleStickerResponse(payload);
-    } else if (type === "sfu-host-claim" && payload) {
-      this.voiceService.handleSfuHostClaim(peerId, payload);
-    } else if (type === "music-channel-state" && payload) {
-      global.mainWindow?.webContents.send("music:channel-state", {
-        ...payload,
-        peerId,
-      });
-    } else if (type === "evict" && payload) {
-      const { type: evictType, roomCode, name } = payload;
-      const normalizedCode = String(roomCode || "").trim().toUpperCase();
-      if (!normalizedCode) return;
-
-      const { ServerStore } = require("./serverStore.cjs");
-      const { checkAdminPermission } = require("./roomMetaStore.cjs");
-      const serverStore = new ServerStore(this.userDataPath);
-      const localServer = (await serverStore.get(normalizedCode)) || (await serverStore.getByRoomCode(normalizedCode));
-      const myId = this.profile?.id || this.p2pService?.profile?.id;
-
-      if (localServer?.isOwner || (myId && localServer?.ownerId && localServer.ownerId === myId)) {
-        console.warn(`[P2P Evict] Ignored eviction attempt in owned room ${normalizedCode} from peer ${peerId}`);
-        return;
-      }
-
-      if (this.roomMetaStore) {
-        try {
-          const localMeta = await this.roomMetaStore.load(normalizedCode);
-          if (myId && localMeta?.ownerId && localMeta.ownerId === myId) {
-            console.warn(`[P2P Evict] Ignored eviction attempt against owner in room ${normalizedCode}`);
-            return;
-          }
-          if (peer.userId && (localMeta?.ownerId || localMeta?.creatorID)) {
-            const isAuthorizedEvictor =
-              localMeta.ownerId === peer.userId ||
-              localMeta.creatorID === peer.userId ||
-              checkAdminPermission(localMeta, peer.userId);
-            if (!isAuthorizedEvictor) {
-              console.warn(`[P2P Evict] Rejected unauthorized eviction from ${peer.userId} in room ${normalizedCode}`);
-              return;
-            }
-          }
-        } catch (_) {}
-      }
-
-      console.log(`[P2P Evict] Received authorized eviction (${evictType}) from room ${normalizedCode}`);
-      try {
-        await this.leaveSingleRoom(normalizedCode);
-        if (localServer) {
-          await serverStore.remove(localServer.id);
-        } else {
-          await serverStore.remove(normalizedCode);
-        }
-      } catch (e) {
-        console.error(`[P2P Evict Error removing server ${normalizedCode}]:`, e);
-      }
-      const resolvedName = name || localServer?.name || normalizedCode;
-      if (evictType === "banned") {
-        global.mainWindow?.webContents.send("server:banned", { roomCode: normalizedCode, name: resolvedName });
-      } else {
-        global.mainWindow?.webContents.send("server:kicked", { roomCode: normalizedCode, name: resolvedName });
-      }
-    } else if (type === "music-channel-cmd" && payload) {
-      global.mainWindow?.webContents.send("music:channel-cmd", {
-        ...payload,
-        peerId,
-      });
-    } else if (type === "watch-party-state" && payload) {
-      global.mainWindow?.webContents.send("watch-party:state", {
-        ...payload,
-        peerId,
-      });
-    } else if (type === "watch-party-cmd" && payload) {
-      global.mainWindow?.webContents.send("watch-party:cmd", {
-        ...payload,
-        peerId,
-      });
-    } else if (type === "ping" && payload) {
-      this.voiceService.handlePing(peerId, payload);
-    } else if (type === "pong" && payload) {
-      this.voiceService.handlePong(peerId, payload, this.p2pService.profile, () => this._emitVoiceState());
-      const pObj = this.p2pService.peers.get(peerId);
-      if (pObj && !pObj.isPreview && this.isPeerInRoom(peerId, this.roomCode) && this._callbacks.onPeerUpdated) {
-        let effectiveNickname = pObj.nickname;
-        let effectiveAvatar = pObj.avatar;
-        let effectiveCustomLink = pObj.customLink;
-        let effectiveProfileColor = pObj.profileColor;
-        let effectiveCustomStatus = pObj.customStatus;
-        let effectiveGlobalNick = pObj.nickname;
-
-        const roomCodeKey = this.roomCode ? String(this.roomCode).trim().toUpperCase() : null;
-        if (this.roomMetaStore && roomCodeKey) {
-          const cached = this.roomMetaStore._cache?.get(roomCodeKey);
-          const savedMember = cached?.savedMembers?.[pObj.userId];
-          if (savedMember) {
-            effectiveNickname = savedMember.nickname || effectiveNickname;
-            effectiveAvatar = savedMember.avatar !== undefined ? savedMember.avatar : effectiveAvatar;
-            effectiveCustomLink = savedMember.customLink !== undefined ? savedMember.customLink : effectiveCustomLink;
-            effectiveProfileColor = savedMember.profileColor || effectiveProfileColor;
-            effectiveCustomStatus = savedMember.customStatus !== undefined ? savedMember.customStatus : effectiveCustomStatus;
-            effectiveGlobalNick = savedMember.globalNickname || effectiveGlobalNick;
-          }
-        }
-
-        if (roomCodeKey && pObj.serverProfiles) {
-          const override = pObj.serverProfiles[roomCodeKey] || pObj.serverProfiles[this.roomCode];
-          if (override) {
-            effectiveNickname = override.nickname || effectiveNickname;
-            if (override.avatar !== undefined && override.avatar !== null && override.avatar !== "") {
-              effectiveAvatar = override.avatar;
-            }
-            if (override.customLink !== undefined) effectiveCustomLink = override.customLink;
-            if (override.profileColor) effectiveProfileColor = override.profileColor;
-            if (override.customStatus !== undefined) effectiveCustomStatus = override.customStatus;
-          }
-        }
-
-        this._callbacks.onPeerUpdated({
-          id: pObj.userId,
-          peerId: pObj.id,
-          nickname: effectiveNickname,
-          avatar: effectiveAvatar,
-          online: true,
-          activity: pObj.activity || null,
-          customLink: effectiveCustomLink,
-          profileColor: effectiveProfileColor,
-          customStatus: effectiveCustomStatus,
-          globalNickname: effectiveGlobalNick,
-          serverProfiles: pObj.serverProfiles || null,
-          showRichPresence: pObj.showRichPresence,
-          flame: pObj.flame,
-          ping: pObj.averagePing !== undefined ? Math.round(pObj.averagePing) : (pObj.ping !== undefined ? Math.round(pObj.ping) : null),
-        });
-      }
-    } else if (type === "diag-request" && payload) {
-      diagService.log("info", "Diagnostics", `Received log request from peer ${peerId}`);
-      const sanitizedLogs = diagService.sanitizeLogs(diagService.getLocalLogs());
-      this.p2pService._sendToPeer(peerId, "diag-response", {
-        requestId: payload.requestId,
-        nickname: this.profile?.nickname || "Peer",
-        logs: sanitizedLogs,
-      });
-    } else if (type === "diag-response" && payload) {
-      diagService.log("info", "Diagnostics", `Received logs response from peer ${peerId}`);
-      if (this._peerLogListener) {
-        this._peerLogListener({
-          peerId,
-          nickname: payload.nickname,
-          logs: payload.logs,
-        });
-      }
-      global.mainWindow?.webContents.send("diagnostics:peer-logs", {
-        peerId,
-        nickname: payload.nickname,
-        logs: payload.logs,
-      });
-    } else if (type === "onicord:widget-p2p" && payload) {
-      try {
-        const pluginSandboxService = require("../services/pluginSandboxService.cjs");
-        pluginSandboxService.handleIncomingWidgetP2PData(peerId, payload);
-      } catch (err) {
-        console.error("[p2p] onicord:widget-p2p error:", err.message);
-      }
-    } else if (type === "onicord:discover-announce" && payload) {
-      try {
-        const discoverService = require("../services/discoverService.cjs");
-        discoverService.handleIncomingAnnouncement(payload, false);
-      } catch (err) {
-        console.error("[p2p] onicord:discover-announce error:", err.message);
-      }
-    } else if (type === "onicord:discover-unannounce" && payload && payload.roomCode) {
-      try {
-        const discoverService = require("../services/discoverService.cjs");
-        discoverService.discoveredServers.delete(String(payload.roomCode).toUpperCase());
-        discoverService._saveCacheDebounced();
-        discoverService._broadcast("plugins:discover-servers-updated", discoverService.getDiscoveredServers());
-      } catch (err) {
-        console.error("[p2p] onicord:discover-unannounce error:", err.message);
-      }
-    } else if (type === "onicord:knock-request" && payload) {
-      try {
-        const discoverService = require("../services/discoverService.cjs");
-        discoverService.handleIncomingKnock(payload);
-      } catch (err) {
-        console.error("[p2p] onicord:knock-request error:", err.message);
-      }
-    } else if (type === "onicord:knock-approved" && payload) {
-      try {
-        const myProfile = this.profile || this.p2pService?.profile;
-        const myId = myProfile?.id;
-        if (payload.applicantId && payload.applicantId === myId && payload.roomCode) {
-          const serverName = payload.serverName || payload.serverData?.name || payload.roomCode;
-          try {
-            const serverService = require("../services/serverService.cjs");
-            await serverService.joinServer(payload.roomCode, serverName, myProfile);
-            this.connectToRoom(payload.roomCode, false, myProfile, { isBackground: true }).catch(() => {});
-          } catch (joinErr) {
-            console.error("[p2p] Error auto-joining approved server:", joinErr.message);
-          }
-          global.mainWindow?.webContents.send("plugins:show-toast", {
-            title: "¡Solicitud Aprobada!",
-            message: `Tu solicitud para unirte a "${serverName}" ha sido aprobada.`,
-            type: "success",
-          });
-          global.mainWindow?.webContents.send("discover:knock-status-changed", {
-            roomCode: payload.roomCode,
-            status: "approved",
-            serverName,
-          });
-        }
-      } catch (err) {
-        console.error("[p2p] onicord:knock-approved error:", err.message);
-      }
-    } else if (type === "onicord:knock-rejected" && payload) {
-      try {
-        const myId = this.profile?.id || this.p2pService?.profile?.id;
-        if (payload.applicantId && payload.applicantId === myId) {
-          global.mainWindow?.webContents.send("plugins:show-toast", {
-            title: "Solicitud Rechazada",
-            message: `Tu solicitud para unirte al servidor ${payload.roomCode} fue rechazada.`,
-            type: "warning",
-          });
-          global.mainWindow?.webContents.send("discover:knock-status-changed", {
-            roomCode: payload.roomCode,
-            status: "rejected",
-          });
-        }
-      } catch (err) {
-        console.error("[p2p] onicord:knock-rejected error:", err.message);
-      }
+    } else {
+      if (await handleChatPacket(this, peerId, type, payload)) return;
+      if (await handleVoicePacket(this, peerId, type, payload)) return;
+      if (await handleFilePacket(this, peerId, type, payload)) return;
+      if (await handleMetaPacket(this, peerId, type, payload)) return;
     }
   }
 

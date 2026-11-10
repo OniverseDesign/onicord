@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ModalInput, ModalButton } from "../ui/ModalShell";
 import { Delete } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
@@ -52,6 +53,23 @@ export default function StickerManagerTab() {
 
   const [selectedStickerIds, setSelectedStickerIds] = useState([]);
   const [editingPackOriginalName, setEditingPackOriginalName] = useState(null);
+
+  const libraryContainerRef = useRef(null);
+  const COLUMNS = 6;
+  const stickerRows = useMemo(() => {
+    const rows = [];
+    for (let i = 0; i < misStickers.length; i += COLUMNS) {
+      rows.push(misStickers.slice(i, i + COLUMNS));
+    }
+    return rows;
+  }, [misStickers]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: stickerRows.length,
+    getScrollElement: () => libraryContainerRef.current,
+    estimateSize: () => 100,
+    overscan: 3,
+  });
 
   const cargarDatos = () => {
     window.electronAPI.listLocalStickers().then((list) => {
@@ -289,7 +307,10 @@ export default function StickerManagerTab() {
   const handleConfirmDelete = async () => {
     if (!stickerToDelete) return;
     try {
-      await window.electronAPI.deleteLocalSticker(stickerToDelete.id);
+      await window.electronAPI?.deleteStickerLocal?.({
+        id: stickerToDelete.id,
+        ext: stickerToDelete.ext,
+      });
       setStickerToDelete(null);
       cargarDatos();
     } catch (err) {
@@ -439,7 +460,7 @@ export default function StickerManagerTab() {
 
         {loadingCatalog ? (
           <div className="py-6 text-center text-onicord-muted text-xs flex items-center justify-center gap-2">
-            <span className="loading loading-spinner loading-xs"></span>
+            <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
             <span>{t("settings.stickers.loadingPacksCatalog", "Cargando catálogo de paquetes disponibles...")}</span>
           </div>
         ) : catalogPacks.length === 0 ? (
@@ -626,43 +647,70 @@ export default function StickerManagerTab() {
           </ModalButton>
         </div>
 
-        {/* Sticker library grid */}
-        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 pt-2">
-          {misStickers.map((stk) => {
-            const isSelected = selectedStickerIds.includes(stk.id);
-            return (
-              <div
-                key={`unified-pool-${stk.id}`}
-                onClick={() => toggleSelectStickerForPack(stk.id)}
-                className={`relative aspect-square rounded-onicord-button overflow-hidden bg-onicord-base/60 border cursor-pointer flex items-center justify-center group transition-all ${
-                  isSelected
-                    ? " border-2 border-onicord-accent bg-onicord-accent/10"
-                    : "border-onicord-island hover:border-white/20"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={(e) => handleDeleteStickerClick(e, stk)}
-                  className="absolute top-1.5 right-1.5 h-6 w-6 flex items-center justify-center rounded-lg bg-onicord-base text-onicord-muted border border-white/10 hover:text-white hover:bg-onicord-danger hover:border-onicord-danger/20 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-30"
-                  title={t("common.delete", "Eliminar sticker")}
-                >
-                  <Delete size="sm" />
-                </button>
+        {/* Sticker library grid - Virtualized */}
+        <div
+          ref={libraryContainerRef}
+          className="max-h-[380px] overflow-y-auto minimal-scrollbar pt-2 pr-1"
+        >
+          {stickerRows.length > 0 ? (
+            <div
+              className="relative w-full"
+              style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const row = stickerRows[virtualRow.index];
+                return (
+                  <div
+                    key={virtualRow.index}
+                    ref={rowVirtualizer.measureElement}
+                    data-index={virtualRow.index}
+                    className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 pb-3"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    {row.map((stk) => {
+                      const isSelected = selectedStickerIds.includes(stk.id);
+                      return (
+                        <div
+                          key={`unified-pool-${stk.id}`}
+                          onClick={() => toggleSelectStickerForPack(stk.id)}
+                          className={`relative aspect-square rounded-onicord-button overflow-hidden bg-onicord-base/60 border cursor-pointer flex items-center justify-center group transition-all ${
+                            isSelected
+                              ? " border-2 border-onicord-accent bg-onicord-accent/10"
+                              : "border-onicord-island hover:border-white/20"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteStickerClick(e, stk)}
+                            className="absolute top-1.5 right-1.5 h-6 w-6 flex items-center justify-center rounded-lg bg-onicord-base text-onicord-muted border border-white/10 hover:text-white hover:bg-onicord-danger hover:border-onicord-danger/20 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-30"
+                            title={t("common.delete", "Eliminar sticker")}
+                          >
+                            <Delete size="sm" />
+                          </button>
 
-                <div className="w-full h-full flex items-center justify-center pointer-events-none">
-                  <img
-                    src={getMediaUrl(stk.localPath)}
-                    alt=""
-                    loading="lazy"
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-              </div>
-            );
-          })}
-
-          {misStickers.length === 0 && (
-            <p className="col-span-full text-center text-xs text-onicord-muted py-10 font-medium">
+                          <div className="w-full h-full flex items-center justify-center pointer-events-none">
+                            <img
+                              src={getMediaUrl(stk.localPath)}
+                              alt=""
+                              loading="lazy"
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-center text-xs text-onicord-muted py-10 font-medium">
               {t(
                 "settings.stickers.emptyLibraryHelp",
                 "No tienes stickers cargados. Utiliza la zona de carga para añadir imágenes.",

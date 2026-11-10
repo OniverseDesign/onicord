@@ -7,20 +7,20 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useGlobalVoice } from "./VoiceContext";
+import { useVoiceChannelInfo } from "./VoiceContext";
 import { checkPermission } from "../lib/permissionsHelper";
 
 const MusicContext = createContext(null);
 
 export function MusicProvider({ profile, activeServer, children }) {
-  const globalVoice = useGlobalVoice();
+  const globalVoice = useVoiceChannelInfo();
   const {
     currentVoiceServer,
     currentVoiceChannelId,
     currentVoiceRoomCode,
     inVoice,
-    members: voiceMembers,
-  } = globalVoice;
+    members: voiceMembers = [],
+  } = globalVoice || {};
 
   const audioRef = useRef(null);
 
