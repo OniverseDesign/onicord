@@ -9,7 +9,7 @@
   }
 
   .onicord-channel {
-    @apply flex w-full items-center rounded-onicord-button px-2 py-[6px] gap-2 text-[15px] leading-5 select-none cursor-pointer;
+    @apply flex w-full items-center rounded-onicord-button px-2 py-[6px] gap-2 text-base leading-5 select-none cursor-pointer;
     transition: transform 0.15s ease-out, width 0.15s ease-out, background-color 0.15s ease-out, color 0.15s ease-out;
     color: var(--onicord-muted);
   }
@@ -28,7 +28,7 @@
   }
 
   .onicord-category {
-    @apply mx-1 mb-1 flex w-[calc(100%-16px)] items-center gap-1.5 rounded-onicord-button px-2 py-[6px] text-left text-[15px] leading-5 select-none;
+    @apply mx-1 mb-1 flex w-[calc(100%-16px)] items-center gap-1.5 rounded-onicord-button px-2 py-[6px] text-left text-base leading-5 select-none;
     transition: transform 0.15s ease-out, width 0.15s ease-out, color 0.15s ease-out;
     color: var(--onicord-faded);
   }
@@ -58,7 +58,7 @@
     @apply mb-2 px-2 text-xs font-semibold uppercase tracking-wide select-none;
   }
   .onicord-channel-icon {
-    @apply text-[20px] font-semibold leading-none opacity-70 shrink-0 select-none;
+    @apply text-xl font-semibold leading-none opacity-70 shrink-0 select-none;
   }
   .onicord-vector-icon-button {
     @apply transition-colors duration-150 text-onicord-muted cursor-pointer;

@@ -4,12 +4,15 @@
  * ICE batching, and LAN mDNS candidate rewriting.
  */
 
+import { getAdaptiveAudioBitrate } from "./VoiceBitrateAdapter";
+
 export function createNativePeer({
   localPeerId,
   remotePeerId,
   initiator,
   iceServers,
   isLan = false,
+  peerCount = 2,
   lanPeerIPs,
   onRemoteVideoUpdate,
 }) {
@@ -75,6 +78,7 @@ export function createNativePeer({
 
     _rewriteRemoteSdp(sdpObj) {
       if (!sdpObj || !sdpObj.sdp) return sdpObj;
+      if (!isLan) return sdpObj;
       const ips = lanPeerIPs?.get(remotePeerId) || [];
       if (ips.length === 0) return sdpObj;
 
@@ -116,6 +120,10 @@ export function createNativePeer({
         sdpMLineIndex,
         usernameFragment,
       };
+
+      if (!isLan) {
+        return [baseCandidate];
+      }
 
       const ips = lanPeerIPs?.get(remotePeerId) || [];
       const mdnsRegex = /[a-zA-Z0-9-]+\.local/gi;
@@ -203,13 +211,20 @@ export function createNativePeer({
   };
 
   // Bind the SDP transform method onto the wrapper for use in signal()
+  wrapper.peerCount = peerCount;
   wrapper._transformSdp = (sessionDesc) => {
     if (!sessionDesc?.sdp) return sessionDesc;
     let sdp = sessionDesc.sdp;
     const isGame = Boolean(wrapper.isGameMode);
-    const targetBitrate = isGame ? 192000 : (isLan ? 128000 : 64000);
-    const targetLabel = isGame ? "GAMING STEREO" : (isLan ? "LAN" : "WAN");
-    const stereoParams = isGame ? "stereo=1;sprop-stereo=1" : "stereo=0";
+    const currentPeerCount = wrapper.peerCount || 2;
+    const audioPolicy = getAdaptiveAudioBitrate(currentPeerCount, {
+      isGame,
+      isLan,
+    });
+    const targetBitrate = audioPolicy.bitrate;
+    const targetLabel = audioPolicy.label;
+    const stereoParams = audioPolicy.stereo ? "stereo=1;sprop-stereo=1" : "stereo=0";
+    const dtxParam = `usedtx=${audioPolicy.dtx}`;
 
     const opusMatch = sdp.match(/a=rtpmap:(\d+)\s+opus\/48000/i);
     if (opusMatch) {
@@ -218,7 +233,7 @@ export function createNativePeer({
       if (sdp.match(fmtpRegex)) {
         sdp = sdp.replace(
           fmtpRegex,
-          `a=fmtp:${pt} $1;usedtx=0;maxaveragebitrate=${targetBitrate};${stereoParams}`,
+          `a=fmtp:${pt} $1;${dtxParam};maxaveragebitrate=${targetBitrate};${stereoParams}`,
         );
       } else {
         const rtpmapRegex = new RegExp(
@@ -227,11 +242,11 @@ export function createNativePeer({
         );
         sdp = sdp.replace(
           rtpmapRegex,
-          `$1\r\na=fmtp:${pt} usedtx=0;maxaveragebitrate=${targetBitrate};${stereoParams}`,
+          `$1\r\na=fmtp:${pt} ${dtxParam};maxaveragebitrate=${targetBitrate};${stereoParams}`,
         );
       }
       console.log(
-        `[WebRTC SDP] Opus bitrate set to ${targetBitrate}bps (${targetLabel} mode, DTX=0) for ${remotePeerId}`,
+        `[WebRTC SDP] Opus bitrate set to ${targetBitrate}bps (${targetLabel} mode, DTX=${audioPolicy.dtx}) for ${remotePeerId}`,
       );
     }
     return new RTCSessionDescription({ type: sessionDesc.type, sdp });

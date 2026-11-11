@@ -15,6 +15,36 @@ export function getAdaptiveVideoBitrate(peerCount = 1, isRealStream = true) {
   }
 }
 
+/**
+ * Adaptive Audio Bitrate Policy:
+ * Preserves high-fidelity audio (128 kbps Opus) for small calls (1-4 peers),
+ * smoothly scaling to 96 kbps for medium calls (5-8 peers) and 64 kbps for large calls (9+ peers)
+ * or when network degradation (packet loss > 4%) is detected.
+ */
+export function getAdaptiveAudioBitrate(peerCount = 1, options = {}) {
+  const { isGame = false, isLan = false, packetLoss = 0 } = options;
+  if (isGame) {
+    return { bitrate: 192000, label: "GAMING STEREO", stereo: true, dtx: 0 };
+  }
+  if (isLan) {
+    return { bitrate: 128000, label: "LAN HQ", stereo: false, dtx: 0 };
+  }
+  // High packet loss fallback: reduce to 64 kbps with DTX to protect stability
+  if (packetLoss > 4) {
+    return { bitrate: 64000, label: "WAN CONSERVE", stereo: false, dtx: 1 };
+  }
+  // Small calls (1-4 participants) -> Studio quality 128 kbps (user's preferred quality!)
+  if (peerCount <= 4) {
+    return { bitrate: 128000, label: "WAN STUDIO", stereo: false, dtx: 0 };
+  }
+  // Medium calls (5-8 participants) -> High fidelity 96 kbps
+  if (peerCount <= 8) {
+    return { bitrate: 96000, label: "WAN HI-FI", stereo: false, dtx: 1 };
+  }
+  // Large calls (9+ participants) -> Efficient 64 kbps
+  return { bitrate: 64000, label: "WAN STANDARD", stereo: false, dtx: 1 };
+}
+
 export class VoiceStatsMonitor {
   constructor() {
     this._statsInterval = null;

@@ -231,7 +231,7 @@ export default function MessageTextContent({
 
   return (
     <div
-      className="whitespace-pre-wrap break-words text-[15px] text-onicord-subtext select-text cursor-text"
+      className="whitespace-pre-wrap break-words text-base text-onicord-subtext select-text cursor-text"
       style={{ lineHeight: "var(--onicord-chat-line-height, 1.5)" }}
     >
       {renderedContent}

@@ -173,8 +173,10 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [servers, setServers] = useState([]);
   const [activeServer, setActiveServer] = useState(null);
-  const [screen, setScreen] = useState("loading");
-  const [loading, setLoading] = useState(true);
+  const [screen, setScreen] = useState("home");
+  const [readyToMountApp, setReadyToMountApp] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [isFadingOut, setIsFadingOut] = useState(false);
   const hasInitialized = useRef(false);
 
   // Invite modal state: set when a deep link arrives
@@ -183,11 +185,11 @@ export default function App() {
 
   const hasPlayedWakeRef = useRef(false);
   useEffect(() => {
-    if (!loading && screen !== "loading" && !hasPlayedWakeRef.current) {
+    if (isFadingOut && !hasPlayedWakeRef.current) {
       hasPlayedWakeRef.current = true;
       soundEngine.playCue("wake");
     }
-  }, [loading, screen]);
+  }, [isFadingOut]);
 
   const refreshServers = useCallback(async () => {
     try {
@@ -225,9 +227,6 @@ export default function App() {
   }, []);
 
   const enterServerProcess = useCallback(async (serverObj, currentProfile, isInitialBoot = false) => {
-    if (isInitialBoot) {
-      setLoading(true);
-    }
     if (
       document.activeElement &&
       typeof document.activeElement.blur === "function"
@@ -241,17 +240,17 @@ export default function App() {
         currentProfile,
       );
 
-      await window.electronAPI.setLastServer?.(serverObj.id);
+      window.electronAPI.setLastServer?.(serverObj.id)?.catch?.(() => {});
 
       setActiveServer(entered);
-      setScreen("home");
+      if (!isInitialBoot) {
+        setScreen("home");
+      }
     } catch (err) {
       console.error("Error al conectar al servidor:", err.message);
       setActiveServer(null);
-      setScreen("home");
-    } finally {
-      if (isInitialBoot) {
-        setLoading(false);
+      if (!isInitialBoot) {
+        setScreen("home");
       }
     }
   }, []);
@@ -261,21 +260,40 @@ export default function App() {
     hasInitialized.current = true;
 
     async function init() {
+      const bootStartTime = Date.now();
+      const MIN_SPLASH_TIME = 2800; // Duration for wordmark animation to play its entrance and shine cycle once
+      const FADE_OUT_DURATION = 400;
+
+      const finishSplash = async () => {
+        const elapsed = Date.now() - bootStartTime;
+        const remaining = MIN_SPLASH_TIME - elapsed;
+        if (remaining > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
+        setIsFadingOut(true);
+        await new Promise((resolve) => setTimeout(resolve, FADE_OUT_DURATION));
+        setShowSplash(false);
+      };
+
       const api = window.electronAPI;
       if (!api) {
-        setScreen("home");
-        setLoading(false);
+        setReadyToMountApp(true);
+        await finishSplash();
         return;
       }
       try {
-        const storedProfile = await api.getProfile();
-        const list = await api.listServers();
+        const [storedProfile, list, lastActive] = await Promise.all([
+          api.getProfile(),
+          api.listServers(),
+          api.getLastServer?.(),
+        ]);
 
         setServers(list || []);
 
         if (!storedProfile?.nickname) {
           setScreen("profile");
-          setLoading(false);
+          setReadyToMountApp(true);
+          await finishSplash();
           return;
         }
         setProfile(storedProfile);
@@ -288,19 +306,23 @@ export default function App() {
           );
         }
 
-        const lastActive = await api.getLastServer?.();
         const lastActiveId = typeof lastActive === "object" ? lastActive?.id : lastActive;
         let matched = null;
-        if (lastActiveId && list.some((s) => s.id === lastActiveId)) {
+        if (lastActiveId && list && list.some((s) => s.id === lastActiveId)) {
           matched = list.find((s) => s.id === lastActiveId);
           console.log(
             `[App Init] Triggering primary boot connection for: ${matched.name}`,
           );
           await enterServerProcess(matched, storedProfile, true);
         } else {
-          setScreen("home");
-          setLoading(false);
+          setActiveServer(null);
         }
+
+        // Mount the app view and chat directly behind the splash overlay
+        setScreen("home");
+        setReadyToMountApp(true);
+
+        await finishSplash();
 
         // Step 2: Connect remaining servers in the background without blocking UI
         if (api.bootBackgroundServers) {
@@ -310,8 +332,8 @@ export default function App() {
         }
       } catch (err) {
         console.error("Error en init:", err);
-        setScreen("home");
-        setLoading(false);
+        setReadyToMountApp(true);
+        await finishSplash();
       }
     }
     init();
@@ -577,7 +599,6 @@ export default function App() {
   }, [profile?.id, refreshServers]);
 
   const handleRestoreComplete = useCallback(async () => {
-    setLoading(true);
     try {
       const storedProfile = await window.electronAPI.getProfile();
       const list = await window.electronAPI.listServers();
@@ -587,8 +608,6 @@ export default function App() {
     } catch (err) {
       console.error("[Drive Restore] Error reinicializando app:", err);
       setScreen("home");
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -597,19 +616,17 @@ export default function App() {
       <VoiceProvider profile={profile}>
         <MusicProvider profile={profile} activeServer={activeServer}>
           <WatchPartyProvider profile={profile} activeServer={activeServer}>
-            {loading || screen === "loading" ? (
-              <LoadingScreen />
-            ) : (
-              <div className="flex h-full w-full flex-col overflow-hidden bg-onicord-base text-onicord-text">
-                <TitleBar />
-                <div className="flex-1 min-h-0 w-full relative">
-                  {screen === "profile" ? (
-                    <ProfileSetup
-                      initialProfile={profile}
-                      onComplete={handleProfileComplete}
-                      onRestoreComplete={handleRestoreComplete}
-                    />
-                  ) : (
+            <div className="flex h-full w-full flex-col overflow-hidden bg-onicord-base text-onicord-text relative">
+              <TitleBar />
+              <div className="flex-1 min-h-0 w-full relative">
+                {screen === "profile" ? (
+                  <ProfileSetup
+                    initialProfile={profile}
+                    onComplete={handleProfileComplete}
+                    onRestoreComplete={handleRestoreComplete}
+                  />
+                ) : (
+                  readyToMountApp && (
                     <HomeView
                       profile={profile}
                       servers={servers}
@@ -621,10 +638,22 @@ export default function App() {
                       onServerUpdated={handleServerUpdated}
                       onDeleteAccount={handleDeleteAccount}
                     />
-                  )}
-                </div>
+                  )
+                )}
               </div>
-            )}
+
+              {/* Startup splash overlay: smoothly dissolves over pre-mounted app */}
+              {showSplash && (
+                <div
+                  className={`fixed inset-0 z-[100] bg-onicord-base flex items-center justify-center transition-opacity duration-400 ease-out ${
+                    isFadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
+                  }`}
+                >
+                  <div className="titlebar-drag absolute top-0 left-0 right-0 h-[22px]" />
+                  <LoadingScreen />
+                </div>
+              )}
+            </div>
             <ToastContainer />
             {/* Invite modal — shown when a deep link is received */}
             {inviteData && (

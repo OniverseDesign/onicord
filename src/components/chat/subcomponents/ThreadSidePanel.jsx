@@ -692,7 +692,7 @@ export default function ThreadSidePanel({
             </svg>
           </div>
           <p className="text-sm font-bold">{t("chat.dropFileHere", "Suelta el archivo aquí")}</p>
-          <p className="text-[11px] text-onicord-muted mt-0.5">
+          <p className="text-xs text-onicord-muted mt-0.5">
             {t("chat.sendInThread", "Para enviar en el hilo")}
           </p>
         </div>
@@ -706,7 +706,7 @@ export default function ThreadSidePanel({
             <h3 className="text-sm font-bold text-onicord-text truncate leading-snug">
               {activeRootMessage?.title || t("chat.thread", "Hilo de conversación")}
             </h3>
-            <span className="text-[11px] text-onicord-muted truncate">
+            <span className="text-xs text-onicord-muted truncate">
               {threadReplies.length === 1
                 ? t("chat.singleReplyCount", "1 respuesta")
                 : t("chat.pluralReplyCount", {
@@ -730,7 +730,7 @@ export default function ThreadSidePanel({
       {/* Message List Area */}
       <div className="flex-1 min-h-0 relative flex flex-col w-full">
         {/* Top gradient shadow overlay */}
-        <div className="absolute top-0 left-0 right-0 h-[24px] bg-gradient-to-b from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
+        <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
 
         <div className="w-full h-full overflow-y-auto minimal-scrollbar py-4 space-y-2 select-text relative">
           {showThreadSkeleton && (
@@ -750,7 +750,7 @@ export default function ThreadSidePanel({
               {/* Root Message Section Header */}
               <div>
                 {!isForumThread && (
-                  <div className="text-[10px] uppercase tracking-wider font-bold text-onicord-accent mb-2 px-4 flex items-center gap-1">
+                  <div className="text-2xs uppercase tracking-wider font-bold text-onicord-accent mb-2 px-4 flex items-center gap-1">
                     <MaterialIcon name="push_pin" size={12} />
                     {t("chat.threadRootMessage", "Mensaje Principal")}
                   </div>
@@ -809,7 +809,7 @@ export default function ThreadSidePanel({
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-onicord-accent/20" />
                 </div>
-                <span className="relative bg-onicord-base px-3 text-[11px] font-semibold text-onicord-accent/50 uppercase tracking-wider">
+                <span className="relative bg-onicord-base px-3 text-2xs font-semibold text-onicord-accent/50 uppercase tracking-wider">
                   {threadReplies.length === 0
                     ? t("chat.noRepliesYet", "Aún no hay respuestas en este hilo.")
                     : t("chat.repliesSeparator", { count: threadReplies.length, defaultValue: `${threadReplies.length} respuestas` })}
@@ -845,7 +845,7 @@ export default function ThreadSidePanel({
         </div>
 
         {/* Bottom gradient shadow overlay */}
-        <div className="absolute bottom-0 left-0 right-0 h-[24px] bg-gradient-to-t from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
+        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
       </div>
 
       <ChatInputArea

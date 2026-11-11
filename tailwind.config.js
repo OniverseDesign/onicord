@@ -42,6 +42,22 @@ export default {
           blue: "rgb(var(--onicord-blue) / <alpha-value>)",
         },
       },
+      fontSize: {
+        // 📏 Escala tipográfica armonizada Onicord (8 niveles estándar)
+        "2xs": ["var(--font-size-2xs, 10px)", { lineHeight: "var(--line-height-2xs, 14px)", letterSpacing: "0.04em" }],
+        xs: ["var(--font-size-xs, 12px)", { lineHeight: "var(--line-height-xs, 16px)" }],
+        sm: ["var(--font-size-sm, 14px)", { lineHeight: "var(--line-height-sm, 20px)" }],
+        base: ["var(--font-size-base, 15px)", { lineHeight: "var(--line-height-base, 22px)" }],
+        lg: ["var(--font-size-lg, 18px)", { lineHeight: "var(--line-height-lg, 24px)", letterSpacing: "-0.015em" }],
+        xl: ["var(--font-size-xl, 20px)", { lineHeight: "var(--line-height-xl, 26px)", letterSpacing: "-0.02em" }],
+        "2xl": ["var(--font-size-2xl, 24px)", { lineHeight: "var(--line-height-2xl, 30px)", letterSpacing: "-0.025em" }],
+        "3xl": ["var(--font-size-3xl, 30px)", { lineHeight: "var(--line-height-3xl, 36px)", letterSpacing: "-0.03em" }],
+
+        // 🏷️ Alias semánticos
+        badge: ["var(--font-size-2xs, 10px)", { lineHeight: "var(--line-height-2xs, 14px)", letterSpacing: "0.04em" }],
+        caption: ["var(--font-size-xs, 12px)", { lineHeight: "var(--line-height-xs, 16px)" }],
+        body: ["var(--font-size-base, 15px)", { lineHeight: "var(--line-height-base, 22px)" }],
+      },
       fontFamily: {
         sans: ["var(--font)", "sans-serif"],
         mono: ["var(--font)", "monospace"],

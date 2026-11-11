@@ -31,6 +31,7 @@ export default function WatchPartyStage() {
     stopWatchParty,
     joinWatchParty,
     dismissPrompt,
+    shareWatchPartyToChat,
     togglePlayPause,
     sendSeek,
     setIsFloating,
@@ -841,7 +842,18 @@ export default function WatchPartyStage() {
           items={qualityItems}
         />
 
-        {/* 6. Switch to Floating PiP view button */}
+        {/* 6. Share / Invite to Chat button */}
+        {shareWatchPartyToChat && isHost && (
+          <FloatingMediaBar.PillButton
+            icon="share"
+            label={t("stage.inviteToChat", "Invitar al chat")}
+            title={t("stage.inviteToChatTitle", "Compartir invitación en el chat")}
+            responsiveText
+            onClick={() => shareWatchPartyToChat()}
+          />
+        )}
+
+        {/* 7. Switch to Floating PiP view button */}
         <FloatingMediaBar.PillButton
           icon="picture_in_picture_alt"
           label={t("watchParty.viewChat", "Ver chat")}
@@ -856,7 +868,7 @@ export default function WatchPartyStage() {
           }}
         />
 
-        {/* 7. Fullscreen toggle button */}
+        {/* 8. Fullscreen toggle button */}
         <FloatingMediaBar.IconButton
           icon={isFullscreen ? "fullscreen_exit" : "fullscreen"}
           title={isFullscreen ? t("watchParty.exitFullScreen", "Salir de pantalla completa") : t("watchParty.fullScreen", "Pantalla completa")}
@@ -869,7 +881,7 @@ export default function WatchPartyStage() {
           }}
         />
 
-        {/* 8. Stop / Close button */}
+        {/* 9. Stop / Close button */}
         <FloatingMediaBar.StopButton
           title={t("watchParty.closeWatchParty", "Cerrar Watch Party")}
           onClick={stopWatchParty}

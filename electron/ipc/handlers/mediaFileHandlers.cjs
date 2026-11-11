@@ -91,7 +91,8 @@ function registerMediaFileHandlers() {
       realPath: fp,
       ownerId: global.roomManager.profile?.id || null,
     };
-    await global.roomManager.fileIndexStore.merge(targetCode, [record]);
+    await global.roomManager.fileIndexStore.merge(targetCode, [record], { isLocal: true });
+    await saveDownloadToRegistry(id, fp, targetCode);
 
     global.mainWindow?.webContents.send("sync:complete", {
       type: "file_upload",
@@ -129,7 +130,8 @@ function registerMediaFileHandlers() {
         ownerId: global.roomManager.profile?.id || null,
       };
 
-      await global.roomManager.fileIndexStore.merge(targetCode, [record]);
+      await global.roomManager.fileIndexStore.merge(targetCode, [record], { isLocal: true });
+      await saveDownloadToRegistry(id, fp, targetCode);
       console.log(`[ARES CLIPBOARD] Captura guardada e indexada con éxito. ID: ${id}`);
       global.mainWindow?.webContents.send("sync:complete", {
         type: "file_upload",
@@ -164,7 +166,8 @@ function registerMediaFileHandlers() {
       realPath: fp,
       ownerId: global.roomManager.profile?.id || null,
     };
-    await global.roomManager.fileIndexStore.merge(targetCode, [record]);
+    await global.roomManager.fileIndexStore.merge(targetCode, [record], { isLocal: true });
+    await saveDownloadToRegistry(id, fp, targetCode);
 
     global.mainWindow?.webContents.send("sync:complete", {
       type: "file_upload",
@@ -387,20 +390,55 @@ function registerMediaFileHandlers() {
 
   ipcMain.handle("files:getUploadedLocalPath", async (_event, roomCode, fileId) => {
     const targetCode = roomCode || global.roomManager?.roomCode;
-    if (!global.roomManager || !targetCode || !global.roomManager.fileIndexStore)
-      return null;
     try {
       const id = String(fileId || "").trim();
-      const records = await global.roomManager.fileIndexStore.load(targetCode);
-      const localFileMeta = records.find((f) => f.id === id);
+      if (!id) return null;
 
-      if (
-        localFileMeta &&
-        localFileMeta.realPath &&
-        fs.existsSync(localFileMeta.realPath)
-      ) {
-        return localFileMeta.realPath;
+      // 1. Check fileIndexStore for current room
+      if (global.roomManager?.fileIndexStore && targetCode) {
+        try {
+          const records = await global.roomManager.fileIndexStore.load(targetCode);
+          const localFileMeta = records.find((f) => f.id === id);
+
+          if (
+            localFileMeta &&
+            localFileMeta.realPath &&
+            fs.existsSync(localFileMeta.realPath)
+          ) {
+            return localFileMeta.realPath;
+          }
+        } catch (_) {}
       }
+
+      // 2. Check app_config.db downloads table (auto-seeds uploads and downloads)
+      try {
+        const appConfigDb = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
+        const row = appConfigDb
+          .prepare("SELECT file_path FROM downloads WHERE download_id = ?")
+          .get(id);
+        if (row && row.file_path && fs.existsSync(row.file_path)) {
+          return row.file_path;
+        }
+      } catch (_) {}
+
+      // 3. Fallback check across all joined rooms in fileIndexStore
+      if (global.roomManager?.fileIndexStore && global.roomManager.p2pService?.joinedRooms) {
+        for (const room of global.roomManager.p2pService.joinedRooms) {
+          if (room === targetCode) continue;
+          try {
+            const records = await global.roomManager.fileIndexStore.load(room);
+            const localFileMeta = records.find((f) => f.id === id);
+            if (
+              localFileMeta &&
+              localFileMeta.realPath &&
+              fs.existsSync(localFileMeta.realPath)
+            ) {
+              return localFileMeta.realPath;
+            }
+          } catch (_) {}
+        }
+      }
+
       return null;
     } catch (err) {
       console.error("[Node Upload Paths Error]:", err.message);

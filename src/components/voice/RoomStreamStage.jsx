@@ -19,12 +19,20 @@ export default function RoomStreamStage({
   const hasStream = Boolean(localStream || remoteStream);
   if (!hasStream) return null;
 
-  const currentStream = activeStreamUserId ? remoteStream : localStream;
-  const streamAuthorName = remoteStream
+  const currentStream = activeStreamUserId ? remoteStream : (remoteStream || localStream);
+  const isLocal = !activeStreamUserId && !remoteStream;
+  const streamAuthorName = !isLocal
     ? voiceMembersDisplay.find((m) => m.peerId === activeStreamUserId)?.nickname
     : t("common.you");
 
+  const isMini = isStreamFloating && !isStreamFullscreen;
+  const isFullscreen = isStreamFullscreen;
+
   const handleStopStream = () => {
+    if (isFullscreen) {
+      setIsStreamFullscreen(false);
+      window.electronAPI?.setFullscreen?.(false);
+    }
     if (remoteStream) {
       onResetRemoteStream?.();
     } else {
@@ -33,67 +41,37 @@ export default function RoomStreamStage({
     }
   };
 
+  const handleToggleFullscreen = () => {
+    if (isFullscreen) {
+      setIsStreamFullscreen(false);
+      window.electronAPI?.setFullscreen?.(false);
+    } else {
+      setIsStreamFloating(false);
+      setIsStreamFullscreen(true);
+      window.electronAPI?.setFullscreen?.(true);
+    }
+  };
+
+  const handleToggleSize = () => {
+    if (isFullscreen) {
+      setIsStreamFullscreen(false);
+      window.electronAPI?.setFullscreen?.(false);
+      setIsStreamFloating(true);
+    } else {
+      setIsStreamFloating((prev) => !prev);
+    }
+  };
+
   return (
-    <>
-      {/* 1. Inline Stage: rendered inside RoomView main central column */}
-      {!isStreamFloating && !isStreamFullscreen && (
-        <StreamDisplay
-          localStream={currentStream}
-          isLocal={!activeStreamUserId}
-          streamAuthorName={streamAuthorName}
-          onStopStream={handleStopStream}
-          isFullscreen={false}
-          onToggleFullscreen={() => {
-            setIsStreamFullscreen(true);
-            window.electronAPI?.setFullscreen?.(true);
-          }}
-          onToggleSize={() => setIsStreamFloating(true)}
-        />
-      )}
-
-      {/* 2. Floating Stage (PiP) */}
-      {isStreamFloating && !isStreamFullscreen && (
-        <StreamDisplay
-          localStream={remoteStream || localStream}
-          streamAuthorName={streamAuthorName}
-          onStopStream={handleStopStream}
-          isMini={true}
-          isLocal={!remoteStream}
-          isFullscreen={false}
-          onToggleFullscreen={() => {
-            setIsStreamFloating(false);
-            setIsStreamFullscreen(true);
-            window.electronAPI?.setFullscreen?.(true);
-          }}
-          onToggleSize={() => setIsStreamFloating(false)}
-        />
-      )}
-
-      {/* 3. Fullscreen Layer */}
-      {isStreamFullscreen && (
-        <div className="fixed inset-0 z-40 w-screen h-screen bg-black flex items-center justify-center select-none">
-          <StreamDisplay
-            localStream={currentStream}
-            isLocal={!activeStreamUserId}
-            streamAuthorName={streamAuthorName}
-            onStopStream={() => {
-              setIsStreamFullscreen(false);
-              window.electronAPI?.setFullscreen?.(false);
-              handleStopStream();
-            }}
-            isFullscreen={true}
-            onToggleFullscreen={() => {
-              setIsStreamFullscreen(false);
-              window.electronAPI?.setFullscreen?.(false);
-            }}
-            onToggleSize={() => {
-              setIsStreamFullscreen(false);
-              window.electronAPI?.setFullscreen?.(false);
-              setIsStreamFloating(true);
-            }}
-          />
-        </div>
-      )}
-    </>
+    <StreamDisplay
+      localStream={currentStream}
+      isLocal={isLocal}
+      streamAuthorName={streamAuthorName}
+      onStopStream={handleStopStream}
+      isMini={isMini}
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={handleToggleFullscreen}
+      onToggleSize={handleToggleSize}
+    />
   );
 }

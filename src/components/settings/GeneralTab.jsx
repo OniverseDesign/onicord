@@ -57,7 +57,7 @@ export default function GeneralTab({ general, setGeneral }) {
   const handleSfxLevelChange = (newLevel) => {
     const lvl = Math.max(0, Math.min(3, parseInt(newLevel, 10) || 0));
     setSfxLevel(lvl);
-    soundEngine.setLevel(lvl, false);
+    soundEngine.setLevel(lvl, true);
     setGeneral((prev) => ({
       ...prev,
       sfxLevel: lvl,
@@ -193,7 +193,7 @@ export default function GeneralTab({ general, setGeneral }) {
     }
 
     if (key === "sfxLevel") {
-      soundEngine.setLevel(value);
+      soundEngine.setLevel(value, true);
     }
 
     if (key === "enableContinuousAnimations") {

@@ -288,14 +288,14 @@ export default function RoomOverlays({
                   kickedUsers: currentKicked,
                 });
                 if (updated) onServerUpdated?.(updated);
-                soundEngine.playNav("leave");
+                soundEngine.playCue("disconnect");
               } else if (type === "ban") {
                 const currentBanned = Array.from(new Set([...(server.bannedUsers || []), targetId]));
                 const updated = await window.electronAPI.updateServerSettings(server.id, {
                   bannedUsers: currentBanned,
                 });
                 if (updated) onServerUpdated?.(updated);
-                soundEngine.playNav("leave");
+                soundEngine.playCue("disconnect");
               }
             } catch (err) {
               console.error(`[Moderation Error (${type})]:`, err);

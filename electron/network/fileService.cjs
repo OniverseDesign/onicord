@@ -72,6 +72,21 @@ class FileService {
       }
     } catch {}
 
+    // 1b. Check fileIndexStore across any joined rooms if not found in current room
+    if (!candidatePath && this.fileIndexStore && this.p2p?.joinedRooms) {
+      for (const room of this.p2p.joinedRooms) {
+        if (room === this.roomCode) continue;
+        try {
+          const records = await this.fileIndexStore.load(room);
+          const fileMeta = records.find((f) => f.id === cleanFileId);
+          if (fileMeta?.realPath && fs.existsSync(fileMeta.realPath)) {
+            candidatePath = fileMeta.realPath;
+            break;
+          }
+        } catch {}
+      }
+    }
+
     // 2. Check app_config.db downloads table (auto-seeding for any peer who already downloaded the file)
     if (!candidatePath && this.userDataPath) {
       try {

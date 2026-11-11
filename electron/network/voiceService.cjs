@@ -57,6 +57,7 @@ class VoiceService {
           ping: p.ping !== undefined ? Math.round(p.ping) : 999,
           bandwidth: p.voiceState.bandwidth || 0,
           connectionType: this.p2p.getConnectionType(p.id),
+          isVerifiedLan: typeof this.p2p.isVerifiedLan === "function" ? this.p2p.isVerifiedLan(p.id) : false,
           localIPs: p.localIPs || [],
           joinedAt: p.voiceState.joinedAt || Date.now(),
         });
@@ -72,12 +73,14 @@ class VoiceService {
     };
   }
 
-  _broadcastLocalVoiceState(profile) {
+  _broadcastLocalVoiceState(profile, targetRoomOverride = null) {
     const localId = this.p2p._resolveLocalPeerId();
     if (!localId) return;
+    const targetRoom = targetRoomOverride || this.localVoice?.roomCode || this.p2p.roomCode || null;
     this.p2p._broadcast("voice-state", {
       peerId: localId,
       channelId: this.localVoice?.channelId ?? null,
+      roomCode: targetRoom,
       muted: Boolean(this.localVoice?.muted),
       deafened: Boolean(this.localVoice?.deafened),
       nickname: profile?.nickname,
@@ -88,23 +91,25 @@ class VoiceService {
       sfuScore: this.localVoice?.sfuScore ?? 0,
       bandwidth: this.localVoice?.bandwidth ?? 0,
       joinedAt: this.localVoice?.joinedAt ?? null,
-    }, this.p2p.roomCode);
+    }, targetRoom);
   }
 
   joinVoice(channelId, profile, emitVoiceState, options = {}) {
     if (!channelId) throw new Error("Invalid voice channel");
-    console.log(`\n[Voice Service] 🟢 ENTRANDO A CANAL DE VOZ: ${channelId}`);
+    const targetRoom = options.roomCode ? String(options.roomCode).trim().toUpperCase() : (this.p2p.roomCode || null);
+    console.log(`\n[Voice Service] 🟢 ENTRANDO A CANAL DE VOZ: ${channelId} (Sala: ${targetRoom || "desconocida"})`);
     const isMuted = options.muted !== undefined ? Boolean(options.muted) : Boolean(this.initialMuted);
     const isDeafened = options.deafened !== undefined ? Boolean(options.deafened) : Boolean(this.initialDeafened);
     this.localVoice = {
       channelId,
+      roomCode: targetRoom,
       muted: isDeafened || isMuted,
       deafened: isDeafened,
       joinedAt: Date.now(),
     };
     this.initialMuted = this.localVoice.muted;
     this.initialDeafened = this.localVoice.deafened;
-    this._broadcastLocalVoiceState(profile);
+    this._broadcastLocalVoiceState(profile, targetRoom);
     if (typeof emitVoiceState === "function") {
       emitVoiceState();
     }
@@ -112,13 +117,14 @@ class VoiceService {
 
   leaveVoice(profile, emitVoiceState) {
     console.log(`\n[Voice Service] 🔴 SALIENDO DEL CANAL DE VOZ`);
+    const prevRoom = this.localVoice?.roomCode || this.p2p.roomCode || null;
     if (this.localVoice) {
       this.initialMuted = Boolean(this.localVoice.muted);
       this.initialDeafened = Boolean(this.localVoice.deafened);
     }
     this.localVoice = null;
     this._pendingSignals.clear();
-    this._broadcastLocalVoiceState(profile);
+    this._broadcastLocalVoiceState(profile, prevRoom);
     if (typeof emitVoiceState === "function") {
       emitVoiceState();
     }
@@ -290,24 +296,13 @@ class VoiceService {
 
     let hasLanGatewayPeer = false;
     if (localChannelId) {
-      const myIPs = getLocalIPs();
       for (const peer of this.p2p.peers.values()) {
         if (peer.voiceState?.channelId === localChannelId) {
           const pingVal = peer.averagePing !== undefined ? peer.averagePing : (peer.ping || 100);
           totalPing += pingVal;
           peerCount++;
 
-          const peerIPs = peer.localIPs || [];
-          let peerIsLAN = false;
-          for (const myIP of myIPs) {
-            for (const peerIP of peerIPs) {
-              if (isSameSubnet(myIP, peerIP)) {
-                peerIsLAN = true;
-                break;
-              }
-            }
-            if (peerIsLAN) break;
-          }
+          const peerIsLAN = typeof this.p2p.isVerifiedLan === "function" ? this.p2p.isVerifiedLan(peer.id) : false;
 
           if (peerIsLAN) {
             const peerIsSfuHost = this.currentSfuHostId === peer.id;
@@ -449,6 +444,7 @@ class VoiceService {
           encodeMessage("voice-state", {
             peerId: localId,
             channelId: this.localVoice.channelId,
+            roomCode: this.localVoice.roomCode || this.p2p.roomCode || null,
             muted: Boolean(this.localVoice.muted),
             deafened: Boolean(this.localVoice.deafened),
             nickname: this.p2p.profile?.nickname,

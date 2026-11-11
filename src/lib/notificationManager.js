@@ -196,10 +196,22 @@ class NotificationManager {
           soundEngine.playCue("notification");
           if (this.settings?.enableNotifications !== false) {
             const sender = sanitizeNotificationSender(data.nickname);
-            const preview = data.text
-              ? data.text.length > 120
-                ? data.text.substring(0, 117) + "..."
-                : data.text
+            let rawPreview = data.text;
+            if (rawPreview && typeof rawPreview === "string" && rawPreview.startsWith("[PLUGIN_EMBED]:")) {
+              try {
+                const parsed = JSON.parse(rawPreview.slice(15));
+                if (parsed.type === "activity_invite" && parsed.data) {
+                  rawPreview = parsed.data.subtitle || `Te invita a ${parsed.data.title}`;
+                } else if (parsed.type === "poll" && parsed.data) {
+                  rawPreview = `Encuesta: ${parsed.data.question}`;
+                }
+              } catch (_) {}
+            }
+
+            const preview = rawPreview
+              ? rawPreview.length > 120
+                ? rawPreview.substring(0, 117) + "..."
+                : rawPreview
               : i18n.t("notifications.newMessageReceived", "Nuevo mensaje recibido");
 
             const toastKey = `${data.roomCode || ""}_${data.channelId || ""}`;

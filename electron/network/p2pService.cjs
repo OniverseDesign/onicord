@@ -21,23 +21,47 @@ function ipToLong(ip) {
   return String(ip).split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
 }
 
+function normalizeIP(ip) {
+  if (!ip) return "";
+  const s = String(ip).trim();
+  if (s.startsWith("::ffff:")) return s.substring(7);
+  if (s === "::1") return "127.0.0.1";
+  return s;
+}
+
+function isPrivateIP(ip) {
+  const clean = normalizeIP(ip);
+  if (!clean) return false;
+  if (clean === "127.0.0.1" || clean === "localhost") return true;
+  if (clean.startsWith("10.")) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(clean)) return true;
+  if (clean.startsWith("192.168.")) return true;
+  if (clean.startsWith("169.254.")) return true;
+  return false;
+}
+
 function isSameSubnet(ipA, ipB) {
   if (!ipA || !ipB) return false;
   
+  const cleanA = normalizeIP(ipA);
+  const cleanB = normalizeIP(ipB);
+  if (cleanA === cleanB) return true;
+  if (cleanA === "127.0.0.1" && cleanB === "127.0.0.1") return true;
+
   const interfaces = os.networkInterfaces();
   let netmask = "255.255.255.0"; // fallback
   
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
-      if (iface.family === "IPv4" && (iface.address === ipA || iface.address === ipB)) {
+      if (iface.family === "IPv4" && (iface.address === cleanA || iface.address === cleanB)) {
         netmask = iface.netmask;
         break;
       }
     }
   }
 
-  const longA = ipToLong(ipA);
-  const longB = ipToLong(ipB);
+  const longA = ipToLong(cleanA);
+  const longB = ipToLong(cleanB);
   const longMask = ipToLong(netmask);
 
   return (longA & longMask) === (longB & longMask);
@@ -139,7 +163,7 @@ class P2PService {
     }
   }
 
-  async joinRoom(roomCode) {
+  async joinRoom(roomCode, options = {}) {
     await this.ensureSwarm();
     const normalized = String(roomCode || "").trim().toUpperCase();
     if (!normalized) return null;
@@ -153,7 +177,15 @@ class P2PService {
     const topic = topicFromRoomCode(normalized);
     const discovery = this.swarm.join(topic, { server: true, client: true });
     this.roomDiscoveries.set(normalized, discovery);
-    await discovery.flushed();
+
+    const waitFlush = Boolean(options?.waitFlush);
+    if (waitFlush) {
+      await discovery.flushed();
+    } else {
+      discovery.flushed().catch((err) => {
+        console.warn(`[P2P] Background discovery flush warning for ${normalized}:`, err.message);
+      });
+    }
 
     // Announce active joined rooms to all connected peers
     this._broadcastJoinedRooms();
@@ -213,6 +245,14 @@ class P2PService {
       return;
     }
 
+    const remoteAddr = normalizeIP(
+      socket.remoteAddress ||
+      socket.rawStream?.remoteAddress ||
+      socket._handle?._peername?.address ||
+      peerInfo?.remoteIP ||
+      null
+    );
+
     const peer = {
       id: peerId,
       userId: null,
@@ -221,6 +261,7 @@ class P2PService {
       socket,
       decoder: new StringDecoder("utf8"),
       isDirectTCP: Boolean(peerInfo?.isDirectTCP),
+      remoteAddress: remoteAddr,
     };
     this.peers.set(peerId, peer);
     this._buffers.set(peerId, "");
@@ -367,24 +408,30 @@ class P2PService {
     this._broadcast("profile", this.profile);
   }
 
+  isVerifiedLan(peerId) {
+    const peer = this.peers.get(peerId);
+    if (!peer) return false;
+    const remoteAddr = normalizeIP(peer.remoteAddress);
+    if (!remoteAddr) return false;
+    if (remoteAddr === "127.0.0.1" || remoteAddr === "localhost") return true;
+
+    // Check if the socket connection was physically established to/from a private IP on the same subnet
+    if (isPrivateIP(remoteAddr)) {
+      const myIPs = getLocalIPs();
+      for (const myIP of myIPs) {
+        if (isSameSubnet(myIP, remoteAddr)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   getConnectionType(peerId) {
     const peer = this.peers.get(peerId);
     if (!peer) return "Hyperswarm (DHT)";
     
-    const myIPs = getLocalIPs();
-    const peerIPs = peer.localIPs || [];
-    let isLAN = false;
-    for (const myIP of myIPs) {
-      for (const peerIP of peerIPs) {
-        if (isSameSubnet(myIP, peerIP)) {
-          isLAN = true;
-          break;
-        }
-      }
-      if (isLAN) break;
-    }
-
-    if (isLAN && peer.ping !== undefined && peer.ping < 25) {
+    if (this.isVerifiedLan(peerId)) {
       return "LAN (Direct)";
     }
     if (peer.isDirectTCP) {
@@ -636,4 +683,4 @@ class P2PService {
   }
 }
 
-module.exports = { P2PService, encodeMessage, decodeMessages, getLocalIPs, isSameSubnet, safeWriteSocket };
+module.exports = { P2PService, encodeMessage, decodeMessages, getLocalIPs, isSameSubnet, isPrivateIP, normalizeIP, safeWriteSocket };

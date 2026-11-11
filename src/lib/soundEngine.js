@@ -24,6 +24,8 @@ const CUE_MIN_LEVEL = {
   stop: 1,
   notification: 1,
   mention: 1,
+  leave: 1,
+  wake: 1,
 
   // Level 2: Communication (Chat, Messages, Typing, Reactions)
   send: 2,
@@ -46,6 +48,9 @@ const CUE_MIN_LEVEL = {
   success: 3,
   warning: 3,
   undo: 3,
+  press: 3,
+  "drag-start": 3,
+  release: 3,
 };
 
 class SoundEngine {
@@ -55,8 +60,8 @@ class SoundEngine {
     this.level = SFX_LEVEL.COMMUNICATION;
     this.enabled = true;
     this.typingSoundsEnabled = true;
-    this.widgetSoundsEnabled = false;
-    this.navSoundsEnabled = false;
+    this.widgetSoundsEnabled = true;
+    this.navSoundsEnabled = true;
 
     this._unlocked = false;
     this._lastTypingPlay = 0;
@@ -171,11 +176,12 @@ class SoundEngine {
       localStorage.setItem("onicord_sfx_enabled", String(this.enabled));
     } catch { }
 
-    if (this.player) {
+    if (this.player && typeof this.player.setEnabled === "function") {
       this.player.setEnabled(this.enabled);
     }
 
     if (playPreview && this.enabled && this.player) {
+      this.unlock().catch(() => {});
       try {
         if (clamped === 1) {
           this.player.play("toggle-on", { volume: this.volume });
@@ -243,11 +249,11 @@ class SoundEngine {
   }
 
   isTypingEnabled() {
-    return Boolean(this.enabled && this.typingSoundsEnabled);
+    return Boolean(this.enabled && this.level >= SFX_LEVEL.COMMUNICATION);
   }
 
   isTypingSoundsEnabled() {
-    return Boolean(this.enabled && this.typingSoundsEnabled);
+    return Boolean(this.enabled && this.level >= SFX_LEVEL.COMMUNICATION);
   }
 
   setWidgetSoundsEnabled(enabled) {
@@ -255,7 +261,7 @@ class SoundEngine {
   }
 
   isWidgetSoundsEnabled() {
-    return Boolean(this.enabled && this.widgetSoundsEnabled);
+    return Boolean(this.enabled && this.level >= SFX_LEVEL.ALL);
   }
 
   setNavSoundsEnabled(enabled) {
@@ -263,17 +269,23 @@ class SoundEngine {
   }
 
   isNavSoundsEnabled() {
-    return Boolean(this.enabled && this.navSoundsEnabled);
+    return Boolean(this.enabled && this.level >= SFX_LEVEL.ALL);
   }
 
   playCue(cueName, options = {}) {
     if (this.level <= 0 || !this.player) return null;
 
-    const minLevel = CUE_MIN_LEVEL[cueName] ?? 3;
+    const CUE_ALIASES = {
+      leave: "disconnect",
+      join: "connect",
+    };
+    const resolvedCue = CUE_ALIASES[cueName] || cueName;
+
+    const minLevel = CUE_MIN_LEVEL[resolvedCue] ?? CUE_MIN_LEVEL[cueName] ?? 3;
     if (this.level < minLevel) return null;
 
     try {
-      return this.player.play(cueName, options);
+      return this.player.play(resolvedCue, options);
     } catch (err) {
       console.warn(`[SoundEngine] Failed to play cue "${cueName}":`, err);
       return null;
@@ -282,7 +294,7 @@ class SoundEngine {
 
   // Rate-limited typing sound for chat
   playTyping() {
-    if (!this.isTypingSoundsEnabled() || this.level < SFX_LEVEL.COMMUNICATION || !this.player) return;
+    if (this.level < SFX_LEVEL.COMMUNICATION || !this.player) return;
 
     // Suppress if window is not focused
     if (typeof document !== "undefined" && !document.hasFocus()) return;
@@ -296,7 +308,7 @@ class SoundEngine {
 
   // Rate-limited snap sound for widget grid movement
   playWidgetSnap() {
-    if (!this.isWidgetSoundsEnabled() || this.level < SFX_LEVEL.ALL || !this.player) return;
+    if (this.level < SFX_LEVEL.ALL || !this.player) return;
 
     const now = Date.now();
     if (now - this._lastSnapPlay < 120) return;
@@ -317,8 +329,8 @@ class SoundEngine {
   }
 
   playNav(cueName, options = {}) {
-    if (!this.isNavSoundsEnabled() || this.level < SFX_LEVEL.ALL || !this.player) return;
-    this.playCue(cueName, options);
+    if (this.level < SFX_LEVEL.ALL || !this.player) return null;
+    return this.playCue(cueName, options);
   }
 
   stopAll() {

@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { IconClose } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
+import Heading from "./Heading";
+import Text from "./Text";
 import { soundEngine } from "../../lib/soundEngine";
 import { useInternalClose } from "../../hooks/useAnimatedMount";
 
@@ -166,13 +168,13 @@ export default function ModalShell({
         {Array.isArray(sections) && sections.length > 0 && (
           <aside className="flex w-[260px] shrink-0 flex-col bg-onicord-mantle py-4 px-2 m-3 rounded-2xl border border-onicord-island">
             <div className="mb-2 px-3">
-              <h2 className="text-xl font-bold tracking-wide text-onicord-accent">
+              <Heading level={2} size="xl" color="accent">
                 {title}
-              </h2>
+              </Heading>
               {subtitle && (
-                <p className="mt-1 truncate text-xs text-onicord-text">
+                <Text variant="xs" color="default" truncate className="mt-1">
                   {subtitle}
-                </p>
+                </Text>
               )}
             </div>
 
@@ -290,11 +292,11 @@ export default function ModalShell({
         {/* Main content area */}
         <div className="flex min-w-0 flex-1 flex-col bg-onicord-surface rounded-2xl border border-onicord-island m-3 overflow-hidden">
           <header className="onicord-modal-content-header">
-            <h3 className="text-xl font-semibold text-onicord-text">
+            <Heading level={3} size="xl">
               {Array.isArray(sections) && sections.length > 0
                 ? sections.find((s) => s.id === activeSection)?.label
                 : title}
-            </h3>
+            </Heading>
             <button
               type="button"
               onClick={handleClose}

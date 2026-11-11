@@ -190,7 +190,7 @@ class StickerService {
           ownerId: roomManager.profile?.id || null,
         };
 
-        await roomManager.fileIndexStore.merge(roomManager.roomCode, [record]);
+        await roomManager.fileIndexStore.merge(roomManager.roomCode, [record], { isLocal: true });
         console.log(`[Sticker Export P2P] Registrado en Ares Server con ID: ${generatedFileId} (${fileName})`);
       }
 

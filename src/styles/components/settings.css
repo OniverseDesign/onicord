@@ -34,7 +34,7 @@
     @apply text-sm font-semibold text-onicord-text truncate leading-snug;
   }
   .onicord-settings-row-desc {
-    @apply text-[11px] text-onicord-muted leading-relaxed mt-0.5;
+    @apply text-xs text-onicord-muted leading-relaxed mt-0.5;
   }
   .onicord-icon-badge {
     @apply w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-base border border-white/5 flex items-center justify-center text-onicord-accent shrink-0 shadow-sm;

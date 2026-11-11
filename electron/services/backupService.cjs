@@ -130,13 +130,24 @@ function getProfileSummary() {
   const ud = getUserDataPath();
   try {
     const { DbManager } = require("../storage/dbManager.cjs");
+    const { CasStore } = require("../storage/casStore.cjs");
     const profileDb = DbManager.getInstance(ud).getGlobalDb("profile");
     const row = profileDb.prepare("SELECT user_id, nickname, avatar_ref FROM main_profile WHERE id = 1").get();
     if (row) {
+      let avatarData = row.avatar_ref || null;
+      if (avatarData && avatarData.startsWith("onicord-media://cas/")) {
+        try {
+          const cas = CasStore.getInstance(ud);
+          const dataUri = cas.toDataUri(avatarData);
+          if (dataUri && dataUri.startsWith("data:")) {
+            avatarData = dataUri;
+          }
+        } catch {}
+      }
       return {
         id: row.user_id || null,
         nickname: row.nickname || "",
-        avatar: row.avatar_ref || null,
+        avatar: avatarData,
       };
     }
   } catch {}
@@ -320,6 +331,70 @@ async function createBackupFile(categories = ["profile", "servers", "addons", "s
   };
 }
 
+// ─── RESOLVE AVATAR FROM BACKUP ZIP ──────────────────────────────────────────
+function resolveAvatarFromBackupZip(zip, avatarRef, ud = null) {
+  if (!avatarRef || typeof avatarRef !== "string") return null;
+  const trimmed = avatarRef.trim();
+  if (trimmed.startsWith("data:image/") || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  const { EXT_TO_MIME, CasStore } = require("../storage/casStore.cjs");
+
+  // Attempt to extract from zip if it is a CAS reference
+  let target = trimmed;
+  if (target.startsWith("onicord-media://cas/")) {
+    target = target.slice("onicord-media://cas/".length).split("?")[0];
+  }
+  target = path.basename(target);
+
+  let hash = target;
+  let ext = "png";
+  const dotIdx = target.indexOf(".");
+  if (dotIdx !== -1) {
+    hash = target.slice(0, dotIdx);
+    ext = target.slice(dotIdx + 1);
+  }
+  hash = hash.toLowerCase().replace(/[^a-f0-9]/g, "");
+
+  if (hash.length === 64) {
+    const prefix = hash.slice(0, 2);
+    const cleanExt = ext.replace(/[^a-z0-9]/g, "") || "png";
+    let entry = zip.getEntry(`cas/${prefix}/${hash}.${cleanExt}`);
+    if (!entry) {
+      entry = zip.getEntry(`cas/${hash}.${cleanExt}`);
+    }
+    if (!entry) {
+      const allEntries = zip.getEntries();
+      entry = allEntries.find((e) => !e.isDirectory && e.entryName.toLowerCase().includes(hash));
+    }
+
+    if (entry) {
+      try {
+        const buf = entry.getData();
+        if (buf && buf.length > 0) {
+          const entryExt = path.extname(entry.entryName).slice(1).toLowerCase() || cleanExt;
+          const mime = EXT_TO_MIME[entryExt] || "image/png";
+          return `data:${mime};base64,${buf.toString("base64")}`;
+        }
+      } catch (err) {
+        console.warn("[BackupService] Error reading avatar entry from zip:", err.message);
+      }
+    }
+  }
+
+  // Fallback: check local CasStore
+  try {
+    const cas = CasStore.getInstance(ud || getUserDataPath());
+    const dataUri = cas.toDataUri(avatarRef);
+    if (dataUri && (dataUri.startsWith("data:image/") || dataUri.startsWith("data:"))) {
+      return dataUri;
+    }
+  } catch {}
+
+  return null;
+}
+
 // ─── PUBLIC: INSPECT BACKUP PACKAGE ──────────────────────────────────────────
 async function inspectBackup(filePath) {
   if (!filePath || !fs.existsSync(filePath)) {
@@ -338,6 +413,14 @@ async function inspectBackup(filePath) {
 
     const fileStats = fs.statSync(filePath);
 
+    let profile = manifest.profile || null;
+    if (profile && profile.avatar) {
+      const resolvedAvatar = resolveAvatarFromBackupZip(zip, profile.avatar, getUserDataPath());
+      if (resolvedAvatar) {
+        profile = { ...profile, avatar: resolvedAvatar };
+      }
+    }
+
     return {
       valid: true,
       filePath,
@@ -345,7 +428,7 @@ async function inspectBackup(filePath) {
       fileSize: fileStats.size,
       manifest,
       type: manifest.type || "backup",
-      profile: manifest.profile || null,
+      profile,
       categories: manifest.categories || ["profile", "servers"],
       createdAt: manifest.createdAt || fileStats.mtimeMs,
       appVersion: manifest.appVersion || "Desconocida",

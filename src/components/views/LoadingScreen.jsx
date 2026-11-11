@@ -24,7 +24,7 @@ export default function LoadingScreen() {
   });
 
   return (
-    <div className="flex h-full w-full select-none flex-col items-center justify-center bg-onicord-base animate-fade-in overflow-hidden relative">
+    <div className="flex h-full w-full select-none flex-col items-center justify-center overflow-hidden relative">
       <div className="flex flex-col items-center gap-6 max-w-[480px] w-full px-6">
         <div className="w-full flex items-center justify-center py-3">
           <OnicordWordmarkAnimated className="w-full max-w-[400px]" />

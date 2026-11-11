@@ -197,19 +197,19 @@ const ForumPostCard = memo(
           <div className="flex flex-col min-w-0 flex-1 leading-tight">
             <div className="flex items-baseline gap-2 flex-wrap">
               <span
-                className="cursor-default text-[15px] font-semibold text-onicord-text hover:underline"
+                className="cursor-default text-base font-semibold text-onicord-text hover:underline"
                 style={{ color: nameColor || undefined }}
               >
                 {nickname}
               </span>
 
               {msg.isComplement && (
-                <span className="text-[10px] bg-onicord-accent/20 text-onicord-accent px-1.5 py-0.5 rounded font-bold uppercase">
+                <span className="text-2xs bg-onicord-accent/20 text-onicord-accent px-1.5 py-0.5 rounded font-bold uppercase">
                   APP
                 </span>
               )}
 
-              <span className="text-[12px] text-onicord-muted opacity-60 font-medium ml-1">
+              <span className="text-xs text-onicord-muted opacity-60 font-medium ml-1">
                 {formatFriendlyDate(msg.timestamp, t, i18n?.language || "es")}
               </span>
             </div>
@@ -246,7 +246,7 @@ const ForumPostCard = memo(
         {/* Post Body Snippet (line-clamp-3 in feed, full in thread) */}
         {bodySnippet && (
           <div
-            className={`text-[14px] text-onicord-text/80 leading-relaxed mb-3 break-words select-text ${
+            className={`text-sm text-onicord-text/80 leading-relaxed mb-3 break-words select-text ${
               isInThread ? "" : "line-clamp-3"
             }`}
           >
@@ -305,7 +305,7 @@ const ForumPostCard = memo(
                 key={tag}
                 type="button"
                 onClick={() => onSelectTag(tag)}
-                className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-onicord-base/70 border border-white/5 text-onicord-muted hover:text-onicord-accent hover:border-onicord-accent/40 transition-all cursor-pointer flex items-center gap-0.5"
+                className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-onicord-base/70 border border-white/5 text-onicord-muted hover:text-onicord-accent hover:border-onicord-accent/40 transition-all cursor-pointer flex items-center gap-0.5"
               >
                 <span className="text-onicord-accent/70">#</span>
                 <span>{tag}</span>
@@ -343,7 +343,7 @@ const ForumPostCard = memo(
                   title={`${emoji} (${users.length})`}
                 >
                   <span className="text-sm leading-none">{emoji}</span>
-                  <span className="text-[11px] font-mono leading-none">{users.length}</span>
+                  <span className="text-xs font-mono leading-none">{users.length}</span>
                 </button>
               );
             })}

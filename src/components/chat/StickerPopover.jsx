@@ -408,7 +408,7 @@ export default function StickerPopover({
       ) : searchTerm ? (
         // Search Results Mode
         <div className="flex-1 overflow-y-auto p-2.5 custom-scrollbar">
-          <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 mb-1.5">
+          <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 mb-1.5">
             {t("chat.searchResults", "Resultados de búsqueda")}
           </h4>
           {renderStickerGrid(filteredResults, "search")}
@@ -432,7 +432,7 @@ export default function StickerPopover({
               ref={(el) => (sectionRefs.current["top"] = el)}
               className="space-y-1.5"
             >
-              <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1">
+              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1">
                 Frecuentes
               </h4>
               {renderStickerGrid(topStickers, "top")}
@@ -446,12 +446,12 @@ export default function StickerPopover({
               ref={(el) => (sectionRefs.current[`pack-${idx}`] = el)}
               className="space-y-1.5 animate-fade-in"
             >
-              <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1 flex items-center justify-between gap-2">
+              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1 flex items-center justify-between gap-2">
                 <span className="truncate">{pack.title}</span>
                 <button
                   type="button"
                   onClick={(e) => handleSharePackClick(e, pack)}
-                  className="onicord-chip-accent text-[9px] px-2 py-0.5"
+                  className="onicord-chip-accent text-2xs px-2 py-0.5"
                   title={`Compartir grupo "${pack.title}" en la sala`}
                 >
                   Compartir
@@ -468,7 +468,7 @@ export default function StickerPopover({
               ref={(el) => (sectionRefs.current["loose"] = el)}
               className="space-y-1.5 animate-fade-in"
             >
-              <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1">
+              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1">
                 Stickers Sueltos ({looseStickers.length})
               </h4>
               {renderStickerGrid(looseStickers, "loose")}

@@ -215,7 +215,7 @@ export default function ChatInputArea({
             <div className="onicord-reply-bar !mx-0 !mb-0">
               <div className="flex items-center gap-1.5 truncate text-onicord-muted">
                 <span>{t("chat.replyingTo")}</span>
-                <div className="h-4 w-4 rounded-full bg-onicord-accent overflow-hidden shrink-0 flex items-center justify-center text-[9px] font-bold text-white">
+                <div className="h-4 w-4 rounded-full bg-onicord-accent overflow-hidden shrink-0 flex items-center justify-center text-2xs font-bold text-white">
                   {usuarioCitado.avatar === "bot-star" ||
                   (usuarioCitado.isComplement && !usuarioCitado.avatar) ? (
                     <IconEstrella className="w-2.5 h-2.5 text-white" />
@@ -339,7 +339,7 @@ export default function ChatInputArea({
                     <p className="truncate text-xs font-semibold text-onicord-text" title={pf.name}>
                       {pf.name}
                     </p>
-                    <p className="text-[10px] text-onicord-muted">{formatBytes(pf.size)}</p>
+                    <p className="text-2xs text-onicord-muted">{formatBytes(pf.size)}</p>
                   </div>
                   <button
                     type="button"
@@ -451,7 +451,7 @@ export default function ChatInputArea({
                       tyrannyInputRef.current?.focus();
                     }
                   }}
-                  className="w-full bg-transparent text-[16px] sm:text-[18px] font-bold text-white placeholder:text-onicord-muted outline-none px-1 py-1"
+                  className="w-full bg-transparent text-base sm:text-lg font-bold text-white placeholder:text-onicord-muted outline-none px-1 py-1"
                 />
               </div>
             )}

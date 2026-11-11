@@ -392,11 +392,12 @@ function registerP2PServerHandlers() {
   });
 
   ipcMain.handle("voice:join", async (_event, channelId, options = {}) => {
-    if (!global.roomManager || !global.roomManager.roomCode) {
+    const targetRoom = options?.roomCode ? String(options.roomCode).trim().toUpperCase() : global.roomManager?.roomCode;
+    if (!global.roomManager || !targetRoom) {
       console.warn("[Voice IPC] Cannot join voice: No active room found");
       return { error: "No active room found" };
     }
-    global.roomManager.joinVoice(channelId, options);
+    global.roomManager.joinVoice(channelId, { ...options, roomCode: targetRoom });
     return global.roomManager.getVoiceSnapshot();
   });
 

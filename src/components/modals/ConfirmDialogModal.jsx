@@ -2,6 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../lib/cn";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
+import Heading from "../ui/Heading";
+import Text from "../ui/Text";
 
 export default function ConfirmDialogModal({
   isOpen,
@@ -37,26 +39,26 @@ export default function ConfirmDialogModal({
       <div className={cn("onicord-modal-card !z-modal-nested-card", isAnimatingOut && "onicord-animate-modal-out")}>
         {}
         <div className="mb-3">
-          <h2 className="text-[18px] font-bold text-onicord-text leading-tight text-left">
+          <Heading level={2} size="lg" className="leading-tight text-left">
             {title}
-          </h2>
+          </Heading>
         </div>
 
         {}
         <div className="space-y-3 text-left">
-          <p className="text-[14px] leading-relaxed text-onicord-subtext">
+          <Text variant="sm" color="subtext" className="leading-relaxed">
             {message}
-          </p>
+          </Text>
 
           {}
           {warningMessage && (
             <div className="onicord-modal-warning-box mt-3 text-left bg-onicord-danger/10 border border-onicord-danger/20 p-3 rounded-onicord-inner">
-              <strong className="block text-onicord-danger text-[11px] uppercase font-bold tracking-wider mb-1">
+              <strong className="block text-onicord-danger text-2xs uppercase font-bold tracking-wider mb-1">
                 Attention:
               </strong>
-              <span className="text-[12px] text-onicord-subtext leading-normal">
+              <Text as="span" variant="xs" color="subtext" className="leading-normal">
                 {warningMessage}
-              </span>
+              </Text>
             </div>
           )}
         </div>

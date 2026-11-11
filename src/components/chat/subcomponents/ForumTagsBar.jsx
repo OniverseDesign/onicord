@@ -62,7 +62,7 @@ export default function ForumTagsBar({
         <button
           type="button"
           onClick={() => onSelectTag(null)}
-          className={`text-[12px] px-3 py-1 rounded-full border transition-all cursor-pointer truncate shrink-0 flex items-center gap-1 ${
+          className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate shrink-0 flex items-center gap-1 ${
             !activeTag
               ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs"
               : "bg-onicord-surface/80 border-white/10 text-onicord-muted hover:text-onicord-text hover:border-white/20 hover:bg-onicord-surface"
@@ -82,7 +82,7 @@ export default function ForumTagsBar({
               key={name}
               type="button"
               onClick={() => onSelectTag(isActive ? null : name)}
-              className={`text-[13px] px-3.5 py-1 rounded-full border transition-all cursor-pointer truncate max-w-[200px] shrink-0 flex items-center gap-1 ${
+              className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate max-w-[200px] shrink-0 flex items-center gap-1 ${
                 isActive
                   ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs scale-[1.02]"
                   : "bg-onicord-surface/80 border-white/10 text-onicord-text hover:text-onicord-accent hover:border-onicord-accent/50 hover:bg-onicord-surface"
@@ -93,7 +93,7 @@ export default function ForumTagsBar({
                 #
               </span>
               <span>{name}</span>
-              <span className="text-[10px] opacity-40 ml-0.5 font-mono">
+              <span className="text-2xs opacity-40 ml-0.5 font-mono">
                 {count}
               </span>
             </button>

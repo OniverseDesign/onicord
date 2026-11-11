@@ -113,6 +113,7 @@ class ServerStore {
         template: "¡Bienvenido {user} a {server}! 🎉",
       },
       music: meta.music ?? null,
+      savedMembers: meta.savedMembers || {},
     };
   }
 

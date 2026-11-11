@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import Isla from "../ui/Isla";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
+import Heading from "../ui/Heading";
 import IconEstrella from "../icons/Estrella.svg?react";
 import {
   CONFIG_ISLAS,
@@ -467,9 +468,9 @@ export default function HomeDashboard({
           </div>
 
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-onicord-text tracking-wide truncate">
+            <Heading level={1} size="xl" truncate>
               {t("dashboard.welcomeUser", { nickname: profile?.nickname })}
-            </h1>
+            </Heading>
             <p className="text-xs text-onicord-muted mt-0.5 truncate">
               {t("dashboard.personalDashboard")}
             </p>

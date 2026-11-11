@@ -18,7 +18,7 @@
     @apply flex h-12 w-full shrink-0 items-center justify-center gap-2 px-3 hover:bg-white/[0.02];
   }
   .onicord-server-icon-fallback {
-    @apply flex h-6 w-6 items-center justify-center rounded-full bg-onicord-accent text-[10px] font-bold text-white;
+    @apply flex h-6 w-6 items-center justify-center rounded-full bg-onicord-accent text-2xs font-bold text-white;
   }
   .onicord-server-avatar {
     @apply flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-onicord-accent text-xl font-bold text-onicord-mantle shadow-md select-none shrink-0;
@@ -42,7 +42,7 @@
   }
 
   .onicord-list-row-interactive {
-    @apply flex w-full items-center justify-between gap-2 rounded-onicord-button px-3 py-[5px] hover:bg-onicord-overlay/40 cursor-pointer text-[14px];
+    @apply flex w-full items-center justify-between gap-2 rounded-onicord-button px-3 py-[5px] hover:bg-onicord-overlay/40 cursor-pointer text-sm;
     transition: transform 0.15s ease-out, width 0.15s ease-out, background-color 0.15s ease-out;
   }
   .onicord-list-row-interactive:hover {

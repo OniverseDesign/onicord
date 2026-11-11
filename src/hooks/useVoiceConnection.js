@@ -110,11 +110,16 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     }
     const cleanMembers = Array.from(uniqueMembersMap.values());
 
-    // Build LAN peer IP map for WebRTC audio optimization
+    // Build LAN peer IP map for WebRTC audio optimization (only for genuinely verified LAN peers)
     const newLanMap = new Map();
     cleanMembers.forEach((m) => {
+      const isVerifiedLan = Boolean(
+        m.isVerifiedLan ||
+        m.connectionType === "LAN (Direct)"
+      );
       if (
         !m.isSelf &&
+        isVerifiedLan &&
         m.localIPs &&
         Array.isArray(m.localIPs) &&
         m.localIPs.length > 0
@@ -446,6 +451,11 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
         manager.setDeafened(deafened);
         managerRef.current = manager;
         window.voiceManager = manager;
+
+        if (members && members.length > 0) {
+          manager.updatePeerIdentities(members);
+        }
+        syncPeerConnections(manager, voiceChannelId).catch(console.error);
 
         if (pendingSignalsRef.current.length > 0) {
           const signalsToProcess = [...pendingSignalsRef.current];
@@ -788,6 +798,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
           const res = await api.joinVoice(activeVoiceChannelId, {
             muted: mutedRef.current,
             deafened: deafenedRef.current,
+            roomCode: serverId,
           });
           if (res?.error) {
             console.warn("[Voice Connection] Could not join voice:", res.error);

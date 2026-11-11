@@ -71,6 +71,115 @@ class CasStore {
     this.userDataPath = path.resolve(userDataPath);
     this.casDir = path.join(this.userDataPath, "cas");
     ensureDirSync(this.casDir);
+    this._worker = undefined;
+    this._workerReqId = 1;
+    this._pendingWorkerRequests = new Map();
+  }
+
+  _ensureWorker() {
+    if (this._worker !== undefined) return this._worker;
+    try {
+      const { Worker } = require("worker_threads");
+      const workerPath = path.join(__dirname, "../workers/casHasherWorker.cjs");
+      if (fs.existsSync(workerPath)) {
+        this._worker = new Worker(workerPath);
+        this._worker.unref(); // Do not prevent process from exiting
+
+        this._worker.on("message", (res) => {
+          if (!res || !res.id) return;
+          const handler = this._pendingWorkerRequests.get(res.id);
+          if (handler) {
+            this._pendingWorkerRequests.delete(res.id);
+            if (res.error) {
+              handler.reject(new Error(res.error));
+            } else {
+              try {
+                const { DbManager } = require("./dbManager.cjs");
+                const dbMgr = DbManager._instances?.get(this.userDataPath.toLowerCase());
+                if (dbMgr) {
+                  const discoverDb = dbMgr.getGlobalDb("discover");
+                  const now = Date.now();
+                  discoverDb
+                    .prepare(
+                      `INSERT INTO cas_index (hash, ext, mime_type, size_bytes, created_at, last_accessed_at)
+                       VALUES (?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(hash) DO UPDATE SET last_accessed_at = excluded.last_accessed_at`
+                    )
+                    .run(res.hash, res.ext, res.mimeType, res.size, now, now);
+                }
+              } catch (_) {}
+              handler.resolve(res);
+            }
+          }
+        });
+
+        this._worker.on("error", (err) => {
+          console.warn("[CasStore] Worker thread error, falling back to main thread:", err.message);
+          this._worker = null;
+        });
+
+        return this._worker;
+      }
+    } catch (_) {
+      this._worker = null;
+    }
+    this._worker = null;
+    return null;
+  }
+
+  async storeBufferAsync(buffer, ext = "bin", mimeType = null) {
+    if (!Buffer.isBuffer(buffer) || buffer.length === 0) return null;
+    const worker = this._ensureWorker();
+
+    // For buffers > 64KB, offload SHA-256 and disk writing to worker thread
+    if (worker && buffer.length > 64 * 1024) {
+      return new Promise((resolve, reject) => {
+        const id = this._workerReqId++;
+        this._pendingWorkerRequests.set(id, { resolve, reject });
+        worker.postMessage({
+          id,
+          buffer,
+          ext,
+          mimeType,
+          casDir: this.casDir,
+        });
+      });
+    }
+
+    return this.storeBuffer(buffer, ext, mimeType);
+  }
+
+  async storeDataUriAsync(value) {
+    if (!value || typeof value !== "string") return value;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("data:")) return value;
+
+    const commaIdx = trimmed.indexOf(",");
+    if (commaIdx === -1) return value;
+
+    const header = trimmed.slice(5, commaIdx);
+    const body = trimmed.slice(commaIdx + 1);
+    if (!body) return value;
+
+    const isBase64 = /;base64/i.test(header);
+    const mimeMatch = header.match(/^([^;]+)/);
+    const mimeType = (mimeMatch ? mimeMatch[1] : "image/png").toLowerCase().trim();
+    let ext = MIME_TO_EXT[mimeType];
+    if (!ext) {
+      const slashIdx = mimeType.indexOf("/");
+      ext = slashIdx !== -1 ? mimeType.slice(slashIdx + 1).split("+")[0] : "bin";
+    }
+
+    try {
+      const buffer = isBase64
+        ? Buffer.from(body.replace(/\s+/g, ""), "base64")
+        : Buffer.from(decodeURIComponent(body), "utf8");
+      if (buffer.length === 0) return value;
+      const stored = await this.storeBufferAsync(buffer, ext, mimeType);
+      return stored ? stored.uri : value;
+    } catch {
+      return value;
+    }
   }
 
   _sanitizeExt(ext) {

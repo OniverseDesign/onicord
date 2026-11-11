@@ -610,6 +610,7 @@ const ChatMessageItem = memo(
                 msgId={msg.id}
                 profile={profile}
                 peers={peers}
+                server={server}
                 onPluginAction={onPluginAction}
               />
             ) : isStickerPayload ? (

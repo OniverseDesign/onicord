@@ -36,6 +36,25 @@ export default function StreamDisplay({
   const [duckMultiplier, setDuckMultiplier] = useState(1.0);
   const inactivityTimeoutRef = useRef(null);
 
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
+  const isMutedRef = useRef(isMuted);
+  isMutedRef.current = isMuted;
+  const duckMultiplierRef = useRef(duckMultiplier);
+  duckMultiplierRef.current = duckMultiplier;
+
+  const prevIsLocalRef = useRef(isLocal);
+  useEffect(() => {
+    if (prevIsLocalRef.current !== isLocal) {
+      prevIsLocalRef.current = isLocal;
+      setIsMuted(isLocal);
+    }
+  }, [isLocal]);
+
+  useEffect(() => {
+    setIsPipClosed(false);
+  }, [localStream]);
+
   useEffect(() => {
     const handleDucking = (e) => {
       const mult = e.detail?.duckMultiplier ?? 1.0;
@@ -54,7 +73,6 @@ export default function StreamDisplay({
   const lastPointerPos = useRef({ x: 0, y: 0 });
   const hasMoved = useRef(false);
   const rafId = useRef(null);
-  const pipContainerRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -74,8 +92,8 @@ export default function StreamDisplay({
       const nextX = Math.max(10, Math.min(currentX, maxX));
       const nextY = Math.max(10, Math.min(currentY, maxY));
       currentPos.current = { x: nextX, y: nextY };
-      if (pipContainerRef.current) {
-        pipContainerRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`;
+      if (containerRef.current) {
+        containerRef.current.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`;
       }
       setPosition({ x: nextX, y: nextY });
     };
@@ -91,9 +109,15 @@ export default function StreamDisplay({
 
     const attachStream = () => {
       if (cancelled) return;
-      videoEl.srcObject = localStream;
+      if (videoEl.srcObject !== localStream) {
+        videoEl.srcObject = localStream;
+      }
       const hasAudioTrack = localStream.getAudioTracks().length > 0;
-      videoEl.muted = isLocal || !hasAudioTrack ? true : isMuted;
+      const mutedNow = isLocal || !hasAudioTrack ? true : isMutedRef.current;
+      videoEl.muted = mutedNow;
+      videoEl.volume = mutedNow
+        ? 0
+        : Math.max(0, Math.min(1, (volumeRef.current / 100) * duckMultiplierRef.current));
 
       const playPromise = videoEl.play();
       if (playPromise !== undefined) {
@@ -132,7 +156,7 @@ export default function StreamDisplay({
         videoTrack.removeEventListener("unmute", handleUnmute);
       }
     };
-  }, [localStream, isLocal, isFullscreen]); // Re-attach when fullscreen state toggles
+  }, [localStream, isLocal]);
 
   // Handle muted state changes without touching srcObject/play lifecycle
   useEffect(() => {
@@ -140,7 +164,7 @@ export default function StreamDisplay({
     if (!videoEl) return;
     const hasAudioTrack = videoEl.srcObject?.getAudioTracks().length > 0;
     videoEl.muted = isLocal || !hasAudioTrack ? true : isMuted;
-  }, [isMuted, isLocal]);
+  }, [isMuted, isLocal, localStream]);
 
   // Handle volume changes with smooth transition and auto-ducking support
   useEffect(() => {
@@ -170,7 +194,7 @@ export default function StreamDisplay({
     };
     frameId = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frameId);
-  }, [volume, isMuted, isLocal, duckMultiplier]);
+  }, [volume, isMuted, isLocal, duckMultiplier, localStream]);
 
   useEffect(() => {
     if (!isFullscreen) {
@@ -218,22 +242,23 @@ export default function StreamDisplay({
   };
 
   const handlePointerDown = (e) => {
+    if (!isMini) return;
     if (e.target.closest("button") || e.target.closest("input")) return;
     isDragging.current = true;
     hasMoved.current = false;
     lastPointerPos.current = { x: e.clientX, y: e.clientY };
 
-    if (pipContainerRef.current) {
+    if (containerRef.current) {
       try {
-        pipContainerRef.current.setPointerCapture(e.pointerId);
+        containerRef.current.setPointerCapture(e.pointerId);
       } catch (_) {}
-      pipContainerRef.current.style.transition = "none";
-      pipContainerRef.current.style.willChange = "transform";
+      containerRef.current.style.transition = "none";
+      containerRef.current.style.willChange = "transform";
     }
   };
 
   const handlePointerMove = (e) => {
-    if (!isDragging.current) return;
+    if (!isMini || !isDragging.current) return;
     const deltaX = e.clientX - lastPointerPos.current.x;
     const deltaY = e.clientY - lastPointerPos.current.y;
 
@@ -252,8 +277,8 @@ export default function StreamDisplay({
 
     if (!rafId.current) {
       rafId.current = requestAnimationFrame(() => {
-        if (pipContainerRef.current) {
-          pipContainerRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
+        if (containerRef.current) {
+          containerRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
         }
         rafId.current = null;
       });
@@ -269,13 +294,15 @@ export default function StreamDisplay({
       rafId.current = null;
     }
 
-    if (pipContainerRef.current) {
-      pipContainerRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
-      pipContainerRef.current.style.transition = "";
-      pipContainerRef.current.style.willChange = "";
+    if (containerRef.current) {
+      if (isMini) {
+        containerRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
+      }
+      containerRef.current.style.transition = "";
+      containerRef.current.style.willChange = "";
       try {
-        if (e?.pointerId !== undefined && pipContainerRef.current.hasPointerCapture(e.pointerId)) {
-          pipContainerRef.current.releasePointerCapture(e.pointerId);
+        if (e?.pointerId !== undefined && containerRef.current.hasPointerCapture(e.pointerId)) {
+          containerRef.current.releasePointerCapture(e.pointerId);
         }
       } catch (_) {}
     }
@@ -283,32 +310,45 @@ export default function StreamDisplay({
     setPosition({ ...currentPos.current });
   };
 
-  if (isMini) {
-    if (IsPipClosed) return null;
+  const containerStyle = isMini
+    ? {
+        top: 0,
+        left: 0,
+        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+      }
+    : { isolation: "isolate" };
 
-    return (
-      <div
-        ref={pipContainerRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        style={{
-          top: 0,
-          left: 0,
-          transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-        }}
-        className="fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-transform duration-150 touch-none select-none"
-      >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          tabIndex="-1"
-          disablePictureInPicture
-          className="w-full h-full object-contain z-10"
-        />
+  const containerClassName = isMini
+    ? `${
+        IsPipClosed ? "hidden" : ""
+      } fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-transform duration-150 touch-none select-none`
+    : `relative flex-1 w-full h-full min-h-0 min-w-0 flex flex-col select-none overflow-hidden bg-black ${
+        isFullscreen
+          ? "fixed inset-0 z-50 w-screen h-screen rounded-none border-none"
+          : "rounded-onicord-inner border border-onicord-island group/stage"
+      } ${isFullscreen && !showControls ? "cursor-none" : "cursor-default"}`;
 
+  return (
+    <div
+      ref={containerRef}
+      onPointerDown={isMini ? handlePointerDown : undefined}
+      onPointerMove={isMini ? handlePointerMove : undefined}
+      onPointerUp={isMini ? handlePointerUp : undefined}
+      onPointerCancel={isMini ? handlePointerUp : undefined}
+      style={containerStyle}
+      className={containerClassName}
+    >
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={isMuted}
+        tabIndex="-1"
+        disablePictureInPicture
+        className={`w-full h-full object-contain ${isMini ? "z-10" : "z-0"}`}
+      />
+
+      {isMini ? (
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/60 flex flex-col justify-between p-2 pointer-events-none z-20">
           <div className="flex items-center justify-between w-full">
             <span className="bg-black/75 px-2 py-0.5 rounded text-[10px] text-white font-semibold select-none pointer-events-none truncate">
@@ -360,97 +400,75 @@ export default function StreamDisplay({
             </button>
           </div>
         </div>
-      </div>
-    );
-  }
+      ) : (
+        <>
+          {/* Top left overlay badge - Hides after 3s of fullscreen inactivity */}
+          <div
+            style={{ zIndex: 45, transform: "translate3d(0, 0, 50px)" }}
+            className={`absolute top-4 left-4 flex items-center gap-2 bg-black/80 border border-white/10 px-3.5 py-1.5 rounded-full text-xs backdrop-blur-md select-none transition-all duration-300 pointer-events-auto ${
+              isFullscreen && !showControls
+                ? "opacity-0 -translate-y-4 pointer-events-none"
+                : "opacity-100 translate-y-0 pointer-events-auto"
+            }`}
+          >
+            <span className="font-semibold text-white">
+              {t("voice.screenOf", { name: streamAuthorName || t("common.you") })}
+            </span>
+            <span className="onicord-live-badge">
+              {t("common.live")}
+            </span>
+          </div>
 
-  const renderPlayer = () => (
-    <div
-      ref={containerRef}
-      style={{ isolation: "isolate" }}
-      className={`relative flex-1 w-full h-full min-h-0 min-w-0 flex flex-col select-none overflow-hidden bg-black ${
-        isFullscreen
-          ? "fixed inset-0 z-50 w-screen h-screen rounded-none border-none"
-          : "rounded-onicord-inner border border-onicord-island group/stage"
-      } ${isFullscreen && !showControls ? "cursor-none" : "cursor-default"}`}
-    >
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted={isMuted}
-        tabIndex="-1"
-        disablePictureInPicture
-        className="w-full h-full object-contain z-0"
-      />
+          {/* Media control bar overlay - Hides after 3s of fullscreen inactivity */}
+          <FloatingMediaBar visible={!isFullscreen || showControls}>
+            {/* Audio Volume */}
+            <FloatingMediaBar.Volume
+              volume={volume}
+              max={100}
+              step={1}
+              isMuted={isMuted}
+              onToggleMute={() => setIsMuted(!isMuted)}
+              onVolumeChange={(val) => {
+                setVolume(val);
+                if (isMuted && val > 0) setIsMuted(false);
+              }}
+              titleMute={t("voice.muteAudio")}
+              titleUnmute={t("voice.unmuteAudio")}
+              customMuteIcon={<IconVolumeOff size="base" />}
+              customUnmuteIcon={<IconVolumeUp size="base" />}
+              showDividers={false}
+              sliderClassName="w-18"
+            />
 
-      {/* Top left overlay badge - Hides after 3s of fullscreen inactivity */}
-      <div
-        style={{ zIndex: 45, transform: "translate3d(0, 0, 50px)" }}
-        className={`absolute top-4 left-4 flex items-center gap-2 bg-black/80 border border-white/10 px-3.5 py-1.5 rounded-full text-xs backdrop-blur-md select-none transition-all duration-300 pointer-events-auto ${
-          isFullscreen && !showControls
-            ? "opacity-0 -translate-y-4 pointer-events-none"
-            : "opacity-100 translate-y-0 pointer-events-auto"
-        }`}
-      >
-        <span className="font-semibold text-white">
-          {t("voice.screenOf", { name: streamAuthorName || t("common.you") })}
-        </span>
-        <span className="onicord-live-badge">
-          {t("common.live")}
-        </span>
-      </div>
+            {/* Switch to Floating PiP view button */}
+            {onToggleSize && (
+              <FloatingMediaBar.PillButton
+                icon={<IconFullscreenExit size="base" />}
+                label={t("voice.viewChat")}
+                title={t("voice.viewChat")}
+                onClick={onToggleSize}
+              />
+            )}
 
-      {/* Media control bar overlay - Hides after 3s of fullscreen inactivity */}
-      <FloatingMediaBar visible={!isFullscreen || showControls}>
-        {/* Audio Volume */}
-        <FloatingMediaBar.Volume
-          volume={volume}
-          max={100}
-          step={1}
-          isMuted={isMuted}
-          onToggleMute={() => setIsMuted(!isMuted)}
-          onVolumeChange={(val) => {
-            setVolume(val);
-            if (isMuted && val > 0) setIsMuted(false);
-          }}
-          titleMute={t("voice.muteAudio")}
-          titleUnmute={t("voice.unmuteAudio")}
-          customMuteIcon={<IconVolumeOff size="base" />}
-          customUnmuteIcon={<IconVolumeUp size="base" />}
-          showDividers={false}
-          sliderClassName="w-18"
-        />
+            {/* Toggle Fullscreen button */}
+            {onToggleFullscreen && (
+              <FloatingMediaBar.IconButton
+                icon={isFullscreen ? <IconFullscreenExit size="base" /> : <IconFullscreen size="base" />}
+                title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
+                active={isFullscreen}
+                onClick={onToggleFullscreen}
+              />
+            )}
 
-        {/* Switch to Floating PiP view button */}
-        {onToggleSize && (
-          <FloatingMediaBar.PillButton
-            icon={<IconFullscreenExit size="base" />}
-            label={t("voice.viewChat")}
-            title={t("voice.viewChat")}
-            onClick={onToggleSize}
-          />
-        )}
-
-        {/* Toggle Fullscreen button */}
-        {onToggleFullscreen && (
-          <FloatingMediaBar.IconButton
-            icon={isFullscreen ? <IconFullscreenExit size="base" /> : <IconFullscreen size="base" />}
-            title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
-            active={isFullscreen}
-            onClick={onToggleFullscreen}
-          />
-        )}
-
-        {/* Stop Stream / Close View button */}
-        <FloatingMediaBar.StopButton
-          icon={<IconStopStream size="base" />}
-          title={t("voice.stopStream")}
-          onClick={onStopStream}
-        />
-      </FloatingMediaBar>
+            {/* Stop Stream / Close View button */}
+            <FloatingMediaBar.StopButton
+              icon={<IconStopStream size="base" />}
+              title={t("voice.stopStream")}
+              onClick={onStopStream}
+            />
+          </FloatingMediaBar>
+        </>
+      )}
     </div>
   );
-
-  return renderPlayer();
 }

@@ -48,7 +48,7 @@
     @apply text-onicord-danger hover:underline active:scale-100 bg-transparent p-0 cursor-pointer text-sm;
   }
   .onicord-btn-text {
-    @apply text-onicord-text active:scale-100 bg-transparent p-0 cursor-pointer font-medium text-[14px];
+    @apply text-onicord-text active:scale-100 bg-transparent p-0 cursor-pointer font-medium text-sm;
   }
 
   /* Sizes modifiers (Control Heights: sm=32px, md=36px, lg=44px) */

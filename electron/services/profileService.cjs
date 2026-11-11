@@ -121,10 +121,12 @@ class ProfileService {
         color: f.color,
       }));
 
-      // Load local user's flame streaks from each joined server's flames.db
+      // Load local user's flame streaks: prioritize most recently visited servers for instant boot,
+      // and load remaining servers non-blockingly
       const flame = {};
-      const joinedRows = serversListDb.prepare("SELECT room_code FROM joined_servers").all();
-      for (const jr of joinedRows) {
+      const joinedRows = serversListDb.prepare("SELECT room_code FROM joined_servers ORDER BY last_visited_at DESC").all();
+      const initialRoomsToLoad = joinedRows.slice(0, 3);
+      for (const jr of initialRoomsToLoad) {
         const rCode = jr.room_code;
         if (!rCode) continue;
         try {
@@ -143,6 +145,33 @@ class ProfileService {
             };
           }
         } catch {}
+      }
+
+      if (joinedRows.length > 3) {
+        setImmediate(() => {
+          for (let i = 3; i < joinedRows.length; i++) {
+            const rCode = joinedRows[i].room_code;
+            if (!rCode) continue;
+            try {
+              const flamesDb = dbMgr.getServerDb(rCode, "flames");
+              const flRow = flamesDb
+                .prepare("SELECT * FROM member_flames WHERE user_id = ?")
+                .get(mainRow.user_id);
+              if (flRow) {
+                const extraFl = safeParse(flRow.extra_json, {});
+                if (this.activeProfile?.flame) {
+                  this.activeProfile.flame[rCode] = {
+                    ...extraFl,
+                    currentStreak: flRow.current_streak,
+                    highestStreak: flRow.max_streak,
+                    lastInteractionDate: flRow.last_active_date,
+                    serverId: rCode,
+                  };
+                }
+              }
+            } catch {}
+          }
+        });
       }
 
       const assembled = {
@@ -191,6 +220,11 @@ class ProfileService {
           enableQuickSuggestions: true,
           enableContinuousAnimations: true,
           enableOpenGraph: true,
+          autoDownloadAppUpdates: true,
+          autoUpdatePlugins: true,
+          autoDownloadFiles: true,
+          autoDownloadMaxSizeMB: 500,
+          downloadDirectory: "",
         },
         keybindings: normalizeKeybindings(settingsMap.keybindings || []),
         serverFolders,
@@ -457,6 +491,21 @@ class ProfileService {
         enableQuickSuggestions: profile.general?.enableQuickSuggestions ?? existing?.general?.enableQuickSuggestions ?? true,
         enableContinuousAnimations: profile.general?.enableContinuousAnimations ?? existing?.general?.enableContinuousAnimations ?? true,
         enableOpenGraph: profile.general?.enableOpenGraph ?? existing?.general?.enableOpenGraph ?? true,
+        autoDownloadAppUpdates: profile.general?.autoDownloadAppUpdates !== undefined
+          ? Boolean(profile.general.autoDownloadAppUpdates)
+          : (existing?.general?.autoDownloadAppUpdates ?? true),
+        autoUpdatePlugins: profile.general?.autoUpdatePlugins !== undefined
+          ? Boolean(profile.general.autoUpdatePlugins)
+          : (existing?.general?.autoUpdatePlugins ?? true),
+        autoDownloadFiles: profile.general?.autoDownloadFiles !== undefined
+          ? Boolean(profile.general.autoDownloadFiles)
+          : (existing?.general?.autoDownloadFiles ?? true),
+        autoDownloadMaxSizeMB: profile.general?.autoDownloadMaxSizeMB !== undefined
+          ? Number(profile.general.autoDownloadMaxSizeMB)
+          : (existing?.general?.autoDownloadMaxSizeMB ?? 500),
+        downloadDirectory: typeof profile.general?.downloadDirectory === "string"
+          ? profile.general.downloadDirectory
+          : (existing?.general?.downloadDirectory ?? ""),
       },
 
       keybindings: normalizeKeybindings(

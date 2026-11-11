@@ -75,7 +75,7 @@ export default function MessageHeader({
   return (
     <div className="flex items-baseline gap-1.5">
       <span
-        className="cursor-default text-[15px] font-semibold text-onicord-text hover:underline"
+        className="cursor-default text-base font-semibold text-onicord-text hover:underline"
         style={nameColor ? { color: nameColor } : {}}
       >
         {nickname}
@@ -100,15 +100,15 @@ export default function MessageHeader({
           title="Webhook P2P"
         />
       )}
-      <time className="text-[12px] text-onicord-muted opacity-60 font-medium ml-1">
+      <time className="text-xs text-onicord-muted opacity-60 font-medium ml-1">
         {formatFriendlyDate(timestamp, t, i18n.language || "es")}
         {edited && (
-          <span className="ml-1.5 italic text-[10px] text-onicord-muted">
+          <span className="ml-1.5 italic text-2xs text-onicord-muted">
             ({t("chat.edited", "editado")})
           </span>
         )}
         {isForwarded && (
-          <span className="ml-1.5 text-[10px] text-onicord-accent font-semibold flex-inline items-center gap-0.5">
+          <span className="ml-1.5 text-2xs text-onicord-accent font-semibold flex-inline items-center gap-0.5">
             <MaterialIcon name="shortcut" size={12} className="inline mr-0.5" />
             {t("chat.forwarded", "Reenviado")}
           </span>

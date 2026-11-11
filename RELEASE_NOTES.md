@@ -1,3 +1,18 @@
+# Onicord v0.2.6
+
+## Changes
+
+- **AudioWorklet Loopback AEC for Screen Share Audio**: Integrated an adaptive digital loopback echo cancellation worklet (`loopback-aec-worklet.js`) that analyzes speaker reference audio and cancels self-echo from Windows desktop audio capture during screen shares.
+- **Off-Thread CAS Cryptographic Worker**: Offloaded SHA-256 hash generation and disk persistence for buffers larger than 64 KB to a dedicated Node.js worker thread (`casHasherWorker.cjs`), keeping the Electron main process and UI completely responsive.
+- **Harmonized 8-Level Typography Scale & UI Primitives**: Established an 8-level typographic scale (`2xs` to `3xl`) in Tailwind and token styles, backed by accessible and polymorphic `Heading` and `Text` primitives across chat, modals, and settings.
+- **Unified Activity Invite Cards & Notification Sanitization**: Consolidated arcade, cinema, and watch party embeds into `ActivityInviteCard` with required voice channel permission guards, while stripping raw payload markers in desktop and in-app notifications.
+- **Adaptive Opus Audio Engine & Verified LAN Routing**: Introduced dynamic Opus audio bitrate scaling (128 kbps studio quality for 1-4 callers, 96 kbps hi-fi, and 64 kbps standard) coupled with socket-verified LAN detection preventing spoofed routes.
+- **Stream Stage Architecture & Seamless PiP Transitions**: Unified inline, floating Picture-in-Picture, and fullscreen player lifecycles in `StreamDisplay` and `RoomStreamStage`, eliminating audio dropouts and video unmounting during view transitions.
+- **Automated Watch Party Metadata & Chat Sharing**: Automatic resolution of video titles and thumbnails via OpenGraph and oEmbed upon playback, alongside one-click interactive invite broadcasting directly from the media bar.
+- **Startup Pipeline Acceleration & Pre-Warmed Splash**: Parallelized profile and server hydration, deferred non-critical background services, mounted the main view behind the splash screen for instant display, and parallelized background room swarms.
+- **Onboarding & Onipkg Backup Restoration Polish**: Overhauled `ProfileSetup` with responsive two-column layouts, automatic avatar extraction from `.onipkg` archives, granular category checkboxes, and updated i18n translations across English, Spanish, and Portuguese.
+- **GPU Acceleration Flags & Cross-Room File Seeding**: Enabled Chromium zero-copy and GPU canvas rasterization switches, while extending local file resolution across all joined rooms and SQLite download registries.
+
 # Onicord v0.2.5
 
 ## Changes

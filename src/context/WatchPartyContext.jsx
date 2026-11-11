@@ -8,7 +8,8 @@ import React, {
   useMemo,
 } from "react";
 import { useVoiceChannelInfo } from "./VoiceContext";
-import { extractYouTubeId } from "../components/chat/subcomponents/MessageEmbedCard";
+import { extractYouTubeId, clientOgCache } from "../components/chat/subcomponents/MessageEmbedCard";
+import { notificationManager } from "../lib/notificationManager";
 
 const WatchPartyContext = createContext(null);
 
@@ -99,17 +100,109 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
     [currentChannelId, currentRoomCode, isHost]
   );
 
+  // Share active watch party to chat as an interactive card
+  const shareWatchPartyToChat = useCallback(
+    (targetTextChannelId = null, sessionOverride = null) => {
+      const s = sessionOverride || sessionRef.current;
+      if (!s || !window.electronAPI?.sendChatMessage) return;
+      const serverRoomCode = currentRoomCode || activeServer?.roomCode;
+      if (!serverRoomCode) return;
+
+      const voiceCh = activeServer?.channels?.find((c) => c.id === currentVoiceChannelId);
+      const voiceChannelName = voiceCh?.name || "Lounge de Voz";
+
+      const textChannel =
+        targetTextChannelId ||
+        activeServer?.channels?.find((c) => c.type === "text")?.id ||
+        "general";
+
+      const ytThumb = s.videoId
+        ? `https://i.ytimg.com/vi/${s.videoId}/hqdefault.jpg`
+        : s.cover || null;
+
+      const embedPayload = {
+        pluginId: "onicord-watchparty",
+        type: "activity_invite",
+        data: {
+          title: s.title || "Watch Party de YouTube",
+          subtitle: `${s.hostNickname || profile?.nickname || "Anfitrión"} te invita a ver`,
+          details: "YouTube • En sincronía",
+          providerName: "Watch Party",
+          icon: "smart_display",
+          coverUrl: ytThumb,
+          voiceChannelId: currentVoiceChannelId,
+          voiceChannelName: voiceChannelName,
+          actionType: "watchparty",
+          actionPayload: {
+            url: s.url,
+            title: s.title,
+            videoId: s.videoId,
+            type: s.type || "youtube",
+          },
+        },
+      };
+
+      window.electronAPI.sendChatMessage(
+        serverRoomCode,
+        textChannel,
+        `[PLUGIN_EMBED]:${JSON.stringify(embedPayload)}`
+      );
+
+      notificationManager.showToast(
+        "Invitación compartida",
+        "Se ha enviado la invitación de Watch Party al chat.",
+        "success"
+      );
+    },
+    [currentRoomCode, activeServer, currentVoiceChannelId, profile?.nickname]
+  );
+
   // Start watch party (User becomes host)
   const startWatchParty = useCallback(
-    (rawUrl, title = null) => {
+    async (rawUrl, title = null, autoShare = true) => {
       if (!inVoice) return;
       const videoId = extractYouTubeId(rawUrl);
       if (!videoId) return;
 
+      // Resolver el título real del video de YouTube
+      let resolvedTitle = (typeof title === "string" && title.trim() && title !== "Video de YouTube") ? title.trim() : null;
+
+      if (!resolvedTitle) {
+        const cached = clientOgCache.get(rawUrl);
+        if (cached?.title && cached.title !== "Video de YouTube") {
+          resolvedTitle = cached.title;
+        }
+      }
+
+      if (!resolvedTitle) {
+        try {
+          if (window.electronAPI?.fetchOpenGraph) {
+            const og = await window.electronAPI.fetchOpenGraph(rawUrl);
+            if (og?.title && og.title !== "Video de YouTube") {
+              resolvedTitle = og.title;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (!resolvedTitle) {
+        try {
+          const resp = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data?.title) {
+              resolvedTitle = data.title;
+            }
+          }
+        } catch (_) {}
+      }
+
+      const finalTitle = resolvedTitle || "Video de YouTube";
+
       const newSession = {
         type: "youtube",
         videoId,
-        title: title || "Video de YouTube",
+        title: finalTitle,
         url: rawUrl,
         isPlaying: true,
         currentTime: 0,
@@ -127,8 +220,13 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       if (window.electronAPI?.broadcastWatchPartyState) {
         window.electronAPI.broadcastWatchPartyState(currentChannelId, newSession, currentRoomCode);
       }
+
+      // Enviar automáticamente la tarjeta de invitación interactiva al chat
+      if (autoShare) {
+        shareWatchPartyToChat(null, newSession);
+      }
     },
-    [currentChannelId, currentRoomCode, localPeerId, profile?.nickname, inVoice]
+    [currentChannelId, currentRoomCode, localPeerId, profile?.nickname, inVoice, shareWatchPartyToChat]
   );
 
   // Start Cinema watch party (P2P Movie/Series stream)
@@ -238,8 +336,8 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       setSession((prev) => {
         const isNewVideo = !prev || prev.videoId !== remoteState.videoId;
         if (isNewVideo) {
-          // If remote host started it and we are not host (cinema sessions join via interactive chat card)
-          if (remoteState.hostPeerId !== localPeerId && remoteState.type !== "cinema") {
+          // If remote host started it and we are not host
+          if (remoteState.hostPeerId !== localPeerId) {
             setJoinPrompt({
               type: remoteState.type || "youtube",
               videoId: remoteState.videoId,
@@ -410,6 +508,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       stopWatchParty,
       joinWatchParty,
       dismissPrompt,
+      shareWatchPartyToChat,
       togglePlayPause,
       sendSeek,
       setIsFloating,
@@ -433,6 +532,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       stopWatchParty,
       joinWatchParty,
       dismissPrompt,
+      shareWatchPartyToChat,
       togglePlayPause,
       sendSeek,
       setVolume,

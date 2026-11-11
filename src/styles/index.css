@@ -2,6 +2,7 @@
 
 /* 🎨 TOKENS FOUNDATION */
 @import "./tokens/colors.css";
+@import "./tokens/typography.css";
 @import "./tokens/spacing.css";
 @import "./tokens/radius.css";
 @import "./tokens/shadows.css";

@@ -19,6 +19,8 @@ export class VoiceAudioEngine {
     this.masterBus = null;
     this.masterGain = null;
     this.masterCompressor = null;
+    this.masterOutputNode = null;
+    this._aecWorkletPromise = null;
 
     // Auto-Ducking state
     this.activeSpeakers = new Set();
@@ -58,15 +60,86 @@ export class VoiceAudioEngine {
       this.masterCompressor.attack.setValueAtTime(0.002, ctx.currentTime);
       this.masterCompressor.release.setValueAtTime(0.05, ctx.currentTime);
 
+      this.masterOutputNode = ctx.createGain();
+      this.masterOutputNode.gain.setValueAtTime(1.0, ctx.currentTime);
+      this.masterOutputNode.connect(ctx.destination);
+
       this.updateMasterRouting();
       this.masterBus = this.masterGain;
+      this._preloadAecWorklet(ctx);
     }
     return this.masterBus;
   }
 
+  _preloadAecWorklet(ctx) {
+    if (!ctx?.audioWorklet) return Promise.resolve(false);
+    if (!this._aecWorkletPromise) {
+      const workletUrl = new URL("./worklets/loopback-aec-worklet.js", window.location.href).href;
+      this._aecWorkletPromise = ctx.audioWorklet
+        .addModule(workletUrl)
+        .then(() => true)
+        .catch((err) => {
+          console.warn("[VoiceAudioEngine] AEC Worklet preload skipped:", err.message);
+          this._aecWorkletPromise = null;
+          return false;
+        });
+    }
+    return this._aecWorkletPromise;
+  }
+
+  async createCleanScreenAudioTrack(rawAudioTrack) {
+    if (!rawAudioTrack) return null;
+    try {
+      const ctx = this.ensureContext();
+      if (ctx.state === "suspended") {
+        await ctx.resume().catch(() => {});
+      }
+      const ready = await this._preloadAecWorklet(ctx);
+      if (!ready || !this.masterOutputNode) {
+        return { track: rawAudioTrack, cleanup: () => {} };
+      }
+
+      const captureStream = new MediaStream([rawAudioTrack]);
+      const captureSource = ctx.createMediaStreamSource(captureStream);
+      const workletNode = new AudioWorkletNode(ctx, "loopback-aec-processor", {
+        numberOfInputs: 2,
+        numberOfOutputs: 1,
+        outputChannelCount: [2],
+        channelCount: 2,
+        channelCountMode: "explicit",
+      });
+      const dest = ctx.createMediaStreamDestination();
+
+      captureSource.connect(workletNode, 0, 0);
+      this.masterOutputNode.connect(workletNode, 0, 1);
+      workletNode.connect(dest);
+
+      const cleanTrack = dest.stream.getAudioTracks()[0] || rawAudioTrack;
+      cleanTrack.contentHint = "music";
+
+      let cleanedUp = false;
+      const cleanup = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
+        try { captureSource.disconnect(); } catch {}
+        try { this.masterOutputNode?.disconnect(workletNode); } catch {}
+        try { workletNode.disconnect(); } catch {}
+        try {
+          if (cleanTrack !== rawAudioTrack) {
+            cleanTrack.stop();
+          }
+        } catch {}
+      };
+
+      return { track: cleanTrack, cleanup };
+    } catch (err) {
+      console.warn("[VoiceAudioEngine] Fallback to raw screen audio:", err.message);
+      return { track: rawAudioTrack, cleanup: () => {} };
+    }
+  }
+
   updateMasterRouting() {
-    if (!this.audioContext || !this.masterGain || !this.masterCompressor) return;
-    const ctx = this.audioContext;
+    if (!this.audioContext || !this.masterGain || !this.masterCompressor || !this.masterOutputNode) return;
     try {
       this.masterGain.disconnect();
       this.masterCompressor.disconnect();
@@ -75,9 +148,9 @@ export class VoiceAudioEngine {
     const useCompressor = this.audioSettings?.dynamicsCompression !== false;
     if (useCompressor) {
       this.masterGain.connect(this.masterCompressor);
-      this.masterCompressor.connect(ctx.destination);
+      this.masterCompressor.connect(this.masterOutputNode);
     } else {
-      this.masterGain.connect(ctx.destination);
+      this.masterGain.connect(this.masterOutputNode);
     }
   }
 
@@ -517,6 +590,11 @@ export class VoiceAudioEngine {
       try { this.masterCompressor.disconnect(); } catch {}
       this.masterCompressor = null;
     }
+    if (this.masterOutputNode) {
+      try { this.masterOutputNode.disconnect(); } catch {}
+      this.masterOutputNode = null;
+    }
+    this._aecWorkletPromise = null;
     this.masterBus = null;
 
     if (this.audioContext && this.audioContext.state !== "closed") {

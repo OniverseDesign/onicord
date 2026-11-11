@@ -382,7 +382,7 @@ export default function AboutTab() {
               <h3 className="text-sm font-bold text-onicord-text flex items-center gap-2">
                 <span>{t("settings.about.updateTitle", "Actualizaciones del Sistema")}</span>
                 {updateState.isPortable && (
-                  <span className="px-2 py-0.5 text-[10px] uppercase font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-md">
+                  <span className="px-2 py-0.5 text-2xs uppercase font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-md">
                     Portable
                   </span>
                 )}
@@ -483,7 +483,7 @@ export default function AboutTab() {
                 style={{ width: `${updateState.percent}%` }}
               />
             </div>
-            <div className="flex justify-between text-[10px] text-onicord-muted font-mono">
+            <div className="flex justify-between text-2xs text-onicord-muted font-mono">
               <span>{updateState.percent}% completado</span>
               <span>{formatSpeed(updateState.bytesPerSecond)}</span>
             </div>
@@ -525,7 +525,7 @@ export default function AboutTab() {
 
       {/* Useful links and community */}
       <div className="onicord-settings-card">
-        <h4 className="text-[11px] font-bold text-onicord-muted uppercase tracking-wider mb-3">
+        <h4 className="text-xs font-bold text-onicord-muted uppercase tracking-wider mb-3">
           {t("settings.about.linksTitle", "Enlaces y Comunidad")}
         </h4>
 
@@ -543,7 +543,7 @@ export default function AboutTab() {
                 <span>{t("settings.about.githubRepo", "Repositorio en GitHub")}</span>
                 <MaterialIcon name="open_in_new" size={14} className="opacity-0 group-hover:opacity-100 transition" />
               </p>
-              <p className="text-[11px] text-onicord-muted leading-tight mt-0.5 line-clamp-1">
+              <p className="text-xs text-onicord-muted leading-tight mt-0.5 line-clamp-1">
                 {t("settings.about.githubRepoDesc", "Revisa el código fuente y contribuye al proyecto")}
               </p>
             </div>
@@ -562,7 +562,7 @@ export default function AboutTab() {
                 <span>{t("settings.about.reportIssue", "Reportar un Problema")}</span>
                 <MaterialIcon name="open_in_new" size={14} className="opacity-0 group-hover:opacity-100 transition" />
               </p>
-              <p className="text-[11px] text-onicord-muted leading-tight mt-0.5 line-clamp-1">
+              <p className="text-xs text-onicord-muted leading-tight mt-0.5 line-clamp-1">
                 {t("settings.about.reportIssueDesc", "Reporta errores o sugiere nuevas características")}
               </p>
             </div>
@@ -581,7 +581,7 @@ export default function AboutTab() {
                 <span>{t("settings.about.officialWebsite", "Sitio Web Oficial")}</span>
                 <MaterialIcon name="open_in_new" size={14} className="opacity-0 group-hover:opacity-100 transition" />
               </p>
-              <p className="text-[11px] text-onicord-muted leading-tight mt-0.5 line-clamp-1">
+              <p className="text-xs text-onicord-muted leading-tight mt-0.5 line-clamp-1">
                 {t("settings.about.officialWebsiteDesc", "Conoce más sobre mis proyectos y herramientas en Oniverse")}
               </p>
             </div>
@@ -619,14 +619,14 @@ export default function AboutTab() {
                   <span className="text-xs font-bold text-onicord-text group-hover:text-onicord-accent transition truncate">
                     {project.name}
                   </span>
-                  <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-white/5 text-onicord-muted shrink-0">
+                  <span className="text-2xs font-mono font-medium px-1.5 py-0.5 rounded bg-white/5 text-onicord-muted shrink-0">
                     {project.license}
                   </span>
                 </div>
-                <p className="text-[10px] text-onicord-muted/70 font-mono mt-0.5 truncate">
+                <p className="text-2xs text-onicord-muted/70 font-mono mt-0.5 truncate">
                   {project.author}
                 </p>
-                <p className="text-[11px] text-onicord-muted leading-tight mt-1 line-clamp-2">
+                <p className="text-xs text-onicord-muted leading-tight mt-1 line-clamp-2">
                   {t(project.descKey, project.descFallback)}
                 </p>
               </div>
@@ -657,8 +657,8 @@ export default function AboutTab() {
           </button>
 
           {showThirdPartyLicenses && (
-            <div className="mt-2.5 p-3 rounded-lg bg-onicord-base/60 border border-white/5 text-[11px] space-y-2 animate-fadeIn">
-              <p className="text-onicord-muted text-[11px] leading-relaxed">
+            <div className="mt-2.5 p-3 rounded-lg bg-onicord-base/60 border border-white/5 text-xs space-y-2 animate-fadeIn">
+              <p className="text-onicord-muted text-xs leading-relaxed">
                 {t(
                   "settings.about.thirdPartyNotice",
                   "Agradecemos profundamente a la comunidad de código abierto por hacer posible el ecosistema de Onicord."
@@ -668,15 +668,15 @@ export default function AboutTab() {
                 {THIRD_PARTY_LIBRARIES.map((lib) => (
                   <div
                     key={lib.name}
-                    className="flex items-center justify-between px-3 py-1.5 text-[11px] font-mono hover:bg-white/[0.02] transition"
+                    className="flex items-center justify-between px-3 py-1.5 text-xs font-mono hover:bg-white/[0.02] transition"
                   >
                     <div className="min-w-0 flex items-center gap-2">
                       <span className="font-semibold text-onicord-text truncate">{lib.name}</span>
-                      <span className="text-onicord-muted/60 text-[10px] hidden sm:inline truncate">
+                      <span className="text-onicord-muted/60 text-2xs hidden sm:inline truncate">
                         {`(${lib.purpose})`}
                       </span>
                     </div>
-                    <span className="text-[10px] font-semibold text-onicord-muted px-1.5 py-0.5 rounded bg-white/5 shrink-0">
+                    <span className="text-2xs font-semibold text-onicord-muted px-1.5 py-0.5 rounded bg-white/5 shrink-0">
                       {lib.license}
                     </span>
                   </div>
@@ -690,7 +690,7 @@ export default function AboutTab() {
       {/* System diagnostic data */}
       <div className="onicord-settings-card">
         <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-2.5">
-          <h4 className="text-[11px] font-bold text-onicord-muted uppercase tracking-wider">
+          <h4 className="text-xs font-bold text-onicord-muted uppercase tracking-wider">
             {t("settings.about.systemDebug", "Información de Diagnóstico")}
           </h4>
           <button
@@ -711,7 +711,7 @@ export default function AboutTab() {
           </button>
         </div>
 
-        <div className="text-[11px] font-mono text-onicord-muted/80 leading-relaxed space-y-1 pl-0.5">
+        <div className="text-xs font-mono text-onicord-muted/80 leading-relaxed space-y-1 pl-0.5">
           <p>
             onicord {diagInfo?.version || APP_VERSION} ({diagInfo?.buildType || "Standalone P2P"}) · {diagInfo?.arch || "x64"}
           </p>

@@ -52,7 +52,7 @@ export function extractInstagramId(urlStr) {
   }
 }
 
-const clientOgCache = new Map();
+export const clientOgCache = new Map();
 
 export default function MessageEmbedCard({ url }) {
   const { t } = useTranslation();
@@ -158,11 +158,11 @@ export default function MessageEmbedCard({ url }) {
         onClick={handleOpenExternal}
         className="flex flex-col max-w-[480px] mt-2 rounded-onicord-inner p-3 bg-onicord-mantle border border-onicord-island text-left gap-2 cursor-pointer hover:border-onicord-accent/40 transition-colors"
       >
-        <div className="flex items-center gap-1.5 text-onicord-muted text-[11px] font-bold uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 text-onicord-muted text-2xs font-bold uppercase tracking-wider">
           <MaterialIcon name="music_note" size={14} />
           <span>{ogData.siteName || "Audio"}</span>
         </div>
-        <span className="text-[14px] font-semibold text-onicord-text truncate">
+        <span className="text-sm font-semibold text-onicord-text truncate">
           {ogData.title || url}
         </span>
         <audio
@@ -191,14 +191,14 @@ export default function MessageEmbedCard({ url }) {
           />
         )}
         <div className="flex flex-col min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 text-[#1DB954] text-[11px] font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 text-[#1DB954] text-2xs font-bold uppercase tracking-wider">
             <MaterialIcon name="graphic_eq" size={14} />
             <span>Spotify</span>
           </div>
-          <span className="text-[14px] font-bold text-onicord-text group-hover/spotify:underline truncate mt-0.5">
+          <span className="text-sm font-bold text-onicord-text group-hover/spotify:underline truncate mt-0.5">
             {ogData.title || url}
           </span>
-          <span className="text-[12px] text-onicord-muted truncate">
+          <span className="text-xs text-onicord-muted truncate">
             {ogData.description || "Escuchar en Spotify"}
           </span>
         </div>
@@ -216,16 +216,16 @@ export default function MessageEmbedCard({ url }) {
         onClick={handleOpenExternal}
         className="flex flex-col max-w-[340px] mt-2 rounded-onicord-inner bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 p-3 gap-1.5 text-left cursor-pointer transition-all duration-200 group/card select-none"
       >
-        <span className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted truncate">
+        <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted truncate">
           {ogData.siteName || "Pinterest"}
         </span>
 
-        <span className="text-[14px] font-bold text-onicord-text group-hover/card:underline line-clamp-2 leading-snug">
+        <span className="text-sm font-bold text-onicord-text group-hover/card:underline line-clamp-2 leading-snug">
           {ogData.title || url}
         </span>
 
         {ogData.description && ogData.description !== "Explorar en Pinterest" && ogData.description !== "Pin en Pinterest" && (
-          <p className="text-[12px] text-onicord-subtext line-clamp-2 leading-relaxed -mt-0.5">
+          <p className="text-xs text-onicord-subtext line-clamp-2 leading-relaxed -mt-0.5">
             {ogData.description}
           </p>
         )}
@@ -282,13 +282,13 @@ export default function MessageEmbedCard({ url }) {
           !isYouTube ? "cursor-pointer hover:border-onicord-accent/40 transition-colors" : ""
         }`}
       >
-        <span className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted truncate">
+        <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted truncate">
           {ogData.siteName || (ytId ? "YouTube" : ttId ? "TikTok" : igInfo ? "Instagram" : isGifOrTenor ? "GIF" : "Video")}
         </span>
 
         <span
           onClick={handleOpenExternal}
-          className="text-[14px] font-bold text-onicord-text hover:underline line-clamp-2 cursor-pointer leading-snug"
+          className="text-sm font-bold text-onicord-text hover:underline line-clamp-2 cursor-pointer leading-snug"
         >
           {ogData.title || url}
         </span>
@@ -296,7 +296,7 @@ export default function MessageEmbedCard({ url }) {
         {ogData.description && !isGifOrTenor && (
           <p
             onClick={handleOpenExternal}
-            className="text-[12px] text-onicord-subtext leading-relaxed line-clamp-2 cursor-pointer -mt-0.5"
+            className="text-xs text-onicord-subtext leading-relaxed line-clamp-2 cursor-pointer -mt-0.5"
           >
             {ogData.description}
           </p>
@@ -352,7 +352,7 @@ export default function MessageEmbedCard({ url }) {
                         }),
                       );
                     }}
-                    className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 hover:bg-onicord-accent text-white text-[11px] font-semibold tracking-wide backdrop-blur-md shadow-lg border border-white/10 opacity-0 group-hover/yt:opacity-100 transition-all duration-200"
+                    className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 hover:bg-onicord-accent text-white text-xs font-semibold tracking-wide backdrop-blur-md shadow-lg border border-white/10 opacity-0 group-hover/yt:opacity-100 transition-all duration-200"
                   >
                     <MaterialIcon name="smart_display" size={14} />
                     <span>Watch Party</span>
@@ -404,13 +404,13 @@ export default function MessageEmbedCard({ url }) {
     >
       {/* Embed Text Details */}
       <div className="flex flex-col min-w-0 flex-1 p-3 justify-center">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted truncate">
+        <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted truncate">
           {ogData.siteName || t("chat.embed.webLink", "Enlace Web")}
         </span>
-        <span className="text-[14px] font-semibold text-onicord-text group-hover/card:underline line-clamp-1 mt-0.5 tracking-wide">
+        <span className="text-sm font-semibold text-onicord-text group-hover/card:underline line-clamp-1 mt-0.5 tracking-wide">
           {ogData.title || url}
         </span>
-        <p className="text-[12px] text-onicord-muted leading-relaxed line-clamp-2 mt-1">
+        <p className="text-xs text-onicord-muted leading-relaxed line-clamp-2 mt-1">
           {ogData.description ||
             t("chat.embed.clickToOpen", "Click to open this link...")}
         </p>

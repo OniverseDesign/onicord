@@ -61,8 +61,10 @@ export default function NetworkPopover({
         if (peer?._pc) {
           try {
             const reports = await peer._pc.getStats();
+            let activePair = null;
             reports.forEach((report) => {
-              if (report.type === "candidate-pair" && report.state === "succeeded") {
+              if (report.type === "candidate-pair" && (report.state === "succeeded" || report.nominated)) {
+                activePair = report;
                 if (report.currentRoundTripTime !== undefined) {
                   stats.ping = Math.round(report.currentRoundTripTime * 1000);
                 }
@@ -74,6 +76,24 @@ export default function NetworkPopover({
                 }
               }
             });
+
+            if (activePair) {
+              const localCand = reports.get(activePair.localCandidateId);
+              const remoteCand = reports.get(activePair.remoteCandidateId);
+              if (localCand && remoteCand) {
+                const lType = localCand.candidateType;
+                const rType = remoteCand.candidateType;
+                if (lType === "host" && rType === "host") {
+                  stats.connectionType = "LAN (Direct)";
+                } else if (lType === "relay" || rType === "relay") {
+                  stats.connectionType = "Relay (TURN)";
+                } else if (lType === "srflx" || rType === "srflx" || lType === "prflx" || rType === "prflx") {
+                  stats.connectionType = "P2P Direct (STUN)";
+                } else {
+                  stats.connectionType = "P2P Direct";
+                }
+              }
+            }
           } catch (e) {
             // Ignore stats errors
           }
@@ -137,23 +157,28 @@ export default function NetworkPopover({
         ) : (
           otherMembers.map((m) => {
             const stats = peerStats[m.peerId] || { connected: true, ping: 25, packetLoss: 0 };
+            const effectiveConnType = stats.connectionType || m.connectionType || "Hyperswarm (DHT)";
+            const isLanType = effectiveConnType.includes("LAN");
+            const isRelayType = effectiveConnType.includes("Relay") || effectiveConnType.includes("TURN");
+            const isDirectType = effectiveConnType.includes("Direct") || effectiveConnType.includes("STUN");
+
             return (
               <div key={m.peerId} className="flex items-center justify-between text-[11px] py-0.5">
                 <div className="flex flex-col min-w-0">
                   <span className="text-onicord-text font-medium truncate max-w-[120px]">
                     {m.nickname}
                   </span>
-                  {m.connectionType && (
-                    <span className={`text-[9px] font-semibold leading-none ${
-                      m.connectionType.includes("LAN") 
-                        ? "text-emerald-400" 
-                        : m.connectionType.includes("Direct") 
+                  <span className={`text-[9px] font-semibold leading-none ${
+                    isLanType
+                      ? "text-emerald-400" 
+                      : isRelayType
+                        ? "text-purple-400"
+                        : isDirectType 
                           ? "text-amber-400" 
                           : "text-onicord-muted"
-                    }`}>
-                      {m.connectionType}
-                    </span>
-                  )}
+                  }`}>
+                    {effectiveConnType}
+                  </span>
                 </div>
                 <span className="font-mono text-onicord-muted text-right">
                   {stats.ping}ms • {stats.packetLoss}% loss

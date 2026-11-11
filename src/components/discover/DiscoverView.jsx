@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
+import Heading from "../ui/Heading";
 import DiscoverServerCard from "./DiscoverServerCard";
 import { soundEngine } from "../../lib/soundEngine";
 import { notificationManager } from "../../lib/notificationManager";
@@ -339,9 +340,9 @@ export default function DiscoverView({
           />
 
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-onicord-text tracking-wide truncate">
+            <Heading level={1} size="xl" truncate>
               {t("discover.heroTitle", "Explorar Servidores")}
-            </h1>
+            </Heading>
             <p className="text-xs text-onicord-muted mt-0.5 truncate">
               {t(
                 "discover.heroDesc",
@@ -393,7 +394,7 @@ export default function DiscoverView({
                     soundEngine.playNav("select");
                     setSelectedTag(null);
                   }}
-                  className={`text-[12px] px-3 py-1 rounded-full border transition-all cursor-pointer truncate shrink-0 flex items-center gap-1.5 ${
+                  className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate shrink-0 flex items-center gap-1.5 ${
                     !selectedTag
                       ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs"
                       : "bg-onicord-surface/80 border-white/10 text-onicord-muted hover:text-onicord-text hover:border-white/20 hover:bg-onicord-surface"
@@ -415,7 +416,7 @@ export default function DiscoverView({
                         soundEngine.playNav("select");
                         setSelectedTag(isActive ? null : name);
                       }}
-                      className={`text-[12px] px-3 py-1 rounded-full border transition-all cursor-pointer truncate max-w-[200px] shrink-0 flex items-center gap-1 ${
+                      className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate max-w-[200px] shrink-0 flex items-center gap-1 ${
                         isActive
                           ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs scale-[1.02]"
                           : "bg-onicord-surface/80 border-white/10 text-onicord-text hover:text-onicord-accent hover:border-onicord-accent/50 hover:bg-onicord-surface"
@@ -426,7 +427,7 @@ export default function DiscoverView({
                         #
                       </span>
                       <span>{name}</span>
-                      <span className="text-[10px] opacity-40 ml-0.5 font-mono">
+                      <span className="text-2xs opacity-40 ml-0.5 font-mono">
                         {count}
                       </span>
                     </button>
@@ -446,9 +447,9 @@ export default function DiscoverView({
                 <div className="w-12 h-12 rounded-full bg-onicord-surface border border-onicord-island flex items-center justify-center text-onicord-muted mb-3">
                   <MaterialIcon name="travel_explore" size={26} />
                 </div>
-                <h4 className="text-sm font-bold text-onicord-text">
+                <Heading level={4} size="sm">
                   {t("discover.noResultsTitle", "No se encontraron servidores")}
-                </h4>
+                </Heading>
                 <p className="text-xs text-onicord-muted mt-1 max-w-sm leading-relaxed">
                   {searchQuery
                     ? t("discover.noResultsSearchDesc", "Ningún servidor coincide con tu búsqueda o filtros actuales.")
@@ -494,9 +495,9 @@ export default function DiscoverView({
                   <MaterialIcon name="waving_hand" size={20} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-bold text-onicord-text truncate">
+                  <Heading level={3} size="base" truncate>
                     {t("discover.knockModalTitle", "Solicitar Ingreso")}
-                  </h3>
+                  </Heading>
                   <p className="text-xs text-onicord-muted truncate">
                     {knockingServer.server?.name}
                   </p>

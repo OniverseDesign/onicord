@@ -13,6 +13,7 @@ import {
   IconFullscreenExit,
 } from "../icons/StreamIcons";
 import { soundEngine } from "../../lib/soundEngine";
+import { notificationManager } from "../../lib/notificationManager";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import FloatingMediaBar from "../ui/FloatingMediaBar";
 import { useWatchParty } from "../../context/WatchPartyContext";
@@ -58,13 +59,6 @@ export default function AddonStageDisplay({
     return () => window.removeEventListener("voice-ducking-change", handleDucking);
   }, []);
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.volume = Math.max(0, Math.min(1, (volume / 100) * duckMultiplier));
-      videoRef.current.muted = isMuted;
-    }
-  }, [volume, duckMultiplier, isMuted]);
-
   // Dynamic states enabling smooth transitions between Launcher and the selected game
   const [activeUrl, setActiveUrl] = useState(stageData?.url || null);
   const [activeHtml, setActiveHtml] = useState(stageData?.htmlContent || null);
@@ -94,6 +88,13 @@ export default function AddonStageDisplay({
       activeGame.type !== "game" &&
       (activeGame.mediaType === "video" || activeGame.type === "movie" || Boolean(activeGame.streamUrl))
   );
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = Math.max(0, Math.min(1, (volume / 100) * duckMultiplier));
+      videoRef.current.muted = isMuted;
+    }
+  }, [volume, duckMultiplier, isMuted, isCurrentMedia, isFullscreen]);
 
   const isCinemaWatchParty = Boolean(
     isCurrentMedia &&
@@ -1302,6 +1303,12 @@ export default function AddonStageDisplay({
           setStageActions(e.data.actions);
         }
         syncStageContextToIframe();
+      } else if (e.data.type === "ONICORD_SHOW_TOAST") {
+        notificationManager.showToast(
+          e.data.title || stageData?.title || "Complemento",
+          e.data.message || "",
+          e.data.toastType || "info"
+        );
       } else if (e.data.type === "ONICORD_STAGE_READY") {
         syncStageContextToIframe();
       }
@@ -1700,11 +1707,14 @@ export default function AddonStageDisplay({
               ref={videoRef}
               autoPlay
               playsInline
+              muted={isMuted}
               className="w-full h-full object-contain bg-black"
               onLoadStart={() => setLoadingProgress((p) => Math.max(p, 10))}
               onLoadedMetadata={(e) => {
                 setLoadingProgress((p) => Math.max(p, 45));
                 const v = e.currentTarget;
+                v.volume = Math.max(0, Math.min(1, (volume / 100) * duckMultiplier));
+                v.muted = isMuted;
                 if (v.duration && Number.isFinite(v.duration) && v.duration > 0) {
                   if (!knownTotalDurationRef.current || knownTotalDurationRef.current < 60) {
                     knownTotalDurationRef.current = v.duration;

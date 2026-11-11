@@ -191,7 +191,8 @@ class RoomManager {
   }
 
   joinVoice(channelId, options = {}) {
-    this.voiceService.joinVoice(channelId, this._getEffectiveVoiceProfile(), () => this._emitVoiceState(), options);
+    const opts = { roomCode: this.roomCode, ...options };
+    this.voiceService.joinVoice(channelId, this._getEffectiveVoiceProfile(), () => this._emitVoiceState(), opts);
   }
 
   leaveVoice() {
@@ -497,7 +498,7 @@ class RoomManager {
       });
     }
 
-    await this.p2pService.joinRoom(normalized);
+    await this.p2pService.joinRoom(normalized, { waitFlush: Boolean(options?.waitFlush) });
     if (this.p2pService.profile) {
       this.p2pService.profile.joinedRooms = Array.from(this.p2pService.joinedRooms);
       this.p2pService._broadcast("profile", this.p2pService.profile);
@@ -990,6 +991,30 @@ class RoomManager {
       this.p2pService._sendToPeer(peerId, "room-announce", {
         rooms: Array.from(this.p2pService.joinedRooms),
       });
+
+      // If we are currently connected to voice, announce our voice state to this newly authenticated peer
+      if (this.voiceService?.localVoice?.channelId) {
+        const localId = this.p2pService._resolveLocalPeerId();
+        if (localId) {
+          const effectiveProfile = this._getEffectiveVoiceProfile();
+          const targetRoom = this.voiceService.localVoice.roomCode || this.roomCode || null;
+          this.p2pService._sendToPeer(peerId, "voice-state", {
+            peerId: localId,
+            channelId: this.voiceService.localVoice.channelId,
+            roomCode: targetRoom,
+            muted: Boolean(this.voiceService.localVoice.muted),
+            deafened: Boolean(this.voiceService.localVoice.deafened),
+            nickname: effectiveProfile?.nickname || this.p2pService.profile?.nickname,
+            avatar: effectiveProfile?.avatar || this.p2pService.profile?.avatar,
+            isStreaming: Boolean(this.voiceService.localVoice.isStreaming),
+            audioStreamId: this.voiceService.localVoice.audioStreamId || null,
+            videoStreamId: this.voiceService.localVoice.videoStreamId || null,
+            sfuScore: this.voiceService.localVoice.sfuScore || 0,
+            bandwidth: this.voiceService.localVoice.bandwidth || 0,
+            joinedAt: this.voiceService.localVoice.joinedAt || Date.now(),
+          });
+        }
+      }
 
       if (this.roomMetaStore && payload.id) {
         for (const targetCode of allowedSharedRooms) {

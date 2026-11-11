@@ -7,7 +7,7 @@
     @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-onicord-inner border-2 border-transparent bg-transparent shadow-none transition-all duration-200 hover:bg-onicord-base hover:shadow-sm;
   }
   .onicord-chat-input {
-    @apply min-w-0 flex-1 bg-transparent py-[14px] text-[15px] text-onicord-text placeholder:text-onicord-muted outline-none;
+    @apply min-w-0 flex-1 bg-transparent py-[14px] text-base text-onicord-text placeholder:text-onicord-muted outline-none;
   }
   .onicord-chat-input[contenteditable]:empty::before {
     content: attr(placeholder);

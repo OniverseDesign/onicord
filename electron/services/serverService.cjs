@@ -41,31 +41,30 @@ class ServerService {
     }
     if (!server) throw new Error("Server not found");
 
-    const profileService = require("./profileService.cjs");
-    await profileService.saveProfileToDisk(profile);
+    if (profile) {
+      try {
+        const profileService = require("./profileService.cjs");
+        profileService.saveProfileToDisk(profile).catch?.((err) => {
+          console.warn("[ServerService] Background saveProfileToDisk warning:", err.message);
+        });
+      } catch (_) {}
+    }
 
     roomManager.setProfile(profile);
     await roomManager.connectToRoom(server.roomCode, server.isOwner, profile);
-    await store.touch(serverId);
+
+    store.touch(serverId).catch?.(() => {});
     if (typeof store.setLastActive === "function") {
-      await store.setLastActive(serverId);
+      store.setLastActive(serverId).catch?.(() => {});
     }
 
     if (startLocalStreamServer) {
-      startLocalStreamServer();
+      try {
+        startLocalStreamServer();
+      } catch (_) {}
     }
 
-    try {
-      const { RoomMetaStore } = require("../p2p/roomMetaStore.cjs");
-      const roomMetaStore = roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
-      const meta = await roomMetaStore.load(server.roomCode, true);
-      return {
-        ...server,
-        savedMembers: meta?.savedMembers || {},
-      };
-    } catch (_) {
-      return server;
-    }
+    return server;
   }
 
   /**
@@ -88,15 +87,20 @@ class ServerService {
     }
     const store = this.getServerStore();
     const servers = await store.list();
-    for (const server of servers) {
-      if (server.id === excludeServerId) continue;
-      if (!server.roomCode) continue;
-      try {
-        await roomManager.connectToRoom(server.roomCode, server.isOwner, profile, { isBackground: true });
-      } catch (err) {
-        console.error(`[ServerService] Error booting background room ${server.roomCode}:`, err.message);
-      }
-    }
+    const targetRooms = servers.filter(
+      (s) => s.id !== excludeServerId && s.roomCode
+    );
+
+    // Boot all background rooms concurrently instead of a sequential blocking loop
+    await Promise.allSettled(
+      targetRooms.map((server) =>
+        roomManager
+          .connectToRoom(server.roomCode, server.isOwner, profile, { isBackground: true })
+          .catch((err) => {
+            console.error(`[ServerService] Error booting background room ${server.roomCode}:`, err.message);
+          })
+      )
+    );
   }
 
   async createServer(name, profile) {
@@ -255,26 +259,7 @@ class ServerService {
   }
 
   async listServers() {
-    const servers = await this.getServerStore().list();
-    try {
-      const { RoomMetaStore } = require("../p2p/roomMetaStore.cjs");
-      const roomMetaStore = new RoomMetaStore(app.getPath("userData"));
-      return await Promise.all(
-        servers.map(async (s) => {
-          try {
-            if (s.roomCode) {
-              const meta = await roomMetaStore.load(s.roomCode, true);
-              if (meta?.savedMembers) {
-                return { ...s, savedMembers: meta.savedMembers };
-              }
-            }
-          } catch (_) {}
-          return s;
-        })
-      );
-    } catch (_) {
-      return servers;
-    }
+    return await this.getServerStore().list();
   }
 
   async updateServer(serverId, data, roomManager) {

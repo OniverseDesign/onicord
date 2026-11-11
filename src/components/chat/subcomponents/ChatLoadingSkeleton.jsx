@@ -244,7 +244,7 @@ export function ThreadLoadingSkeleton({ isForum = false, isFadingOut = false, cl
         </div>
       ) : (
         <div className="w-full">
-          <div className="text-[10px] uppercase tracking-wider font-bold text-onicord-accent mb-2 px-4 flex items-center gap-1.5">
+          <div className="text-2xs uppercase tracking-wider font-bold text-onicord-accent mb-2 px-4 flex items-center gap-1.5">
             <SkeletonBox className="h-3 w-3 rounded-xs shrink-0" stagger={1} />
             <SkeletonBox className="h-3 w-28 rounded-md" stagger={1} />
           </div>

@@ -5,6 +5,8 @@ import { cn } from "../../lib/cn";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { IconClose } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
+import Heading from "../ui/Heading";
+import Text from "../ui/Text";
 
 function normalizeReleaseNotes(raw) {
   if (!raw) return "";
@@ -132,7 +134,7 @@ function renderInlineMarkdown(text) {
       );
     } else if (token.startsWith("`") && token.endsWith("`")) {
       parts.push(
-        <code key={match.index} className="px-1.5 py-0.5 rounded bg-white/10 text-onicord-accent font-mono text-[11px]">
+        <code key={match.index} className="px-1.5 py-0.5 rounded bg-white/10 text-onicord-accent font-mono text-xs">
           {token.slice(1, -1)}
         </code>
       );
@@ -214,14 +216,14 @@ export default function ChangelogModal({
 
         {/* Modal Header without lines or redundant badges */}
         <div className="pr-10 shrink-0">
-          <h2 className="text-xl font-bold text-onicord-text leading-tight text-left">
+          <Heading level={2} size="xl" className="leading-tight text-left">
             {t("changelog.title", "Novedades de la versión")} v{version}
-          </h2>
-          <p className="mt-1 text-sm text-onicord-muted text-left">
+          </Heading>
+          <Text variant="sm" color="muted" className="mt-1 text-left">
             {isNewVersion
               ? t("changelog.newSubtitle", "Descubre las novedades y mejoras que incluye esta actualización.")
               : t("changelog.currentSubtitle", "Registro de cambios y mejoras introducidos en esta versión.")}
-          </p>
+          </Text>
         </div>
 
         {/* Modal Body without dividing lines */}

@@ -177,15 +177,25 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
           <div className="flex items-start justify-between gap-3 pb-3 border-b border-white/5">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-full bg-onicord-accent/20 border border-onicord-accent/40 flex items-center justify-center shrink-0 overflow-hidden">
-                {inspectedBackup.profile?.avatar ? (
+                {inspectedBackup.profile?.avatar && (
                   <img
                     src={inspectedBackup.profile.avatar}
                     alt=""
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      const fallback = e.currentTarget.parentElement?.querySelector(".backup-avatar-fallback");
+                      if (fallback) fallback.classList.remove("hidden");
+                    }}
                   />
-                ) : (
-                  <MaterialIcon name="person" size={20} className="text-onicord-accent" />
                 )}
+                <div
+                  className={`backup-avatar-fallback flex items-center justify-center w-full h-full text-onicord-accent ${
+                    inspectedBackup.profile?.avatar ? "hidden" : ""
+                  }`}
+                >
+                  <MaterialIcon name="person" size={20} />
+                </div>
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-white truncate">

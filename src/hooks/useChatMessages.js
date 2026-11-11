@@ -824,6 +824,18 @@ export function useChatMessages({
         const senderNickname = senderInfo.nickname;
         const senderAvatar = senderInfo.avatar;
 
+        let displayNotifText = msg.text;
+        if (typeof msg.text === "string" && msg.text.startsWith("[PLUGIN_EMBED]:")) {
+          try {
+            const parsed = JSON.parse(msg.text.slice(15));
+            if (parsed.type === "activity_invite" && parsed.data) {
+              displayNotifText = parsed.data.subtitle || `Te invita a ${parsed.data.title}`;
+            } else if (parsed.type === "poll" && parsed.data) {
+              displayNotifText = `Encuesta: ${parsed.data.question}`;
+            }
+          } catch (_) {}
+        }
+
         if (notifMode === "nothing") {
           // Muted, do not trigger anything
         } else if (notifMode === "mentions") {
@@ -831,7 +843,7 @@ export function useChatMessages({
             notificationManager.trigger("MENTION", {
               nickname: senderNickname,
               avatar: senderAvatar,
-              text: msg.text,
+              text: displayNotifText,
               roomCode: currentServer?.roomCode || msg.roomCode,
               channelId: channelId || msg.channelId || "general",
               serverId: currentServer?.id || msg.serverId,
@@ -844,7 +856,7 @@ export function useChatMessages({
             notificationManager.trigger("MENTION", {
               nickname: senderNickname,
               avatar: senderAvatar,
-              text: msg.text,
+              text: displayNotifText,
               roomCode: currentServer?.roomCode || msg.roomCode,
               channelId: channelId || msg.channelId || "general",
               serverId: currentServer?.id || msg.serverId,
@@ -855,7 +867,7 @@ export function useChatMessages({
             notificationManager.trigger("RECEIVE_MESSAGE", {
               nickname: senderNickname,
               avatar: senderAvatar,
-              text: msg.text,
+              text: displayNotifText,
               isCurrentChannel: document.hasFocus(),
               roomCode: currentServer?.roomCode || msg.roomCode,
               channelId: channelId || msg.channelId || "general",

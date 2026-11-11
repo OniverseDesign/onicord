@@ -2,6 +2,8 @@ import React, { useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import MaterialIcon from "../../icons/MaterialIcon";
+import Heading from "../../ui/Heading";
+import Text from "../../ui/Text";
 import ChatMessageItem from "../ChatMessageItem";
 import ForumPostCard from "./ForumPostCard";
 import ChatLoadingSkeleton, { TopHistoryLoadingSkeleton } from "./ChatLoadingSkeleton";
@@ -175,7 +177,7 @@ export default function ChatMessageList({
     <div className="flex-1 min-h-0 relative flex w-full overflow-hidden">
       <div className="flex-1 min-h-0 relative flex flex-col w-full">
         {/* Gradient shadow overlays */}
-        <div className="absolute top-0 left-0 right-0 h-[30px] bg-gradient-to-b from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
+        <div className="absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
 
         <div
           key={channelId || "default-channel"}
@@ -203,9 +205,9 @@ export default function ChatMessageList({
                     <div className="onicord-channel-welcome-icon">
                       <MaterialIcon name="person" size="3xl" className="text-onicord-text" />
                     </div>
-                    <h3 className="text-2xl font-bold text-onicord-text">
+                    <Heading level={2} size="2xl">
                       {t("chat.dmWelcomeTitle", { name: channelName })}
-                    </h3>
+                    </Heading>
                     <p className="mt-2 max-w-md text-sm text-onicord-muted">
                       {t("chat.dmWelcomeDesc", { name: channelName })}
                     </p>
@@ -215,12 +217,12 @@ export default function ChatMessageList({
                     <div className="onicord-channel-welcome-icon">
                       <MaterialIcon name="forum" size="3xl" className="text-onicord-accent" />
                     </div>
-                    <h3 className="text-2xl font-bold text-onicord-text">
+                    <Heading level={2} size="2xl">
                       {t("chat.forumWelcomeTitle", {
                         defaultValue: `¡Te damos la bienvenida al foro #${channelName || "foro"}!`,
                         name: channelName || "foro",
                       })}
-                    </h3>
+                    </Heading>
                     <p className="mt-2 max-w-md text-sm text-onicord-muted">
                       {t("chat.forumWelcomeDesc", "Crea la primera publicación o debate usando el compositor inferior.")}
                     </p>
@@ -232,9 +234,9 @@ export default function ChatMessageList({
                         #
                       </span>
                     </div>
-                    <h3 className="text-2xl font-bold text-onicord-text">
+                    <Heading level={2} size="2xl">
                       {t("chat.channelWelcomeTitle", { name: channelName || "general" })}
-                    </h3>
+                    </Heading>
                     <p className="mt-2 max-w-md text-sm text-onicord-muted">
                       {t("chat.channelWelcomeDesc")}{" "}
                       <span className="font-mono text-onicord-text">{roomCode}</span>
@@ -278,7 +280,7 @@ export default function ChatMessageList({
                             <div className="absolute inset-0 flex items-center">
                               <div className="w-full border-t border-onicord-accent/20" />
                             </div>
-                            <span className="relative bg-onicord-base px-3 text-[11px] font-semibold text-onicord-accent/50 uppercase tracking-wider">
+                            <span className="relative bg-onicord-base px-3 text-2xs font-semibold text-onicord-accent/50 uppercase tracking-wider">
                               {formatDateDivider(msg.timestamp)}
                             </span>
                           </div>
@@ -345,7 +347,7 @@ export default function ChatMessageList({
           <div ref={bottomRef} className="h-4" />
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 h-[30px] bg-gradient-to-t from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
+        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-onicord-base via-onicord-base/70 to-transparent pointer-events-none z-20" />
 
         <button
           type="button"

@@ -23,6 +23,12 @@ app.commandLine.appendSwitch("disable-hid-blocklist");
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.commandLine.appendSwitch("js-flags", "--expose-gc --experimental-wasm-jspi --experimental-wasm-legacy-eh --experimental-wasm-exnref");
 
+// Hardware Acceleration & GPU Optimizations:
+app.commandLine.appendSwitch("enable-gpu-rasterization");
+app.commandLine.appendSwitch("enable-zero-copy");
+app.commandLine.appendSwitch("ignore-gpu-blocklist");
+app.commandLine.appendSwitch("canvas-oop-rasterization");
+
 const PROTOCOL_PREFIX = "onicord"; 
 
 if (process.defaultApp) {
@@ -37,16 +43,42 @@ if (process.defaultApp) {
 
 try {
   const userData = app.getPath("userData");
-  const profilePath = path.join(userData, "profile.json");
-  if (fs.existsSync(profilePath)) {
-    const raw = fs.readFileSync(profilePath, "utf8");
-    const parsed = JSON.parse(raw);
-    if (parsed?.general?.disableHardwareAcceleration) {
-      app.disableHardwareAcceleration();
-      console.log(
-        "[Onicord Core] Aceleración por hardware desactivada desde el perfil.",
-      );
+  let disabledByConfig = false;
+
+  const dbPath = path.join(userData, "db", "app_config.db");
+  if (fs.existsSync(dbPath)) {
+    try {
+      const Database = require("better-sqlite3");
+      const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+      const row = db.prepare("SELECT value_json FROM app_settings WHERE key = 'general'").get();
+      db.close();
+      if (row?.value_json) {
+        const general = JSON.parse(row.value_json);
+        if (general?.disableHardwareAcceleration) {
+          disabledByConfig = true;
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (!disabledByConfig) {
+    const profilePath = path.join(userData, "profile.json");
+    if (fs.existsSync(profilePath)) {
+      try {
+        const raw = fs.readFileSync(profilePath, "utf8");
+        const parsed = JSON.parse(raw);
+        if (parsed?.general?.disableHardwareAcceleration) {
+          disabledByConfig = true;
+        }
+      } catch (_) {}
     }
+  }
+
+  if (disabledByConfig) {
+    app.disableHardwareAcceleration();
+    console.log(
+      "[Onicord Core] Aceleración por hardware desactivada desde la configuración.",
+    );
   }
 } catch (err) {}
 
@@ -826,9 +858,6 @@ app.whenReady().then(async () => {
   createTray();
 
   registerIPCHandlers();
-  mcpBridgeService.start();
-  webhookService.start();
-  feedPollerService.start();
 
   const startupUrl = process.argv.find((arg) => arg.startsWith("onicord://"));
   if (startupUrl) {
@@ -838,8 +867,6 @@ app.whenReady().then(async () => {
   if (startupOnipkg) {
     handleOnipkgFile(startupOnipkg);
   }
-
-  ytdlpService.startLocalStreamServer();
 
   adBlockerService.initAdBlocker(session.defaultSession);
 
@@ -958,6 +985,19 @@ app.whenReady().then(async () => {
   });
 
   createWindow();
+
+  // Defer non-critical background network services so Chromium renderer thread gets priority
+  setImmediate(() => {
+    try {
+      mcpBridgeService.start();
+      webhookService.start();
+      feedPollerService.start();
+      ytdlpService.startLocalStreamServer();
+    } catch (e) {
+      console.error("[Main Process] Error starting deferred services:", e);
+    }
+  });
+
   updateService.init(global.mainWindow);
   ytdlpService.autoUpdateYtdlp().catch((err) => {
     console.warn("[yt-dlp] Fallo al buscar actualización en segundo plano:", err?.message || err);

@@ -42,6 +42,8 @@ export class VoicePeerManager {
     this.peerIdentities = peers;
     this.localStream = null;
     this.localVideoStream = null;
+    this._processedScreenAudio = null;
+    this._screenAudioSessionId = 0;
     this.peers = new Map();
     this.muted = Boolean(initialMuted);
     this.deafened = Boolean(initialDeafened);
@@ -699,12 +701,14 @@ export class VoicePeerManager {
   }
 
   _createNativePeer(remotePeerId, initiator, iceServers, isLan = false) {
+    const peerCount = Math.max(2, this.peers.size + 1);
     return createNativePeer({
       localPeerId: this.localPeerId,
       remotePeerId,
       initiator,
       iceServers,
       isLan,
+      peerCount,
       lanPeerIPs: this.lanPeerIPs,
       onRemoteVideoUpdate: (pId, st) => {
         if (st) {
@@ -798,7 +802,7 @@ export class VoicePeerManager {
         peer.addTrack(liveVideoTrack, this.localVideoStream || this.localStream);
       }
 
-      const liveScreenAudioTrack = this.localVideoStream?.getAudioTracks()[0];
+      const liveScreenAudioTrack = this._processedScreenAudio?.track || this.localVideoStream?.getAudioTracks()[0];
       if (liveScreenAudioTrack && liveScreenAudioTrack.readyState === "live") {
         peer.addTrack(liveScreenAudioTrack, this.localVideoStream || this.localStream);
       }
@@ -1043,7 +1047,17 @@ export class VoicePeerManager {
     return getAdaptiveVideoBitrate(this.peers.size, isRealStream);
   }
 
-  setLocalVideoStream(videoStream, streamOptions = {}) {
+  _cleanupProcessedScreenAudio() {
+    if (this._processedScreenAudio) {
+      try {
+        this._processedScreenAudio.cleanup?.();
+      } catch {}
+      this._processedScreenAudio = null;
+    }
+  }
+
+  async setLocalVideoStream(videoStream, streamOptions = {}) {
+    const sessionId = ++this._screenAudioSessionId;
     this.localVideoStream = videoStream;
     this.streamOptions = streamOptions;
     const isGameMode = Boolean(streamOptions?.gameMode);
@@ -1054,10 +1068,12 @@ export class VoicePeerManager {
       videoTrack.contentHint = isGameMode ? "motion" : "text";
     }
 
-    const screenAudioTrack = videoStream ? videoStream.getAudioTracks()[0] : null;
-    if (screenAudioTrack) {
-      screenAudioTrack.enabled = true;
-      screenAudioTrack.contentHint = "music";
+    const rawScreenAudioTrack = videoStream ? videoStream.getAudioTracks()[0] : null;
+    if (rawScreenAudioTrack) {
+      rawScreenAudioTrack.enabled = true;
+      rawScreenAudioTrack.contentHint = "music";
+    } else {
+      this._cleanupProcessedScreenAudio();
     }
 
     const audioId = this.localStream ? this.localStream.id : null;
@@ -1070,6 +1086,7 @@ export class VoicePeerManager {
 
     const micTrack = this.localStream?.getAudioTracks()[0];
 
+    // Sync video track first without waiting on audio worklet initialization
     for (const [peerId, peer] of this.peers.entries()) {
       if (!peer || peer.destroyed || !peer._pc) continue;
       peer.isGameMode = isGameMode;
@@ -1112,8 +1129,41 @@ export class VoicePeerManager {
             peer.removeTrack(existingVideoSender.track, videoStream);
           }
         }
+      } catch (err) {
+        console.warn(`[voice mesh] Error video sync with ${peerId}:`, err.message);
+      }
+    }
 
-        // Screen audio track sync
+    // Prepare AEC-cleaned screen audio track (cancels Onicord voice loopback on Windows)
+    let screenAudioTrack = null;
+    if (rawScreenAudioTrack) {
+      if (this._processedScreenAudio?.rawTrackId === rawScreenAudioTrack.id) {
+        screenAudioTrack = this._processedScreenAudio.track;
+      } else {
+        this._cleanupProcessedScreenAudio();
+        const processed = await this.audioEngine.createCleanScreenAudioTrack(rawScreenAudioTrack);
+        if (this._screenAudioSessionId !== sessionId || this.localVideoStream !== videoStream) {
+          processed?.cleanup?.();
+          return;
+        }
+        if (processed?.track) {
+          this._processedScreenAudio = {
+            rawTrackId: rawScreenAudioTrack.id,
+            track: processed.track,
+            cleanup: processed.cleanup,
+          };
+          screenAudioTrack = processed.track;
+        } else {
+          screenAudioTrack = rawScreenAudioTrack;
+        }
+      }
+    }
+
+    // Sync screen audio track across connected peers
+    for (const [peerId, peer] of this.peers.entries()) {
+      if (!peer || peer.destroyed || !peer._pc) continue;
+      try {
+        const senders = peer._pc.getSenders() || [];
         const existingScreenAudioSender = senders.find(
           (s) => s.track?.kind === "audio" && s.track !== micTrack,
         );
@@ -1130,7 +1180,7 @@ export class VoicePeerManager {
           }
         }
       } catch (err) {
-        console.warn(`[voice mesh] Error video/audio sync with ${peerId}:`, err.message);
+        console.warn(`[voice mesh] Error screen audio sync with ${peerId}:`, err.message);
       }
     }
   }
@@ -1211,6 +1261,7 @@ export class VoicePeerManager {
 
       for (const [peerId, peer] of this.peers.entries()) {
         if (!peer || peer.destroyed) continue;
+        peer.peerCount = currentPeerCount + 1;
         try {
           const senders = peer._pc?.getSenders() || [];
           const existingVideoSender = senders.find((s) => s.track?.kind === "video");
@@ -1256,6 +1307,9 @@ export class VoicePeerManager {
       } catch {}
       this.localStream = null;
     }
+
+    this._screenAudioSessionId++;
+    this._cleanupProcessedScreenAudio();
 
     if (this.localVideoStream) {
       try {

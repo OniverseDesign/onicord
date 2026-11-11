@@ -1407,39 +1407,87 @@ export default function RoomView({
                 } catch (_) {}
 
                 const isCinema = effectiveStage.pluginId === "onicord-cinema" || effectiveStage.type === "movie";
-                const embedPayload = {
-                  pluginId: effectiveStage.pluginId || "onicord-cinema",
-                  type: isCinema ? "cinema_watch_party" : (effectiveStage.embedType || "game_lobby"),
-                  data: isCinema
-                    ? {
-                        title: effectiveStage.title || "Cinema",
-                        details: effectiveStage.details || "",
-                        cover: effectiveStage.cover || effectiveStage.activity?.cover || null,
-                        logo: effectiveStage.logo || null,
-                        banner: effectiveStage.banner || null,
+                const authorName = profile?.nickname || profile?.username || "Anfitrión";
+
+                const activityData = isCinema
+                  ? {
+                      title: effectiveStage.title || "Cinema",
+                      subtitle: `${authorName} te invita a ver una película`,
+                      details: effectiveStage.details || "Película / Serie",
+                      coverUrl: effectiveStage.cover || effectiveStage.activity?.cover || null,
+                      icon: "movie",
+                      providerName: "Cinema",
+                      roomCode: null,
+                      voiceChannelId: selectedVoiceChannelId || null,
+                      voiceChannelName: resolvedVoiceChannelName || null,
+                      actionType: "stage",
+                      actionPayload: {
+                        pluginId: effectiveStage.pluginId || "onicord-cinema",
+                        title: typeof effectiveStage.title === "string" ? effectiveStage.title.trim().slice(0, 100) : "Cinema",
+                        icon: "movie",
+                        url: effectiveStage.streamUrl || effectiveStage.url,
                         streamUrl: effectiveStage.streamUrl || effectiveStage.url,
                         infoHash: effectiveStage.infoHash || null,
                         fileIdx: effectiveStage.fileIdx ?? 0,
                         trackers: effectiveStage.trackers || [],
-                        authorName: profile?.nickname || profile?.username || "Anfitrión",
-                        duration: effectiveStage.duration || 0,
+                        cover: effectiveStage.cover || effectiveStage.activity?.cover || null,
+                        logo: effectiveStage.logo || null,
+                        banner: effectiveStage.banner || null,
                         subtitles: effectiveStage.subtitles || [],
-                      }
-                    : {
-                        gameTitle: effectiveStage.title || "Partida Multijugador",
-                        gameIcon: effectiveStage.icon || "sports_esports",
-                        roomCode,
-                        authorName: profile?.nickname || profile?.username || "Jugador",
-                        joinUrl,
-                        coverUrl: effectiveStage.cover || null,
-                        shareCapture: effectiveStage.shareCapture,
-                        frameScripts: effectiveStage.frameScripts,
+                        duration: effectiveStage.duration || 0,
+                        mediaType: "video",
+                        type: "movie",
+                        isChannel: true,
+                        syncMode: "group",
+                        isSyncHost: false,
+                        activity: {
+                          name: effectiveStage.title || "Película",
+                          details: effectiveStage.details || "Cinema",
+                          state: "Viendo con el canal",
+                          cover: effectiveStage.cover || effectiveStage.activity?.cover || null,
+                          type: "movie",
+                          isCatalog: false,
+                          startTime: Date.now(),
+                        },
                       },
+                    }
+                  : {
+                      title: effectiveStage.title || "Partida Multijugador",
+                      subtitle: `${authorName} te invita a jugar`,
+                      details: "Juego Multijugador",
+                      coverUrl: effectiveStage.cover || null,
+                      icon: effectiveStage.icon || "sports_esports",
+                      providerName: effectiveStage.pluginName || "Arcade",
+                      roomCode: roomCode || null,
+                      voiceChannelId: selectedVoiceChannelId || null,
+                      voiceChannelName: resolvedVoiceChannelName || null,
+                      actionType: "stage",
+                      actionPayload: {
+                        pluginId: effectiveStage.pluginId,
+                        title: typeof effectiveStage.title === "string" ? effectiveStage.title.trim().slice(0, 100) : "Juego Online",
+                        icon: typeof effectiveStage.icon === "string" ? effectiveStage.icon.trim().slice(0, 50) : "sports_esports",
+                        url: joinUrl,
+                        roomCode: typeof roomCode === "string" ? roomCode.trim().slice(0, 50) : null,
+                        shareCapture: effectiveStage.shareCapture,
+                        activity: effectiveStage.activity,
+                      },
+                    };
+
+                const embedPayload = {
+                  pluginId: effectiveStage.pluginId || (isCinema ? "onicord-cinema" : "onicord-arcade"),
+                  type: "activity_invite",
+                  data: activityData,
                 };
                 window.electronAPI.sendChatMessage(
                   server.roomCode,
                   textChannelId,
                   `[PLUGIN_EMBED]:${JSON.stringify(embedPayload)}`
+                );
+
+                notificationManager.showToast(
+                  "Invitación enviada",
+                  `Se ha compartido la invitación de ${effectiveStage.title || (isCinema ? "Cinema" : "la actividad")} en el chat.`,
+                  "success"
                 );
               }}
             />

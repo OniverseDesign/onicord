@@ -27,7 +27,7 @@
     @apply border-r border-white/5;
   }
   .onicord-mention {
-    @apply font-bold text-onicord-accent text-[13px] shrink-0 cursor-pointer;
+    @apply font-bold text-onicord-accent text-sm shrink-0 cursor-pointer;
   }
   .onicord-file-attachment-card {
     @apply mt-2 max-w-[400px] w-full rounded-onicord-inner bg-onicord-mantle border border-onicord-island p-3.5 block;

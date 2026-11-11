@@ -495,6 +495,11 @@ export default function AppSettingsModal({
     if (currentGeneral.enableQuickSuggestions !== originalGeneral.enableQuickSuggestions) return true;
     if (currentGeneral.enableContinuousAnimations !== originalGeneral.enableContinuousAnimations) return true;
     if (currentGeneral.enableOpenGraph !== originalGeneral.enableOpenGraph) return true;
+    if (currentGeneral.autoDownloadAppUpdates !== originalGeneral.autoDownloadAppUpdates) return true;
+    if (currentGeneral.autoUpdatePlugins !== originalGeneral.autoUpdatePlugins) return true;
+    if (currentGeneral.autoDownloadFiles !== originalGeneral.autoDownloadFiles) return true;
+    if (currentGeneral.autoDownloadMaxSizeMB !== originalGeneral.autoDownloadMaxSizeMB) return true;
+    if (currentGeneral.downloadDirectory !== originalGeneral.downloadDirectory) return true;
 
     const originalKeybindings = Array.isArray(profile?.keybindings) ? profile.keybindings : [];
     if (keybindings.length !== originalKeybindings.length) return true;

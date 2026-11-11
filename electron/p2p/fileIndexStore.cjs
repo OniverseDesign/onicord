@@ -78,7 +78,7 @@ class FileIndexStore {
         size_bytes = excluded.size_bytes,
         mime_type = excluded.mime_type,
         cas_hash = COALESCE(shared_files.cas_hash, excluded.cas_hash),
-        local_path = COALESCE(shared_files.local_path, excluded.local_path),
+        local_path = COALESCE(excluded.local_path, shared_files.local_path),
         extra_json = excluded.extra_json,
         uploaded_at = excluded.uploaded_at,
         updated_at = excluded.updated_at
@@ -109,8 +109,11 @@ class FileIndexStore {
           added++;
         } else {
           const exFile = this._rowToFile(existingRow);
-          if ((safeIncoming.updatedAt || safeIncoming.uploadedAt || 0) > (exFile.updatedAt || exFile.uploadedAt || 0)) {
-            const preservedLocalPath = existingRow.local_path || trustedLocalPath || null;
+          const needsLocalPathUpdate = Boolean(trustedLocalPath && (!existingRow.local_path || existingRow.local_path !== trustedLocalPath));
+          const isNewer = (safeIncoming.updatedAt || safeIncoming.uploadedAt || 0) > (exFile.updatedAt || exFile.uploadedAt || 0);
+
+          if (isNewer || needsLocalPathUpdate) {
+            const preservedLocalPath = trustedLocalPath || existingRow.local_path || null;
             const { realPath: _exRp, local_path: _exLp, ...safeExisting } = exFile;
             const merged = { ...safeExisting, ...safeIncoming };
             upsertFile.run(

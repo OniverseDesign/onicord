@@ -91,7 +91,8 @@ function createOverlayWindow() {
   });
 
   overlayWindow.setIgnoreMouseEvents(true, { forward: true });
-  overlayWindow.setAlwaysOnTop(true, "screen-saver");
+  overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
 
   const htmlPath = resolveAssetPath("electron/overlay.html");
   overlayWindow.loadFile(htmlPath).catch((err) => {
@@ -134,6 +135,9 @@ function showOverlay() {
   }
   if (overlayWindow && !overlayWindow.isVisible()) {
     overlayWindow.showInactive();
+    overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
+  } else if (overlayWindow && overlayWindow.isVisible()) {
+    overlayWindow.setAlwaysOnTop(true, "screen-saver", 1);
   }
 }
 
