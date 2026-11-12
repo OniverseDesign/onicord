@@ -1,6 +1,6 @@
 const { app } = require("electron");
 const crypto = require("crypto");
-const { ServerStore } = require("../p2p/serverStore.cjs");
+const { ServerStore, safeSliceUnicode } = require("../p2p/serverStore.cjs");
 const { RoomMetaStore } = require("../p2p/roomMetaStore.cjs");
 
 /**
@@ -295,9 +295,9 @@ class ServerService {
           nickname: editorInfo.nickname,
           avatar: editorInfo.avatar,
           action,
-          target: String(target || "").slice(0, 50),
+          target: safeSliceUnicode(String(target || ""), 100),
           timestamp: Date.now(),
-          details: String(details || "").slice(0, 200),
+          details: safeSliceUnicode(String(details || ""), 300),
         });
       };
 
@@ -362,7 +362,16 @@ class ServerService {
           log("update_settings", "Welcome Messages", `Set welcome channel to "#${chName}"`);
         }
         if (nWel.template && bWel.template !== nWel.template) {
-          log("update_settings", "Welcome Messages", `Updated welcome message template to: "${nWel.template.slice(0, 100)}"`);
+          log("update_settings", "Welcome Messages", `Updated welcome message template to: "${safeSliceUnicode(nWel.template, 100)}"`);
+        }
+      }
+
+      if (data.afkSettings !== undefined) {
+        const bAfk = before.afkSettings || {};
+        const nAfk = data.afkSettings || {};
+        if (bAfk.channelId !== nAfk.channelId || bAfk.timeout !== nAfk.timeout) {
+          const chName = nAfk.channelId ? getChannelNameById(nAfk.channelId) : "None";
+          log("update_settings", "AFK Channel", `Set AFK channel to "${chName}" with timeout ${nAfk.timeout || 300}s`);
         }
       }
 
@@ -737,6 +746,7 @@ class ServerService {
         discoverConfig: updated.discoverConfig || null,
         defaultRoleSettings: updated.defaultRoleSettings ?? { enabled: false, roleId: null },
         welcomeSettings: updated.welcomeSettings ?? { enabled: false, channelId: null, template: "¡Bienvenido {user} a {server}! 🎉" },
+        afkSettings: updated.afkSettings ?? { channelId: null, timeout: 300 },
         ...(cleanedSavedMembers ? { savedMembers: cleanedSavedMembers } : {}),
       };
 

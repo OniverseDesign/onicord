@@ -1,6 +1,6 @@
 :root {
   /* 🔤 TIPOGRAFÍA BASE */
-  --font-sans: "Roboto", "Noto Color Emoji", "Segoe UI Emoji", "Apple Color Emoji", "Segoe UI Symbol", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "Roboto", "Noto Color Emoji", "Segoe UI Emoji", "Apple Color Emoji", "Segoe UI Symbol", "Segoe UI Historic", "Cambria Math", "Apple Symbols", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: monospace;
 
   /* 📏 ESCALA ARMONIZADA ONICORD (8 NIVELES ESTÁNDAR) */

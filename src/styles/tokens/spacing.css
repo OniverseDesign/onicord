@@ -1,4 +1,4 @@
 :root {
-  --font: "Roboto", "Noto Color Emoji", "Segoe UI Emoji", "Apple Color Emoji", "Segoe UI Symbol", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font: "Roboto", "Noto Color Emoji", "Segoe UI Emoji", "Apple Color Emoji", "Segoe UI Symbol", "Segoe UI Historic", "Cambria Math", "Apple Symbols", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --gap: 4px;
 }

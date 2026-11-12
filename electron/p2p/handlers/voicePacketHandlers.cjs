@@ -37,6 +37,51 @@ async function handleVoicePacket(roomManager, peerId, type, payload) {
     return true;
   }
 
+  if (type === "voice-move-member" && payload) {
+    const { roomCode, targetUserId, targetPeerId, targetChannelId, operatorId, operatorNickname } = payload;
+    const myProfile = roomManager.profile || roomManager.p2pService.profile;
+    const myId = myProfile?.id;
+    const myLocalPeerId = roomManager.p2pService._resolveLocalPeerId();
+
+    const isTargetMe =
+      (targetUserId && myId && String(targetUserId) === String(myId)) ||
+      (targetPeerId && myLocalPeerId && String(targetPeerId) === String(myLocalPeerId));
+
+    if (!isTargetMe) return true;
+
+    const safeCode = String(roomCode || roomManager.roomCode || "").trim().toUpperCase();
+    if (roomManager.roomMetaStore) {
+      roomManager.roomMetaStore
+        .load(safeCode)
+        .then((meta) => {
+          const { checkAdminPermission } = require("../roomMetaStore.cjs");
+          const isOwner =
+            operatorId &&
+            (meta.ownerId === operatorId || meta.creatorID === operatorId || meta.creatorId === operatorId);
+          const hasAdmin = isOwner || (operatorId && checkAdminPermission(meta, operatorId));
+
+          if (!hasAdmin) {
+            console.warn(`[voicePacketHandlers] Rejected unauthorized voice-move-member from ${operatorId}`);
+            return;
+          }
+
+          const channelObj = meta.channels?.find((c) => c.id === targetChannelId);
+          const channelName = channelObj?.name || targetChannelId;
+
+          global.mainWindow?.webContents.send("voice:force-move", {
+            roomCode: safeCode,
+            channelId: targetChannelId,
+            channelName,
+            movedBy: operatorNickname || "Administrador",
+          });
+        })
+        .catch((err) => {
+          console.error("[voicePacketHandlers] Error verifying voice-move-member meta:", err.message);
+        });
+    }
+    return true;
+  }
+
   if (type === "music-channel-state" && payload) {
     global.mainWindow?.webContents.send("music:channel-state", {
       ...payload,

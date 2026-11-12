@@ -64,7 +64,7 @@ export function ChannelButton({
     <button
       type="button"
       disabled={disabled}
-      title={title}
+      title={title || (typeof label === "string" ? label : undefined)}
       onClick={disabled ? undefined : onClick}
       onContextMenu={onContextMenu}
       className={`group onicord-channel-wrapper ${active ? "onicord-channel-active" : ""} ${isMuted ? "opacity-50 hover:opacity-100" : ""} ${className}`}
@@ -147,6 +147,18 @@ export default function ChannelsSidebar({
 }) {
   const { t } = useTranslation();
   const [, setMuteToggleTick] = useState(0);
+  const [dragTargetChannelId, setDragTargetChannelId] = useState(null);
+
+  const isServerOwner = Boolean(
+    profile?.id &&
+    (server?.ownerId === profile.id ||
+      server?.creatorID === profile.id ||
+      server?.creatorId === profile.id)
+  );
+  const canMoveMembers =
+    isServerOwner ||
+    checkPermission(server, profile?.id, "admin") ||
+    checkPermission(server, profile?.id, "move_members");
 
   const effectiveProfile = useMemo(() => {
     if (propEffectiveProfile) return propEffectiveProfile;
@@ -226,9 +238,52 @@ export default function ChannelsSidebar({
       const usersInChannel = voiceMembersDisplay.filter((m) => m.channelId === ch.id);
       const voiceStartTime = voiceStartTimesRef?.current?.[ch.id];
       const canConnectVoice = checkPermission(server, profile?.id, "connect_voice");
+      const isAfkChannel = server?.afkSettings?.channelId === ch.id;
 
       return (
-        <div key={ch.id}>
+        <div
+          key={ch.id}
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes("application/onicord-voice-user") && canMoveMembers) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              if (dragTargetChannelId !== ch.id) setDragTargetChannelId(ch.id);
+            }
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+              setDragTargetChannelId((curr) => (curr === ch.id ? null : curr));
+            }
+          }}
+          onDrop={async (e) => {
+            e.preventDefault();
+            setDragTargetChannelId(null);
+            if (!canMoveMembers) return;
+            const raw = e.dataTransfer.getData("application/onicord-voice-user");
+            if (!raw) return;
+            try {
+              const data = JSON.parse(raw);
+              const { userId, peerId, channelId: fromChannelId, isSelf } = data;
+              if (fromChannelId === ch.id) return;
+
+              if (isSelf) {
+                selectVoiceChannel(ch.id);
+              } else if (window.electronAPI?.moveVoiceMember) {
+                await window.electronAPI.moveVoiceMember(
+                  server.roomCode || server.id,
+                  userId,
+                  peerId,
+                  ch.id
+                );
+              }
+            } catch (err) {
+              console.error("[ChannelsSidebar] Drag drop voice member error:", err);
+            }
+          }}
+          className={`transition-all rounded-xl ${
+            dragTargetChannelId === ch.id ? "bg-onicord-accent/20 ring-2 ring-onicord-accent/60" : ""
+          }`}
+        >
           <ChannelButton
             active={selectedVoiceChannelId === ch.id}
             disabled={!canConnectVoice}
@@ -245,6 +300,8 @@ export default function ChannelsSidebar({
             icon={
               !canConnectVoice ? (
                 <MaterialIcon name="lock" size="lg" className="text-onicord-muted opacity-70 shrink-0" />
+              ) : isAfkChannel ? (
+                <MaterialIcon name="bedtime" size="lg" className="shrink-0" />
               ) : (
                 <IconVolumeUp size="lg" />
               )
@@ -259,6 +316,7 @@ export default function ChannelsSidebar({
                   key={`${m.id || "self"}-${m.peerId || "local"}`}
                   userId={m.id}
                   peerId={m.peerId}
+                  channelId={ch.id}
                   nickname={m.nickname}
                   avatar={m.avatar}
                   muted={m.muted}
@@ -268,6 +326,7 @@ export default function ChannelsSidebar({
                   isStreaming={m.isStreaming}
                   activity={m.activity}
                   connectionType={m.connectionType}
+                  draggable={canMoveMembers}
                   onContextMenu={
                     !m.isSelf && (m.peerId || m.id)
                       ? (e) =>
@@ -453,7 +512,6 @@ export default function ChannelsSidebar({
             </>
           ) : (
             <>
-              {orphanChannels.map(renderChannelNode)}
               {categories.map((cat) => {
                 const isCollapsed = collapsedCategories[cat.id];
                 const catChannels = server.channels.filter(
@@ -502,6 +560,11 @@ export default function ChannelsSidebar({
                   </div>
                 );
               })}
+              {orphanChannels.length > 0 && (
+                <div className="mt-2">
+                  {orphanChannels.map(renderChannelNode)}
+                </div>
+              )}
             </>
           )}
         </div>

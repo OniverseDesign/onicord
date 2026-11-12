@@ -221,6 +221,7 @@ const SERVER_SCHEMAS = {
       direct_port INTEGER NOT NULL DEFAULT 7777,
       default_role_settings_json TEXT,
       welcome_settings_json TEXT,
+      afk_settings_json TEXT,
       music_json TEXT,
       version INTEGER NOT NULL DEFAULT 0,
       updated_by TEXT,
@@ -553,6 +554,9 @@ class DbManager {
     this._configurePragmas(db);
     if (schemaSql) {
       db.exec(schemaSql);
+      try {
+        db.exec("ALTER TABLE server_config ADD COLUMN afk_settings_json TEXT;");
+      } catch (_) {}
     }
     return db;
   }

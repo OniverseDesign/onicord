@@ -103,6 +103,11 @@ export function hasChannelAccess(server, channel, userId) {
  * @returns {boolean} True if the user is allowed to speak
  */
 export function canSpeakInChannel(server, channel, userId) {
+  // 0. If this is designated as the AFK channel, nobody can speak (strictly muted)
+  if (channel && server?.afkSettings?.channelId && server.afkSettings.channelId === channel.id) {
+    return false;
+  }
+
   // 1. Channel not defined or no speak restrictions -> everyone can speak by default
   if (!channel || !channel.hasSpeakRestrictions) return true;
 

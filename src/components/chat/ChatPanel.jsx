@@ -94,6 +94,7 @@ export default function ChatPanel({
   const chatContainerRef = useRef(null);
   const bottomRef = useRef(null);
   const messagesCountRef = useRef(0);
+  const virtualizerRef = useRef(null);
 
   useEffect(() => {
     setPostTitle("");
@@ -158,6 +159,7 @@ export default function ChatPanel({
     scrollToBottom,
     scrollToTop,
     handleChatScroll,
+    isAtBottomRef,
   } = useChatScroll({
     messages: isForum && tagFilter ? filteredForumMessages : mainStreamMessages,
     loading,
@@ -166,6 +168,7 @@ export default function ChatPanel({
     chatContainerRef,
     bottomRef,
     messagesCountRef,
+    virtualizerRef,
     isForum,
   });
 
@@ -339,11 +342,13 @@ export default function ChatPanel({
 
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollToBottom("smooth");
-    }, 80);
-    return () => clearTimeout(timer);
-  }, [visibleSuggestions.length, replyTarget, scrollToBottom]);
+    if ((visibleSuggestions.length > 0 || replyTarget) && isAtBottomRef.current) {
+      const timer = setTimeout(() => {
+        scrollToBottom("smooth");
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [visibleSuggestions.length, replyTarget, scrollToBottom, isAtBottomRef]);
 
   const handleInputChange = (e) => {
     isLocalTypingRef.current = true;
@@ -611,9 +616,9 @@ export default function ChatPanel({
         setVisibleCount?.((v) => v + 1);
         requestAnimationFrame(() => {
           if (isForum) {
-            chatContainerRef?.current?.scrollTo({ top: 0, behavior: "smooth" });
+            scrollToTop("smooth");
           } else {
-            bottomRef?.current?.scrollIntoView({ behavior: "smooth" });
+            scrollToBottom("smooth");
           }
         });
 
@@ -1089,10 +1094,11 @@ export default function ChatPanel({
         fileProgress={fileProgress}
         chatContainerRef={chatContainerRef}
         bottomRef={bottomRef}
+        virtualizerRef={virtualizerRef}
         handleChatScroll={handleChatScroll}
         isScrollingUpLoading={isScrollingUpLoading}
         showScrollBottom={showScrollBottom}
-        onScrollToBottom={isForum ? scrollToTop : () => scrollToBottom("smooth")}
+        onScrollToBottom={isForum ? scrollToTop : scrollToBottom}
         onDownloadFile={handleDownloadFile}
         onCancelDownload={handleCancelDownload}
         onOpenDeleteModal={handleOpenDeleteModal}

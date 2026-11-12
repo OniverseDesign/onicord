@@ -25,12 +25,10 @@ export default function WatchPartyStage() {
     isHost,
     isFloating,
     isFullscreen,
-    joinPrompt,
     volume,
     isMuted,
     stopWatchParty,
     joinWatchParty,
-    dismissPrompt,
     shareWatchPartyToChat,
     togglePlayPause,
     sendSeek,
@@ -45,10 +43,14 @@ export default function WatchPartyStage() {
   const pipContainerRef = useRef(null);
   const playerRef = useRef(null);
   const ytPlayerInstance = useRef(null);
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
   const [playerReady, setPlayerReady] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [duckMultiplier, setDuckMultiplier] = useState(1.0);
   const inactivityTimeoutRef = useRef(null);
+  const isHandlingRemoteCmdRef = useRef(false);
+  const isLocalActionRef = useRef(false);
 
   // Playback tracking
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0);
@@ -269,9 +271,11 @@ export default function WatchPartyStage() {
               if (event.data === window.YT?.PlayerState?.PLAYING) {
                 refreshQualities();
               }
-              if (isHost && event.data === window.YT?.PlayerState?.PAUSED && session?.isPlaying) {
+              if (isHandlingRemoteCmdRef.current || isLocalActionRef.current) return;
+              const isCurrentlyPlaying = sessionRef.current?.isPlaying;
+              if (event.data === window.YT?.PlayerState?.PAUSED && isCurrentlyPlaying) {
                 togglePlayPause();
-              } else if (isHost && event.data === window.YT?.PlayerState?.PLAYING && !session?.isPlaying) {
+              } else if (event.data === window.YT?.PlayerState?.PLAYING && !isCurrentlyPlaying) {
                 togglePlayPause();
               }
             },
@@ -303,6 +307,47 @@ export default function WatchPartyStage() {
       setPlayerReady(false);
     };
   }, [session?.videoId, hasJoined]);
+
+  // Host processes incoming commands (PLAY, PAUSE, SEEK) triggered by collaborative channel peers
+  useEffect(() => {
+    if (!isHost) return;
+    const handleHostCommand = (e) => {
+      const cmd = e.detail;
+      const player = ytPlayerInstance.current;
+      if (!cmd || !player || !playerReady) return;
+
+      isHandlingRemoteCmdRef.current = true;
+      setTimeout(() => {
+        isHandlingRemoteCmdRef.current = false;
+      }, 700);
+
+      if (cmd.type === "PLAY") {
+        try {
+          if (typeof cmd.time === "number" && cmd.time >= 0) {
+            player.seekTo(cmd.time, true);
+            setCurrentPlaybackTime(cmd.time);
+          }
+          player.playVideo();
+        } catch (_) {}
+      } else if (cmd.type === "PAUSE") {
+        try {
+          if (typeof cmd.time === "number" && cmd.time >= 0) {
+            player.seekTo(cmd.time, true);
+            setCurrentPlaybackTime(cmd.time);
+          }
+          player.pauseVideo();
+        } catch (_) {}
+      } else if (cmd.type === "SEEK" && typeof cmd.time === "number") {
+        try {
+          player.seekTo(cmd.time, true);
+          setCurrentPlaybackTime(cmd.time);
+        } catch (_) {}
+      }
+    };
+
+    window.addEventListener("onicord:watch-party-host-command", handleHostCommand);
+    return () => window.removeEventListener("onicord:watch-party-host-command", handleHostCommand);
+  }, [isHost, playerReady]);
 
   // Volume & Auto-Ducking updates
   useEffect(() => {
@@ -369,8 +414,9 @@ export default function WatchPartyStage() {
         const expected = session.currentTime + (session.isPlaying ? (Date.now() - session.updatedAt) / 1000 : 0);
         const drift = Math.abs(currentLocal - expected);
 
-        // Drift compensation tolerance: 2.5 seconds to prevent micro-stutters
-        if (drift > 2.5) {
+        // While playing: 2.5s tolerance to prevent micro-stutters. While paused: 0.6s tolerance for tight alignment
+        const driftTolerance = session.isPlaying ? 2.5 : 0.6;
+        if (drift > driftTolerance) {
           player.seekTo(expected, true);
         }
 
@@ -578,14 +624,20 @@ export default function WatchPartyStage() {
 
   const handleTogglePlayPause = () => {
     if (!ytPlayerInstance.current || !playerReady) return;
+    isLocalActionRef.current = true;
+    setTimeout(() => {
+      isLocalActionRef.current = false;
+    }, 1200);
+    const curTime = ytPlayerInstance.current.getCurrentTime?.() ?? currentPlaybackTime;
+    const isCurrentlyPlaying = sessionRef.current?.isPlaying ?? session?.isPlaying;
     try {
-      if (session?.isPlaying) {
+      if (isCurrentlyPlaying) {
         ytPlayerInstance.current.pauseVideo();
       } else {
         ytPlayerInstance.current.playVideo();
       }
     } catch {}
-    togglePlayPause();
+    togglePlayPause(curTime);
   };
 
   const handleSeek = (newTime) => {
@@ -638,65 +690,14 @@ export default function WatchPartyStage() {
     setPosition({ ...currentPos.current });
   };
 
-  // 1. Join prompt banner (when another peer starts a Watch Party)
-  const renderJoinPrompt = () => {
-    if (!joinPrompt || hasJoined || joinPrompt.type === "cinema") return null;
-    return (
-      <div className="fixed top-14 right-6 z-50 animate-bounce-in max-w-sm bg-onicord-surface/95 backdrop-blur-xl border border-onicord-accent/40 shadow-2xl rounded-2xl p-4 text-white">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-600/20 text-red-400 flex items-center justify-center shrink-0">
-            <MaterialIcon name="smart_display" size={24} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-onicord-accent">
-                {t("watchParty.subtitle", "Watch Party P2P")}
-              </span>
-              <button
-                type="button"
-                onClick={dismissPrompt}
-                className="text-onicord-muted hover:text-white transition-colors"
-              >
-                <MaterialIcon name="close" size={16} />
-              </button>
-            </div>
-            <p className="text-sm font-semibold truncate text-white mt-0.5">
-              {joinPrompt.title || t("watchParty.liveVideo", "Video en vivo")}
-            </p>
-            <p className="text-xs text-onicord-muted truncate">
-              {t("watchParty.startedByPrefix", "Iniciado por")} <strong className="text-onicord-text">{joinPrompt.hostNickname}</strong>
-            </p>
-            <div className="flex items-center gap-2 mt-3">
-              <button
-                type="button"
-                onClick={joinWatchParty}
-                className="flex-1 py-1.5 px-3 rounded-xl bg-onicord-accent hover:bg-onicord-accent/90 text-white text-xs font-semibold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5"
-              >
-                <MaterialIcon name="play_arrow" size={16} />
-                <span>{t("watchParty.joinNow", "Unirse ahora")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={dismissPrompt}
-                className="py-1.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-onicord-muted hover:text-white text-xs font-medium transition-colors"
-              >
-                {t("watchParty.ignore", "Ignorar")}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // Cinema watch party is handled by AddonStageDisplay
   if (session?.type === "cinema") {
     return null;
   }
 
-  // If no active session or not joined, only show join prompt if present
+  // If no active session or not joined, do not render stage
   if (!session?.videoId || !hasJoined) {
-    return renderJoinPrompt();
+    return null;
   }
 
   // Top-left overlay badge (matching StreamDisplay & AddonStageDisplay)
@@ -969,7 +970,6 @@ export default function WatchPartyStage() {
   // Single persistent DOM render: YouTube iframe is NEVER destroyed across normal, fullscreen, and PiP modes!
   return (
     <>
-      {renderJoinPrompt()}
       <div
         ref={isFloating ? pipContainerRef : containerRef}
         style={

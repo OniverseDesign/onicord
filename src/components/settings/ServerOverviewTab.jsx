@@ -27,6 +27,7 @@ export default function ServerOverviewTab({
   server = null,
   welcomeSettings = { enabled: false, channelId: null, template: "" },
   setWelcomeSettings,
+  afkSettings = null,
 }) {
   const { t } = useTranslation();
   const iconInputRef = useRef(null);
@@ -118,6 +119,16 @@ export default function ServerOverviewTab({
   const orphanChannels = (channels || []).filter(
     (c) => !isCategoryNode(c) && !c.parentId,
   );
+
+  const effectiveAfkChannelId =
+    afkSettings?.channelId ?? server?.afkSettings?.channelId;
+
+  const getChannelIconName = (ch) => {
+    if (ch.id === effectiveAfkChannelId) return "bedtime";
+    if (ch.type === "forum") return "forum";
+    if (ch.type === "voice") return "volume_up";
+    return "tag";
+  };
 
   return (
     <div className="onicord-settings-container">
@@ -620,38 +631,9 @@ export default function ServerOverviewTab({
 
               {/* Dynamic Category and Channel List */}
               <div className="flex-1 py-3 pl-1 pr-2 space-y-4 max-h-[260px] overflow-y-auto minimal-scrollbar">
-                {/* Uncategorized channels (orphans) */}
-                {orphanChannels.length > 0 && (
-                  <div className="space-y-0.5">
-                    {orphanChannels.map((c, idx) => {
-                      const isText = c.type === "text";
-                      const isActive = idx === 0;
-                      return (
-                        <div
-                          key={c.id}
-                          className={`flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-xs font-medium cursor-default transition-colors ${
-                            isActive
-                              ? "bg-white/10 text-white font-semibold shadow-sm border border-white/5"
-                              : "text-onicord-muted hover:text-white hover:bg-white/5"
-                          }`}
-                        >
-                          <MaterialIcon
-                            name={isText ? "tag" : "volume_up"}
-                            size={16}
-                            className={
-                              isActive ? "text-white/60" : "opacity-80"
-                            }
-                          />
-                          <span className="truncate">{c.name}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
                 {/* Real Categories and Channels */}
-                {categories.length > 0 ? (
-                  categories.map((cat) => {
+                {categories.length > 0 &&
+                  categories.map((cat, catIdx) => {
                     const catChannels = (channels || []).filter(
                       (c) => c.parentId === cat.id,
                     );
@@ -668,9 +650,8 @@ export default function ServerOverviewTab({
 
                         <div className="space-y-0.5">
                           {catChannels.map((c, cIdx) => {
-                            const isText = c.type === "text";
-                            const isActive =
-                              cIdx === 0 && orphanChannels.length === 0;
+                            const iconName = getChannelIconName(c);
+                            const isActive = catIdx === 0 && cIdx === 0;
                             return (
                               <div
                                 key={c.id}
@@ -681,7 +662,7 @@ export default function ServerOverviewTab({
                                 }`}
                               >
                                 <MaterialIcon
-                                  name={isText ? "tag" : "volume_up"}
+                                  name={iconName}
                                   size={16}
                                   className={
                                     isActive ? "text-white/60" : "opacity-80"
@@ -694,8 +675,38 @@ export default function ServerOverviewTab({
                         </div>
                       </div>
                     );
-                  })
-                ) : orphanChannels.length === 0 ? (
+                  })}
+
+                {/* Uncategorized channels (orphans) - RENDERED BELOW CATEGORIES */}
+                {orphanChannels.length > 0 && (
+                  <div className="space-y-0.5">
+                    {orphanChannels.map((c, idx) => {
+                      const iconName = getChannelIconName(c);
+                      const isActive = categories.length === 0 && idx === 0;
+                      return (
+                        <div
+                          key={c.id}
+                          className={`flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-xs font-medium cursor-default transition-colors ${
+                            isActive
+                              ? "bg-white/10 text-white font-semibold shadow-sm border border-white/5"
+                              : "text-onicord-muted hover:text-white hover:bg-white/5"
+                          }`}
+                        >
+                          <MaterialIcon
+                            name={iconName}
+                            size={16}
+                            className={
+                              isActive ? "text-white/60" : "opacity-80"
+                            }
+                          />
+                          <span className="truncate">{c.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {categories.length === 0 && orphanChannels.length === 0 && (
                   /* Sample channels if no data */
                   <div>
                     <div className="flex items-center justify-between text-[11px] font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1.5 cursor-pointer hover:text-white transition-colors duration-150">
@@ -739,7 +750,7 @@ export default function ServerOverviewTab({
                       </div>
                     </div>
                   </div>
-                ) : null}
+                )}
               </div>
             </div>
           </div>

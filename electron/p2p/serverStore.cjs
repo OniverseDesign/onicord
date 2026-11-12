@@ -14,6 +14,28 @@ function safeParse(jsonStr, fallback) {
   }
 }
 
+/**
+ * Truncates unicode strings safely up to maxLength grapheme clusters,
+ * preventing split surrogate pairs and combining character destruction.
+ * Cleans up any existing lone surrogates.
+ */
+function safeSliceUnicode(str, maxLength = 100) {
+  if (!str) return "";
+  const s = String(str).replace(
+    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+    ""
+  );
+  if (typeof Intl !== "undefined" && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    const segments = Array.from(segmenter.segment(s), (item) => item.segment);
+    if (segments.length <= maxLength) return s;
+    return segments.slice(0, maxLength).join("");
+  }
+  const codePoints = Array.from(s);
+  if (codePoints.length <= maxLength) return s;
+  return codePoints.slice(0, maxLength).join("");
+}
+
 class ServerStore {
   static _syncLookup = new Map(); // normalizedUserData -> Map<roomCode, server>
   static _locks = new Map();      // normalizedUserData -> Promise
@@ -75,7 +97,7 @@ class ServerStore {
     return {
       id: code,
       roomCode: code,
-      name: (meta.name || joinedRow.name || `Servidor ${code.slice(0, 4)}`).trim().slice(0, 48),
+      name: safeSliceUnicode((meta.name || joinedRow.name || `Servidor ${code.slice(0, 4)}`).trim(), 100),
       isOwner,
       ownerId: resolvedOwnerId,
       creatorId: resolvedCreatorId,
@@ -111,6 +133,10 @@ class ServerStore {
         enabled: false,
         channelId: null,
         template: "¡Bienvenido {user} a {server}! 🎉",
+      },
+      afkSettings: meta.afkSettings ?? {
+        channelId: null,
+        timeout: 300,
       },
       music: meta.music ?? null,
       savedMembers: meta.savedMembers || {},
@@ -287,15 +313,16 @@ class ServerStore {
         resolvedIsOwner = Boolean(existingRow.is_owner);
       }
 
-      const resolvedName = (
-        (name && !name.trim().startsWith("Servidor ") ? name : null) ||
-        existingMeta?.name ||
-        existingRow?.name ||
-        name ||
-        `Servidor ${code.slice(0, 4)}`
-      )
-        .trim()
-        .slice(0, 48);
+      const resolvedName = safeSliceUnicode(
+        (
+          (name && !name.trim().startsWith("Servidor ") ? name : null) ||
+          existingMeta?.name ||
+          existingRow?.name ||
+          name ||
+          `Servidor ${code.slice(0, 4)}`
+        ).trim(),
+        100
+      );
 
       const extraObj = existingRow ? safeParse(existingRow.extra_json, {}) : {};
       if (!extraObj.createdAt) extraObj.createdAt = now;
@@ -364,7 +391,7 @@ class ServerStore {
       if (!row) return null;
 
       const nextChannel = patch.lastChannelId || row.last_read_channel_id || "general";
-      const nextName = patch.name?.trim() ? patch.name.trim().slice(0, 48) : row.name;
+      const nextName = patch.name?.trim() ? safeSliceUnicode(patch.name.trim(), 100) : row.name;
       const now = Date.now();
 
       serversListDb
@@ -449,7 +476,7 @@ class ServerStore {
       const meta = metaStore._loadFromSqlSync(code);
       const now = Date.now();
 
-      if (settings.name?.trim()) meta.name = settings.name.trim().slice(0, 48);
+      if (settings.name?.trim()) meta.name = safeSliceUnicode(settings.name.trim(), 100);
       if (settings.icon !== undefined) meta.icon = cas.storeDataUri(settings.icon);
       if (settings.banner !== undefined) meta.banner = cas.storeDataUri(settings.banner);
       if (Array.isArray(settings.roles)) meta.roles = settings.roles;
@@ -474,6 +501,7 @@ class ServerStore {
       if (settings.defaultRoleSettings !== undefined)
         meta.defaultRoleSettings = settings.defaultRoleSettings;
       if (settings.welcomeSettings !== undefined) meta.welcomeSettings = settings.welcomeSettings;
+      if (settings.afkSettings !== undefined) meta.afkSettings = settings.afkSettings;
 
       if (Array.isArray(settings.channels)) {
         meta.channels = settings.channels.map((c) => {
@@ -487,7 +515,7 @@ class ServerStore {
               : c.type === "forum"
               ? "forum"
               : "text",
-            name: String(c.name ?? "").trim().slice(0, 32),
+            name: safeSliceUnicode(String(c.name ?? "").trim(), 100),
             parentId: c.parentId ?? null,
             isPrivate: Boolean(c.isPrivate),
             allowedRoles: Array.isArray(c.allowedRoles) ? c.allowedRoles : [],
@@ -540,7 +568,7 @@ class ServerStore {
       const cas = this._cas();
       const iconRef = meta.icon !== undefined ? cas.storeDataUri(meta.icon) : row.icon_ref;
       const bannerRef = meta.banner !== undefined ? cas.storeDataUri(meta.banner) : row.banner_ref;
-      const nextName = meta.name ? String(meta.name).trim().slice(0, 48) : row.name;
+      const nextName = meta.name ? safeSliceUnicode(String(meta.name).trim(), 100) : row.name;
       const nextOwnerId = meta.ownerId || row.owner_id;
       const nextCreatorId = meta.creatorID || meta.creatorId || row.creator_id || nextOwnerId;
       const localUserId = this._getLocalProfileId();
@@ -574,4 +602,4 @@ class ServerStore {
   }
 }
 
-module.exports = { ServerStore, DEFAULT_CHANNELS };
+module.exports = { ServerStore, DEFAULT_CHANNELS, safeSliceUnicode };

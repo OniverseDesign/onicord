@@ -26,7 +26,6 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
   const [hasJoined, setHasJoined] = useState(false);
   const [isFloating, setIsFloating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [joinPrompt, setJoinPrompt] = useState(null);
 
   // Volume
   const [volume, setVolumeState] = useState(() => {
@@ -93,6 +92,8 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
         logo: overrides.logo !== undefined ? overrides.logo : current.logo,
         banner: overrides.banner !== undefined ? overrides.banner : current.banner,
         subtitles: overrides.subtitles !== undefined ? overrides.subtitles : current.subtitles,
+        selectedSubtitle: overrides.selectedSubtitle !== undefined ? overrides.selectedSubtitle : current.selectedSubtitle,
+        selectedAudioTrack: overrides.selectedAudioTrack !== undefined ? overrides.selectedAudioTrack : current.selectedAudioTrack,
       };
 
       window.electronAPI.broadcastWatchPartyState(currentChannelId, payload, currentRoomCode);
@@ -215,7 +216,6 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       setSession(newSession);
       sessionRef.current = newSession;
       setHasJoined(true);
-      setJoinPrompt(null);
 
       if (window.electronAPI?.broadcastWatchPartyState) {
         window.electronAPI.broadcastWatchPartyState(currentChannelId, newSession, currentRoomCode);
@@ -260,7 +260,6 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       setSession(newSession);
       sessionRef.current = newSession;
       setHasJoined(true);
-      setJoinPrompt(null);
 
       if (window.electronAPI?.broadcastWatchPartyState) {
         window.electronAPI.broadcastWatchPartyState(currentChannelId, newSession, currentRoomCode);
@@ -283,7 +282,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
     setHasJoined(false);
     setIsFloating(false);
     setIsFullscreen(false);
-    setJoinPrompt(null);
+    window.dispatchEvent(new CustomEvent("onicord:watch-party-ended"));
   }, [currentChannelId, currentRoomCode]);
 
   // Host heartbeat (broadcast state every 3s while active)
@@ -319,7 +318,6 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
         setSession(null);
         setHasJoined(false);
         setIsFullscreen(false);
-        setJoinPrompt(null);
         window.dispatchEvent(new CustomEvent("onicord:watch-party-ended"));
         return;
       }
@@ -332,25 +330,13 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
         return;
       }
 
-      // If we don't have this session, prompt user to join
       setSession((prev) => {
-        const isNewVideo = !prev || prev.videoId !== remoteState.videoId;
-        if (isNewVideo) {
-          // If remote host started it and we are not host
-          if (remoteState.hostPeerId !== localPeerId) {
-            setJoinPrompt({
-              type: remoteState.type || "youtube",
-              videoId: remoteState.videoId,
-              title: remoteState.title,
-              details: remoteState.details,
-              hostNickname: remoteState.hostNickname,
-            });
-          }
-        }
-        return {
+        const merged = {
           ...prev,
           ...remoteState,
         };
+        sessionRef.current = merged;
+        return merged;
       });
     });
 
@@ -360,7 +346,6 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
   // Automatically leave/close Watch Party if user disconnects from voice
   useEffect(() => {
     if (!inVoice) {
-      if (joinPrompt) setJoinPrompt(null);
       if (session || hasJoined) {
         if (sessionRef.current?.hostPeerId && sessionRef.current.hostPeerId === localPeerId) {
           stopWatchParty();
@@ -370,13 +355,12 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
           setHasJoined(false);
           setIsFloating(false);
           setIsFullscreen(false);
-          setJoinPrompt(null);
         }
       }
     }
-  }, [inVoice, joinPrompt, session, hasJoined, localPeerId, stopWatchParty]);
+  }, [inVoice, session, hasJoined, localPeerId, stopWatchParty]);
 
-  // Listen to incoming commands (Host processes them)
+  // Listen to incoming commands (Host processes them and broadcasts to all peers)
   useEffect(() => {
     if (!window.electronAPI?.onWatchPartyCommand) return;
 
@@ -385,21 +369,30 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       const { command } = data;
 
       if (command.type === "PLAY") {
+        const effectiveTime = typeof command.time === "number" ? command.time : hostPlaybackTimeRef.current;
+        if (typeof effectiveTime === "number") hostPlaybackTimeRef.current = effectiveTime;
         setSession((prev) => {
           if (!prev) return prev;
-          const next = { ...prev, isPlaying: true, updatedAt: Date.now() };
+          const next = {
+            ...prev,
+            isPlaying: true,
+            currentTime: typeof effectiveTime === "number" ? effectiveTime : prev.currentTime,
+            updatedAt: Date.now(),
+          };
           sessionRef.current = next;
           broadcastState(next);
           return next;
         });
         window.dispatchEvent(new CustomEvent("onicord:watch-party-host-command", { detail: command }));
       } else if (command.type === "PAUSE") {
+        const effectiveTime = typeof command.time === "number" ? command.time : hostPlaybackTimeRef.current;
+        if (typeof effectiveTime === "number") hostPlaybackTimeRef.current = effectiveTime;
         setSession((prev) => {
           if (!prev) return prev;
           const next = {
             ...prev,
             isPlaying: false,
-            currentTime: typeof command.time === "number" ? command.time : prev.currentTime,
+            currentTime: typeof effectiveTime === "number" ? effectiveTime : prev.currentTime,
             updatedAt: Date.now(),
           };
           sessionRef.current = next;
@@ -408,11 +401,40 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
         });
         window.dispatchEvent(new CustomEvent("onicord:watch-party-host-command", { detail: command }));
       } else if (command.type === "SEEK") {
+        if (typeof command.time === "number") {
+          hostPlaybackTimeRef.current = command.time;
+        }
         setSession((prev) => {
           if (!prev) return prev;
           const next = {
             ...prev,
             currentTime: command.time,
+            updatedAt: Date.now(),
+          };
+          sessionRef.current = next;
+          broadcastState(next);
+          return next;
+        });
+        window.dispatchEvent(new CustomEvent("onicord:watch-party-host-command", { detail: command }));
+      } else if (command.type === "SET_AUDIO_TRACK") {
+        setSession((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            selectedAudioTrack: command.trackId,
+            updatedAt: Date.now(),
+          };
+          sessionRef.current = next;
+          broadcastState(next);
+          return next;
+        });
+        window.dispatchEvent(new CustomEvent("onicord:watch-party-host-command", { detail: command }));
+      } else if (command.type === "SET_SUBTITLE") {
+        setSession((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            selectedSubtitle: command.subtitleId,
             updatedAt: Date.now(),
           };
           sessionRef.current = next;
@@ -440,11 +462,12 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
     return () => window.removeEventListener("onicord:start-watch-party", handleStartEvent);
   }, [inVoice, startWatchParty]);
 
-  // User controls (Seek, Play/Pause)
+  // User controls (Seek, Play/Pause, Audio Track, Subtitles)
   const sendSeek = useCallback(
     (time) => {
-      if (!inVoice) return;
+      if (!inVoice || typeof time !== "number" || isNaN(time)) return;
       if (isHost) {
+        hostPlaybackTimeRef.current = time;
         setSession((prev) => {
           if (!prev) return prev;
           const next = { ...prev, currentTime: time, updatedAt: Date.now() };
@@ -463,35 +486,97 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
     [isHost, inVoice, currentChannelId, currentRoomCode, broadcastState]
   );
 
-  const togglePlayPause = useCallback(() => {
-    if (!session || !inVoice) return;
-    const nextPlay = !session.isPlaying;
-    if (isHost) {
-      setSession((prev) => {
-        if (!prev) return prev;
-        const next = { ...prev, isPlaying: nextPlay, updatedAt: Date.now() };
-        sessionRef.current = next;
-        broadcastState(next);
-        return next;
-      });
-    } else if (window.electronAPI?.sendWatchPartyCommand) {
-      window.electronAPI.sendWatchPartyCommand(
-        currentChannelId,
-        { type: nextPlay ? "PLAY" : "PAUSE", time: session.currentTime },
-        currentRoomCode
-      );
-    }
-  }, [session, isHost, inVoice, currentChannelId, currentRoomCode, broadcastState]);
+  const togglePlayPause = useCallback(
+    (exactTime = null) => {
+      if (!sessionRef.current || !inVoice) return;
+      const current = sessionRef.current;
+      const nextPlay = !current.isPlaying;
+      const effectiveTime =
+        typeof exactTime === "number" && !isNaN(exactTime)
+          ? exactTime
+          : (typeof hostPlaybackTimeRef.current === "number" && isHost
+              ? hostPlaybackTimeRef.current
+              : (typeof current.currentTime === "number" ? current.currentTime : 0));
+
+      if (isHost) {
+        hostPlaybackTimeRef.current = effectiveTime;
+        setSession((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, isPlaying: nextPlay, currentTime: effectiveTime, updatedAt: Date.now() };
+          sessionRef.current = next;
+          broadcastState(next);
+          return next;
+        });
+      } else {
+        // Optimistic local update on guest so the UI button icon reflects immediately on 1st click
+        setSession((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, isPlaying: nextPlay, currentTime: effectiveTime, updatedAt: Date.now() };
+          sessionRef.current = next;
+          return next;
+        });
+        if (window.electronAPI?.sendWatchPartyCommand) {
+          window.electronAPI.sendWatchPartyCommand(
+            currentChannelId,
+            { type: nextPlay ? "PLAY" : "PAUSE", time: effectiveTime },
+            currentRoomCode
+          );
+        }
+      }
+    },
+    [isHost, inVoice, currentChannelId, currentRoomCode, broadcastState]
+  );
+
+  const sendAudioTrack = useCallback(
+    (trackId) => {
+      if (!inVoice) return;
+      if (isHost) {
+        setSession((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, selectedAudioTrack: trackId, updatedAt: Date.now() };
+          sessionRef.current = next;
+          broadcastState(next);
+          return next;
+        });
+      } else if (window.electronAPI?.sendWatchPartyCommand) {
+        window.electronAPI.sendWatchPartyCommand(
+          currentChannelId,
+          { type: "SET_AUDIO_TRACK", trackId },
+          currentRoomCode
+        );
+      }
+    },
+    [isHost, inVoice, currentChannelId, currentRoomCode, broadcastState]
+  );
+
+  const sendSubtitle = useCallback(
+    (subtitleId) => {
+      if (!inVoice) return;
+      if (isHost) {
+        setSession((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, selectedSubtitle: subtitleId, updatedAt: Date.now() };
+          sessionRef.current = next;
+          broadcastState(next);
+          return next;
+        });
+      } else if (window.electronAPI?.sendWatchPartyCommand) {
+        window.electronAPI.sendWatchPartyCommand(
+          currentChannelId,
+          { type: "SET_SUBTITLE", subtitleId },
+          currentRoomCode
+        );
+      }
+    },
+    [isHost, inVoice, currentChannelId, currentRoomCode, broadcastState]
+  );
 
   const joinWatchParty = useCallback(() => {
     if (!inVoice) return;
     setHasJoined(true);
-    setJoinPrompt(null);
   }, [inVoice]);
 
-  const dismissPrompt = useCallback(() => {
-    setJoinPrompt(null);
-  }, []);
+  const dismissPrompt = useCallback(() => {}, []);
 
   const value = useMemo(
     () => ({
@@ -500,7 +585,7 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       isHost,
       isFloating,
       isFullscreen,
-      joinPrompt,
+      joinPrompt: null,
       volume,
       isMuted,
       startWatchParty,
@@ -511,6 +596,8 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       shareWatchPartyToChat,
       togglePlayPause,
       sendSeek,
+      sendAudioTrack,
+      sendSubtitle,
       setIsFloating,
       setIsFullscreen,
       setVolume,
@@ -524,7 +611,6 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       isHost,
       isFloating,
       isFullscreen,
-      joinPrompt,
       volume,
       isMuted,
       startWatchParty,
@@ -535,6 +621,8 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       shareWatchPartyToChat,
       togglePlayPause,
       sendSeek,
+      sendAudioTrack,
+      sendSubtitle,
       setVolume,
       broadcastState,
       updateHostPlaybackTime,

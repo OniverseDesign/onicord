@@ -238,6 +238,17 @@ export default function ServerRolesTab({
                         ),
                       },
                       {
+                        key: "move_members",
+                        label: t(
+                          "settings.roles.moveMembers",
+                          "Mover miembros",
+                        ),
+                        desc: t(
+                          "settings.roles.moveMembersDesc",
+                          "Permite mover a otros usuarios entre canales de voz arrastrándolos.",
+                        ),
+                      },
+                      {
                         key: "view_advanced_settings",
                         label: t(
                           "settings.roles.viewAdvancedSettings",

@@ -5,6 +5,7 @@ import { IconMicOff, IconDeafenOn, IconVideoCam } from "../icons/StreamIcons";
 export default function VoiceUserItem({
   userId,
   peerId,
+  channelId,
   nickname,
   avatar,
   muted,
@@ -17,6 +18,8 @@ export default function VoiceUserItem({
   connectionType,
   onContextMenu,
   onJoinStream,
+  draggable = false,
+  onDragStart = null,
 }) {
   const { t } = useTranslation();
   const showRedBorder = muted || deafened;
@@ -57,20 +60,47 @@ export default function VoiceUserItem({
   );
 
   return (
-    <UserListItem
-      nickname={nickname}
-      avatar={avatar}
-      status={status}
-      isSpeaking={isSpeaking}
-      isSelf={isSelf}
-      activity={false}
-      avatarSize="sm"
-      showStatusDot={false} 
-      rightSlot={rightIcons}
-      onContextMenu={onContextMenu}
-      title={isSelf ? undefined : t("settings.voiceVideo.volume")}
-      nameColor={nameColor}
-      showFlame={false}
-    />
+    <li
+      draggable={draggable}
+      onDragStart={
+        draggable
+          ? (e) => {
+              if (onDragStart) {
+                onDragStart(e);
+              } else {
+                e.dataTransfer.setData(
+                  "application/onicord-voice-user",
+                  JSON.stringify({
+                    userId,
+                    peerId,
+                    channelId,
+                    nickname,
+                    isSelf,
+                  })
+                );
+                e.dataTransfer.effectAllowed = "move";
+              }
+            }
+          : undefined
+      }
+      className={draggable ? "cursor-grab active:cursor-grabbing select-none" : ""}
+    >
+      <UserListItem
+        as="div"
+        nickname={nickname}
+        avatar={avatar}
+        status={status}
+        isSpeaking={isSpeaking}
+        isSelf={isSelf}
+        activity={false}
+        avatarSize="sm"
+        showStatusDot={false} 
+        rightSlot={rightIcons}
+        onContextMenu={onContextMenu}
+        title={isSelf ? undefined : t("settings.voiceVideo.volume")}
+        nameColor={nameColor}
+        showFlame={false}
+      />
+    </li>
   );
 }

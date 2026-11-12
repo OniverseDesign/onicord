@@ -8,6 +8,7 @@ export function useChatScroll({
   chatContainerRef: externalContainerRef,
   bottomRef: externalBottomRef,
   messagesCountRef: externalMessagesCountRef,
+  virtualizerRef,
   isForum = false,
 }) {
   const internalContainerRef = useRef(null);
@@ -20,33 +21,119 @@ export function useChatScroll({
 
   const isAtBottomRef = useRef(true);
   const isAtTopRef = useRef(true);
+  const isProgrammaticScrollingRef = useRef(false);
+  const scrollProgrammaticTimeoutRef = useRef(null);
   const [isScrollingUpLoading, setIsScrollingUpLoading] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   const scrollToBottom = useCallback((behavior = "smooth") => {
     const cleanBehavior = (typeof behavior === "string" && ["auto", "smooth", "instant"].includes(behavior)) ? behavior : "smooth";
     const container = chatContainerRef.current;
-    if (container) {
-      isAtBottomRef.current = true;
+    if (!container) return;
+
+    isAtBottomRef.current = true;
+    setShowScrollBottom(false);
+    isProgrammaticScrollingRef.current = cleanBehavior === "smooth";
+
+    if (scrollProgrammaticTimeoutRef.current) {
+      clearTimeout(scrollProgrammaticTimeoutRef.current);
+    }
+    if (cleanBehavior === "smooth") {
+      scrollProgrammaticTimeoutRef.current = setTimeout(() => {
+        isProgrammaticScrollingRef.current = false;
+      }, 800);
+    }
+
+    if (virtualizerRef?.current && messages.length > 0) {
+      virtualizerRef.current.scrollToEnd({ behavior: cleanBehavior });
+    } else {
       container.scrollTo({
         top: container.scrollHeight,
         behavior: cleanBehavior,
       });
-      setShowScrollBottom(false);
-    } else if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: cleanBehavior });
-      setShowScrollBottom(false);
     }
-  }, [chatContainerRef, bottomRef]);
+
+    // Settling passes to guarantee landing at the absolute bottom even with late-mounting items
+    const settle = () => {
+      if (!isAtBottomRef.current || !chatContainerRef.current) return;
+      if (virtualizerRef?.current && messages.length > 0) {
+        virtualizerRef.current.scrollToEnd({ behavior: "auto" });
+      } else {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    };
+
+    if (cleanBehavior === "smooth") {
+      setTimeout(settle, 150);
+      setTimeout(settle, 350);
+      setTimeout(settle, 600);
+      setTimeout(settle, 900);
+    }
+  }, [chatContainerRef, virtualizerRef, messages.length]);
 
   const scrollToTop = useCallback((behavior = "smooth") => {
     const cleanBehavior = (typeof behavior === "string" && ["auto", "smooth", "instant"].includes(behavior)) ? behavior : "smooth";
     const container = chatContainerRef.current;
-    if (container) {
-      isAtTopRef.current = true;
-      container.scrollTo({ top: 0, behavior: cleanBehavior });
-      setShowScrollBottom(false);
+    if (!container) return;
+
+    isAtTopRef.current = true;
+    setShowScrollBottom(false);
+    isProgrammaticScrollingRef.current = cleanBehavior === "smooth";
+
+    if (scrollProgrammaticTimeoutRef.current) {
+      clearTimeout(scrollProgrammaticTimeoutRef.current);
     }
+    if (cleanBehavior === "smooth") {
+      scrollProgrammaticTimeoutRef.current = setTimeout(() => {
+        isProgrammaticScrollingRef.current = false;
+      }, 800);
+    }
+
+    if (virtualizerRef?.current && messages.length > 0) {
+      virtualizerRef.current.scrollToOffset(0, { behavior: cleanBehavior });
+    } else {
+      container.scrollTo({ top: 0, behavior: cleanBehavior });
+    }
+
+    const settle = () => {
+      if (!isAtTopRef.current || !chatContainerRef.current) return;
+      if (virtualizerRef?.current && messages.length > 0) {
+        virtualizerRef.current.scrollToOffset(0, { behavior: "auto" });
+      } else {
+        chatContainerRef.current.scrollTop = 0;
+      }
+    };
+
+    if (cleanBehavior === "smooth") {
+      setTimeout(settle, 150);
+      setTimeout(settle, 350);
+      setTimeout(settle, 600);
+      setTimeout(settle, 900);
+    }
+  }, [chatContainerRef, virtualizerRef, messages.length]);
+
+  // Cancel programmatic scroll guard on user manual wheel or touch interaction
+  useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e) => {
+      if (e.deltaY < -2) {
+        isProgrammaticScrollingRef.current = false;
+      }
+    };
+
+    const handleTouchStart = () => {
+      isProgrammaticScrollingRef.current = false;
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: true });
+    container.addEventListener("touchstart", handleTouchStart, { passive: true });
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      container.removeEventListener("touchstart", handleTouchStart);
+    };
   }, [chatContainerRef]);
 
   // Keep pinned to anchor (bottom for chat, top for forum) when content/images resize
@@ -54,25 +141,43 @@ export function useChatScroll({
     const container = chatContainerRef.current;
     if (!container) return;
 
-    const ro = new ResizeObserver(() => {
-      if (isForum) {
-        if (isAtTopRef.current) {
-          container.scrollTop = 0;
+    let rafId = null;
+    const handleContentResize = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (isForum) {
+          if (isAtTopRef.current) {
+            container.scrollTop = 0;
+          }
+        } else {
+          if (isAtBottomRef.current) {
+            if (virtualizerRef?.current && messages.length > 0) {
+              virtualizerRef.current.scrollToEnd({ behavior: "auto" });
+            } else {
+              container.scrollTop = container.scrollHeight;
+            }
+          }
         }
-      } else {
-        if (isAtBottomRef.current) {
-          container.scrollTop = container.scrollHeight;
-        }
-      }
+      });
+    };
+
+    const ro = new ResizeObserver(handleContentResize);
+    ro.observe(container);
+
+    const mo = new MutationObserver(handleContentResize);
+    mo.observe(container, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["style", "class"],
     });
 
-    ro.observe(container);
-    if (container.firstElementChild) {
-      ro.observe(container.firstElementChild);
-    }
-
-    return () => ro.disconnect();
-  }, [isForum, chatContainerRef]);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [isForum, chatContainerRef, virtualizerRef, messages.length]);
 
   // Sticky-bottom: re-anchor to bottom when an embed finishes loading,
   // but ONLY if the user was already at the bottom (like Discord/Slack) and not in forum mode.
@@ -81,10 +186,11 @@ export function useChatScroll({
       if (!isForum && isAtBottomRef.current) {
         requestAnimationFrame(() => {
           const container = chatContainerRef.current;
-          if (container) {
-            container.scrollTop = container.scrollHeight;
+          if (!container) return;
+          if (virtualizerRef?.current && messages.length > 0) {
+            virtualizerRef.current.scrollToEnd({ behavior: "auto" });
           } else {
-            bottomRef.current?.scrollIntoView({ behavior: "instant" });
+            container.scrollTop = container.scrollHeight;
           }
         });
       }
@@ -92,7 +198,7 @@ export function useChatScroll({
 
     window.addEventListener("onicord:embed-loaded", handleEmbedLoaded);
     return () => window.removeEventListener("onicord:embed-loaded", handleEmbedLoaded);
-  }, [isForum, chatContainerRef, bottomRef]);
+  }, [isForum, chatContainerRef, virtualizerRef, messages.length]);
 
   // Initial load / new message scroll
   useEffect(() => {
@@ -101,16 +207,24 @@ export function useChatScroll({
     const esHidratacionInicial = messagesCountRef.current === 0;
     const nuevoMensajeAgregado = messages.length > messagesCountRef.current;
 
-    if (esHidratacionInicial || nuevoMensajeAgregado) {
-      const performScroll = () => {
+    if (esHidratacionInicial || (nuevoMensajeAgregado && isAtBottomRef.current)) {
+      const performScroll = (behavior = "auto") => {
         const container = chatContainerRef.current;
         if (!container) return;
 
         if (isForum) {
-          container.scrollTop = 0;
+          if (virtualizerRef?.current && messages.length > 0) {
+            virtualizerRef.current.scrollToOffset(0, { behavior });
+          } else {
+            container.scrollTop = 0;
+          }
           isAtTopRef.current = true;
         } else {
-          container.scrollTop = container.scrollHeight;
+          if (virtualizerRef?.current && messages.length > 0) {
+            virtualizerRef.current.scrollToEnd({ behavior });
+          } else {
+            container.scrollTop = container.scrollHeight;
+          }
           isAtBottomRef.current = true;
         }
         setShowScrollBottom(false);
@@ -118,11 +232,12 @@ export function useChatScroll({
 
       // Multi-frame settling to ensure absolute top/bottom even while markdown,
       // avatars, and attachments compute layout
-      performScroll();
-      const rafId = requestAnimationFrame(performScroll);
-      const t1 = setTimeout(performScroll, 50);
-      const t2 = setTimeout(performScroll, 150);
-      const t3 = setTimeout(performScroll, 300);
+      performScroll("auto");
+      const rafId = requestAnimationFrame(() => performScroll("auto"));
+      const t1 = setTimeout(() => performScroll("auto"), 50);
+      const t2 = setTimeout(() => performScroll("auto"), 150);
+      const t3 = setTimeout(() => performScroll("auto"), 300);
+      const t4 = setTimeout(() => performScroll("auto"), 600);
 
       messagesCountRef.current = messages.length;
       return () => {
@@ -130,11 +245,14 @@ export function useChatScroll({
         clearTimeout(t1);
         clearTimeout(t2);
         clearTimeout(t3);
+        clearTimeout(t4);
       };
+    } else if (nuevoMensajeAgregado && !isAtBottomRef.current && !isForum) {
+      setShowScrollBottom(true);
     }
 
     messagesCountRef.current = messages.length;
-  }, [messages, loading, isForum, chatContainerRef, bottomRef, messagesCountRef]);
+  }, [messages, loading, isForum, chatContainerRef, virtualizerRef, messagesCountRef]);
 
   const handleChatScroll = useCallback(() => {
     const container = chatContainerRef.current;
@@ -142,13 +260,14 @@ export function useChatScroll({
 
     if (isForum) {
       // In forum channels, newest posts are at the top (scrollTop: 0)
-      const atTop = container.scrollTop <= 20;
+      const atTop = container.scrollTop <= 40;
       isAtTopRef.current = atTop;
 
-      if (container.scrollTop > 150) {
-        setShowScrollBottom(true);
-      } else if (atTop) {
+      if (atTop) {
         setShowScrollBottom(false);
+        isProgrammaticScrollingRef.current = false;
+      } else if (!isProgrammaticScrollingRef.current && container.scrollTop > 120) {
+        setShowScrollBottom(true);
       }
 
       if (messages.length <= visibleCount) return;
@@ -165,15 +284,16 @@ export function useChatScroll({
       return;
     }
 
-    // Normal chat channel: track if user is at the bottom (within 20px threshold)
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    const atBottom = distanceFromBottom <= 20;
+    // Normal chat channel: track if user is at the bottom (within 60px threshold)
+    const distanceFromBottom = Math.max(0, container.scrollHeight - container.scrollTop - container.clientHeight);
+    const atBottom = distanceFromBottom <= 60;
     isAtBottomRef.current = atBottom;
 
-    if (distanceFromBottom > 150) {
-      setShowScrollBottom(true);
-    } else if (atBottom) {
+    if (atBottom) {
       setShowScrollBottom(false);
+      isProgrammaticScrollingRef.current = false;
+    } else if (!isProgrammaticScrollingRef.current && distanceFromBottom > 120) {
+      setShowScrollBottom(true);
     }
 
     if (messages.length <= visibleCount) return;

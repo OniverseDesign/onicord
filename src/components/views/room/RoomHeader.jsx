@@ -48,7 +48,14 @@ export default function RoomHeader({
               ) : (
                 <IconTag size="lg" className="text-onicord-accent" />
               )}
-              <h2 className="text-base font-semibold text-onicord-text">
+              <h2
+                title={
+                  activeTextChannel?.name === "general"
+                    ? t("serverSettings.channels.defaultTextChannelName", "general")
+                    : activeTextChannel?.name || "general"
+                }
+                className="text-base font-semibold text-onicord-text truncate max-w-[200px] sm:max-w-[320px] md:max-w-[450px]"
+              >
                 {activeTextChannel?.name === "general"
                   ? t("serverSettings.channels.defaultTextChannelName", "general")
                   : activeTextChannel?.name || "general"}

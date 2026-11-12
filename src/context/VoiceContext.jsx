@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useVoiceConnection } from "../hooks/useVoiceConnection";
+import { useVoiceAfkTracker } from "../hooks/useVoiceAfkTracker";
 import { checkPermission, canSpeakInChannel } from "../lib/permissionsHelper";
 import { notificationManager } from "../lib/notificationManager";
+import { soundEngine } from "../lib/soundEngine";
 
 const VoiceContext = createContext(null);
 const VoiceChannelContext = createContext(null);
@@ -24,6 +27,15 @@ export function VoiceProvider({ profile, children }) {
     voiceToggleMuteRef.current = voice.toggleMute;
   }, [voice.leaveVoice, voice.toggleMute]);
 
+  const { t } = useTranslation();
+
+  const isCurrentChannelAfk = useMemo(() => {
+    return Boolean(
+      currentVoiceServer?.afkSettings?.channelId &&
+      currentVoiceServer.afkSettings.channelId === currentVoiceChannelId
+    );
+  }, [currentVoiceServer, currentVoiceChannelId]);
+
   const canSpeak = useMemo(() => {
     if (!currentVoiceServer || !currentVoiceChannelId) return true;
     const ch = currentVoiceServer.channels?.find((c) => c.id === currentVoiceChannelId);
@@ -31,6 +43,14 @@ export function VoiceProvider({ profile, children }) {
   }, [currentVoiceServer, currentVoiceChannelId, profile?.id]);
 
   const safeToggleMute = useCallback(() => {
+    if (isCurrentChannelAfk) {
+      notificationManager.showToast(
+        t("voice.afkMuteLockedTitle", "Canal AFK"),
+        t("voice.afkMuteLockedDesc", "En el canal AFK solo se puede estar silenciado."),
+        "warning"
+      );
+      return;
+    }
     if (!canSpeak) {
       notificationManager.showToast(
         "Modo solo escucha",
@@ -40,18 +60,26 @@ export function VoiceProvider({ profile, children }) {
       return;
     }
     voiceToggleMuteRef.current?.();
-  }, [canSpeak]);
+  }, [canSpeak, isCurrentChannelAfk, t]);
 
   useEffect(() => {
     if (voice.inVoice && !canSpeak && !voice.muted) {
       voice.toggleMute?.();
-      notificationManager.showToast(
-        "Modo solo escucha",
-        "Este canal de voz está restringido para tu rol. Tu micrófono se mantendrá silenciado.",
-        "info"
-      );
+      if (isCurrentChannelAfk) {
+        notificationManager.showToast(
+          t("voice.afkMuteLockedTitle", "Canal AFK"),
+          t("voice.afkMuteLockedDesc", "Has entrado al canal AFK. Tu micrófono se mantendrá silenciado."),
+          "info"
+        );
+      } else {
+        notificationManager.showToast(
+          "Modo solo escucha",
+          "Este canal de voz está restringido para tu rol. Tu micrófono se mantendrá silenciado.",
+          "info"
+        );
+      }
     }
-  }, [voice.inVoice, canSpeak, voice.muted, voice.toggleMute]);
+  }, [voice.inVoice, canSpeak, voice.muted, voice.toggleMute, isCurrentChannelAfk, t]);
 
   const safeToggleMuteRef = useRef(safeToggleMute);
   const toggleDeafenRef = useRef(voice.toggleDeafen);
@@ -102,6 +130,39 @@ export function VoiceProvider({ profile, children }) {
       window.removeEventListener("onicord:keybind:disconnect_voice", handleDisconnectVoice);
     };
   }, [leaveVoiceChannel]);
+
+  // AFK Inactivity tracker
+  useVoiceAfkTracker({
+    server: currentVoiceServer,
+    channelId: currentVoiceChannelId,
+    voice,
+    onMoveToAfk: (targetAfkId) => {
+      if (currentVoiceServer) {
+        joinVoiceChannel(currentVoiceServer, targetAfkId);
+      }
+    },
+  });
+
+  // Remote Move Listener (Drag & Drop admin moderation)
+  useEffect(() => {
+    if (!window.electronAPI?.onVoiceForceMove) return;
+    const unsub = window.electronAPI.onVoiceForceMove((data) => {
+      const { roomCode, channelId, movedBy, channelName } = data || {};
+      if (currentVoiceServer && (!roomCode || roomCode === (currentVoiceServer.roomCode || currentVoiceServer.id))) {
+        joinVoiceChannel(currentVoiceServer, channelId);
+        soundEngine.playNav("select");
+        notificationManager.showToast(
+          t("voice.movedTitle", "Canal de voz"),
+          t(
+            "voice.movedByAdmin",
+            `Fuiste movido a #${channelName || "canal"} por ${movedBy || "un administrador"}.`
+          ),
+          "info"
+        );
+      }
+    });
+    return () => unsub?.();
+  }, [currentVoiceServer, joinVoiceChannel, t]);
 
   // Keep Voice Overlay synced globally even if RoomView is unmounted
   useEffect(() => {

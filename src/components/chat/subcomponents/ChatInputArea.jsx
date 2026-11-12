@@ -479,7 +479,13 @@ export default function ChatInputArea({
                         : t("chat.forumPostPlaceholder", "Escribe una nueva publicación...")
                       : pendingFile
                         ? t("chat.commentOnFile", { filename: pendingFile.name, defaultValue: `Comentar en ${pendingFile.name}...` })
-                        : `${t("chat.placeholder", { channel: channelName || "general" }).replace(/#[\w-]+\.\.\./, `#${channelName || "general"}`)}`
+                        : (() => {
+                          const rawPlaceholder = t("chat.placeholder", {
+                            channel: channelName || "general",
+                            defaultValue: `Enviar mensaje en #${channelName || "general"}...`,
+                          });
+                          return rawPlaceholder.replace(/#[\w-]+\.\.\./, () => `#${channelName || "general"}...`);
+                        })()
               }
               className={`onicord-chat-input select-text outline-none overflow-x-hidden whitespace-pre-wrap pr-10 focus:outline-none ${
                 !hasSendMessages ? "opacity-50 cursor-not-allowed select-none" : ""

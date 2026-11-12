@@ -448,6 +448,11 @@ function registerP2PServerHandlers() {
     return { success: true };
   });
 
+  ipcMain.handle("voice:moveMember", async (_event, roomCode, targetUserId, targetPeerId, targetChannelId) => {
+    if (!global.roomManager) return { ok: false, error: "No room manager" };
+    return global.roomManager.moveVoiceMember(roomCode, targetUserId, targetPeerId, targetChannelId);
+  });
+
   // === Discover P2P Service Handlers ===
   discoverService.init();
 

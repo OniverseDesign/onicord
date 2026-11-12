@@ -219,6 +219,42 @@ class RoomManager {
     this.voiceService.updateVoiceStreamIds(audioStreamId, videoStreamId, bandwidth, this._getEffectiveVoiceProfile(), () => this._emitVoiceState());
   }
 
+  async moveVoiceMember(roomCode, targetUserId, targetPeerId, targetChannelId) {
+    const code = String(roomCode || this.roomCode || "").trim().toUpperCase();
+    if (!code || !targetChannelId) return { ok: false, error: "Missing parameters" };
+
+    const myProfile = this.profile || this.p2pService.profile;
+    const myId = myProfile?.id;
+    let meta = null;
+    if (this.roomMetaStore) {
+      meta = await this.roomMetaStore.load(code);
+    }
+    const { checkAdminPermission } = require("./roomMetaStore.cjs");
+    const isOwner = myId && (meta?.ownerId === myId || meta?.creatorID === myId || meta?.creatorId === myId);
+    const hasAdmin = isOwner || (myId && checkAdminPermission(meta, myId));
+    if (!hasAdmin) {
+      console.warn(`[RoomManager] moveVoiceMember rejected: caller ${myId} is not admin/owner in ${code}`);
+      return { ok: false, error: "Unauthorized" };
+    }
+
+    const payload = {
+      roomCode: code,
+      targetUserId,
+      targetPeerId,
+      targetChannelId,
+      operatorId: myId,
+      operatorNickname: myProfile?.nickname || "Admin",
+    };
+
+    if (targetPeerId && this.p2pService.peers.has(targetPeerId)) {
+      this.p2pService._sendToPeer(targetPeerId, "voice-move-member", payload);
+    } else {
+      this.p2pService._broadcast("voice-move-member", payload, code);
+    }
+
+    return { ok: true };
+  }
+
   async publishServerMeta(patch, roomCode) {
     const localUserId = this.p2pService.profile?.id || this.p2pService._resolveLocalPeerId();
     return this.chatService.publishServerMeta(patch, localUserId, roomCode || this.roomCode);

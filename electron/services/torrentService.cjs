@@ -314,6 +314,48 @@ class TorrentService {
         const isVideoNative = NATIVE_VIDEO_CODECS.has(videoCodec);
         const isAudioNative = !audioMatch || NATIVE_AUDIO_CODECS.has(audioCodec);
 
+        // Parse all available audio tracks from ffmpeg probe output
+        const audioTracks = [];
+        const lines = stderrData.split(/\r?\n/);
+        let currentAudioIdx = 0;
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const audioLineMatch = line.match(/Stream #\d+:(\d+)(?:\(([a-zA-Z0-9_-]+)\))?.*?: Audio: ([a-zA-Z0-9_]+)/i);
+          if (audioLineMatch) {
+            const streamIndex = parseInt(audioLineMatch[1], 10);
+            const lang = audioLineMatch[2] ? audioLineMatch[2].toLowerCase() : "";
+            const codec = audioLineMatch[3].toLowerCase();
+
+            let title = "";
+            for (let j = i + 1; j < Math.min(lines.length, i + 8); j++) {
+              if (lines[j].includes("Stream #")) break;
+              const titleMatch = lines[j].match(/title\s*:\s*(.+)$/i);
+              if (titleMatch) {
+                title = titleMatch[1].trim();
+                break;
+              }
+            }
+
+            let label = title;
+            if (!label) {
+              if (lang) {
+                label = `Audio (${lang.toUpperCase()})`;
+              } else {
+                label = `Pista de Audio ${currentAudioIdx + 1}`;
+              }
+            }
+
+            audioTracks.push({
+              id: currentAudioIdx,
+              streamIndex,
+              lang: lang || "und",
+              label,
+              codec,
+            });
+            currentAudioIdx++;
+          }
+        }
+
         const result = {
           videoCodec,
           audioCodec,
@@ -321,6 +363,7 @@ class TorrentService {
           isVideoNative,
           isAudioNative,
           needsTranscode: !isVideoNative || !isAudioNative,
+          audioTracks,
         };
 
         console.log(
@@ -434,7 +477,7 @@ class TorrentService {
    * @param {Object} probeInfo - Output from probeStreamCodecs
    * @param {number} [startTimeSec=0] - Offset in seconds to seek to
    */
-  serveTranscodedStream(req, res, entry, fileIndex, probeInfo, startTimeSec = 0) {
+  serveTranscodedStream(req, res, entry, fileIndex, probeInfo, startTimeSec = 0, audioTrackIndex = 0) {
     if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
       const resolved = this.resolveTargetFile(entry.engine, fileIndex);
       return this.serveRawRangeStream(req, res, entry, resolved.file);
@@ -462,7 +505,7 @@ class TorrentService {
       "-map",
       "0:v:0",
       "-map",
-      "0:a:0?",
+      `0:a:${audioTrackIndex}?`,
       "-sn"
     );
 
@@ -579,6 +622,7 @@ class TorrentService {
           videoCodec: probeInfo?.videoCodec || "unknown",
           audioCodec: probeInfo?.audioCodec || "unknown",
           needsTranscode: Boolean(probeInfo?.needsTranscode),
+          audioTracks: probeInfo?.audioTracks || [],
         }));
       }
 
@@ -625,18 +669,19 @@ class TorrentService {
 
       const forceTranscode = parsedUrl.query?.transcode === "1";
       const startTimeSec = Number.parseFloat(parsedUrl.query?.ss || "0") || 0;
+      const audioTrackIndex = Number.parseInt(parsedUrl.query?.audio || "0", 10) || 0;
       const ext = path.extname(file.name).toLowerCase();
 
-      if (forceTranscode || FORCE_REMUX_EXTENSIONS.has(ext)) {
+      if (forceTranscode || FORCE_REMUX_EXTENSIONS.has(ext) || audioTrackIndex > 0) {
         const probeInfo = await this.probeStreamCodecs(entry, actualIndex);
-        return this.serveTranscodedStream(req, res, entry, actualIndex, probeInfo, startTimeSec);
+        return this.serveTranscodedStream(req, res, entry, actualIndex, probeInfo, startTimeSec, audioTrackIndex);
       }
 
       // For .mkv/.mp4 containers, verify whether audio or video tracks require transcoding (e.g. AC3/DTS/HEVC)
       if (ext === ".mkv" || ext === ".mp4" || ext === ".m4v") {
         const probeInfo = await this.probeStreamCodecs(entry, actualIndex);
-        if (probeInfo.needsTranscode) {
-          return this.serveTranscodedStream(req, res, entry, actualIndex, probeInfo, startTimeSec);
+        if (probeInfo.needsTranscode || audioTrackIndex > 0) {
+          return this.serveTranscodedStream(req, res, entry, actualIndex, probeInfo, startTimeSec, audioTrackIndex);
         }
       }
 

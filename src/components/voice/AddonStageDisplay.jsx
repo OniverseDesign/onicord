@@ -39,6 +39,8 @@ export default function AddonStageDisplay({
     updateHostPlaybackTime,
     sendSeek: sendWatchPartySeek,
     togglePlayPause: toggleWatchPartyPlayPause,
+    sendAudioTrack: sendWatchPartyAudioTrack,
+    sendSubtitle: sendWatchPartySubtitle,
   } = watchParty || {};
   const iframeRef = useRef(null);
   const videoRef = useRef(null);
@@ -143,6 +145,9 @@ export default function AddonStageDisplay({
   }, []);
   const [audioTracks, setAudioTracks] = useState([]);
   const [currentAudioTrack, setCurrentAudioTrack] = useState(0);
+  const currentAudioTrackRef = useRef(0);
+  currentAudioTrackRef.current = currentAudioTrack;
+  const isLocalMediaActionRef = useRef(0);
   const [showAudioMenu, setShowAudioMenu] = useState(false);
   const [activeCueText, setActiveCueText] = useState("");
 
@@ -637,6 +642,17 @@ export default function AddonStageDisplay({
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch(() => {});
       });
+      hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_event, data) => {
+        if (Array.isArray(data.audioTracks) && data.audioTracks.length > 0) {
+          setAudioTracks(
+            data.audioTracks.map((t, idx) => ({
+              id: idx,
+              label: t.name || (t.lang ? `Audio ${formatLanguageName(t.lang, true)}` : `Pista de Audio ${idx + 1}`),
+              lang: t.lang || "",
+            }))
+          );
+        }
+      });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
           console.warn("[AddonStageDisplay] HLS Error fatal:", data);
@@ -715,7 +731,80 @@ export default function AddonStageDisplay({
     };
   }, [isCurrentMedia, activeGame?.streamUrl, activeGame?.infoHash, activeGame?.fileIdx, activeUrl, loadMediaStream]);
 
-  // 1. Host processes incoming commands (PLAY, PAUSE, SEEK) triggered by channel guests
+  // Dynamic audio track changer (supports native tracks, HLS and ffmpeg torrent stream transcode queries)
+  const applyAudioTrackChange = useCallback((trackId) => {
+    setCurrentAudioTrack(trackId);
+    currentAudioTrackRef.current = trackId;
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.audioTracks && video.audioTracks.length > 0) {
+      for (let i = 0; i < video.audioTracks.length; i++) {
+        video.audioTracks[i].enabled = (i === trackId);
+      }
+    }
+
+    if (hlsRef.current) {
+      hlsRef.current.audioTrack = trackId;
+    }
+
+    const currentSrc = video.src || "";
+    if (currentSrc.includes("/torrent/") && !currentSrc.includes("/raw")) {
+      try {
+        const parsed = new URL(currentSrc);
+        parsed.searchParams.set("audio", String(trackId));
+        const curTime = Math.max(0, Math.floor(video.currentTime || 0));
+        parsed.searchParams.set("ss", String(curTime));
+        const wasPaused = video.paused;
+        video.src = parsed.toString();
+        video.currentTime = 0;
+        if (!wasPaused) {
+          video.play().catch(() => {});
+        }
+      } catch (_) {}
+    }
+  }, []);
+
+  // Reusable agnostic video seek helper (handles buffer detection and torrent stream parameters)
+  const applyVideoSeek = useCallback((targetTime) => {
+    const video = videoRef.current;
+    if (!video || typeof targetTime !== "number" || isNaN(targetTime)) return;
+    const safeTime = Math.max(0, targetTime);
+    let inBuffer = false;
+    if (video.buffered && video.buffered.length > 0) {
+      for (let i = 0; i < video.buffered.length; i++) {
+        if (safeTime >= video.buffered.start(i) && safeTime <= video.buffered.end(i)) {
+          inBuffer = true;
+          break;
+        }
+      }
+    }
+    if (inBuffer) {
+      video.currentTime = safeTime;
+    } else {
+      const currentSrc = video.src || "";
+      if (currentSrc.includes("/torrent/") && !currentSrc.includes("/raw")) {
+        try {
+          const parsed = new URL(currentSrc);
+          parsed.searchParams.set("ss", String(Math.floor(safeTime)));
+          if (currentAudioTrackRef.current > 0) {
+            parsed.searchParams.set("audio", String(currentAudioTrackRef.current));
+          }
+          video.src = parsed.toString();
+          video.currentTime = 0;
+          if (watchPartySession?.isPlaying) {
+            video.play().catch(() => {});
+          }
+        } catch (_) {
+          video.currentTime = safeTime;
+        }
+      } else {
+        video.currentTime = safeTime;
+      }
+    }
+  }, [watchPartySession?.isPlaying]);
+
+  // 1. Host processes incoming commands (PLAY, PAUSE, SEEK, AUDIO, SUBTITLE) triggered by channel peers
   useEffect(() => {
     if (!isCinemaWatchParty || !isSyncHost) return;
     const handleHostCommand = (e) => {
@@ -728,50 +817,31 @@ export default function AddonStageDisplay({
       } else if (cmd.type === "PAUSE") {
         video.pause();
       } else if (cmd.type === "SEEK" && typeof cmd.time === "number") {
-        let inBuffer = false;
-        if (video.buffered && video.buffered.length > 0) {
-          for (let i = 0; i < video.buffered.length; i++) {
-            if (cmd.time >= video.buffered.start(i) && cmd.time <= video.buffered.end(i)) {
-              inBuffer = true;
-              break;
-            }
-          }
-        }
-        if (inBuffer) {
-          video.currentTime = cmd.time;
-        } else {
-          const currentSrc = video.src || "";
-          if (currentSrc.includes("/torrent/") && !currentSrc.includes("/raw")) {
-            try {
-              const parsed = new URL(currentSrc);
-              parsed.searchParams.set("ss", String(Math.floor(cmd.time)));
-              video.src = parsed.toString();
-              video.currentTime = 0;
-              video.play().catch(() => {});
-            } catch (_) {
-              video.currentTime = cmd.time;
-            }
-          } else {
-            video.currentTime = cmd.time;
-          }
-        }
+        applyVideoSeek(cmd.time);
+      } else if (cmd.type === "SET_AUDIO_TRACK" && typeof cmd.trackId === "number") {
+        applyAudioTrackChange(cmd.trackId);
+      } else if (cmd.type === "SET_SUBTITLE" && cmd.subtitleId) {
+        setCurrentSubtitle(cmd.subtitleId);
+        iframeRef.current?.contentWindow?.postMessage({ type: "ONICORD_MEDIA_SET_SUBTITLE", id: cmd.subtitleId }, "*");
       }
     };
     window.addEventListener("onicord:watch-party-host-command", handleHostCommand);
     return () => window.removeEventListener("onicord:watch-party-host-command", handleHostCommand);
-  }, [isCinemaWatchParty, isSyncHost]);
+  }, [isCinemaWatchParty, isSyncHost, applyVideoSeek, applyAudioTrackChange]);
 
   // 2. Guest real-time synchronization & smooth drift correction
   useEffect(() => {
-    if (!isCinemaWatchParty || isSyncHost || !watchPartySession || watchPartySession.type !== "cinema") return;
+    if (!isCinemaWatchParty || isSyncHost || !watchPartySession) return;
     const video = videoRef.current;
     if (!video) return;
 
-    // A. Play / Pause state sync
-    if (watchPartySession.isPlaying && video.paused && !mediaLoading && !mediaBuffering) {
-      video.play().catch(() => {});
-    } else if (!watchPartySession.isPlaying && !video.paused) {
-      video.pause();
+    // A. Play / Pause state sync (guarded by local action cooldown)
+    if (Date.now() > isLocalMediaActionRef.current) {
+      if (watchPartySession.isPlaying && video.paused && !mediaLoading && !mediaBuffering) {
+        video.play().catch(() => {});
+      } else if (!watchPartySession.isPlaying && !video.paused) {
+        video.pause();
+      }
     }
 
     // B. Playback time alignment & Drift Correction
@@ -780,59 +850,95 @@ export default function AddonStageDisplay({
       const targetTime = watchPartySession.isPlaying ? watchPartySession.currentTime + latencyComp : watchPartySession.currentTime;
       const drift = targetTime - video.currentTime;
 
-      if (Math.abs(drift) > 2.5) {
-        // Large desync (> 2.5s): perform hard seek to realign instantly
-        let inBuffer = false;
-        if (video.buffered && video.buffered.length > 0) {
-          for (let i = 0; i < video.buffered.length; i++) {
-            if (targetTime >= video.buffered.start(i) && targetTime <= video.buffered.end(i)) {
-              inBuffer = true;
-              break;
-            }
-          }
-        }
-        if (inBuffer) {
-          video.currentTime = Math.max(0, targetTime);
-        } else {
-          const currentSrc = video.src || "";
-          if (currentSrc.includes("/torrent/") && !currentSrc.includes("/raw")) {
-            try {
-              const parsed = new URL(currentSrc);
-              parsed.searchParams.set("ss", String(Math.floor(targetTime)));
-              video.src = parsed.toString();
-              video.currentTime = 0;
-              if (watchPartySession.isPlaying) video.play().catch(() => {});
-            } catch (_) {
-              video.currentTime = Math.max(0, targetTime);
-            }
-          } else {
-            video.currentTime = Math.max(0, targetTime);
-          }
-        }
+      // When paused, align tightly (0.4s). When playing, allow 1.8s tolerance before hard seek
+      const hardSeekThreshold = watchPartySession.isPlaying ? 1.8 : 0.4;
+
+      if (Math.abs(drift) > hardSeekThreshold) {
+        applyVideoSeek(targetTime);
         video.playbackRate = 1.0;
-      } else if (drift > 0.5) {
-        // Guest is slightly behind (0.5s - 2.5s): speed up slightly (1.04x) without audio pitch warping
+      } else if (watchPartySession.isPlaying && drift > 0.3) {
+        // Guest is slightly behind (0.3s - 1.8s): speed up slightly (1.04x) without audio pitch warping
         video.playbackRate = 1.04;
-      } else if (drift < -0.5) {
-        // Guest is slightly ahead (-0.5s - -2.5s): slow down slightly (0.96x)
+      } else if (watchPartySession.isPlaying && drift < -0.3) {
+        // Guest is slightly ahead (-0.3s - -1.8s): slow down slightly (0.96x)
         video.playbackRate = 0.96;
       } else {
         // Within acceptable network jitter tolerance: standard playback speed
         video.playbackRate = 1.0;
       }
     }
-  }, [watchPartySession, isCinemaWatchParty, isSyncHost, mediaLoading, mediaBuffering]);
+  }, [watchPartySession, isCinemaWatchParty, isSyncHost, mediaLoading, mediaBuffering, applyVideoSeek]);
 
-  // 3. When the Watch Party ends (host leaves or stops movie), guest returns cleanly to catalog
+  // 3. Synchronize collaborative audio track choice across the room
+  useEffect(() => {
+    if (!isCinemaWatchParty || typeof watchPartySession?.selectedAudioTrack !== "number") return;
+    const targetTrack = watchPartySession.selectedAudioTrack;
+    if (currentAudioTrack !== targetTrack) {
+      applyAudioTrackChange(targetTrack);
+    }
+  }, [watchPartySession?.selectedAudioTrack, isCinemaWatchParty, currentAudioTrack, applyAudioTrackChange]);
+
+  // 4. Synchronize collaborative subtitle track choice across the room
+  useEffect(() => {
+    if (!isCinemaWatchParty || !watchPartySession?.selectedSubtitle) return;
+    const targetSub = watchPartySession.selectedSubtitle;
+    if (currentSubtitle !== targetSub) {
+      setCurrentSubtitle(targetSub);
+      iframeRef.current?.contentWindow?.postMessage({ type: "ONICORD_MEDIA_SET_SUBTITLE", id: targetSub }, "*");
+    }
+  }, [watchPartySession?.selectedSubtitle, isCinemaWatchParty, currentSubtitle]);
+
+  // 5. When the Watch Party ends (host leaves or stops movie), close stage for everyone
   useEffect(() => {
     const handlePartyEnded = () => {
       if (isCinemaWatchParty && !isSyncHost) {
-        handleReturnToCatalog();
+        onClose?.();
       }
     };
     window.addEventListener("onicord:watch-party-ended", handlePartyEnded);
     return () => window.removeEventListener("onicord:watch-party-ended", handlePartyEnded);
-  }, [isCinemaWatchParty, isSyncHost, handleReturnToCatalog]);
+  }, [isCinemaWatchParty, isSyncHost, onClose]);
+
+  // 6. Automatically query backend metadata endpoint for torrent audio tracks (ffmpeg probe)
+  useEffect(() => {
+    const infoHash = activeGame?.infoHash || stageData?.infoHash || watchPartySession?.infoHash;
+    const fileIdx = activeGame?.fileIdx ?? stageData?.fileIdx ?? watchPartySession?.fileIdx ?? 0;
+    if (!infoHash) return;
+
+    const port = 42883;
+    let attempts = 0;
+    let active = true;
+
+    const fetchMeta = () => {
+      if (!active) return;
+      fetch(`http://127.0.0.1:${port}/torrent/${infoHash}/${fileIdx}/meta`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((meta) => {
+          if (!active || !meta) return;
+          if (typeof meta.duration === "number" && meta.duration > 0) {
+            knownTotalDurationRef.current = meta.duration;
+            setMediaDuration(meta.duration);
+          }
+          if (Array.isArray(meta.audioTracks) && meta.audioTracks.length > 0) {
+            setAudioTracks(meta.audioTracks);
+          } else if (attempts < 6) {
+            attempts++;
+            setTimeout(fetchMeta, 1500);
+          }
+        })
+        .catch(() => {
+          if (active && attempts < 6) {
+            attempts++;
+            setTimeout(fetchMeta, 1500);
+          }
+        });
+    };
+
+    fetchMeta();
+    return () => {
+      active = false;
+    };
+  }, [activeGame?.infoHash, activeGame?.fileIdx, stageData?.infoHash, stageData?.fileIdx, watchPartySession?.infoHash, watchPartySession?.fileIdx]);
 
   // Detect audio tracks from HTML video element
   useEffect(() => {
@@ -1069,6 +1175,9 @@ export default function AddonStageDisplay({
               knownTotalDurationRef.current = meta.duration;
               setMediaDuration(meta.duration);
             }
+            if (Array.isArray(meta?.audioTracks) && meta.audioTracks.length > 0) {
+              setAudioTracks(meta.audioTracks);
+            }
           })
           .catch(() => {});
       }
@@ -1229,6 +1338,9 @@ export default function AddonStageDisplay({
                   if (meta && typeof meta.duration === "number" && meta.duration > 0) {
                     knownTotalDurationRef.current = meta.duration;
                     setMediaDuration(meta.duration);
+                  }
+                  if (Array.isArray(meta?.audioTracks) && meta.audioTracks.length > 0) {
+                    setAudioTracks(meta.audioTracks);
                   }
                 })
                 .catch(() => {});
@@ -1674,13 +1786,20 @@ export default function AddonStageDisplay({
             className="w-full h-full relative overflow-hidden bg-black flex items-center justify-center cursor-pointer select-none"
             onClick={(e) => {
               if (e.target === videoRef.current || e.currentTarget === e.target) {
-                if (isCinemaWatchParty && !isSyncHost && toggleWatchPartyPlayPause) {
-                  toggleWatchPartyPlayPause();
-                  return;
-                }
                 if (videoRef.current) {
-                  if (videoRef.current.paused) videoRef.current.play().catch(() => {});
-                  else videoRef.current.pause();
+                  isLocalMediaActionRef.current = Date.now() + 1500;
+                  const v = videoRef.current;
+                  const curT = v.currentTime;
+                  if (v.paused) {
+                    v.play().catch(() => {});
+                    setMediaPlaying(true);
+                  } else {
+                    v.pause();
+                    setMediaPlaying(false);
+                  }
+                  if (isCinemaWatchParty && toggleWatchPartyPlayPause) {
+                    toggleWatchPartyPlayPause(curT);
+                  }
                 }
               }
             }}
@@ -2113,8 +2232,8 @@ export default function AddonStageDisplay({
       {/* 4. Generic Bottom Media & Stage Control Bar (populates controls dynamically based on active content capabilities) */}
       {!isMini && !isCatalogLauncher && (
         <FloatingMediaBar visible={!isFullscreen || showControls}>
-          {/* 1. Return to Catalog button (common to games, movies, music, and apps) */}
-          {(activeGame || catalogStageRef.current) && (
+          {/* 1. Return to Catalog button (hidden for guests in collaborative watch party) */}
+          {(activeGame || catalogStageRef.current) && (!isCinemaWatchParty || isSyncHost) && (
             <FloatingMediaBar.PillButton
               icon="apps"
               label={t("stage.catalog")}
@@ -2124,33 +2243,28 @@ export default function AddonStageDisplay({
             />
           )}
 
-          {/* Watch Party synchronization indicator */}
-          {isCinemaWatchParty && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-onicord-accent/15 border border-onicord-accent/30 text-onicord-accent text-xs font-semibold select-none shrink-0">
-              <MaterialIcon name="groups" size={15} />
-              <span>
-                {isSyncHost
-                  ? t("stage.watchPartyHost", "Anfitrión")
-                  : (watchPartySession?.hostNickname ? `Host: ${watchPartySession.hostNickname}` : t("stage.synced", "Sincronizado"))}
-              </span>
-            </div>
-          )}
-
           {/* 2. Play / Pause & Timeline controls (for video/audio media streams) */}
           {(isCurrentMedia || activeGame?.hasTimeline) && (
             <>
               <FloatingMediaBar.IconButton
-                icon={mediaPlaying ? "pause" : "play_arrow"}
-                title={mediaPlaying ? t("stage.pause") : t("stage.play")}
-                primary={!mediaPlaying}
+                icon={(isCinemaWatchParty && watchPartySession ? watchPartySession.isPlaying : mediaPlaying) ? "pause" : "play_arrow"}
+                title={(isCinemaWatchParty && watchPartySession ? watchPartySession.isPlaying : mediaPlaying) ? t("stage.pause") : t("stage.play")}
+                primary={!(isCinemaWatchParty && watchPartySession ? watchPartySession.isPlaying : mediaPlaying)}
                 onClick={() => {
-                  if (isCinemaWatchParty && !isSyncHost && toggleWatchPartyPlayPause) {
-                    toggleWatchPartyPlayPause();
-                    return;
-                  }
+                  isLocalMediaActionRef.current = Date.now() + 1500;
                   if (videoRef.current) {
-                    if (videoRef.current.paused) videoRef.current.play().catch(() => {});
-                    else videoRef.current.pause();
+                    const v = videoRef.current;
+                    const curT = v.currentTime;
+                    if (v.paused) {
+                      v.play().catch(() => {});
+                      setMediaPlaying(true);
+                    } else {
+                      v.pause();
+                      setMediaPlaying(false);
+                    }
+                    if (isCinemaWatchParty && toggleWatchPartyPlayPause) {
+                      toggleWatchPartyPlayPause(curT);
+                    }
                   } else {
                     iframeRef.current?.contentWindow?.postMessage({ type: "ONICORD_MEDIA_TOGGLE_PLAY" }, "*");
                   }
@@ -2165,39 +2279,12 @@ export default function AddonStageDisplay({
                 onSeekChange={(v) => setMediaSeekValue(v)}
                 onSeekEnd={(v) => {
                   setMediaSeeking(false);
-                  if (isCinemaWatchParty && !isSyncHost && sendWatchPartySeek) {
-                    sendWatchPartySeek(v);
-                    return;
+                  setMediaPlaybackTime(v);
+                  if (videoRef.current) {
+                    applyVideoSeek(v);
                   }
-                  const vRef = videoRef.current;
-                  if (vRef) {
-                    let inBuffer = false;
-                    if (vRef.buffered && vRef.buffered.length > 0) {
-                      for (let i = 0; i < vRef.buffered.length; i++) {
-                        if (v >= vRef.buffered.start(i) && v <= vRef.buffered.end(i)) {
-                          inBuffer = true;
-                          break;
-                        }
-                      }
-                    }
-                    if (inBuffer) {
-                      vRef.currentTime = v;
-                    } else {
-                      const currentSrc = vRef.src || "";
-                      if (currentSrc.includes("/torrent/") && !currentSrc.includes("/raw")) {
-                        try {
-                          const parsed = new URL(currentSrc);
-                          parsed.searchParams.set("ss", String(Math.floor(v)));
-                          vRef.src = parsed.toString();
-                          vRef.currentTime = 0;
-                          vRef.play().catch(() => {});
-                        } catch (_) {
-                          vRef.currentTime = v;
-                        }
-                      } else {
-                        vRef.currentTime = v;
-                      }
-                    }
+                  if (isCinemaWatchParty && sendWatchPartySeek) {
+                    sendWatchPartySeek(v);
                   }
                   iframeRef.current?.contentWindow?.postMessage({ type: "ONICORD_MEDIA_SEEK", time: v }, "*");
                 }}
@@ -2262,15 +2349,12 @@ export default function AddonStageDisplay({
                   audioTracks.length > 0
                     ? audioTracks.map((track) => ({
                         id: track.id,
-                        label: track.label,
+                        label: track.label || (track.lang ? `Audio ${formatLanguageName(track.lang, true)}` : `Pista de Audio ${track.id + 1}`),
                         isSelected: currentAudioTrack === track.id,
                         onClick: () => {
-                          setCurrentAudioTrack(track.id);
-                          const video = videoRef.current;
-                          if (video?.audioTracks && video.audioTracks.length > 0) {
-                            for (let i = 0; i < video.audioTracks.length; i++) {
-                              video.audioTracks[i].enabled = (i === track.id);
-                            }
+                          applyAudioTrackChange(track.id);
+                          if (isCinemaWatchParty && sendWatchPartyAudioTrack) {
+                            sendWatchPartyAudioTrack(track.id);
                           }
                           setShowAudioMenu(false);
                         },
@@ -2308,6 +2392,9 @@ export default function AddonStageDisplay({
                       setCurrentSubtitle("off");
                       setActiveCueText("");
                       iframeRef.current?.contentWindow?.postMessage({ type: "ONICORD_MEDIA_SET_SUBTITLE", id: "off" }, "*");
+                      if (isCinemaWatchParty && sendWatchPartySubtitle) {
+                        sendWatchPartySubtitle("off");
+                      }
                       setShowSubtitlesMenu(false);
                     },
                   },
@@ -2319,6 +2406,9 @@ export default function AddonStageDisplay({
                         onClick: () => {
                           setCurrentSubtitle(sub.id);
                           iframeRef.current?.contentWindow?.postMessage({ type: "ONICORD_MEDIA_SET_SUBTITLE", id: sub.id, url: sub.url }, "*");
+                          if (isCinemaWatchParty && sendWatchPartySubtitle) {
+                            sendWatchPartySubtitle(sub.id);
+                          }
                           setShowSubtitlesMenu(false);
                         },
                       }))

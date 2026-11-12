@@ -595,6 +595,10 @@ class MigrationService {
       channelId: null,
       template: "¡Bienvenido {user} a {server}! 🎉",
     };
+    const afkCfg = meta.afkSettings ?? srv?.afkSettings ?? {
+      channelId: null,
+      timeout: 300,
+    };
     const iceServers = meta.iceServers ?? srv?.iceServers ?? [];
     const rawMusicObj = meta.music ?? srv?.music ?? null;
     const musicObj = rawMusicObj ? cas.ingestObject(rawMusicObj) : null;
@@ -607,9 +611,9 @@ class MigrationService {
             discoverable, discover_category, discover_language, discover_tags_json, discover_config_json,
             disable_flame_system, group_by_roles, allow_executable_files,
             ice_servers_json, direct_connection_enabled, direct_ip, direct_port,
-            default_role_settings_json, welcome_settings_json, music_json,
+            default_role_settings_json, welcome_settings_json, afk_settings_json, music_json,
             version, updated_by, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         .run(
           code,
@@ -633,6 +637,7 @@ class MigrationService {
           Number(meta.directPort ?? srv?.directPort) || 7777,
           JSON.stringify(defaultRoleCfg),
           JSON.stringify(welcomeCfg),
+          JSON.stringify(afkCfg),
           musicObj ? JSON.stringify(musicObj) : null,
           Number(meta.version ?? srv?.metaVersion) || 0,
           meta.updatedBy || ownerId || null,

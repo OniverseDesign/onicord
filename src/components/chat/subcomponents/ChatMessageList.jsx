@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import MaterialIcon from "../../icons/MaterialIcon";
@@ -43,6 +43,7 @@ export default function ChatMessageList({
   fileProgress,
   chatContainerRef,
   bottomRef,
+  virtualizerRef,
   handleChatScroll,
   isScrollingUpLoading,
   showScrollBottom = false,
@@ -139,13 +140,41 @@ export default function ChatMessageList({
   const rowVirtualizer = useVirtualizer({
     count: mainStreamMessages.length,
     getScrollElement: () => chatContainerRef.current,
-    estimateSize: () => (isForum ? 140 : 64),
-    overscan: 8,
+    estimateSize: () => (isForum ? 140 : 76),
+    overscan: 10,
     getItemKey: (index) => {
       const msg = mainStreamMessages[index];
       return msg?.clientTempId || msg?.id || index;
     },
+    anchorTo: isForum ? "start" : "end",
+    followOnAppend: isForum ? false : true,
+    scrollEndThreshold: 40,
   });
+
+  useEffect(() => {
+    if (virtualizerRef) {
+      virtualizerRef.current = rowVirtualizer;
+    }
+    return () => {
+      if (virtualizerRef) {
+        virtualizerRef.current = null;
+      }
+    };
+  }, [rowVirtualizer, virtualizerRef]);
+
+  const handleScrollButtonClick = useCallback(() => {
+    if (isForum) {
+      if (rowVirtualizer && mainStreamMessages.length > 0) {
+        rowVirtualizer.scrollToOffset(0, { behavior: "smooth" });
+      }
+      onScrollToBottom?.("smooth");
+    } else {
+      if (rowVirtualizer && mainStreamMessages.length > 0) {
+        rowVirtualizer.scrollToEnd({ behavior: "smooth" });
+      }
+      onScrollToBottom?.("smooth");
+    }
+  }, [isForum, rowVirtualizer, mainStreamMessages.length, onScrollToBottom]);
 
   const handleJumpToMessageLocal = useCallback(
     (targetChannelId, targetMsgId) => {
@@ -351,9 +380,9 @@ export default function ChatMessageList({
 
         <button
           type="button"
-          onClick={() => onScrollToBottom?.("smooth")}
+          onClick={handleScrollButtonClick}
           tabIndex={showScrollBottom ? 0 : -1}
-          className={`absolute bottom-4 right-6 z-30 inline-flex items-center gap-2 pl-3 pr-2.5 py-1 rounded-full bg-onicord-accent/10 hover:bg-onicord-accent/20 border border-onicord-accent/30 text-onicord-accent text-xs font-bold transition-all duration-300 ease-out cursor-pointer select-none shadow-xs ${
+          className={`absolute bottom-4 right-6 z-30 inline-flex items-center gap-1 pl-3 pr-2 py-1 rounded-full bg-onicord-accent border border-onicord-accent/30 text-onicord-dark text-xs font-bold transition-all duration-300 ease-out cursor-pointer select-none shadow-xs ${
             showScrollBottom
               ? "opacity-100 translate-y-0 pointer-events-auto"
               : "opacity-0 translate-y-2 pointer-events-none"
@@ -361,12 +390,13 @@ export default function ChatMessageList({
           title={isForum ? t("chat.jumpToTop", "Volver arriba") : t("chat.jumpToPresent", "Volver abajo")}
           aria-label={isForum ? t("chat.jumpToTop", "Volver arriba") : t("chat.jumpToPresent", "Volver abajo")}
         >
+          <span>{isForum ? t("chat.jumpToTop", "Volver arriba") : t("chat.jumpToPresent", "Volver abajo")}</span>
           <MaterialIcon
             name={isForum ? "arrow_upward" : "arrow_downward"}
             size={16}
-            className="text-onicord-accent shrink-0"
+            weight={500}
+            className="text-onicord-dark shrink-0"
           />
-          <span>{isForum ? t("chat.jumpToTop", "Volver arriba") : t("chat.jumpToPresent", "Volver abajo")}</span>
         </button>
       </div>
     </div>

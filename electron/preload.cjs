@@ -339,6 +339,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   claimVoiceHost: () => ipcRenderer.invoke("voice:claim-host"),
   updateVoiceStreamIds: (audioStreamId, videoStreamId, bandwidth) =>
     ipcRenderer.invoke("voice:update-stream-ids", audioStreamId, videoStreamId, bandwidth),
+  moveVoiceMember: (roomCode, targetUserId, targetPeerId, targetChannelId) =>
+    ipcRenderer.invoke("voice:moveMember", roomCode, targetUserId, targetPeerId, targetChannelId),
+  onVoiceForceMove: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("voice:force-move", handler);
+    return () => ipcRenderer.removeListener("voice:force-move", handler);
+  },
   onVoiceSfuMigrated: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("voice:sfu-migrated", handler);

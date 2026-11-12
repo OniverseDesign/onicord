@@ -17,6 +17,23 @@ function safeParse(jsonStr, fallback) {
   }
 }
 
+function safeSliceUnicode(str, maxLength = 100) {
+  if (!str) return "";
+  const s = String(str).replace(
+    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+    ""
+  );
+  if (typeof Intl !== "undefined" && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    const segments = Array.from(segmenter.segment(s), (item) => item.segment);
+    if (segments.length <= maxLength) return s;
+    return segments.slice(0, maxLength).join("");
+  }
+  const codePoints = Array.from(s);
+  if (codePoints.length <= maxLength) return s;
+  return codePoints.slice(0, maxLength).join("");
+}
+
 /**
  * RoomMetaStore manages persistent server and channel metadata across P2P swarms
  * backed by per-server SQLite databases (`servers/<ROOM_CODE>/server.db`, `flames.db`, `addons.db`)
@@ -109,6 +126,10 @@ class RoomMetaStore {
         enabled: false,
         channelId: null,
         template: "¡Bienvenido {user} a {server}! 🎉",
+      },
+      afkSettings: {
+        channelId: null,
+        timeout: 300,
       },
     };
   }
@@ -304,6 +325,10 @@ class RoomMetaStore {
           channelId: null,
           template: "¡Bienvenido {user} a {server}! 🎉",
         }),
+        afkSettings: safeParse(cfg.afk_settings_json, {
+          channelId: null,
+          timeout: 300,
+        }),
       };
 
       this._cache.set(safeCode, meta);
@@ -359,6 +384,10 @@ class RoomMetaStore {
       channelId: null,
       template: "¡Bienvenido {user} a {server}! 🎉",
     };
+    const afkCfg = meta.afkSettings ?? {
+      channelId: null,
+      timeout: 300,
+    };
 
     const tx = serverDb.transaction(() => {
       serverDb
@@ -368,9 +397,9 @@ class RoomMetaStore {
             discoverable, discover_category, discover_language, discover_tags_json, discover_config_json,
             disable_flame_system, group_by_roles, allow_executable_files,
             ice_servers_json, direct_connection_enabled, direct_ip, direct_port,
-            default_role_settings_json, welcome_settings_json, music_json,
+            default_role_settings_json, welcome_settings_json, afk_settings_json, music_json,
             version, updated_by, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         .run(
           safeCode,
@@ -394,6 +423,7 @@ class RoomMetaStore {
           Number(meta.directPort) || 7777,
           JSON.stringify(defaultRoleCfg),
           JSON.stringify(welcomeCfg),
+          JSON.stringify(afkCfg),
           musicCfg ? JSON.stringify(musicCfg) : null,
           Number(meta.version) || 0,
           meta.updatedBy || null,
@@ -415,7 +445,7 @@ class RoomMetaStore {
         if (!ch || !ch.id) return;
         insertChannel.run(
           String(ch.id),
-          String(ch.name || ch.id),
+          safeSliceUnicode(String(ch.name || ch.id), 100),
           String(ch.type || "text"),
           ch.parentId || null,
           idx,
@@ -853,6 +883,13 @@ class RoomMetaStore {
                 channelId: null,
                 template: "¡Bienvenido {user} a {server}! 🎉",
               },
+        afkSettings:
+          remote.afkSettings !== undefined
+            ? remote.afkSettings
+            : local.afkSettings ?? {
+                channelId: null,
+                timeout: 300,
+              },
       };
       await this._saveUnlocked(safeCode, merged);
       return { applied: true, meta: merged };
@@ -942,7 +979,7 @@ class RoomMetaStore {
 
     const newWebhook = {
       id,
-      name: String(name || "Webhook").trim().slice(0, 48),
+      name: safeSliceUnicode(String(name || "Webhook").trim(), 100),
       channelId: channelId || "general",
       avatar: this._cas().storeDataUri(avatar || null),
       tokenHash,
@@ -969,7 +1006,7 @@ class RoomMetaStore {
     const updated = {
       ...existing,
       name:
-        patch.name !== undefined ? String(patch.name).trim().slice(0, 48) : existing.name,
+        patch.name !== undefined ? safeSliceUnicode(String(patch.name).trim(), 100) : existing.name,
       channelId: patch.channelId !== undefined ? patch.channelId : existing.channelId,
       avatar:
         patch.avatar !== undefined

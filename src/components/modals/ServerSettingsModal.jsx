@@ -235,6 +235,9 @@ export default function ServerSettingsModal({
   const [welcomeSettings, setWelcomeSettings] = useState(
     server?.welcomeSettings ?? { enabled: false, channelId: null, template: "" }
   );
+  const [afkSettings, setAfkSettings] = useState(
+    server?.afkSettings ?? { channelId: null, timeout: 300 }
+  );
 
   useEffect(() => {
     if (server) {
@@ -256,6 +259,7 @@ export default function ServerSettingsModal({
       setServerPlugins(server.plugins ?? []);
       setDefaultRoleSettings(server.defaultRoleSettings ?? { enabled: false, roleId: null });
       setWelcomeSettings(server.welcomeSettings ?? { enabled: false, channelId: null, template: "" });
+      setAfkSettings(server.afkSettings ?? { channelId: null, timeout: 300 });
       setDiscoverConfig(
         server.discoverConfig ?? {
           enabled: false,
@@ -299,6 +303,8 @@ export default function ServerSettingsModal({
   };
 
   const addChannel = (type, parentId = null) => {
+    const isAfkType = type === "afk";
+    const effectiveType = isAfkType ? "voice" : type;
     const defaultName =
       type === "category"
         ? t("serverSettings.channels.defaultCategoryName", "Category")
@@ -306,16 +312,20 @@ export default function ServerSettingsModal({
           ? t("serverSettings.channels.defaultTextChannelName", "general")
           : type === "forum"
             ? t("serverSettings.channels.defaultForumChannelName", "foro")
-            : t("serverSettings.channels.defaultVoiceChannelName", "Voice Lounge");
+            : isAfkType
+              ? t("serverSettings.channels.defaultAfkChannelName", "AFK")
+              : t("serverSettings.channels.defaultVoiceChannelName", "Voice Lounge");
+
+    const newId = slugId(
+      type === "category" ? "cat" : type === "text" ? "ch" : type === "forum" ? "forum" : "voice",
+      defaultName,
+    );
 
     setChannels((prev) => [
       ...prev,
       {
-        id: slugId(
-          type === "category" ? "cat" : type === "text" ? "ch" : type === "forum" ? "forum" : "voice",
-          defaultName,
-        ),
-        type,
+        id: newId,
+        type: effectiveType,
         name: defaultName,
         isPrivate: false,
         allowedRoles: [],
@@ -324,9 +334,20 @@ export default function ServerSettingsModal({
         ...(parentId ? { parentId } : {}),
       },
     ]);
+
+    if (isAfkType) {
+      setAfkSettings((prev) => ({
+        ...(prev || {}),
+        channelId: newId,
+        timeout: prev?.timeout || 300,
+      }));
+    }
   };
 
   const removeChannelById = (id) => {
+    if (afkSettings?.channelId === id) {
+      setAfkSettings((prev) => ({ ...prev, channelId: null }));
+    }
     setChannels((prev) => {
       const toRemove = prev.find((c) => c.id === id);
       const next =
@@ -458,6 +479,7 @@ export default function ServerSettingsModal({
           send_messages: true,
           connect_voice: true,
           share_video: true,
+          move_members: false,
           view_advanced_settings: false,
         },
       },
@@ -552,6 +574,7 @@ export default function ServerSettingsModal({
         discoverConfig,
         defaultRoleSettings,
         welcomeSettings,
+        afkSettings,
         ownerId: serverWithCopy.ownerId,
         channels: channels.map((c) => {
           const isCat =
@@ -719,6 +742,7 @@ export default function ServerSettingsModal({
           server={server}
           welcomeSettings={welcomeSettings}
           setWelcomeSettings={setWelcomeSettings}
+          afkSettings={afkSettings}
         />
       )}
 
@@ -733,6 +757,9 @@ export default function ServerSettingsModal({
           handleDragOver={handleDragOver}
           handleDropChannel={handleDropChannel}
           handleDropCategory={handleDropCategory}
+          afkSettings={afkSettings}
+          setAfkSettings={setAfkSettings}
+          readOnly={!hasAdvanced}
         />
       )}
 

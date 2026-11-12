@@ -921,7 +921,6 @@ export function useChatMessages({
           setVisibleCount?.((v) => v + 1);
         }
 
-        if (messagesCountRef) messagesCountRef.current = nuevoFeed.length;
         return nuevoFeed;
       });
     });

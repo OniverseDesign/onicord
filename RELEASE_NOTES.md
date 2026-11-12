@@ -1,3 +1,18 @@
+# Onicord v0.2.7
+
+## Changes
+
+- **Server AFK Voice Channels & Inactivity Engine**: Introduced automated AFK voice tracking (`useVoiceAfkTracker`) that monitors mic volume and typing activity, seamlessly relocating idle users to a designated AFK channel after a configurable timeout (1m to 1h) with strict mute enforcement.
+- **Drag-and-Drop Voice Member Moderation**: Added native drag-and-drop moderation in `ChannelsSidebar`, allowing administrators and members with the new `move_members` permission to move voice participants between channels with real-time visual drop targeting.
+- **P2P Voice Move Authorization Protocol**: Implemented secure P2P packet exchange (`voice-move-member`) with dual verification of administrator privileges against server metadata before executing remote voice channel relocations.
+- **Multi-Audio Track Probing & P2P Cinema Synchronization**: Enhanced `TorrentService` to probe and map all audio streams in video torrents, enabling on-the-fly audio stream selection and real-time synchronized audio and subtitle track switching across watch party peers.
+- **Virtual Feed Scroll Stabilization & Bottom Pinning**: Overhauled `useChatScroll` with direct `@tanstack/react-virtual` synchronization, programmatic scroll guards, and multi-pass layout settling to eliminate scroll jumps during late-mounting embeds and images.
+- **Server Channel & Category Management Redesign**: Revamped `ServerChannelsTab` with dedicated quick-add buttons for text, voice, forum, and AFK channels, real-time channel search filtering, collapsible categories with member count badges, and reordered uncategorized channel placement.
+- **Unicode Grapheme Boundary Protection**: Integrated `safeSliceUnicode` with `Intl.Segmenter` across room and server stores, eliminating corrupted multi-byte characters, emoji clusters, and mathematical scripts during name normalization and truncation.
+- **Extended System Typography Fallbacks**: Expanded root font cascades in stylesheet tokens to include `Segoe UI Historic`, `Cambria Math`, and `Apple Symbols` for uniform cross-platform symbol and mathematical script rendering.
+- **Contextual Input Placeholders & Chat Usability**: Added dynamic channel-scoped input placeholders (`#{{channel}}`) and updated the jump-to-present floating button with high-contrast theming and responsive text labels.
+- **Internationalization & Voice State Localization**: Fully translated AFK warnings, remote move notifications, channel management controls, and role permissions across English, Spanish, and Portuguese locales.
+
 # Onicord v0.2.6
 
 ## Changes
