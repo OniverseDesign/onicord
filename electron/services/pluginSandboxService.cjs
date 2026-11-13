@@ -720,7 +720,7 @@ class PluginSandboxService {
     contextObject.clearInterval = safeClearInterval;
 
     if (manifest.permissions?.includes("network.outbound")) {
-      const rawFetch = global.fetch || require("node-fetch");
+      const rawFetch = global.fetch;
       contextObject.fetch = hardenHostFn((url, opts) => rawFetch(url, opts));
     }
 

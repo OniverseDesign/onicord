@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import ModalShell from "../ui/ModalShell";
 import MaterialIcon from "../icons/MaterialIcon";
+import { cn } from "../../lib/cn";
 
 export default function ForwardMessageModal({
   message,
@@ -14,9 +15,9 @@ export default function ForwardMessageModal({
   const [selectedChannelId, setSelectedChannelId] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Restrict to text channels of the CURRENT server only
+  // Restrict to text/forum channels of the CURRENT server only
   const availableChannels = (server?.channels || []).filter(
-    (c) => c.type === "text" && c.id !== currentChannelId
+    (c) => (c.type === "text" || c.type === "forum") && c.id !== currentChannelId
   );
 
   const handleConfirm = async () => {
@@ -82,11 +83,12 @@ export default function ForwardMessageModal({
                     key={ch.id}
                     type="button"
                     onClick={() => setSelectedChannelId(ch.id)}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-lg text-left transition-all ${
+                    className={cn(
+                      "w-full flex items-center justify-between p-2.5 rounded-lg text-left transition-all",
                       isSelected
                         ? "bg-onicord-accent text-onicord-text-dark font-medium"
                         : "bg-onicord-surface/40 hover:bg-onicord-surface text-onicord-text"
-                    }`}
+                    )}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <MaterialIcon name="tag" size={16} />

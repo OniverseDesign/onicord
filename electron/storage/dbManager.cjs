@@ -517,6 +517,7 @@ class DbManager {
     if (!DbManager._instances.has(key)) {
       const instance = new DbManager(resolved);
       DbManager._instances.set(key, instance);
+      instance.startPeriodicWalCheckpoints();
       try {
         const { MigrationService } = require("./migrationService.cjs");
         MigrationService.ensureMigrated(instance);
@@ -772,9 +773,139 @@ class DbManager {
   }
 
   /**
+   * Starts a background timer that triggers passive WAL checkpoints every intervalMs (defaults to 10m).
+   */
+  startPeriodicWalCheckpoints(intervalMs = 10 * 60 * 1000) {
+    if (this._checkpointInterval) return;
+    this._checkpointInterval = setInterval(() => {
+      try {
+        this.checkpointWalAll();
+      } catch (err) {
+        console.warn("[DbManager] Error en checkpoint periódico WAL:", err.message);
+      }
+    }, intervalMs);
+    if (this._checkpointInterval.unref) {
+      this._checkpointInterval.unref();
+    }
+  }
+
+  /**
+   * Executes a passive WAL checkpoint across all currently open database connections.
+   * Flushes committed WAL transactions to the main .db file without blocking active readers.
+   */
+  checkpointWalAll() {
+    for (const [, db] of this._globalConnections.entries()) {
+      try {
+        if (db?.open) db.pragma("wal_checkpoint(PASSIVE)");
+      } catch (_) {}
+    }
+    for (const [, entry] of this._serverConnections.entries()) {
+      try {
+        if (entry?.db?.open) entry.db.pragma("wal_checkpoint(PASSIVE)");
+      } catch (_) {}
+    }
+    for (const [, entry] of this._dmConnections.entries()) {
+      try {
+        if (entry?.db?.open) entry.db.pragma("wal_checkpoint(PASSIVE)");
+      } catch (_) {}
+    }
+  }
+
+  /**
+   * Safely exports an atomic, fully-consistent snapshot of an open Database to targetFilePath
+   * using SQLite's native online backup API (db.backup).
+   */
+  async backupDatabase(db, targetFilePath) {
+    if (!db || !db.open) {
+      throw new Error("[DbManager] Cannot backup a closed database instance.");
+    }
+    const dir = path.dirname(targetFilePath);
+    ensureDirSync(dir);
+    return await db.backup(targetFilePath);
+  }
+
+  /**
+   * Generates clean atomic backups of all requested SQLite databases into stagingDir.
+   * Consolidates all WAL pages so the backup contains only clean .db files without .db-wal or .db-shm.
+   */
+  async prepareDatabasesForBackup(stagingDir, categories = ["profile", "servers"]) {
+    ensureDirSync(stagingDir);
+
+    if (categories.includes("profile")) {
+      const targetDbDir = path.join(stagingDir, "db");
+      ensureDirSync(targetDbDir);
+
+      for (const dbName of Object.keys(GLOBAL_SCHEMAS)) {
+        try {
+          const db = this.getGlobalDb(dbName);
+          const targetPath = path.join(targetDbDir, `${dbName}.db`);
+          await db.backup(targetPath);
+        } catch (err) {
+          console.warn(`[DbManager] Warning backing up global db ${dbName}:`, err.message);
+        }
+      }
+    }
+
+    if (categories.includes("servers") && fs.existsSync(this.serversBaseDir)) {
+      const targetServersDir = path.join(stagingDir, "servers");
+      ensureDirSync(targetServersDir);
+
+      try {
+        const serverRooms = fs.readdirSync(this.serversBaseDir, { withFileTypes: true });
+        for (const entry of serverRooms) {
+          if (!entry.isDirectory()) continue;
+          const roomCode = entry.name;
+          const srcRoomDir = path.join(this.serversBaseDir, roomCode);
+          const destRoomDir = path.join(targetServersDir, roomCode);
+          ensureDirSync(destRoomDir);
+
+          const roomFiles = fs.readdirSync(srcRoomDir, { withFileTypes: true });
+          for (const rf of roomFiles) {
+            if (rf.isFile() && rf.name.endsWith(".db")) {
+              const dbBaseName = rf.name.replace(/\.db$/i, "");
+              const srcDbPath = path.join(srcRoomDir, rf.name);
+              const destDbPath = path.join(destRoomDir, rf.name);
+
+              const connKey = `${roomCode}:${dbBaseName}`;
+              let dbInstance = this._serverConnections.get(connKey)?.db;
+              let shouldClose = false;
+
+              if (!dbInstance || !dbInstance.open) {
+                try {
+                  dbInstance = new Database(srcDbPath);
+                  shouldClose = true;
+                } catch (e) {
+                  console.warn(`[DbManager] No se pudo abrir ${srcDbPath} para backup:`, e.message);
+                  continue;
+                }
+              }
+
+              try {
+                await dbInstance.backup(destDbPath);
+              } catch (err) {
+                console.warn(`[DbManager] Falló backup atómico de ${rf.name}:`, err.message);
+              } finally {
+                if (shouldClose) {
+                  try { dbInstance.close(); } catch (_) {}
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[DbManager] Warning backing up server databases:", err.message);
+      }
+    }
+  }
+
+  /**
    * Closes all open global and per-server connections (e.g., on app quit or account reset).
    */
   closeAll() {
+    if (this._checkpointInterval) {
+      clearInterval(this._checkpointInterval);
+      this._checkpointInterval = null;
+    }
     for (const [, entry] of this._dmConnections.entries()) {
       try {
         if (entry?.db?.open) entry.db.close();

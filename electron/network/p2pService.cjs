@@ -119,7 +119,8 @@ function decodeMessages(bufferStr) {
 }
 
 class P2PService {
-  constructor({ onPeerJoined, onPeerLeft, onMessage }) {
+  constructor({ userDataPath, onPeerJoined, onPeerLeft, onMessage } = {}) {
+    this.userDataPath = userDataPath || null;
     this.swarm = null;
     this.peers = new Map();
     this._buffers = new Map();
@@ -141,6 +142,32 @@ class P2PService {
     this._directRetryCount = 0;
   }
 
+  _getOrCreateNodeSeed() {
+    try {
+      if (!this.userDataPath) return null;
+      const { DbManager } = require("../storage/dbManager.cjs");
+      const db = DbManager.getInstance(this.userDataPath).getGlobalDb("app_config");
+      const row = db.prepare("SELECT value_json FROM app_settings WHERE key = ?").get("p2p_node_seed");
+      if (row && row.value_json) {
+        const parsed = JSON.parse(row.value_json);
+        if (parsed?.seedHex) {
+          return Buffer.from(parsed.seedHex, "hex");
+        }
+      }
+      const newSeed = crypto.randomBytes(32);
+      const now = Date.now();
+      db.prepare("INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)").run(
+        "p2p_node_seed",
+        JSON.stringify({ seedHex: newSeed.toString("hex") }),
+        now
+      );
+      return newSeed;
+    } catch (err) {
+      console.warn("[P2P] Podría no persistirse la semilla P2P, usando clave efímera:", err.message);
+      return null;
+    }
+  }
+
   _resolveLocalPeerId() {
     if (this.localPeerId) return this.localPeerId;
     if (this.swarm?.keyPair?.publicKey) {
@@ -151,7 +178,12 @@ class P2PService {
 
   async ensureSwarm() {
     if (!this.swarm) {
-      this.swarm = new Hyperswarm({ maxPeers: 64 });
+      const swarmOpts = { maxPeers: 64 };
+      const seed = this._getOrCreateNodeSeed();
+      if (seed) {
+        swarmOpts.seed = seed;
+      }
+      this.swarm = new Hyperswarm(swarmOpts);
       this.swarm.on("connection", (socket, peerInfo) => this._handleConnection(socket, peerInfo));
       this._resolveLocalPeerId();
       try {

@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { APP_COLORS } from "../../lib/colors";
 import MaterialIcon from "../icons/MaterialIcon";
+import { cn } from "../../lib/cn";
 
 // Static style block to prevent re-processing styles on render iterations
 const RainbowStyles = () => (
@@ -85,11 +86,12 @@ export default function ColorPicker({
             key={key}
             type="button"
             onClick={() => onSelectColor(key, info)}
-            className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95 ${
+            className={cn(
+              "w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95",
               isSelected
                 ? "border-white scale-105 ring-2 ring-white/10"
                 : "border-white/10 hover:border-white/30"
-            }`}
+            )}
             style={{ backgroundColor: bgStyle }}
             title={info.name}
             aria-label={info.name}

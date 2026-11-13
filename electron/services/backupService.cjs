@@ -54,19 +54,19 @@ function getDirSizeSync(dirPath) {
 }
 
 // ─── CATEGORY → FILES MAPPING ────────────────────────────────────────────────
-function getCategoryPaths(categories) {
+function getCategoryPaths(categories, stagingDir = null) {
   const ud = getUserDataPath();
   const paths = [];
 
   if (categories.includes("profile")) {
-    const dbDir = path.join(ud, "db");
+    const dbDir = stagingDir ? path.join(stagingDir, "db") : path.join(ud, "db");
     if (fs.existsSync(dbDir)) paths.push({ src: dbDir, dest: "db", isDir: true });
     const casDir = path.join(ud, "cas");
     if (fs.existsSync(casDir)) paths.push({ src: casDir, dest: "cas", isDir: true });
   }
 
   if (categories.includes("servers")) {
-    const srvDir = path.join(ud, "servers");
+    const srvDir = stagingDir ? path.join(stagingDir, "servers") : path.join(ud, "servers");
     if (fs.existsSync(srvDir)) paths.push({ src: srvDir, dest: "servers", isDir: true });
   }
 
@@ -113,6 +113,10 @@ function addDirToZip(zip, srcDir, destPrefix) {
   if (!fs.existsSync(srcDir)) return;
   const entries = fs.readdirSync(srcDir, { withFileTypes: true });
   for (const e of entries) {
+    // Skip SQLite transient journal/WAL files; clean snapshots are provided by db.backup()
+    if (e.name.endsWith("-wal") || e.name.endsWith("-shm") || e.name.endsWith("-journal")) {
+      continue;
+    }
     const fullSrc = path.join(srcDir, e.name);
     const fullDest = `${destPrefix}/${e.name}`;
     if (e.isDirectory()) {
@@ -180,42 +184,58 @@ function getQuickStats() {
 }
 
 async function buildZip(categories) {
-  const zip = new AdmZip();
-  const cpaths = getCategoryPaths(categories);
-  const profileSummary = getProfileSummary();
-  const stats = getQuickStats();
+  const ud = getUserDataPath();
+  const stagingDir = path.join(ud, `_backup_staging_${Date.now()}`);
+  const { DbManager } = require("../storage/dbManager.cjs");
+  const dbMgr = DbManager.getInstance(ud);
 
-  const manifest = {
-    type: "backup",
-    formatVersion: 1,
-    createdAt: Date.now(),
-    categories,
-    appVersion: typeof app.getVersion === "function" ? app.getVersion() : "0.2.1",
-    profile: profileSummary,
-    stats,
-  };
+  try {
+    sendProgress("Generando snapshot atómico de bases de datos...", 5);
+    await dbMgr.prepareDatabasesForBackup(stagingDir, categories);
 
-  zip.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2), "utf8"));
+    const zip = new AdmZip();
+    const cpaths = getCategoryPaths(categories, stagingDir);
+    const profileSummary = getProfileSummary();
+    const stats = getQuickStats();
 
-  const totalEntries = cpaths.length;
-  let currentEntry = 0;
+    const manifest = {
+      type: "backup",
+      formatVersion: 1,
+      createdAt: Date.now(),
+      categories,
+      appVersion: typeof app.getVersion === "function" ? app.getVersion() : "0.2.1",
+      profile: profileSummary,
+      stats,
+    };
 
-  for (const entry of cpaths) {
-    currentEntry++;
-    const progressPercent = Math.min(85, Math.round(15 + (currentEntry / Math.max(totalEntries, 1)) * 60));
-    sendProgress(`Empaquetando ${entry.dest}...`, progressPercent);
+    zip.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2), "utf8"));
 
-    if (entry.isDir) {
-      addDirToZip(zip, entry.src, entry.dest);
-    } else {
+    const totalEntries = cpaths.length;
+    let currentEntry = 0;
+
+    for (const entry of cpaths) {
+      currentEntry++;
+      const progressPercent = Math.min(85, Math.round(15 + (currentEntry / Math.max(totalEntries, 1)) * 60));
+      sendProgress(`Empaquetando ${entry.dest}...`, progressPercent);
+
+      if (entry.isDir) {
+        addDirToZip(zip, entry.src, entry.dest);
+      } else {
+        try {
+          const buf = fs.readFileSync(entry.src);
+          zip.addFile(entry.dest, buf);
+        } catch {}
+      }
+    }
+
+    return { zip, manifest };
+  } finally {
+    if (fs.existsSync(stagingDir)) {
       try {
-        const buf = fs.readFileSync(entry.src);
-        zip.addFile(entry.dest, buf);
-      } catch {}
+        fs.rmSync(stagingDir, { recursive: true, force: true });
+      } catch (_) {}
     }
   }
-
-  return { zip, manifest };
 }
 
 // ─── SETTINGS STORAGE ─────────────────────────────────────────────────────────

@@ -518,6 +518,7 @@ export default function ChatPanel({
           let finalFileId = pf.id;
           let pfName = pf.name;
           let pfSize = pf.size;
+          let pfThumb = pf.thumbnail || null;
 
           if (!finalFileId) {
             let meta;
@@ -541,6 +542,7 @@ export default function ChatPanel({
               finalFileId = meta.id;
               pfName = meta.name;
               pfSize = meta.size;
+              if (meta.thumbnail) pfThumb = meta.thumbnail;
             }
           }
 
@@ -549,6 +551,7 @@ export default function ChatPanel({
               id: finalFileId,
               name: pfName,
               size: pfSize,
+              ...(pfThumb ? { thumbnail: pfThumb } : {}),
             });
           }
         }

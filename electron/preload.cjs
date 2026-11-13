@@ -367,6 +367,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // --- files / attachments ---
   getRecentFiles: () => ipcRenderer.invoke("dashboard:getRecentFiles"),
   readBinaryFile: (filePath) => ipcRenderer.invoke("storage:readBinaryFile", filePath),
+  generateVideoThumbnail: (filePath) => ipcRenderer.invoke("media:generateVideoThumbnail", filePath),
   getNativePath: (file) => webUtils.getPathForFile(file),
   saveDevDefaultLayout: (layoutMap) => ipcRenderer.invoke("dev:save-default-layout", layoutMap),
   processDroppedMeta: (roomCode, filePath) =>

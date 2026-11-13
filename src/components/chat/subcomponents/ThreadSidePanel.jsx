@@ -357,6 +357,7 @@ export default function ThreadSidePanel({
             id: meta.id,
             name: meta.name || file.name,
             size: meta.size ?? file.size,
+            ...(meta.thumbnail ? { thumbnail: meta.thumbnail } : {}),
           });
         }
       } catch (err) {

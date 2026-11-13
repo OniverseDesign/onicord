@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { getFlameTier } from "../../lib/flameService";
 import FlamePopover from "./FlamePopover";
 import { IconFlame } from "../icons/StreamIcons";
+import { cn } from "../../lib/cn";
 
 export default function FlameBadge({
   days = 0,
@@ -40,7 +41,13 @@ export default function FlameBadge({
       <div
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`inline-flex items-center justify-center align-middle font-bold rounded-full border transition-all duration-300 select-none cursor-help text-slate-950 [.light-mode_&]:text-white ${tier.badgeBg} ${tier.glow} ${sizeClasses[size] || sizeClasses.sm} ${className}`}
+        className={cn(
+          "inline-flex items-center justify-center align-middle font-bold rounded-full border transition-all duration-300 select-none cursor-help text-slate-950 [.light-mode_&]:text-white",
+          tier.badgeBg,
+          tier.glow,
+          sizeClasses[size] || sizeClasses.sm,
+          className
+        )}
       >
         <IconFlame
           size={iconPresetSizes[size] || "xs"}

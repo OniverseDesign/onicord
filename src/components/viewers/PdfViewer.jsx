@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import { useTranslation } from "react-i18next";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import * as pdfjsLib from "pdfjs-dist";
+import "pdfjs-dist/web/pdf_viewer.css";
 import MaterialIcon from "../icons/MaterialIcon";
 
 // Use the bundled worker from pdfjs-dist
@@ -8,6 +10,110 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
   import.meta.url
 ).toString();
+
+// Individual virtualized page canvas component with text-layer selection & render cancellation
+const PdfPageItem = memo(function PdfPageItem({ pdfDoc, pageNum, scale }) {
+  const canvasRef = useRef(null);
+  const textLayerRef = useRef(null);
+  const [pageDimensions, setPageDimensions] = useState({ width: 0, height: 0 });
+  const [pageError, setPageError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let renderTask = null;
+    let textLayer = null;
+
+    const render = async () => {
+      if (!pdfDoc || !canvasRef.current) return;
+      try {
+        setPageError(null);
+        const page = await pdfDoc.getPage(pageNum);
+        if (cancelled) return;
+
+        const viewport = page.getViewport({ scale });
+        setPageDimensions({ width: viewport.width, height: viewport.height });
+
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        renderTask = page.render({ canvasContext: ctx, viewport });
+        await renderTask.promise;
+
+        if (cancelled) return;
+
+        // Render Text Layer overlay for selecting, highlighting and copying text
+        if (textLayerRef.current) {
+          textLayerRef.current.innerHTML = "";
+          const textContent = await page.getTextContent();
+          if (cancelled) return;
+
+          textLayer = new pdfjsLib.TextLayer({
+            textContentSource: textContent,
+            container: textLayerRef.current,
+            viewport,
+          });
+          await textLayer.render();
+        }
+      } catch (err) {
+        if (!cancelled && err?.name !== "RenderingCancelledException") {
+          console.error(`[PdfViewer] Error rendering page ${pageNum}:`, err);
+          setPageError(err.message);
+        }
+      }
+    };
+
+    render();
+
+    return () => {
+      cancelled = true;
+      if (renderTask) {
+        try {
+          renderTask.cancel();
+        } catch (_) {}
+      }
+      if (textLayer) {
+        try {
+          textLayer.cancel();
+        } catch (_) {}
+      }
+    };
+  }, [pdfDoc, pageNum, scale]);
+
+  if (pageError) {
+    return (
+      <div className="flex items-center justify-center bg-black/40 text-xs text-red-400 p-4 rounded-lg min-h-[300px] w-full">
+        Error al renderizar página {pageNum}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="relative rounded-lg shadow-md overflow-hidden bg-white select-text pointer-events-auto"
+      style={{
+        width: pageDimensions.width || "auto",
+        height: pageDimensions.height || "auto",
+      }}
+    >
+      <canvas
+        ref={canvasRef}
+        className="block rounded-lg"
+      />
+      <div
+        ref={textLayerRef}
+        className="textLayer absolute inset-0 pointer-events-auto select-text"
+        style={{
+          width: pageDimensions.width || "100%",
+          height: pageDimensions.height || "100%",
+        }}
+      />
+    </div>
+  );
+});
 
 export default function PdfViewer({ filePath, className = "" }) {
   const { t } = useTranslation();
@@ -18,9 +124,6 @@ export default function PdfViewer({ filePath, className = "" }) {
   const [error, setError] = useState(null);
   const [visiblePage, setVisiblePage] = useState(1);
   const scrollContainerRef = useRef(null);
-  const pageRefs = useRef([]);
-  const canvasRefs = useRef([]);
-  const renderedPages = useRef(new Set());
 
   // Load the PDF document
   useEffect(() => {
@@ -29,7 +132,6 @@ export default function PdfViewer({ filePath, className = "" }) {
     const loadPdf = async () => {
       setLoading(true);
       setError(null);
-      renderedPages.current = new Set();
       try {
         let data;
         if (window.electronAPI?.readBinaryFile) {
@@ -56,63 +158,37 @@ export default function PdfViewer({ filePath, className = "" }) {
     return () => { cancelled = true; };
   }, [filePath]);
 
-  // Render a single page into its canvas
-  const renderPage = useCallback(async (pageNum) => {
-    if (!pdfDoc || renderedPages.current.has(`${pageNum}-${scale}`)) return;
-    const canvas = canvasRefs.current[pageNum - 1];
-    if (!canvas) return;
+  // High-performance virtualizer for pages: only renders active in-viewport pages
+  const rowVirtualizer = useVirtualizer({
+    count: totalPages,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => Math.round(840 * scale) + 16,
+    overscan: 2,
+  });
 
-    try {
-      renderedPages.current.add(`${pageNum}-${scale}`);
-      const page = await pdfDoc.getPage(pageNum);
-      const viewport = page.getViewport({ scale });
-      const ctx = canvas.getContext("2d");
-
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-
-      await page.render({ canvasContext: ctx, viewport }).promise;
-    } catch (err) {
-      console.error(`[PdfViewer] Error rendering page ${pageNum}:`, err);
-      renderedPages.current.delete(`${pageNum}-${scale}`);
-    }
-  }, [pdfDoc, scale]);
-
-  // Render all pages when doc loads or scale changes
-  useEffect(() => {
-    if (!pdfDoc) return;
-    renderedPages.current = new Set();
-    for (let i = 1; i <= totalPages; i++) {
-      renderPage(i);
-    }
-  }, [pdfDoc, totalPages, scale, renderPage]);
-
-  // Track which page is currently visible during scroll
+  // Track which page is currently centered in viewport
   const handleScroll = useCallback(() => {
+    const virtualItems = rowVirtualizer.getVirtualItems();
+    if (!virtualItems || virtualItems.length === 0) return;
+
     const container = scrollContainerRef.current;
-    if (!container || totalPages === 0) return;
+    if (!container) return;
 
-    const scrollTop = container.scrollTop;
-    const containerHeight = container.clientHeight;
-    const scrollMid = scrollTop + containerHeight / 2;
-
-    for (let i = 0; i < pageRefs.current.length; i++) {
-      const el = pageRefs.current[i];
-      if (!el) continue;
-      if (el.offsetTop <= scrollMid && el.offsetTop + el.offsetHeight > scrollMid) {
-        setVisiblePage(i + 1);
+    const scrollMid = container.scrollTop + container.clientHeight / 2;
+    for (const item of virtualItems) {
+      if (item.start <= scrollMid && item.end >= scrollMid) {
+        setVisiblePage(item.index + 1);
         break;
       }
     }
-  }, [totalPages]);
+  }, [rowVirtualizer]);
 
   // Scroll to a specific page
   const goToPage = useCallback((pageNum) => {
-    const el = pageRefs.current[pageNum - 1];
-    if (el && scrollContainerRef.current) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, []);
+    if (pageNum < 1 || pageNum > totalPages) return;
+    rowVirtualizer.scrollToIndex(pageNum - 1, { align: "start", behavior: "smooth" });
+    setVisiblePage(pageNum);
+  }, [rowVirtualizer, totalPages]);
 
   if (loading) {
     return (
@@ -180,25 +256,43 @@ export default function PdfViewer({ filePath, className = "" }) {
         </button>
       </div>
 
-      {/* Scrollable pages container */}
+      {/* Scrollable virtualized pages container */}
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="w-full max-h-[78vh] overflow-auto rounded-2xl border border-white/10 bg-neutral-800 shadow-2xl"
+        className="w-full max-h-[78vh] overflow-auto rounded-2xl border border-white/10 bg-neutral-800 shadow-2xl relative"
       >
-        <div className="flex flex-col items-center gap-4 p-4">
-          {Array.from({ length: totalPages }, (_, i) => (
-            <div
-              key={i}
-              ref={(el) => { pageRefs.current[i] = el; }}
-              className="shrink-0"
-            >
-              <canvas
-                ref={(el) => { canvasRefs.current[i] = el; }}
-                className="rounded-lg shadow-md"
-              />
-            </div>
-          ))}
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const pageNum = virtualRow.index + 1;
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={rowVirtualizer.measureElement}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+                className="flex justify-center p-3"
+              >
+                <PdfPageItem
+                  pdfDoc={pdfDoc}
+                  pageNum={pageNum}
+                  scale={scale}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

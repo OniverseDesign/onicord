@@ -138,15 +138,5 @@ export default {
   },
   plugins: [
     require("@tailwindcss/container-queries"),
-    require("tailwindcss-animate"), // Registramos tu plugin de animaciones por hardware
-    require("daisyui"), // Registramos daisyUI con su escudo
   ],
-
-  // 🛡️ NUESTRO ESCUDO PROTECTOR AUTOMÁTICO PARA DAISYUI
-  daisyui: {
-    themes: true,
-    styled: false,
-    utils: true,
-    prefix: "daisy-",
-  },
 };

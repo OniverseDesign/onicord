@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const mediaScannerService = require("../../services/mediaScannerService.cjs");
 const stickerService = require("../../services/stickerService.cjs");
 const ytdlpService = require("../../services/ytdlpService.cjs");
+const mediaTranscodeService = require("../../services/mediaTranscodeService.cjs");
 const { DbManager } = require("../../storage/dbManager.cjs");
 
 async function saveDownloadToRegistry(fileId, targetPath, sourceRoomCode = null) {
@@ -82,10 +83,20 @@ function registerMediaFileHandlers() {
     const name = path.basename(fp);
     const id = crypto.randomUUID();
 
+    let thumbnail = null;
+    if (mediaTranscodeService.isVideoFile(fp)) {
+      try {
+        thumbnail = await mediaTranscodeService.generateVideoThumbnailBase64(fp);
+      } catch (err) {
+        console.warn("[ARES] Error generando miniatura de video:", err.message);
+      }
+    }
+
     const record = {
       id,
       name,
       size: stat.size,
+      thumbnail,
       uploadedAt: Date.now(),
       updatedAt: Date.now(),
       realPath: fp,
@@ -98,7 +109,7 @@ function registerMediaFileHandlers() {
       type: "file_upload",
       id,
     });
-    return { id, name, size: stat.size };
+    return { id, name, size: stat.size, thumbnail };
   });
 
   ipcMain.handle("files:uploadClipboardImage", async (_event, roomCode, arrayBuffer) => {
@@ -157,10 +168,21 @@ function registerMediaFileHandlers() {
     const stat = await fsPromises.stat(fp);
     const name = path.basename(fp);
     const id = crypto.randomUUID();
+
+    let thumbnail = null;
+    if (mediaTranscodeService.isVideoFile(fp)) {
+      try {
+        thumbnail = await mediaTranscodeService.generateVideoThumbnailBase64(fp);
+      } catch (err) {
+        console.warn("[ARES] Error generando miniatura de video:", err.message);
+      }
+    }
+
     const record = {
       id,
       name,
       size: stat.size,
+      thumbnail,
       uploadedAt: Date.now(),
       updatedAt: Date.now(),
       realPath: fp,
@@ -174,7 +196,12 @@ function registerMediaFileHandlers() {
       id,
     });
 
-    return { id, name, size: stat.size };
+    return { id, name, size: stat.size, thumbnail };
+  });
+
+  ipcMain.handle("media:generateVideoThumbnail", async (_event, filePath) => {
+    if (!filePath) return null;
+    return await mediaTranscodeService.generateVideoThumbnailBase64(String(filePath));
   });
 
   ipcMain.handle("files:selectDownloadDirectory", async () => {

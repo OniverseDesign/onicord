@@ -254,12 +254,63 @@ export default function MessageMediaAttachment({
             <video
               ref={inlineVideoRef}
               src={resolvedMediaSrc}
+              poster={fileData?.thumbnail || undefined}
               controls
               className="w-auto h-auto max-w-full max-h-[400px] object-contain rounded-onicord-inner block animate-fade-in z-10"
             />
             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/vid:opacity-100 transition-opacity duration-150 pointer-events-none z-20" />
           </div>
         )
+      ) : isVideo && fileData?.thumbnail ? (
+        <div
+          onClick={(e) => handleFileActionClick(e)}
+          className="relative mt-1 max-w-[480px] rounded-onicord-inner overflow-hidden bg-black/40 border border-white/10 cursor-pointer hover:border-onicord-accent/50 transition-all duration-200 group/thumb shadow-lg select-none"
+        >
+          <img
+            src={fileData.thumbnail}
+            alt={fileData.name}
+            className="w-full max-h-[280px] object-cover rounded-onicord-inner block opacity-90 group-hover/thumb:opacity-100 transition-opacity"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20 flex flex-col justify-between p-3">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-white/90 border border-white/10">
+                <MaterialIcon name="videocam" size={14} className="text-emerald-400" />
+                {fileData.name?.split(".").pop()?.toUpperCase()}
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-onicord-muted border border-white/10">
+                {formatBytes(fileData.size)}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-onicord-accent text-white shadow-md group-hover/thumb:scale-105 transition-transform">
+                {isDownloading ? (
+                  <MaterialIcon name="downloading" size={22} className="animate-spin" />
+                ) : (
+                  <MaterialIcon name="play_arrow" size={24} />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium text-white group-hover/thumb:text-onicord-accent transition-colors">
+                  {fileData.name}
+                </p>
+                <p className="text-[11px] text-white/70">
+                  {isDownloading
+                    ? `${t("chat.downloading", "Descargando")} (${status?.progress || 0}%)…`
+                    : t("chat.clickToDownloadPlay", "Haz clic para descargar y reproducir")}
+                </p>
+              </div>
+            </div>
+          </div>
+          {isDownloading && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+              <div
+                className="h-full bg-onicord-accent transition-all duration-200"
+                style={{ width: `${status?.progress || 0}%` }}
+              />
+            </div>
+          )}
+        </div>
       ) : (() => {
         const iconConfig = getFileTypeIcon(fileData.name);
         return (

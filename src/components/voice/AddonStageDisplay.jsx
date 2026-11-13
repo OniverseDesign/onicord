@@ -1973,7 +1973,7 @@ export default function AddonStageDisplay({
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/85 pointer-events-none" />
 
                 {/* Central cinematic container (logo or title) */}
-                <div className="relative z-10 flex items-center justify-center max-w-4xl p-10 text-center overflow-visible animate-in fade-in zoom-in-95 duration-300">
+                <div className="relative z-10 flex items-center justify-center max-w-4xl p-10 text-center overflow-visible animate-scale-up duration-300">
                   {activeGame.logo && !logoLoadFailed ? (
                     <div className="relative inline-flex items-center justify-center max-w-[85vw] md:max-w-xl max-h-[160px] md:max-h-[200px] overflow-visible">
                       {/* Layer 1: Base muted/background logo */}

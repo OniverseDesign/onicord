@@ -1,78 +1,29 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useEffect } from "react";
+import { useStreamerModeStore } from "../stores/useStreamerModeStore";
 
 const StreamerModeContext = createContext(null);
 
-const STORAGE_KEY_AUTO = "onicord_streamer_mode_auto";
-const STORAGE_KEY_MANUAL = "onicord_streamer_mode_manual";
-
 export function StreamerModeProvider({ children }) {
-  const [autoEnabled, setAutoEnabledState] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_AUTO);
-      return saved !== null ? saved === "true" : true;
-    } catch {
-      return true;
-    }
-  });
-
-  const [manualActive, setManualActiveState] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_MANUAL);
-      return saved === "true";
-    } catch {
-      return false;
-    }
-  });
-
-  const [detectedState, setDetectedState] = useState({
-    active: false,
-    app: null,
-  });
-
-  const setAutoEnabled = useCallback((enabled) => {
-    const val = Boolean(enabled);
-    setAutoEnabledState(val);
-    try {
-      localStorage.setItem(STORAGE_KEY_AUTO, String(val));
-    } catch {}
-  }, []);
-
-  const setManualActive = useCallback((active) => {
-    const val = Boolean(active);
-    setManualActiveState(val);
-    try {
-      localStorage.setItem(STORAGE_KEY_MANUAL, String(val));
-    } catch {}
-  }, []);
-
-  const toggleManual = useCallback(() => {
-    setManualActiveState((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(STORAGE_KEY_MANUAL, String(next));
-      } catch {}
-      return next;
-    });
-  }, []);
-
-  // Listen for OBS / streaming software process detection from Electron
   useEffect(() => {
     let isMounted = true;
 
     if (window.electronAPI?.getStreamerStatus) {
-      window.electronAPI.getStreamerStatus().then((status) => {
-        if (isMounted && status) {
-          setDetectedState({
-            active: Boolean(status.active),
-            app: status.app || null,
-          });
-        }
-      }).catch(console.error);
+      window.electronAPI
+        .getStreamerStatus()
+        .then((status) => {
+          if (isMounted && status) {
+            useStreamerModeStore.getState().setDetectedStatus({
+              active: Boolean(status.active),
+              app: status.app || null,
+            });
+          }
+        })
+        .catch(console.error);
     }
 
     const unsub = window.electronAPI?.onStreamerModeDetected?.((data) => {
       if (isMounted && data) {
-        setDetectedState({
+        useStreamerModeStore.getState().setDetectedStatus({
           active: Boolean(data.active),
           app: data.app || null,
         });
@@ -85,79 +36,33 @@ export function StreamerModeProvider({ children }) {
     };
   }, []);
 
-  // Streamer mode is active if manually toggled on, or if set to auto and OBS/streaming app was detected
-  const isStreamerMode = useMemo(() => {
-    return Boolean(manualActive || (autoEnabled && detectedState.active));
-  }, [manualActive, autoEnabled, detectedState.active]);
-
-  // Dispatch global event so non-React services (e.g. notificationManager) can query state
-  useEffect(() => {
-    window.__ONICORD_STREAMER_MODE__ = isStreamerMode;
-    window.dispatchEvent(
-      new CustomEvent("onicord:streamer-mode-changed", {
-        detail: {
-          active: isStreamerMode,
-          app: detectedState.app,
-          isManual: manualActive,
-        },
-      })
-    );
-  }, [isStreamerMode, detectedState.app, manualActive]);
-
-  const maskSensible = useCallback(
-    (text, placeholder = "••••••••") => {
-      if (!isStreamerMode) return text;
-      return placeholder;
-    },
-    [isStreamerMode]
-  );
-
-  const value = useMemo(
-    () => ({
-      isStreamerMode,
-      isDetected: detectedState.active,
-      detectedApp: detectedState.app,
-      autoEnabled,
-      manualActive,
-      setAutoEnabled,
-      setManualActive,
-      toggleManual,
-      maskSensible,
-    }),
-    [
-      isStreamerMode,
-      detectedState.active,
-      detectedState.app,
-      autoEnabled,
-      manualActive,
-      setAutoEnabled,
-      setManualActive,
-      toggleManual,
-      maskSensible,
-    ]
-  );
-
   return (
-    <StreamerModeContext.Provider value={value}>
+    <StreamerModeContext.Provider value={null}>
       {children}
     </StreamerModeContext.Provider>
   );
 }
 
 export function useStreamerMode() {
-  const ctx = useContext(StreamerModeContext);
-  if (!ctx) {
-    return {
-      isStreamerMode: Boolean(window.__ONICORD_STREAMER_MODE__),
-      isDetected: false,
-      detectedApp: null,
-      autoEnabled: true,
-      manualActive: false,
-      setAutoEnabled: () => {},
-      setManualActive: () => {},
-      toggleManual: () => {},
-      maskSensible: (t, p = "••••••••") => (window.__ONICORD_STREAMER_MODE__ ? p : t),
-    };
-  }
-  return ctx;
+  const isStreamerMode = useStreamerModeStore((s) => s.isStreamerMode);
+  const isDetected = useStreamerModeStore((s) => s.detectedActive);
+  const detectedApp = useStreamerModeStore((s) => s.detectedApp);
+  const autoEnabled = useStreamerModeStore((s) => s.autoEnabled);
+  const manualActive = useStreamerModeStore((s) => s.manualActive);
+  const setAutoEnabled = useStreamerModeStore((s) => s.setAutoEnabled);
+  const setManualActive = useStreamerModeStore((s) => s.setManualActive);
+  const toggleManual = useStreamerModeStore((s) => s.toggleManual);
+  const maskSensible = useStreamerModeStore((s) => s.maskSensible);
+
+  return {
+    isStreamerMode,
+    isDetected,
+    detectedApp,
+    autoEnabled,
+    manualActive,
+    setAutoEnabled,
+    setManualActive,
+    toggleManual,
+    maskSensible,
+  };
 }

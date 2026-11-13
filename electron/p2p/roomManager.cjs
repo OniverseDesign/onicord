@@ -70,6 +70,7 @@ class RoomManager {
     };
 
     this.p2pService = new P2PService({
+      userDataPath: this.userDataPath,
       onPeerJoined: (peerId, socket) => this._handlePeerJoined(peerId, socket),
       onPeerLeft: (peerId) => this._handlePeerLeft(peerId),
       onMessage: (peerId, type, payload) => this._handleMessage(peerId, type, payload),

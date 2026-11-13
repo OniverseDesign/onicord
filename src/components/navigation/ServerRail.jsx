@@ -18,6 +18,7 @@ function ServerIcon({
   isVoiceActive = false,
 }) {
   const hasUnread = unreadCount > 0 && !isMuted;
+  const hasIcon = Boolean(server.icon);
 
   return (
     <button
@@ -53,7 +54,7 @@ function ServerIcon({
         onContextMenu?.(e, server);
       }}
       title={server.name}
-      className="group relative flex w-full justify-center py-1"
+      className="group relative flex w-full justify-center py-1 outline-none focus:outline-none"
     >
       {/* Show outer indicator pill ONLY when not inside a folder card container */}
       {!isInsideFolder && (
@@ -73,15 +74,20 @@ function ServerIcon({
       <div className="relative flex items-center justify-center">
         <span
           className={`onicord-rail-btn-server relative ${
-            active ? "onicord-rail-btn-active" : ""
+            hasIcon
+              ? active
+                ? "rounded-[16px] !bg-transparent hover:!bg-transparent"
+                : "!bg-transparent hover:!bg-transparent"
+              : active
+                ? "onicord-rail-btn-active"
+                : ""
           } ${isMuted ? "opacity-60 hover:opacity-100 transition-opacity" : ""}`}
         >
-          {server.icon ? (
+          {hasIcon ? (
             <SmartAnimatedImage
               src={server.icon}
               alt=""
               className="h-full w-full object-cover"
-              isAvatar
             />
           ) : (
             server.name?.slice(0, 2).toUpperCase()
@@ -161,7 +167,7 @@ function ServerFolderItem({
             setExpanded(true);
           }}
           title={folder.name}
-          className="group relative flex w-full justify-center py-1 cursor-pointer"
+          className="group relative flex w-full justify-center py-1 cursor-pointer outline-none focus:outline-none"
         >
           <span
             className={`onicord-rail-indicator ${
@@ -188,7 +194,6 @@ function ServerFolderItem({
                         src={srv.icon}
                         alt=""
                         className="w-full h-full object-cover"
-                        isAvatar
                       />
                     ) : (
                       <span className="text-[9px] font-extrabold uppercase select-none">
@@ -212,7 +217,7 @@ function ServerFolderItem({
               setExpanded(false);
             }}
             title={folder.name}
-            className="w-full flex justify-center py-1 cursor-pointer transition-opacity"
+            className="w-full flex justify-center py-1 cursor-pointer transition-opacity outline-none focus:outline-none"
           >
             <div className="w-10 h-10 rounded-onicord-outer-p4 flex items-center justify-center text-onicord-accent hover:text-onicord-text transition-colors">
               <MaterialIcon name="folder_open" size={22} />
@@ -433,7 +438,7 @@ export default function ServerRail({
           else if (onSelectServer) onSelectServer(null);
         }}
         title={t("serverRail.homeTitle")}
-        className="group relative mb-2 flex w-full justify-center"
+        className="group relative mb-2 flex w-full justify-center outline-none focus:outline-none"
       >
         <span
           className={`onicord-rail-indicator ${
@@ -498,7 +503,7 @@ export default function ServerRail({
             onSelectView?.("discover");
           }}
           title={t("discover.heroTitle", "Explorar Servidores")}
-          className="group relative flex w-full justify-center"
+          className="group relative flex w-full justify-center outline-none focus:outline-none"
         >
           <span
             className={`onicord-rail-indicator ${
@@ -510,7 +515,7 @@ export default function ServerRail({
           <span
             className={`onicord-rail-btn ${
               activeView === "discover"
-                ? "onicord-rail-btn-active bg-onicord-accent text-white"
+                ? "onicord-rail-btn-active bg-onicord-accent text-white border-transparent"
                 : "onicord-rail-btn-accent text-onicord-accent hover:text-white"
             }`}
           >
@@ -525,7 +530,7 @@ export default function ServerRail({
             onAdd?.();
           }}
           title={t("serverRail.addServerTitle")}
-          className="group relative flex w-full justify-center"
+          className="group relative flex w-full justify-center outline-none focus:outline-none"
         >
           <span className="onicord-rail-btn onicord-rail-btn-accent">
             <IconAdd size="xl" />
@@ -536,7 +541,7 @@ export default function ServerRail({
           type="button"
           onClick={onOpenAppSettings}
           title={t("userPanel.settingsTitle")}
-          className="group relative flex w-full justify-center"
+          className="group relative flex w-full justify-center outline-none focus:outline-none"
         >
           <span className="onicord-rail-btn onicord-rail-btn-accent">
             <IconSettings className="transition-transform duration-300 ease-in-out group-hover:rotate-180" />

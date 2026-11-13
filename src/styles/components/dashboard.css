@@ -4,14 +4,14 @@
     @apply absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-onicord-text transition-all duration-200;
   }
   .onicord-rail-btn-server {
-    @apply flex h-12 w-12 items-center justify-center overflow-hidden text-sm font-semibold transition-all duration-200 rounded-[24px] bg-onicord-base text-onicord-text hover:rounded-[16px] hover:bg-onicord-accent hover:text-white;
+    @apply flex h-12 w-12 items-center justify-center overflow-hidden text-sm font-semibold transition-all duration-200 rounded-[24px] bg-onicord-base text-onicord-text hover:rounded-[16px] hover:bg-onicord-accent hover:text-white border-none outline-none ring-0;
   }
   .onicord-rail-btn-server svg {
     transform-origin: center !important;
     transform-box: fill-box !important;
   }
   .onicord-rail-btn-active {
-    @apply rounded-[16px] bg-onicord-accent text-white;
+    @apply rounded-[16px] bg-onicord-accent text-white border-none outline-none ring-0;
   }
 
   .onicord-server-header-btn {

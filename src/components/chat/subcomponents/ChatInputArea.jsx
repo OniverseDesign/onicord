@@ -85,6 +85,18 @@ export default function ChatInputArea({
   const [cachedPreviewUrl, setCachedPreviewUrl] = useState(previewUrl);
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const blurTimeoutRef = useRef(null);
+  const commandsPopoverRef = useRef(null);
+  const mentionsPopoverRef = useRef(null);
+
+  const handleContentKeyDown = (e) => {
+    if (commandsPopoverRef.current?.handleKeyDown?.(e)) {
+      return;
+    }
+    if (mentionsPopoverRef.current?.handleKeyDown?.(e)) {
+      return;
+    }
+    handleKeyDown?.(e);
+  };
 
   const handleInputFocus = () => {
     if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
@@ -252,16 +264,20 @@ export default function ChatInputArea({
       </div>
 
       <CommandsPopover
+        ref={commandsPopoverRef}
         showCommandsPopup={showCommandsPopup}
         input={input}
         setInput={setInput}
         setShowCommandsPopup={setShowCommandsPopup}
         tyrannyInputRef={tyrannyInputRef}
         serverPlugins={server?.plugins}
+        profile={profile}
+        peers={peers}
         t={t}
       />
 
       <MentionsPopover
+        ref={mentionsPopoverRef}
         showMentionsPopup={showMentionsPopup}
         input={input}
         setInput={setInput}
@@ -461,7 +477,7 @@ export default function ChatInputArea({
               contentEditable={hasSendMessages}
               ref={tyrannyInputRef}
               onInput={hasSendMessages ? handleInputChange : undefined}
-              onKeyDown={hasSendMessages ? handleKeyDown : undefined}
+              onKeyDown={hasSendMessages ? handleContentKeyDown : undefined}
               onPaste={hasSendMessages ? handlePaste : undefined}
               onSelect={hasSendMessages ? handleInputSelection : undefined}
               onKeyUp={hasSendMessages ? handleInputSelection : undefined}

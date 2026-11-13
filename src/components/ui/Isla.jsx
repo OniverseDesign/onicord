@@ -1,4 +1,5 @@
 import React from "react";
+import { cn } from "../../lib/cn";
 
 export default function Isla({
   children,
@@ -36,13 +37,13 @@ export default function Isla({
 
   return (
     <div
-      className={`relative w-full h-full rounded-onicord-outer-p4 border flex flex-col overflow-hidden transition-all duration-300 ${fondoClase} p-0 ${
-        tieneBlur ? "bg-black/90 backdrop-blur-md" : ""
-      } ${
-        isEditable
-          ? "cursor-grab active:cursor-grabbing hover:shadow-lg bg-onicord-accent/5 bg-opacity-95"
-          : ""
-      } ${className}`}
+      className={cn(
+        "relative w-full h-full rounded-onicord-outer-p4 border flex flex-col overflow-hidden transition-all duration-300 p-0",
+        fondoClase,
+        tieneBlur && "bg-black/90 backdrop-blur-md",
+        isEditable && "cursor-grab active:cursor-grabbing hover:shadow-lg bg-onicord-accent/5 bg-opacity-95",
+        className
+      )}
       {...props}
     >
       {}

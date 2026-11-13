@@ -124,10 +124,26 @@ export function VoiceProvider({ profile, children }) {
     window.addEventListener("onicord:keybind:toggle_deafen", handleToggleDeafen);
     window.addEventListener("onicord:keybind:disconnect_voice", handleDisconnectVoice);
 
+    // Keep active voice server metadata in sync when server updates occur (e.g. AFK settings, channels)
+    const unsubServerUpdated = window.electronAPI?.on?.("server:updated", (updated) => {
+      if (!updated) return;
+      setCurrentVoiceServer((prev) => {
+        if (!prev) return null;
+        if (
+          (updated.id && updated.id === prev.id) ||
+          (updated.roomCode && updated.roomCode === prev.roomCode)
+        ) {
+          return { ...prev, ...updated };
+        }
+        return prev;
+      });
+    });
+
     return () => {
       window.removeEventListener("onicord:keybind:toggle_mute", handleToggleMute);
       window.removeEventListener("onicord:keybind:toggle_deafen", handleToggleDeafen);
       window.removeEventListener("onicord:keybind:disconnect_voice", handleDisconnectVoice);
+      if (typeof unsubServerUpdated === "function") unsubServerUpdated();
     };
   }, [leaveVoiceChannel]);
 

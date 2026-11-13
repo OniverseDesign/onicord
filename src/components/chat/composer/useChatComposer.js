@@ -6,15 +6,6 @@ import {
   applyMarkdownFormat,
 } from "../../../lib/inputFormatter";
 
-const measureTextWidth = (text, font) => {
-  const canvas =
-    measureTextWidth.canvas ||
-    (measureTextWidth.canvas = document.createElement("canvas"));
-  const context = canvas.getContext("2d");
-  context.font = font || '15px "Roboto", system-ui, -apple-system, sans-serif';
-  return context.measureText(text).width;
-};
-
 export function useChatComposer({ profile, peers }) {
   const [input, setInput] = useState("");
   const [selection, setSelection] = useState(null);
@@ -27,7 +18,7 @@ export function useChatComposer({ profile, peers }) {
   const tyrannyInputRef = useRef(null);
   const isLocalTypingRef = useRef(false);
 
-  // Measure selection and popover position
+  // Measure selection and popover position directly over highlighted text
   const handleInputSelection = useCallback(() => {
     const inputEl = tyrannyInputRef.current;
     if (!inputEl) return;
@@ -35,35 +26,126 @@ export function useChatComposer({ profile, peers }) {
     const { start, end } = getSelectionCharacterOffsets(inputEl);
 
     if (start !== end) {
-      const styles = window.getComputedStyle(inputEl);
-      const font = `${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
+      const winSel = window.getSelection();
+      if (!winSel || winSel.rangeCount === 0 || winSel.isCollapsed) {
+        setSelection(null);
+        return;
+      }
 
-      const textVal = inputEl.textContent || "";
-      const textBefore = textVal.substring(0, start);
-      const textSelection = textVal.substring(start, end);
+      const range = winSel.getRangeAt(0);
+      if (!inputEl.contains(range.startContainer) || !inputEl.contains(range.endContainer)) {
+        setSelection(null);
+        return;
+      }
 
-      const widthBefore = measureTextWidth(textBefore, font);
-      const widthSelection = measureTextWidth(textSelection, font);
+      const rects = range.getClientRects();
+      const textRect = rects && rects.length > 0 ? rects[0] : range.getBoundingClientRect();
 
-      const paddingLeft = parseFloat(styles.paddingLeft) || 0;
-      const xPos = paddingLeft + widthBefore + widthSelection / 2 - inputEl.scrollLeft;
+      if (!textRect || (textRect.width === 0 && textRect.height === 0)) {
+        setSelection(null);
+        return;
+      }
 
-      const relativeLeft = inputEl.offsetLeft + xPos;
+      const inputRect = inputEl.getBoundingClientRect();
+      // Hide if selection has scrolled out of inputEl's visible bounds
+      if (textRect.bottom < inputRect.top || textRect.top > inputRect.bottom) {
+        setSelection(null);
+        return;
+      }
 
-      const chatPanelEl =
-        inputEl.closest(".onicord-chat-input-bar") || inputEl.parentElement;
-      const containerWidth = chatPanelEl?.getBoundingClientRect().width || 400;
-      const constrainedLeft = Math.max(130, Math.min(relativeLeft, containerWidth - 130));
+      const chatPanelEl = inputEl.closest(".onicord-chat-input-bar") || inputEl;
+      const containerRect = chatPanelEl.getBoundingClientRect();
+
+      const centerX = textRect.left + textRect.width / 2;
+
+      // Estimate toolbar width as ~270px (half is 135px) + padding
+      const halfBarWidth = 135;
+      const padding = 8;
+      let clampedX = centerX;
+
+      if (containerRect.width >= halfBarWidth * 2 + padding * 2) {
+        const minX = containerRect.left + halfBarWidth + padding;
+        const maxX = containerRect.right - halfBarWidth - padding;
+        clampedX = Math.max(minX, Math.min(centerX, maxX));
+      } else {
+        const minX = halfBarWidth + padding;
+        const maxX = window.innerWidth - halfBarWidth - padding;
+        clampedX = Math.max(minX, Math.min(centerX, maxX));
+      }
+
+      // Vertical position: 8px above the top of the selected text line
+      let topY = textRect.top - 8;
+      let placement = "top";
+
+      // If too close to the top of the screen (less than 48px), flip below
+      if (topY < 48) {
+        topY = textRect.bottom + 8;
+        placement = "bottom";
+      }
 
       setSelection({
         start,
         end,
-        left: constrainedLeft,
+        x: clampedX,
+        y: topY,
+        left: clampedX,
+        top: topY,
+        placement,
+        containerBounds: {
+          left: containerRect.left,
+          right: containerRect.right,
+          width: containerRect.width,
+        },
       });
     } else {
       setSelection(null);
     }
   }, []);
+
+  // Sync selection with document selection changes
+  useEffect(() => {
+    const handleDocSelectionChange = () => {
+      const inputEl = tyrannyInputRef.current;
+      if (!inputEl) return;
+
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+        setSelection((prev) => (prev ? null : prev));
+        return;
+      }
+
+      if (!inputEl.contains(sel.anchorNode) || !inputEl.contains(sel.focusNode)) {
+        setSelection((prev) => (prev ? null : prev));
+        return;
+      }
+
+      handleInputSelection();
+    };
+
+    document.addEventListener("selectionchange", handleDocSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", handleDocSelectionChange);
+    };
+  }, [handleInputSelection]);
+
+  // Update floating bar position if input scrolls or window resizes while text is selected
+  useEffect(() => {
+    const inputEl = tyrannyInputRef.current;
+    if (!inputEl) return;
+
+    const handleUpdate = () => {
+      if (selection) {
+        handleInputSelection();
+      }
+    };
+
+    inputEl.addEventListener("scroll", handleUpdate, { passive: true });
+    window.addEventListener("resize", handleUpdate, { passive: true });
+    return () => {
+      inputEl.removeEventListener("scroll", handleUpdate);
+      window.removeEventListener("resize", handleUpdate);
+    };
+  }, [selection, handleInputSelection]);
 
   // Sync contenteditable HTML when input changes externally
   useEffect(() => {

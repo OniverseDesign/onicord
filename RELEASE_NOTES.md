@@ -1,3 +1,18 @@
+# Onicord v0.2.8
+
+## Changes
+
+- **Persistent P2P Node Identity & Seed Stability**: Stored a persistent 32-byte cryptographic node seed in SQLite (`app_config.db`) for Hyperswarm initialization, ensuring stable peer identities across restarts and eliminating DHT routing churn.
+- **Atomic SQLite Online Backups & WAL Checkpointing**: Integrated SQLite's native `db.backup()` API for `.onipkg` exports to prevent database corruption during live writes, complemented by periodic passive WAL flushes every 10 minutes.
+- **Asynchronous Video Thumbnail Generation & Chat Previews**: Added non-blocking FFmpeg WebP thumbnail extraction for uploaded videos, paired with rich chat media cards featuring format badges, play controls, and inline download progress.
+- **Virtualized PDF Viewer with Text Selection Layer**: Integrated `@tanstack/react-virtual` in `PdfViewer` to render only in-viewport document pages with render task cancellation, alongside a PDF.js `TextLayer` for native text selection and copying.
+- **Keyboard Navigation for Mentions & Commands Popovers**: Implemented full keyboard arrow, Enter, and Tab navigation across `@mentions` and `/commands` popovers with automatic scroll-into-view tracking.
+- **Precision Floating Formatting Toolbar**: Rewrote selection measurement in `useChatComposer` using `range.getClientRects()`, anchoring the floating markdown bar directly above highlighted text with viewport boundary clamping and scroll tracking.
+- **Zustand Streamer Mode Store & Voice Server State Sync**: Migrated streamer mode state to an atomic persistent Zustand store (`useStreamerModeStore`) and dynamically synced active voice server metadata on server update events.
+- **CSS Bundle Diet & Dependency Stripping**: Removed unused dependencies (`daisyui`, `react-resizable-panels`, `tailwindcss-animate`), cutting the main production stylesheet size from 264 kB to 168 kB (36% reduction).
+- **Server Rail Visual Polish & Brand Asset Refresh**: Standardized server icon hover and active states in `ServerRail`, eliminating outline artifacts and introducing high-resolution application branding assets.
+- **Component ClassName Normalization**: Standardized conditional Tailwind class merging with `cn()` across UI primitives, including `UserListItem`, `Isla`, `FlameBadge`, and `ColorPicker`.
+
 # Onicord v0.2.7
 
 ## Changes

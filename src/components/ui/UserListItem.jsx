@@ -4,6 +4,7 @@ import FlameBadge from "./FlameBadge";
 import { evaluateUserFlame } from "../../lib/flameService";
 import MaterialIcon from "../icons/MaterialIcon";
 import SmartAnimatedImage from "./SmartAnimatedImage";
+import { cn } from "../../lib/cn";
 
 const SIZES = {
   sm: "h-6 w-6 text-[10px]",
@@ -36,7 +37,12 @@ export function UserAvatar({
           borderColor !== "transparent" ? `0 0 0 2px ${borderColor}` : "none",
         transition: "box-shadow 0.12s ease",
       }}
-      className={`shrink-0 overflow-hidden rounded-full ${src ? "" : "bg-onicord-accent"} ${dim} ${className}`}
+      className={cn(
+        "shrink-0 overflow-hidden rounded-full",
+        !src && "bg-onicord-accent",
+        dim,
+        className
+      )}
     >
       {src ? (
         <SmartAnimatedImage
@@ -84,7 +90,7 @@ export function UserAvatarWithStatus({
   })();
 
   return (
-    <div className={`relative inline-flex shrink-0 ${className}`}>
+    <div className={cn("relative inline-flex shrink-0", className)}>
       <UserAvatar
         src={src}
         name={name}
@@ -93,7 +99,10 @@ export function UserAvatarWithStatus({
         isMuted={status === "muted" || status === "deafened"}
       />
       <span
-        className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-onicord-surface ${dot}`}
+        className={cn(
+          "absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-onicord-surface",
+          dot
+        )}
       />
     </div>
   );
@@ -201,9 +210,11 @@ export default function UserListItem({
   return (
     <Component
       data-user-popout-trigger={onClick ? "true" : undefined}
-      className={`onicord-list-row-interactive group flex items-center py-1 ${
-        isOffline ? "opacity-40 hover:opacity-100" : ""
-      } ${className}`}
+      className={cn(
+        "onicord-list-row-interactive group flex items-center py-1",
+        isOffline && "opacity-40 hover:opacity-100",
+        className
+      )}
       onContextMenu={onContextMenu}
       onClick={onClick}
       title={title}

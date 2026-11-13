@@ -48,10 +48,10 @@ export default function RoomView({
   const [moderationConfirm, setModerationConfirm] = useState(null);
   const [textChannelId, setTextChannelId] = useState(() => {
     const ch = server.channels?.find(
-      (c) => c.id === server.lastChannelId && c.type === "text",
+      (c) => c.id === server.lastChannelId && (c.type === "text" || c.type === "forum"),
     );
     return (
-      ch?.id ?? server.channels?.find((c) => c.type === "text")?.id ?? "general"
+      ch?.id ?? server.channels?.find((c) => c.type === "text" || c.type === "forum")?.id ?? "general"
     );
   });
 
