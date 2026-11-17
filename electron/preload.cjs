@@ -77,8 +77,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setOverlaySettings: (settings) => ipcRenderer.invoke("overlay:set-settings", settings),
   triggerTestOverlay: (durationMs) => ipcRenderer.invoke("overlay:trigger-test", durationMs),
   listServers: () => ipcRenderer.invoke("servers:list"),
-  createServer: (name, profile) =>
-    ipcRenderer.invoke("servers:create", name, profile),
+  createServer: (name, profile, icon) =>
+    ipcRenderer.invoke("servers:create", name, profile, icon),
   joinServer: (code, name, profile) =>
     ipcRenderer.invoke("servers:join", code, name, profile),
   enterServer: (serverId, profile) =>

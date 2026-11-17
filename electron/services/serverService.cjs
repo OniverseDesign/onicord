@@ -103,7 +103,7 @@ class ServerService {
     );
   }
 
-  async createServer(name, profile) {
+  async createServer(name, profile, icon = null) {
     const profileService = require("./profileService.cjs");
     await profileService.saveProfileToDisk(profile);
 
@@ -116,12 +116,13 @@ class ServerService {
       ownerId: profile.id,
       creatorId: profile.id,
       creatorID: profile.id,
+      icon: icon || null,
     });
 
     const roomMetaStore = new RoomMetaStore(app.getPath("userData"));
     await roomMetaStore.bump(
       code,
-      { name: server.name, channels: server.channels, ownerId: profile.id, creatorId: profile.id, creatorID: profile.id },
+      { name: server.name, icon: server.icon || icon || null, channels: server.channels, ownerId: profile.id, creatorId: profile.id, creatorID: profile.id },
       "local"
     );
 
@@ -409,6 +410,9 @@ class ServerService {
             }
             if (Boolean(bc.isPrivate) !== Boolean(nc.isPrivate)) {
               log("update_channel", nc.name, nc.isPrivate ? `Changed channel "${nc.name}" to private` : `Changed channel "${nc.name}" to public`);
+            }
+            if (Boolean(bc.nsfw) !== Boolean(nc.nsfw)) {
+              log("update_channel", nc.name, nc.nsfw ? `Enabled NSFW content on "${nc.name}"` : `Disabled NSFW content on "${nc.name}"`);
             }
 
             const beforeAllowed = Array.isArray(bc.allowedRoles) ? bc.allowedRoles : [];

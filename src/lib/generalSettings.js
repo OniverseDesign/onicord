@@ -16,6 +16,7 @@ export const DEFAULT_GENERAL = {
   autoDownloadFiles: true,
   autoDownloadMaxSizeMB: 500,
   downloadDirectory: "",
+  blurNsfwContent: true,
 };
 
 export function normalizeGeneralSettings(general) {
@@ -58,6 +59,7 @@ export function normalizeGeneralSettings(general) {
         ? Number(general.autoDownloadMaxSizeMB)
         : 500,
     downloadDirectory: typeof general?.downloadDirectory === "string" ? general.downloadDirectory : "",
+    blurNsfwContent: general?.blurNsfwContent !== undefined ? Boolean(general.blurNsfwContent) : true,
   };
 }
 

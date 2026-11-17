@@ -1,150 +1,255 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import ModalShell, {
-  ModalField,
-  ModalInput,
-  ModalButton,
-} from "../ui/ModalShell";
+import { ModalInput } from "../ui/ModalShell";
+import Heading from "../ui/Heading";
+import Text from "../ui/Text";
+import AvatarPicker from "../ui/AvatarPicker";
+import { IconClose } from "../icons/StreamIcons";
+import { cn } from "../../lib/cn";
+import { parseInviteUrl } from "../../lib/inviteUtils";
+import { soundEngine } from "../../lib/soundEngine";
+import { useInternalClose } from "../../hooks/useAnimatedMount";
 
 export default function AddServerModal({ profile, onClose, onCreated }) {
   const { t } = useTranslation();
-  const SECTIONS = useMemo(
-    () => [
-      { id: "create", label: t("addServerModal.createTab"), icon: "add_circle" },
-      { id: "join", label: t("addServerModal.joinTab"), icon: "group_add" },
-    ],
-    [t],
-  );
-
-  const [tab, setTab] = useState("create");
   const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [icon, setIcon] = useState(null);
+  const [inviteInput, setInviteInput] = useState("");
+  const [busyAction, setBusyAction] = useState(null);
   const [error, setError] = useState(null);
 
-  const inputRef = useRef(null);
+  const nameInputRef = useRef(null);
+  const { isClosing, triggerClose } = useInternalClose(onClose, 140);
 
-  const normalized = code
-    .replace(/[^a-fA-F0-9]/g, "")
-    .toUpperCase()
-    .slice(0, 8);
-  const codeValid = normalized.length === 8;
+  const handleClose = useCallback(() => {
+    if (busyAction) return;
+    soundEngine.playNav("close");
+    triggerClose();
+  }, [busyAction, triggerClose]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleClose]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
+      nameInputRef.current?.focus();
     }, 150);
     return () => clearTimeout(timer);
-  }, [tab]);
+  }, []);
+
+  const parsedInvite = useMemo(() => {
+    const parsedUrl = parseInviteUrl(inviteInput);
+    if (parsedUrl && /^[A-F0-9]{8}$/i.test(parsedUrl.roomCode)) {
+      return {
+        valid: true,
+        code: parsedUrl.roomCode.toUpperCase(),
+        ip: parsedUrl.ip || null,
+        port: parsedUrl.port || null,
+      };
+    }
+
+    const trimmed = inviteInput.replace(/\s+/g, "");
+    if (/^[a-fA-F0-9]{8}$/.test(trimmed)) {
+      return {
+        valid: true,
+        code: trimmed.toUpperCase(),
+        ip: null,
+        port: null,
+      };
+    }
+
+    return { valid: false, code: "", ip: null, port: null };
+  }, [inviteInput]);
 
   const handleCreate = async () => {
-    setBusy(true);
+    const trimmedName = name.trim();
+    if (!trimmedName || busyAction) return;
+
+    setBusyAction("create");
     setError(null);
     try {
-      const server = await window.electronAPI.createServer(
-        name.trim() || "My Server",
+      let server = await window.electronAPI.createServer(
+        trimmedName,
         profile,
+        icon,
       );
-      onCreated(server);
+      if (icon && server?.id && !server?.icon && window.electronAPI.updateServerSettings) {
+        const updated = await window.electronAPI.updateServerSettings(server.id, { icon });
+        if (updated) server = updated;
+      }
+      await onCreated(server);
     } catch (err) {
       setError(err.message || "Could not create server");
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
 
   const handleJoin = async () => {
-    if (!codeValid) return;
-    setBusy(true);
+    if (!parsedInvite.valid || busyAction) return;
+
+    setBusyAction("join");
     setError(null);
     try {
-      const server = await window.electronAPI.joinServer(
-        normalized,
-        name.trim() || `Server ${normalized.slice(0, 4)}`,
+      let server = await window.electronAPI.joinServer(
+        parsedInvite.code,
+        "",
         profile,
       );
-      onCreated(server);
+      if (
+        parsedInvite.ip &&
+        parsedInvite.port &&
+        server?.id &&
+        window.electronAPI.updateServerSettings
+      ) {
+        const updated = await window.electronAPI.updateServerSettings(server.id, {
+          directConnectionEnabled: true,
+          directIP: parsedInvite.ip,
+          directPort: parsedInvite.port,
+        });
+        if (updated) server = updated;
+      }
+      await onCreated(server);
     } catch (err) {
       setError(err.message || "Could not join server");
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   };
 
-  return (
-    <ModalShell
-      title={t("addServerModal.title")}
-      subtitle="P2P · Mesh"
-      sections={SECTIONS}
-      activeSection={tab}
-      onSectionChange={setTab}
-      onClose={onClose}
-      footer={
-        <>
-          <ModalButton variant="secondary" onClick={onClose}>
-            {t("common.cancel")}
-          </ModalButton>
-          <ModalButton
-            variant="primary"
-            disabled={busy || (tab === "join" && !codeValid)}
-            onClick={tab === "create" ? handleCreate : handleJoin}
-          >
-            {busy
-              ? t("common.saving")
-              : tab === "create"
-                ? t("addServerModal.createButton")
-                : t("addServerModal.joinButton")}
-          </ModalButton>
-        </>
-      }
+  return createPortal(
+    <div
+      className={cn("onicord-modal-backdrop p-4", isClosing && "onicord-animate-backdrop-out")}
+      onClick={handleClose}
+      role="presentation"
     >
-      <ModalField
-        label={t("addServerModal.serverNameLabel")}
-        hint={t("addServerModal.serverNameHint")}
+      <div
+        className={cn(
+          "onicord-modal-card !max-w-[440px] w-full p-6 sm:p-7 relative overflow-hidden",
+          isClosing && "onicord-animate-modal-out",
+        )}
+        onClick={(e) => e.stopPropagation()}
       >
-        <ModalInput
-          ref={inputRef}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={48}
-          placeholder={
-            tab === "create"
-              ? t("addServerModal.createPlaceholder")
-              : t("addServerModal.joinPlaceholder")
-          }
-        />
-      </ModalField>
-
-      {tab === "join" && (
-        <ModalField
-          label={t("addServerModal.joinTab")}
-          hint={t("addServerModal.inviteCodeHint")}
+        <button
+          type="button"
+          onClick={handleClose}
+          disabled={Boolean(busyAction)}
+          className="onicord-icon-btn absolute right-4 top-4 z-10"
+          aria-label={t("common.close", "Cerrar")}
         >
-          <ModalInput
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder={t("addServerModal.codePlaceholder", "A1B2C3D4")}
-            className="onicord-input-code text-xl tracking-[0.3em] pl-[0.3em]"
+          <IconClose size="base" />
+        </button>
+
+        {/* Centered Header */}
+        <div className="text-center px-4">
+          <Heading level={2} size="2xl" className="text-center">
+            {t("addServerModal.title", "Crea tu servidor")}
+          </Heading>
+          <Text variant="sm" color="muted" className="mt-2 leading-relaxed text-center">
+            {t(
+              "addServerModal.subtitle",
+              "Tu servidor es donde te reúnes con tus amigos. Crea el tuyo y empieza a hablar.",
+            )}
+          </Text>
+        </div>
+
+        {/* Server Icon Picker */}
+        <div className="my-6 flex justify-center">
+          <AvatarPicker
+            src={icon}
+            onChange={setIcon}
+            onError={setError}
+            initial={name.trim() ? name.trim().slice(0, 2).toUpperCase() : ""}
+            fallbackIcon="dns"
+            size="lg"
+            disabled={Boolean(busyAction)}
+            title={
+              icon
+                ? t("addServerModal.changeIcon", "Cambiar icono")
+                : t("addServerModal.uploadIcon", "Subir")
+            }
+            removeTitle={t("addServerModal.removeIcon", "Eliminar icono")}
           />
-          <p className="mt-1.5 text-right font-mono text-xs text-onicord-muted font-bold tracking-tight select-none">
-            {normalized.length} <span className="text-white/20">/</span> 8
+        </div>
+
+        {/* Create Server Section */}
+        <div>
+          <label className="mb-2 block text-xs font-semibold text-onicord-subtext select-none">
+            {t("addServerModal.serverNameLabel", "Nombre del servidor")}{" "}
+            <span className="text-onicord-danger">*</span>
+          </label>
+          <ModalInput
+            ref={nameInputRef}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && name.trim() && !busyAction) {
+                e.preventDefault();
+                handleCreate();
+              }
+            }}
+            maxLength={48}
+            disabled={Boolean(busyAction)}
+            placeholder={t("addServerModal.createPlaceholder", "Ej: Squad Gaming")}
+            className="h-10"
+          />
+          <button
+            type="button"
+            disabled={Boolean(busyAction) || !name.trim()}
+            onClick={handleCreate}
+            className="onicord-btn-primary w-full mt-3 h-10"
+          >
+            {busyAction === "create"
+              ? t("common.saving", "Guardando...")
+              : t("addServerModal.createButton", "Crear servidor")}
+          </button>
+        </div>
+
+        {/* Join Server Section */}
+        <div className="mt-6 pt-5 border-t border-white/5">
+          <Heading level={3} size="lg" className="text-center mb-3">
+            {t("addServerModal.haveInviteTitle", "¿Ya tienes una invitación?")}
+          </Heading>
+          <ModalInput
+            value={inviteInput}
+            onChange={(e) => setInviteInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && parsedInvite.valid && !busyAction) {
+                e.preventDefault();
+                handleJoin();
+              }
+            }}
+            disabled={Boolean(busyAction)}
+            placeholder={t("addServerModal.invitePlaceholder", "A1B2C3D4 o enlace de invitación")}
+            className="h-10"
+          />
+          <button
+            type="button"
+            disabled={Boolean(busyAction) || !parsedInvite.valid}
+            onClick={handleJoin}
+            className="onicord-btn-secondary w-full mt-2.5 h-10 bg-onicord-overlay/60 hover:bg-onicord-overlay border border-white/5 text-onicord-text"
+          >
+            {busyAction === "join"
+              ? t("common.loading", "Cargando...")
+              : t("addServerModal.joinButton", "Únete a un servidor")}
+          </button>
+        </div>
+
+        {error && (
+          <p className="onicord-error-banner mt-4 animate-fade-in">
+            {error}
           </p>
-        </ModalField>
-      )}
-
-      {tab === "create" && (
-        <p className="text-sm font-medium text-onicord-muted leading-relaxed mt-2 select-none">
-          {t("addServerModal.joinInviteInstruction")}
-        </p>
-      )}
-
-      {error && (
-        <p className="onicord-error-banner mt-4 animate-fade-in">
-          {error}
-        </p>
-      )}
-    </ModalShell>
+        )}
+      </div>
+    </div>,
+    document.body,
   );
 }

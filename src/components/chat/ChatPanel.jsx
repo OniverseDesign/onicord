@@ -280,6 +280,7 @@ export default function ChatPanel({
 
   const [sending, setSending] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isEphemeralMode, setIsEphemeralMode] = useState(false);
   const [pendingFiles, setPendingFiles] = useState([]);
   const pendingFile = pendingFiles[0] || null;
   const previewUrl = pendingFiles[0]?.previewUrl || null;
@@ -314,7 +315,24 @@ export default function ChatPanel({
       });
       return [];
     });
-  }, []); 
+  }, []);
+
+  const togglePendingFileNsfw = useCallback((index) => {
+    if (!currentChannel?.nsfw) {
+      setAlertModal({
+        isOpen: true,
+        title: t("chat.nsfwNotAllowedTitle", "Contenido NSFW no permitido"),
+        msg: t(
+          "chat.nsfwNotAllowedInChannel",
+          "Este canal no tiene permitido el envío de contenido NSFW. Actívalo en Ajustes del Servidor > Canales o desmarca la opción NSFW.",
+        ),
+      });
+      return;
+    }
+    setPendingFiles((prev) =>
+      prev.map((pf, idx) => (idx === index ? { ...pf, isNsfw: !pf.isNsfw } : pf)),
+    );
+  }, [currentChannel?.nsfw, t]); 
   const fileInputRef = useRef(null); 
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [replyTarget, setReplyTarget] = useState(null);
@@ -472,6 +490,18 @@ export default function ChatPanel({
     const trimmedTitle = postTitle.trim();
     if ((!text && pendingFiles.length === 0 && !trimmedTitle) || sending) return;
 
+    if (pendingFiles.some((pf) => pf.isNsfw) && !currentChannel?.nsfw) {
+      setAlertModal({
+        isOpen: true,
+        title: t("chat.nsfwNotAllowedTitle", "Contenido NSFW no permitido"),
+        msg: t(
+          "chat.nsfwNotAllowedInChannel",
+          "Este canal no tiene permitido el envío de contenido NSFW. Actívalo en Ajustes del Servidor > Canales o desmarca la opción NSFW.",
+        ),
+      });
+      return;
+    }
+
     setSending(true);
     setInput("");
     if (isForum) setPostTitle("");
@@ -552,6 +582,7 @@ export default function ChatPanel({
               name: pfName,
               size: pfSize,
               ...(pfThumb ? { thumbnail: pfThumb } : {}),
+              ...(pf.isNsfw ? { isNsfw: true } : {}),
             });
           }
         }
@@ -561,6 +592,9 @@ export default function ChatPanel({
             .map((att) => `[FILE_ATTACHMENT]:${JSON.stringify(att)}`)
             .join("");
           const fileContent = `${userText}${attachmentsPayload}`;
+          const ephemeralMeta = isEphemeralMode
+            ? { isEphemeral: true, expiresAt: Date.now() + 60000 }
+            : null;
 
           let payloadMensaje;
           if (isForum || trimmedTitle || extractedTags.length > 0) {
@@ -569,11 +603,17 @@ export default function ChatPanel({
               body: fileContent,
               tags: extractedTags.length > 0 ? extractedTags : undefined,
               replyTo: replyData || undefined,
+              ...(ephemeralMeta || {}),
             });
           } else {
-            payloadMensaje = replyData
-              ? JSON.stringify({ body: fileContent, replyTo: replyData })
-              : fileContent;
+            payloadMensaje =
+              replyData || ephemeralMeta
+                ? JSON.stringify({
+                    body: fileContent,
+                    ...(replyData ? { replyTo: replyData } : {}),
+                    ...(ephemeralMeta || {}),
+                  })
+                : fileContent;
           }
 
           await window.electronAPI.sendChatMessage(
@@ -585,6 +625,9 @@ export default function ChatPanel({
 
         clearPendingFiles();
       } else {
+        const ephemeralMeta = isEphemeralMode
+          ? { isEphemeral: true, expiresAt: Date.now() + 60000 }
+          : null;
         let payloadMensaje;
         if (isForum || trimmedTitle || extractedTags.length > 0) {
           payloadMensaje = JSON.stringify({
@@ -592,11 +635,17 @@ export default function ChatPanel({
             body: text,
             tags: extractedTags.length > 0 ? extractedTags : undefined,
             replyTo: replyData || undefined,
+            ...(ephemeralMeta || {}),
           });
         } else {
-          payloadMensaje = replyData
-            ? JSON.stringify({ body: text, replyTo: replyData })
-            : text;
+          payloadMensaje =
+            replyData || ephemeralMeta
+              ? JSON.stringify({
+                  body: text,
+                  ...(replyData ? { replyTo: replyData } : {}),
+                  ...(ephemeralMeta || {}),
+                })
+              : text;
         }
 
         const optimisticMsg = normalizeChatMessage({
@@ -613,6 +662,7 @@ export default function ChatPanel({
           replyTo: replyData,
           timestamp: Date.now(),
           isOptimistic: true,
+          ...(ephemeralMeta || {}),
         });
 
         setMessages((prev) => [...prev, optimisticMsg]);
@@ -673,6 +723,7 @@ export default function ChatPanel({
       type: file.type,
       fileObj: file,
       previewUrl: preview,
+      isNsfw: false,
     };
   };
 
@@ -1135,6 +1186,10 @@ export default function ChatPanel({
         pendingFiles={pendingFiles}
         onRemovePendingFile={removePendingFile}
         onClearPendingFiles={clearPendingFiles}
+        onTogglePendingFileNsfw={togglePendingFileNsfw}
+        channelAllowsNsfw={Boolean(currentChannel?.nsfw)}
+        isEphemeralMode={isEphemeralMode}
+        onToggleEphemeralMode={() => setIsEphemeralMode((v) => !v)}
         previewUrl={previewUrl}
         setPreviewUrl={setPreviewUrl}
         replyTarget={replyTarget}
@@ -1175,6 +1230,9 @@ export default function ChatPanel({
               stickerId: stk.id,
               stickerName: stk.name,
               ext: stk.ext,
+              ...(isEphemeralMode
+                ? { isEphemeral: true, expiresAt: Date.now() + 60000 }
+                : {}),
             });
 
             window.electronAPI.sendChatMessage(
@@ -1196,11 +1254,18 @@ export default function ChatPanel({
           setStickersTargetRect(null);
         }}
         onSharePackDirect={async (packInfo) => {
-          const payloadFilePack = `[FILE_ATTACHMENT]:${JSON.stringify({
+          const basePack = `[FILE_ATTACHMENT]:${JSON.stringify({
             id: packInfo.fileId,
             name: packInfo.name,
             size: packInfo.size,
           })}`;
+          const payloadFilePack = isEphemeralMode
+            ? JSON.stringify({
+                body: basePack,
+                isEphemeral: true,
+                expiresAt: Date.now() + 60000,
+              })
+            : basePack;
 
           if (window.electronAPI?.sendChatMessage) {
             await window.electronAPI.sendChatMessage(

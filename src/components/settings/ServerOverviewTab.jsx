@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ModalInput } from "../ui/ModalShell";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
+import AvatarPicker from "../ui/AvatarPicker";
 import MaterialIcon from "../icons/MaterialIcon";
 import Select from "../ui/Select";
 import FlameBadge from "../ui/FlameBadge";
@@ -30,7 +31,6 @@ export default function ServerOverviewTab({
   afkSettings = null,
 }) {
   const { t } = useTranslation();
-  const iconInputRef = useRef(null);
   const bannerInputRef = useRef(null);
 
   const rawMembers = server?.savedMembers
@@ -38,27 +38,6 @@ export default function ServerOverviewTab({
     : [];
   const serverFlame = evaluateServerFlame(server || {}, rawMembers);
   const realStreak = serverFlame?.serverStreak || 0;
-
-  const handleIcon = (e) => {
-    if (readOnly) return;
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    if (file.size > 8 * 1024 * 1024) {
-      setError(
-        t(
-          "serverSettings.overview.iconSizeError",
-          "El icono no puede superar 8 MB",
-        ),
-      );
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setIcon(reader.result);
-      setError(null);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleBanner = (e) => {
     if (readOnly) return;
@@ -465,58 +444,20 @@ export default function ServerOverviewTab({
                   </div>
                   {/* Large avatar overlapping bottom banner edge with interactive overlay */}
                   <div className="px-5 -mt-7 relative z-10">
-                    <div className="w-16 h-16 rounded-full border-[4px] border-onicord-base flex items-center justify-center bg-onicord-surface relative group">
-                      <div
-                        className="absolute inset-0 rounded-full overflow-hidden flex items-center justify-center cursor-pointer"
-                        style={{ isolation: "isolate" }}
-                        onClick={() => !readOnly && iconInputRef.current?.click()}
-                        title={
-                          !readOnly
-                            ? t(
-                                "serverSettings.overview.changeIcon",
-                                "Cambiar Icono",
-                              )
-                            : undefined
-                        }
-                      >
-                        {icon ? (
-                          <SmartAnimatedImage
-                            src={icon}
-                            alt=""
-                            className="w-full h-full object-cover group-hover:opacity-40 transition-opacity"
-                            isAvatar
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-onicord-surface text-white font-bold text-base group-hover:opacity-40 transition-opacity">
-                            {initial}
-                          </div>
-                        )}
-                        {!readOnly && (
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                            <MaterialIcon
-                              name="photo_camera"
-                              size={20}
-                              className="text-white"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Mini delete button for icon if present */}
-                      {icon && !readOnly && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIcon(null);
-                          }}
-                          title={t("common.delete", "Eliminar icono")}
-                          className="absolute -top-1 -right-1 z-20 w-6 h-6 rounded-full bg-onicord-danger hover:bg-onicord-danger/80 text-white flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MaterialIcon name="close" size={14} />
-                        </button>
-                      )}
-                    </div>
+                    <AvatarPicker
+                      src={icon}
+                      onChange={setIcon}
+                      onError={setError}
+                      initial={initial}
+                      size="md"
+                      readOnly={readOnly}
+                      removeOnHoverOnly={true}
+                      circleClassName="border-[4px] border-onicord-base bg-onicord-surface"
+                      emptyClassName="bg-onicord-surface text-white"
+                      circleStyle={{}}
+                      title={!readOnly ? t("serverSettings.overview.changeIcon", "Cambiar Icono") : undefined}
+                      removeTitle={t("common.delete", "Eliminar icono")}
+                    />
                   </div>
                   {/* Server name + Flame on same row */}
                   <div className="flex items-center justify-between px-5 pt-2 pb-3">
@@ -563,53 +504,20 @@ export default function ServerOverviewTab({
                   <div className="h-[52px] px-3.5 flex items-center justify-between">
                     <div className="flex items-center min-w-0">
                       {/* Server Icon ROUNDED IN CIRCLE with interactive overlay */}
-                      <div
-                        className="relative w-8 h-8 rounded-full border border-white/10 overflow-hidden flex items-center justify-center shrink-0 bg-onicord-surface shadow-sm group cursor-pointer"
-                        onClick={() => !readOnly && iconInputRef.current?.click()}
-                        title={
-                          !readOnly
-                            ? t(
-                                "serverSettings.overview.changeIcon",
-                                "Cambiar Icono",
-                              )
-                            : undefined
-                        }
-                      >
-                        {icon ? (
-                          <SmartAnimatedImage
-                            src={icon}
-                            alt=""
-                            className="w-full h-full object-cover group-hover:opacity-40 transition-opacity"
-                            isAvatar
-                          />
-                        ) : (
-                          <span className="text-white font-bold text-xs group-hover:opacity-40 transition-opacity">
-                            {initial}
-                          </span>
-                        )}
-                        {!readOnly && (
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-                            <MaterialIcon
-                              name="photo_camera"
-                              size={14}
-                              className="text-white"
-                            />
-                          </div>
-                        )}
-                        {icon && !readOnly && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIcon(null);
-                            }}
-                            title={t("common.delete", "Eliminar icono")}
-                            className="absolute inset-0 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-onicord-danger hover:bg-onicord-danger/80 flex items-center justify-center text-white"
-                          >
-                            <MaterialIcon name="close" size={14} />
-                          </button>
-                        )}
-                      </div>
+                      <AvatarPicker
+                        src={icon}
+                        onChange={setIcon}
+                        onError={setError}
+                        initial={initial}
+                        size="sm"
+                        readOnly={readOnly}
+                        removeOnHoverOnly={true}
+                        circleClassName="border border-white/10 bg-onicord-surface shadow-sm shrink-0"
+                        emptyClassName="bg-onicord-surface text-white"
+                        circleStyle={{}}
+                        title={!readOnly ? t("serverSettings.overview.changeIcon", "Cambiar Icono") : undefined}
+                        removeTitle={t("common.delete", "Eliminar icono")}
+                      />
                       {/* Server Name */}
                       <span
                         className="text-[14px] font-bold text-white truncate ml-2.5 max-w-[130px]"
@@ -757,24 +665,15 @@ export default function ServerOverviewTab({
         </div>
       </div>
 
-      {/* Hidden file inputs for Icon and Banner */}
+      {/* Hidden file input for Banner */}
       {!readOnly && (
-        <>
-          <input
-            ref={iconInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleIcon}
-            className="hidden"
-          />
-          <input
-            ref={bannerInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/*"
-            onChange={handleBanner}
-            className="hidden"
-          />
-        </>
+        <input
+          ref={bannerInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/*"
+          onChange={handleBanner}
+          className="hidden"
+        />
       )}
     </div>
   );

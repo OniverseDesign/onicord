@@ -1,19 +1,112 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import Select from "../ui/Select";
 import { DEFAULT_AUDIO } from "../../lib/audioSettings";
+import { acquireWebcamStream } from "../../lib/voice/webcamCompositor";
+
+function buildDeviceOptions(devices, selectedId, selectedLabel, defaultLabel, fallbackPrefix, disconnectedText) {
+  const opts = [{ value: "", label: defaultLabel }];
+  let foundSelected = !selectedId || selectedId === "default";
+
+  (devices || [])
+    .filter((d) => d.deviceId && d.deviceId !== "default")
+    .forEach((d, idx) => {
+      if (d.deviceId === selectedId) foundSelected = true;
+      opts.push({
+        value: d.deviceId,
+        label: d.label || `${fallbackPrefix} ${idx + 1} (${d.deviceId.slice(0, 8)})`,
+      });
+    });
+
+  if (!foundSelected && selectedId && selectedId !== "default") {
+    opts.push({
+      value: selectedId,
+      label: selectedLabel
+        ? `${selectedLabel} (${disconnectedText})`
+        : `${fallbackPrefix} (${selectedId.slice(0, 8)}...) [${disconnectedText}]`,
+    });
+  }
+
+  return opts;
+}
 
 export default function AudioTab({
   audio,
   setAudio,
   inputs,
   outputs,
+  videoInputs = [],
+  refreshDevices,
   isTestingMic,
   micLevel,
   toggleMicTest,
 }) {
   const { t } = useTranslation();
+  const [isTestingCamera, setIsTestingCamera] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const previewVideoRef = useRef(null);
+  const previewStreamRef = useRef(null);
+
+  const stopCameraPreview = useCallback(() => {
+    if (previewStreamRef.current) {
+      previewStreamRef.current.getTracks().forEach((tr) => {
+        try {
+          tr.enabled = false;
+          tr.stop();
+        } catch {}
+      });
+      previewStreamRef.current = null;
+    }
+    if (previewVideoRef.current) {
+      previewVideoRef.current.srcObject = null;
+    }
+    setIsTestingCamera(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopCameraPreview();
+    };
+  }, [stopCameraPreview]);
+
+  const startCameraPreview = useCallback(
+    async (deviceId = audio.videoDeviceId) => {
+      stopCameraPreview();
+      setCameraError(null);
+      try {
+        const stream = await acquireWebcamStream({
+          deviceId,
+          resolution: "720",
+          gameMode: false,
+          isPipOverlay: true,
+        });
+        previewStreamRef.current = stream;
+        setIsTestingCamera(true);
+        refreshDevices?.();
+        requestAnimationFrame(() => {
+          if (previewVideoRef.current && previewStreamRef.current === stream) {
+            previewVideoRef.current.srcObject = stream;
+            previewVideoRef.current.play().catch(() => {});
+          }
+        });
+      } catch (err) {
+        setCameraError(
+          err?.message || t("screenShare.cameraPermissionError", "No se pudo acceder a la cámara.")
+        );
+        setIsTestingCamera(false);
+      }
+    },
+    [audio.videoDeviceId, refreshDevices, stopCameraPreview, t]
+  );
+
+  const toggleCameraTest = () => {
+    if (isTestingCamera) {
+      stopCameraPreview();
+    } else {
+      startCameraPreview(audio.videoDeviceId);
+    }
+  };
 
   // Auto-healing: if deviceId changed hash in Chromium, rebind using the label
   useEffect(() => {
@@ -70,71 +163,71 @@ export default function AudioTab({
     }
   }, [outputs, audio.outputDeviceId, audio.outputDeviceLabel, setAudio]);
 
-  // Build input options preserving saved device even if disconnected
-  const inputOptions = useMemo(() => {
-    const opts = [
-      {
-        value: "",
-        label: t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema"),
-      },
-    ];
+  // Auto-healing for camera deviceId hash changes
+  useEffect(() => {
+    if (!videoInputs || videoInputs.length === 0) return;
 
-    let foundSelected = !audio.inputDeviceId || audio.inputDeviceId === "default";
-
-    inputs
-      .filter((d) => d.deviceId && d.deviceId !== "default")
-      .forEach((d) => {
-        if (d.deviceId === audio.inputDeviceId) foundSelected = true;
-        opts.push({
-          value: d.deviceId,
-          label: d.label || `Mic ${d.deviceId.slice(0, 8)}`,
-        });
-      });
-
-    if (!foundSelected && audio.inputDeviceId && audio.inputDeviceId !== "default") {
-      opts.push({
-        value: audio.inputDeviceId,
-        label: audio.inputDeviceLabel
-          ? `${audio.inputDeviceLabel} (${t("settings.voiceVideo.disconnected", "Desconectado")})`
-          : `Mic (${audio.inputDeviceId.slice(0, 8)}...) [${t("settings.voiceVideo.disconnected", "Desconectado")}]`,
-      });
+    if (audio.videoDeviceId && audio.videoDeviceId !== "default") {
+      const existsById = videoInputs.some((d) => d.deviceId === audio.videoDeviceId);
+      if (!existsById && audio.videoDeviceLabel) {
+        const matchByLabel = videoInputs.find(
+          (d) => d.label && d.label.trim() === audio.videoDeviceLabel.trim()
+        );
+        if (matchByLabel) {
+          setAudio((a) => ({
+            ...a,
+            videoDeviceId: matchByLabel.deviceId,
+          }));
+        }
+      } else if (existsById && !audio.videoDeviceLabel) {
+        const match = videoInputs.find((d) => d.deviceId === audio.videoDeviceId);
+        if (match?.label) {
+          setAudio((a) => ({ ...a, videoDeviceLabel: match.label }));
+        }
+      }
     }
+  }, [videoInputs, audio.videoDeviceId, audio.videoDeviceLabel, setAudio]);
 
-    return opts;
-  }, [inputs, audio.inputDeviceId, audio.inputDeviceLabel, t]);
+  // Build input options preserving saved device even if disconnected
+  const inputOptions = useMemo(
+    () =>
+      buildDeviceOptions(
+        inputs,
+        audio.inputDeviceId,
+        audio.inputDeviceLabel,
+        t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema"),
+        "Mic",
+        t("settings.voiceVideo.disconnected", "Desconectado")
+      ),
+    [inputs, audio.inputDeviceId, audio.inputDeviceLabel, t]
+  );
 
   // Build output options preserving saved device even if disconnected
-  const outputOptions = useMemo(() => {
-    const opts = [
-      {
-        value: "",
-        label: t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema"),
-      },
-    ];
+  const outputOptions = useMemo(
+    () =>
+      buildDeviceOptions(
+        outputs,
+        audio.outputDeviceId,
+        audio.outputDeviceLabel,
+        t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema"),
+        "Speaker",
+        t("settings.voiceVideo.disconnected", "Desconectado")
+      ),
+    [outputs, audio.outputDeviceId, audio.outputDeviceLabel, t]
+  );
 
-    let foundSelected = !audio.outputDeviceId || audio.outputDeviceId === "default";
-
-    outputs
-      .filter((d) => d.deviceId && d.deviceId !== "default")
-      .forEach((d) => {
-        if (d.deviceId === audio.outputDeviceId) foundSelected = true;
-        opts.push({
-          value: d.deviceId,
-          label: d.label || `Speaker ${d.deviceId.slice(0, 8)}`,
-        });
-      });
-
-    if (!foundSelected && audio.outputDeviceId && audio.outputDeviceId !== "default") {
-      opts.push({
-        value: audio.outputDeviceId,
-        label: audio.outputDeviceLabel
-          ? `${audio.outputDeviceLabel} (${t("settings.voiceVideo.disconnected", "Desconectado")})`
-          : `Speaker (${audio.outputDeviceId.slice(0, 8)}...) [${t("settings.voiceVideo.disconnected", "Desconectado")}]`,
-      });
-    }
-
-    return opts;
-  }, [outputs, audio.outputDeviceId, audio.outputDeviceLabel, t]);
+  const videoOptions = useMemo(
+    () =>
+      buildDeviceOptions(
+        videoInputs,
+        audio.videoDeviceId,
+        audio.videoDeviceLabel,
+        t("settings.voiceVideo.defaultSystem", "Predeterminado del sistema"),
+        t("settings.voiceVideo.cameraLabelFallback", "Cámara"),
+        t("settings.voiceVideo.disconnected", "Desconectado")
+      ),
+    [videoInputs, audio.videoDeviceId, audio.videoDeviceLabel, t]
+  );
 
   return (
     <div className="onicord-settings-container">
@@ -236,6 +329,70 @@ export default function AudioTab({
               />
             </div>
           </div>
+        </div>
+
+        {/* Camera (Webcam) */}
+        <div
+          data-setting-id="videoDevice"
+          className="mt-5 space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-white/5 transition-all"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex-1 min-w-0 space-y-2">
+              <label className="text-xs font-semibold text-onicord-text flex items-center justify-between">
+                <span>{t("settings.voiceVideo.cameraDevice", "Cámara de Video (Webcam)")}</span>
+                <MaterialIcon name="videocam" size={16} className="text-onicord-muted" />
+              </label>
+              <Select
+                value={audio.videoDeviceId === "default" ? "" : (audio.videoDeviceId || "")}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const match = videoInputs.find((d) => d.deviceId === val);
+                  setAudio((a) => ({
+                    ...a,
+                    videoDeviceId: val,
+                    videoDeviceLabel: match?.label || (val === "" ? "" : a.videoDeviceLabel),
+                  }));
+                  if (isTestingCamera) {
+                    startCameraPreview(val);
+                  }
+                }}
+                options={videoOptions}
+                className="w-full"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleCameraTest}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer sm:self-end ${
+                isTestingCamera
+                  ? "bg-onicord-danger/20 text-onicord-danger border border-onicord-danger/30 hover:bg-onicord-danger/30"
+                  : "bg-onicord-accent text-onicord-dark font-semibold hover:opacity-90 shadow-sm"
+              }`}
+            >
+              {isTestingCamera
+                ? t("settings.voiceVideo.stopTestCamera", "Detener Cámara")
+                : t("settings.voiceVideo.testCamera", "Probar Cámara")}
+            </button>
+          </div>
+
+          {cameraError && (
+            <p className="text-[11px] text-onicord-danger font-medium">{cameraError}</p>
+          )}
+
+          {isTestingCamera && (
+            <div className="pt-2 flex justify-center">
+              <div className="w-full max-w-[320px] aspect-video rounded-xl overflow-hidden bg-black border border-white/10 shadow-lg relative">
+                <video
+                  ref={previewVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover -scale-x-100"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

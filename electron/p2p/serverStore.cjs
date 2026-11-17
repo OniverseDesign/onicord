@@ -517,6 +517,7 @@ class ServerStore {
               : "text",
             name: safeSliceUnicode(String(c.name ?? "").trim(), 100),
             parentId: c.parentId ?? null,
+            nsfw: Boolean(c.nsfw),
             isPrivate: Boolean(c.isPrivate),
             allowedRoles: Array.isArray(c.allowedRoles) ? c.allowedRoles : [],
             hasSpeakRestrictions: Boolean(c.hasSpeakRestrictions),

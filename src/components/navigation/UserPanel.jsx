@@ -16,6 +16,12 @@ import NetworkPopover from "../ui/NetworkPopover";
 import ContextMenu from "../ui/ContextMenu";
 import MaterialIcon from "../icons/MaterialIcon";
 import { useStreamerMode } from "../../context/StreamerModeContext";
+import { notificationManager } from "../../lib/notificationManager";
+import {
+  WebcamStreamCompositor,
+  acquireWebcamStream,
+  acquireSystemAudioOnlyStream,
+} from "../../lib/voice/webcamCompositor";
 
 export default function UserPanel({
   profile,
@@ -164,8 +170,70 @@ export default function UserPanel({
   const handleSelectSource = async (source, resolution, streamOptions = {}) => {
     setIsModalOpen(false);
     if (!canShareVideo) return;
-    const isGameMode = Boolean(streamOptions.gameMode);
 
+    const isGameMode = Boolean(streamOptions.gameMode);
+    const includeAudio = streamOptions?.includeAudio !== false;
+    const mode = streamOptions?.mode === "camera" ? "camera" : "screen";
+    const includeWebcam = mode === "camera" ? true : Boolean(streamOptions?.includeWebcam);
+    const webcamDeviceId =
+      streamOptions?.webcamDeviceId ||
+      profile?.audio?.videoDeviceId ||
+      localStorage.getItem("onicord_preferred_webcam") ||
+      "";
+    const webcamPosition = streamOptions?.webcamPosition || "bottom-right";
+    const webcamMirror = streamOptions?.webcamMirror !== false;
+
+    const fullOptions = {
+      ...streamOptions,
+      mode,
+      resolution,
+      gameMode: isGameMode,
+      includeAudio,
+      includeWebcam,
+      webcamDeviceId,
+      webcamPosition,
+      webcamMirror,
+    };
+
+    // Mode 1: Camera-only stream (uses voice channel mic + optional system audio)
+    if (mode === "camera") {
+      let camStream = null;
+      let sysAudioStream = null;
+      try {
+        camStream = await acquireWebcamStream({
+          deviceId: webcamDeviceId,
+          resolution,
+          gameMode: isGameMode,
+          isPipOverlay: false,
+        });
+
+        if (includeAudio) {
+          sysAudioStream = await acquireSystemAudioOnlyStream();
+        }
+
+        const compositor = new WebcamStreamCompositor(sysAudioStream, camStream, {
+          mode: "camera",
+          position: webcamPosition,
+          mirror: webcamMirror,
+          gameMode: isGameMode,
+        });
+
+        onStreamStarted?.(compositor.outputStream, fullOptions, compositor);
+      } catch (err) {
+        console.error("[Camera Stream] Error al iniciar transmisión con cámara:", err);
+        camStream?.getTracks().forEach((tr) => tr.stop());
+        sysAudioStream?.getTracks().forEach((tr) => tr.stop());
+        notificationManager.showToast(
+          t("voice.errorTitle", "Error de Video"),
+          err?.message ||
+            t("screenShare.cameraPermissionError", "No se pudo acceder a la cámara web."),
+          "danger"
+        );
+      }
+      return;
+    }
+
+    // Mode 2: Screen / Window capture (with optional webcam PiP overlay & system audio)
     let videoConstraints = {
       chromeMediaSource: "desktop",
       chromeMediaSourceId: source.id,
@@ -188,12 +256,11 @@ export default function UserPanel({
       videoConstraints.maxFrameRate = isGameMode ? 60 : 30;
     }
 
-    const includeAudio = streamOptions?.includeAudio !== false;
-
+    let screenStream = null;
     if (includeAudio) {
       try {
         // Attempt desktop capture with audio first (mandatory: chromeMediaSource: "desktop")
-        const stream = await navigator.mediaDevices.getUserMedia({
+        screenStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             mandatory: {
               chromeMediaSource: "desktop",
@@ -201,23 +268,54 @@ export default function UserPanel({
           },
           video: { mandatory: videoConstraints },
         });
-        if (stream && onStreamStarted) onStreamStarted(stream, streamOptions);
-        return;
       } catch (err) {
         console.warn("[Screen Share] Captura con audio no disponible en esta fuente, intentando sin audio:", err.message);
         if (err.name === "NotAllowedError") return;
       }
     }
 
-    try {
-      const fallbackStream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { mandatory: videoConstraints },
-      });
-      if (fallbackStream && onStreamStarted) onStreamStarted(fallbackStream, streamOptions);
-    } catch (fallbackErr) {
-      console.error("Error al capturar pantalla (fallback sin audio):", fallbackErr);
+    if (!screenStream) {
+      try {
+        screenStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { mandatory: videoConstraints },
+        });
+      } catch (fallbackErr) {
+        console.error("Error al capturar pantalla (fallback sin audio):", fallbackErr);
+        return;
+      }
     }
+
+    if (includeWebcam) {
+      try {
+        const camStream = await acquireWebcamStream({
+          deviceId: webcamDeviceId,
+          resolution,
+          gameMode: isGameMode,
+          isPipOverlay: true,
+        });
+        const compositor = new WebcamStreamCompositor(screenStream, camStream, {
+          mode: "screen",
+          position: webcamPosition,
+          mirror: webcamMirror,
+          gameMode: isGameMode,
+        });
+        onStreamStarted?.(compositor.outputStream, fullOptions, compositor);
+        return;
+      } catch (camErr) {
+        console.warn("[Screen Share] No se pudo activar webcam superpuesta:", camErr?.message);
+        notificationManager.showToast(
+          t("screenShare.webcamOverlay", "Webcam"),
+          camErr?.message ||
+            t("screenShare.cameraPermissionError", "No se pudo acceder a la cámara web."),
+          "warning"
+        );
+        onStreamStarted?.(screenStream, { ...fullOptions, includeWebcam: false }, null);
+        return;
+      }
+    }
+
+    onStreamStarted?.(screenStream, { ...fullOptions, includeWebcam: false }, null);
   };
 
   const displayProfile = effectiveProfile || profile;
@@ -458,6 +556,7 @@ export default function UserPanel({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSelectSource={handleSelectSource}
+        preferredWebcamId={profile?.audio?.videoDeviceId || ""}
       />
 
       {targetRect && (

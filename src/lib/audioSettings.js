@@ -1,8 +1,10 @@
 export const DEFAULT_AUDIO = {
   inputDeviceId: '',
   outputDeviceId: '',
+  videoDeviceId: '',
   inputDeviceLabel: '',
   outputDeviceLabel: '',
+  videoDeviceLabel: '',
   peerVolumes: {},
   inputVolume: 100,
   outputVolume: 100,
@@ -22,8 +24,10 @@ export function normalizeAudioSettings(audio) {
   return {
     inputDeviceId: audio?.inputDeviceId || '',
     outputDeviceId: audio?.outputDeviceId || '',
+    videoDeviceId: audio?.videoDeviceId || '',
     inputDeviceLabel: audio?.inputDeviceLabel || '',
     outputDeviceLabel: audio?.outputDeviceLabel || '',
+    videoDeviceLabel: audio?.videoDeviceLabel || '',
     peerVolumes: { ...(audio?.peerVolumes || {}) },
     inputVolume: audio?.inputVolume !== undefined ? Number(audio.inputVolume) : 100,
     outputVolume: audio?.outputVolume !== undefined ? Number(audio.outputVolume) : 100,

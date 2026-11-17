@@ -310,8 +310,11 @@ export function evaluateServerFlame(server = {}, membersList = []) {
     };
   }
 
-  const maxUserStreak = Math.max(0, ...activeUserStreaks);
-  const currentServerStreak = maxUserStreak;
+  const totalUserStreaks = activeUserStreaks.reduce(
+    (sum, streak) => sum + (Number(streak) || 0),
+    0
+  );
+  const currentServerStreak = totalUserStreaks;
 
   const interactedTodayCount = membersList.filter(
     (m) => evaluateUserFlame(m?.flame || {}, serverId).interactedToday

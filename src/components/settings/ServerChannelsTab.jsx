@@ -257,6 +257,7 @@ function ChannelGroupEditor({
       <ul className="space-y-2 min-h-[5px]">
         {channels.map((ch) => {
           const isPrivate = ch.isPrivate || false;
+          const isNsfw = Boolean(ch.nsfw);
           const allowedRoles = ch.allowedRoles || [];
           const hasSpeakRestrictions = ch.hasSpeakRestrictions || false;
           const disallowedSpeakRoles = ch.disallowedSpeakRoles || [];
@@ -388,6 +389,24 @@ function ChannelGroupEditor({
                         size={16}
                       />
                     </button>
+
+                    {ch.type !== "voice" && (
+                      <button
+                        type="button"
+                        onClick={() => onUpdate(ch.id, "nsfw", !isNsfw)}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white/10 transition-colors shrink-0 cursor-pointer ${
+                          isNsfw ? "text-rose-400 bg-rose-500/10" : "text-onicord-muted"
+                        }`}
+                        title={
+                          isNsfw
+                            ? t("serverSettings.channels.disallowNsfw", "Desactivar contenido NSFW en este canal")
+                            : t("serverSettings.channels.allowNsfw", "Permitir contenido NSFW en este canal")
+                        }
+                      >
+                        <MaterialIcon name="explicit" size={16} />
+                      </button>
+                    )}
                   </>
                 )}
 

@@ -272,8 +272,8 @@ function registerP2PServerHandlers() {
     return global.roomManager.getPeersForRoom(roomCode);
   });
 
-  ipcMain.handle("servers:create", async (_event, name, profile) => {
-    return serverService.createServer(name, profile);
+  ipcMain.handle("servers:create", async (_event, name, profile, icon) => {
+    return serverService.createServer(name, profile, icon);
   });
 
   ipcMain.handle("room:leave", async () => {

@@ -72,7 +72,13 @@
     "homeTitle": "Inicio / Dashboard"
   },
   "addServerModal": {
-    "title": "Añadir servidor",
+    "title": "Crea tu servidor",
+    "subtitle": "Tu servidor es donde te reúnes con tus amigos. Crea el tuyo y empieza a hablar.",
+    "uploadIcon": "Subir",
+    "changeIcon": "Cambiar icono",
+    "removeIcon": "Eliminar icono",
+    "iconTypeError": "Selecciona una imagen válida (PNG, JPG, GIF, WebP).",
+    "iconSizeError": "El icono no puede superar 8 MB.",
     "createTab": "Crear servidor",
     "joinTab": "Unirse a servidor",
     "serverNameLabel": "Nombre del servidor",
@@ -81,8 +87,10 @@
     "joinPlaceholder": "Ej: Servidor de Juan",
     "inviteCodeHint": "8 caracteres hex (0-9, A-F). Pídeselo a quien creó el servidor.",
     "joinInviteInstruction": "Configuración del servidor → Invitaciones",
-    "createButton": "Crear y entrar",
-    "joinButton": "Unirse al servidor",
+    "createButton": "Crear servidor",
+    "joinButton": "Únete a un servidor",
+    "haveInviteTitle": "¿Ya tienes una invitación?",
+    "invitePlaceholder": "A1B2C3D4 o enlace de invitación",
     "codePlaceholder": "A1B2C3D4"
   },
   "deleteServerModal": {
@@ -154,9 +162,10 @@
   },
   "screenShare": {
     "title": "Compartir pantalla",
-    "subtitle": "Elegí qué monitor o aplicación querés transmitir en la sala",
+    "subtitle": "Elegí qué monitor, aplicación o cámara querés transmitir en la sala",
     "screens": "Pantallas",
     "windows": "Ventanas",
+    "cameraTab": "Cámara",
     "quality": "Calidad:",
     "native": "Original (Nativa)",
     "shareBtn": "Transmitir",
@@ -165,7 +174,25 @@
     "noSourcesDesc": "Asegúrate de que las ventanas no estén minimizadas.",
     "gameMode": "Modo Juegos",
     "gameModeActiveTip": "Modo Videojuegos activo: 60 FPS estables y audio estéreo",
-    "gameModeInactiveTip": "Modo Estándar: Optimizado para texto y bajo uso de CPU"
+    "gameModeInactiveTip": "Modo Estándar: Optimizado para texto y bajo uso de CPU",
+    "webcamOverlay": "Webcam",
+    "webcamActiveTip": "Webcam superpuesta activa: se mostrará en una esquina sobre tu transmisión",
+    "webcamInactiveTip": "Superponer webcam sobre la pantalla compartida",
+    "webcamPosition": "Posición",
+    "posTopLeft": "Superior izquierda",
+    "posTopRight": "Superior derecha",
+    "posBottomLeft": "Inferior izquierda",
+    "posBottomRight": "Inferior derecha",
+    "webcamMirror": "Espejo",
+    "webcamMirrorTip": "Invertir horizontalmente (efecto espejo)",
+    "noCameraFound": "No se detectó ninguna cámara conectada",
+    "noCameraDesc": "Conecta una cámara web e intenta nuevamente.",
+    "cameraPermissionError": "No se pudo acceder a la cámara web.",
+    "loadingCamera": "Iniciando vista previa...",
+    "systemAudio": "Audio",
+    "audioActiveTip": "Audio del sistema activado. Para evitar eco de voz, recomendamos usar auriculares.",
+    "audioInactiveTip": "Solo video: no transmite sonidos del sistema",
+    "selectPrompt": "Selecciona una pantalla o ventana para comenzar"
   },
   "dashboard": {
     "title": "Dashboard Principal",
@@ -396,7 +423,10 @@
       "addAfkBtn": "Canal AFK",
       "addCategoryBtn": "Categoría",
       "defaultAfkChannelName": "AFK",
-      "afkDisableOption": "Desactivar como canal AFK"
+      "afkDisableOption": "Desactivar como canal AFK",
+      "allowNsfw": "Permitir contenido NSFW (+18) en este canal",
+      "disallowNsfw": "Deshabilitar contenido NSFW en este canal",
+      "nsfwBadge": "NSFW"
     },
     "invites": {
       "title": "Invitaciones al Servidor",
@@ -682,7 +712,10 @@
     "resetToServerDefault": "Restablecer al perfil principal",
     "serverNicknameLabel": "Apodo en este Servidor",
     "serverBackgroundColor": "Color de Perfil para este Servidor",
-    "editServerProfile": "Editar perfil del servidor"
+    "editServerProfile": "Editar perfil del servidor",
+    "contentPrivacySettings": "Privacidad de Contenido",
+    "blurNsfwTitle": "Desenfocar automáticamente contenido NSFW",
+    "blurNsfwDesc": "Muestra desenfocados los archivos multimedia marcados como NSFW (+18) hasta que hagas clic para revelarlos."
   },
   "server": {
     "newMemberJoined": "Nuevo Miembro",
@@ -794,7 +827,18 @@
     "forumPostPlaceholder": "Escribe una nueva publicación...",
     "replyInThreadPlaceholder": "Responder en el hilo...",
     "commentOnFile": "Comentar en {{filename}}...",
-    "editMessagePlaceholder": "Escribe tu mensaje..."
+    "editMessagePlaceholder": "Escribe tu mensaje...",
+    "nsfwLabel": "NSFW (+18)",
+    "nsfwMarkTooltip": "Marcar archivo como contenido NSFW (+18)",
+    "nsfwBadge": "NSFW",
+    "nsfwWarningTitle": "Contenido NSFW (+18)",
+    "nsfwClickToReveal": "Haz clic para mostrar",
+    "nsfwHideAgain": "Ocultar contenido NSFW",
+    "nsfwNotAllowedTitle": "Contenido NSFW no permitido",
+    "nsfwNotAllowedInChannel": "Este canal no tiene permitido el envío de contenido NSFW. Actívalo en Ajustes del Servidor > Canales o desmarca la opción NSFW.",
+    "ephemeralToggle": "Mensaje efímero (se elimina en 60s)",
+    "ephemeralActiveHint": "Modo efímero activo (60s)",
+    "ephemeralRemaining": "Se eliminará en {{seconds}}s"
   },
   "voice": {
     "screenOf": "Pantalla de {{name}}",
@@ -827,7 +871,16 @@
     "afkMuteLockedTitle": "Canal AFK",
     "afkMuteLockedDesc": "En el canal AFK solo se puede estar silenciado.",
     "movedTitle": "Canal de voz",
-    "movedByAdmin": "Fuiste movido a #{{channel}} por {{admin}}."
+    "movedByAdmin": "Fuiste movido a #{{channel}} por {{admin}}.",
+    "watchAllStreams": "Ver todas las transmisiones en pantalla dividida ({{count}})",
+    "multiStreamTitle": "Transmisiones del canal ({{count}})",
+    "clickToListenStream": "Haz clic para escuchar esta transmisión",
+    "listeningStream": "Escuchando",
+    "mutedStream": "Silenciada",
+    "localStreamAudioMuted": "Tu transmisión (silenciada localmente)",
+    "enableWebcam": "Activar webcam",
+    "disableWebcam": "Desactivar webcam",
+    "webcamSettings": "Ajustes de Webcam"
   },
   "flame": {
     "title": "Flama",
@@ -966,13 +1019,18 @@
       "languageDesc": "Selecciona el idioma principal de la interfaz de usuario.",
       "zoom": "Escala de la interfaz",
       "zoomDesc": "Ajusta el tamaño y la escala general de los elementos y textos de Onicord.",
-      "interface": "Interfaz de usuario",
+      "interface": "Interfaz y Apariencia",
+      "chatAndPrivacy": "Chat y Privacidad",
+      "systemAndPerformance": "Sistema y Rendimiento",
       "langEs": "Español (ES)",
       "langEn": "Inglés (US)",
       "resetGeneral": "Restablecer ajustes generales",
       "continuousAnimations": "Animaciones continuas",
       "continuousAnimationsDesc": "Mantener animados en bucle continuo las imágenes de perfil y los stickers (.webp).",
       "streamerMode": "Modo Streamer",
+      "contentPrivacyTitle": "Privacidad de Contenido",
+      "blurNsfwTitle": "Desenfocar automáticamente contenido NSFW",
+      "blurNsfwDesc": "Muestra desenfocados los archivos multimedia marcados como NSFW (+18) hasta que hagas clic para revelarlos.",
       "streamerModeTitle": "Modo Streamer y Privacidad",
       "streamerModeSubtitle": "Oculta datos sensibles y enlaces de invitación durante tus transmisiones.",
       "streamerModeAuto": "Activar automáticamente al detectar OBS / Streaming",
@@ -1000,6 +1058,10 @@
     "voiceVideo": {
       "inputDevice": "Dispositivo de entrada (Micrófono)",
       "outputDevice": "Dispositivo de salida (Altavoces)",
+      "cameraDevice": "Cámara de Video (Webcam)",
+      "cameraLabelFallback": "Cámara",
+      "testCamera": "Probar Cámara",
+      "stopTestCamera": "Detener Cámara",
       "volume": "Volumen de salida",
       "inputVolume": "Volumen de entrada",
       "outputVolume": "Volumen de salida",
@@ -1400,7 +1462,13 @@
   },
   "pdf": {
     "loading": "Cargando documento PDF...",
-    "error": "Error al cargar PDF"
+    "error": "Error al cargar PDF",
+    "fitWidth": "Ajustar al ancho",
+    "resetZoom": "Tamaño original (100%)",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "prevPage": "Página anterior",
+    "nextPage": "Página siguiente"
   },
   "time": {
     "daysAgo": "Hace {{count}} días",

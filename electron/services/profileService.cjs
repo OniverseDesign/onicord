@@ -191,8 +191,10 @@ class ProfileService {
         audio: settingsMap.audio || {
           inputDeviceId: "",
           outputDeviceId: "",
+          videoDeviceId: "",
           inputDeviceLabel: "",
           outputDeviceLabel: "",
+          videoDeviceLabel: "",
           inputVolume: 100,
           outputVolume: 100,
           autoVad: true,
@@ -225,6 +227,7 @@ class ProfileService {
           autoDownloadFiles: true,
           autoDownloadMaxSizeMB: 500,
           downloadDirectory: "",
+          blurNsfwContent: true,
         },
         keybindings: normalizeKeybindings(settingsMap.keybindings || []),
         serverFolders,
@@ -506,6 +509,9 @@ class ProfileService {
         downloadDirectory: typeof profile.general?.downloadDirectory === "string"
           ? profile.general.downloadDirectory
           : (existing?.general?.downloadDirectory ?? ""),
+        blurNsfwContent: profile.general?.blurNsfwContent !== undefined
+          ? Boolean(profile.general.blurNsfwContent)
+          : (existing?.general?.blurNsfwContent ?? true),
       },
 
       keybindings: normalizeKeybindings(

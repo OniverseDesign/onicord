@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import RichPresenceCard from "./RichPresenceCard";
 import { IconLink } from "../icons/StreamIcons";
 import FlameBadge from "./FlameBadge";
-import SmartAnimatedImage from "./SmartAnimatedImage";
+import AvatarPicker from "./AvatarPicker";
 import { evaluateUserFlame } from "../../lib/flameService";
 import MaterialIcon from "../icons/MaterialIcon";
 import { APP_COLORS } from "../../lib/colors";
@@ -242,55 +242,32 @@ export default function UserProfilePopout({
         </button>
       )}
       <div className="flex flex-col items-center w-full">
-        <div className="relative mb-2 group">
+        <AvatarPicker
+          src={member.avatar}
+          onClick={onAvatarClick || undefined}
+          onRemove={onRemoveAvatar || undefined}
+          initial={initial}
+          size="lg"
+          readOnly={!onAvatarClick}
+          removeOnHoverOnly={true}
+          className="mb-2"
+          emptyClassName="bg-onicord-accent text-onicord-text-dark"
+          circleClassName="shadow-sm"
+          circleStyle={{
+            border: `4px solid ${cutoutBorderColor}`,
+            boxShadow: `inset 0 0 0 2px ${cutoutColorDot}`,
+          }}
+          title={onAvatarClick ? t("profileTab.changeAvatar", "Cambiar foto de perfil") : undefined}
+          removeTitle={t("common.delete", "Eliminar foto de perfil")}
+        >
           <div
-            onClick={onAvatarClick || undefined}
-            className={`h-20 w-20 rounded-full overflow-hidden flex items-center justify-center text-3xl font-semibold text-onicord-text-dark shadow-sm ${member.avatar ? "" : "bg-onicord-accent"} ${onAvatarClick ? "cursor-pointer relative group" : ""}`}
-            style={{
-              border: `4px solid ${cutoutBorderColor}`,
-              boxShadow: `inset 0 0 0 2px ${cutoutColorDot}`,
-            }}
-            title={onAvatarClick ? t("profileTab.changeAvatar", "Cambiar foto de perfil") : undefined}
-          >
-            {member.avatar ? (
-              <SmartAnimatedImage
-                src={member.avatar}
-                alt="Profile"
-                className={`h-full w-full object-cover rounded-full ${onAvatarClick ? "transition-opacity group-hover:opacity-50" : ""}`}
-                isAvatar={true}
-              />
-            ) : (
-              initial
-            )}
-            {onAvatarClick && (
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full pointer-events-none">
-                <MaterialIcon name="photo_camera" size={24} className="text-white" />
-              </div>
-            )}
-          </div>
-
-          <div
-            className={`absolute bottom-0.5 right-1.5 h-5 w-5 rounded-full ${dotColor} z-10`}
+            className={`absolute bottom-0.5 right-1.5 h-5 w-5 rounded-full ${dotColor} z-10 pointer-events-none`}
             style={{
               border: `3px solid ${cutoutBorderColor}`,
               boxShadow: `inset 0 0 0 2px ${cutoutColorDot}`,
             }}
           />
-
-          {onRemoveAvatar && member.avatar && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemoveAvatar();
-              }}
-              title={t("common.delete", "Eliminar foto de perfil")}
-              className="absolute top-0 right-0 z-20 w-6 h-6 rounded-full bg-onicord-danger hover:bg-onicord-danger/80 text-white flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-            >
-              <MaterialIcon name="close" size={14} />
-            </button>
-          )}
-        </div>
+        </AvatarPicker>
 
         <h3
           className={`text-lg font-bold leading-tight text-center ${textMainClass}`}

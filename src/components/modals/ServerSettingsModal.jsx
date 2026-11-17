@@ -327,6 +327,7 @@ export default function ServerSettingsModal({
         id: newId,
         type: effectiveType,
         name: defaultName,
+        nsfw: false,
         isPrivate: false,
         allowedRoles: [],
         hasSpeakRestrictions: false,
@@ -590,6 +591,7 @@ export default function ServerSettingsModal({
             allowedRoles: Array.isArray(c.allowedRoles) ? c.allowedRoles : [],
             hasSpeakRestrictions: Boolean(c.hasSpeakRestrictions),
             disallowedSpeakRoles: Array.isArray(c.disallowedSpeakRoles) ? c.disallowedSpeakRoles : [],
+            nsfw: Boolean(c.nsfw),
           };
         }),
       });

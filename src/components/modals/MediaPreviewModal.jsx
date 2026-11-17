@@ -144,12 +144,17 @@ export default function MediaPreviewModal({
       {/* Preview Card */}
       <div
         className={cn(
-          "onicord-media-preview-card max-w-5xl max-h-[90vh] w-auto flex flex-col items-center select-none z-modal-nested-card overflow-hidden",
+          "onicord-media-preview-card flex flex-col items-center select-none z-modal-nested-card overflow-hidden",
+          isPdf
+            ? "w-[94vw] max-w-6xl h-[92vh]"
+            : isTxt
+            ? "w-full max-w-3xl max-h-[90vh]"
+            : "w-auto max-w-5xl max-h-[90vh]",
           isClosing && "onicord-animate-modal-out"
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-1 min-h-0 min-w-0 w-full flex items-center justify-center overflow-hidden">
+        <div className={cn("flex-1 min-h-0 min-w-0 w-full flex items-center justify-center overflow-hidden", isPdf && "items-stretch")}>
           {isImg && (
             <img
               src={formatMediaUrl(currentPath)}
@@ -178,7 +183,7 @@ export default function MediaPreviewModal({
           )}
 
           {isPdf && (
-            <PdfViewer key={currentPath} filePath={currentPath} />
+            <PdfViewer key={currentPath} filePath={currentPath} className="h-full w-full" />
           )}
 
           {isTxt && (

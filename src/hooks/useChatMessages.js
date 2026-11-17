@@ -36,6 +36,8 @@ export function normalizeChatMessage(msg) {
   let replyTo = msg.replyTo || null;
   let title = msg.title || null;
   let tags = Array.isArray(msg.tags) ? msg.tags : null;
+  let isEphemeral = Boolean(msg.isEphemeral);
+  let expiresAt = msg.expiresAt ? Number(msg.expiresAt) : null;
   let isNudge = false;
   const rawText = msg.rawText || (typeof msg.text === "string" ? msg.text : "");
 
@@ -46,6 +48,8 @@ export function normalizeChatMessage(msg) {
       if (parsed.replyTo) replyTo = parsed.replyTo;
       if (parsed.title) title = parsed.title;
       if (Array.isArray(parsed.tags)) tags = parsed.tags;
+      if (parsed.isEphemeral) isEphemeral = true;
+      if (parsed.expiresAt) expiresAt = Number(parsed.expiresAt);
       if (typeof parsed.body === "string") {
         if (parsed.body.trim().startsWith("{")) {
           try {
@@ -54,6 +58,8 @@ export function normalizeChatMessage(msg) {
             if (inner.replyTo) replyTo = inner.replyTo;
             if (inner.title) title = inner.title;
             if (Array.isArray(inner.tags)) tags = inner.tags;
+            if (inner.isEphemeral) isEphemeral = true;
+            if (inner.expiresAt) expiresAt = Number(inner.expiresAt);
             text = inner.body || inner.text || parsed.body;
           } catch {
             text = parsed.body;
@@ -65,6 +71,10 @@ export function normalizeChatMessage(msg) {
         text = parsed.text;
       }
     } catch {}
+  }
+
+  if (isEphemeral && !expiresAt && msg.timestamp) {
+    expiresAt = msg.timestamp + 60000;
   }
 
   if (typeof text === "string" && text.includes("[NUDGE_MESSAGE]")) {
@@ -79,6 +89,8 @@ export function normalizeChatMessage(msg) {
     threadParentId: threadParentId || msg.threadParentId || null,
     title,
     tags,
+    isEphemeral,
+    expiresAt,
     isNudge,
     _normalized: true,
   };
@@ -610,7 +622,10 @@ export function useChatMessages({
         .getChatHistory(roomCode, channelId)
         .then((history) => {
           const raw = history || [];
-          const historialMensajes = processHistoryWithReactions(raw);
+          const now = Date.now();
+          const historialMensajes = processHistoryWithReactions(raw).filter(
+            (m) => !(m?.isEphemeral && m?.expiresAt && m.expiresAt <= now)
+          );
           const sortedHistory = [...historialMensajes].sort(
             (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
           );
@@ -976,6 +991,38 @@ export function useChatMessages({
     };
   }, [roomCode, channelId, profile?.id, profile?.nickname, server?.id, messagesCountRef, setVisibleCount, bottomRef, chatContainerRef]);
 
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  const hasActiveEphemeral = useMemo(
+    () => messages.some((m) => m?.isEphemeral && m?.expiresAt),
+    [messages]
+  );
+
+  useEffect(() => {
+    if (!hasActiveEphemeral) return;
+    const purgeExpired = () => {
+      const now = Date.now();
+      const expired = (messagesRef.current || []).filter(
+        (m) => m?.isEphemeral && m?.expiresAt && m.expiresAt <= now
+      );
+      if (expired.length > 0) {
+        const expiredIds = new Set(expired.map((m) => m.id));
+        setMessages((prev) => prev.filter((m) => !expiredIds.has(m.id)));
+        expired.forEach((m) => {
+          if (!m.isOptimistic && m.id && roomCode) {
+            window.electronAPI?.deleteChatMessage?.(roomCode, channelId, m.id)?.catch?.(() => {});
+          }
+        });
+      }
+    };
+    purgeExpired();
+    const timer = setInterval(purgeExpired, 1000);
+    return () => clearInterval(timer);
+  }, [hasActiveEphemeral, roomCode, channelId]);
+
   // Historical full-text search across all messages and channels
   useEffect(() => {
     if (!searchQuery || !searchQuery.trim() || !roomCode) {
@@ -1033,6 +1080,9 @@ export function useChatMessages({
       if (!msg) return false;
       const normalized = normalizeChatMessage(msg);
       if (normalized.isNudge) return false;
+      if (normalized.isEphemeral && normalized.expiresAt && normalized.expiresAt <= Date.now()) {
+        return false;
+      }
       if (normalized.isComplement) {
         const pluginId = normalized.complementId || (normalized.authorId && normalized.authorId.startsWith("bot_") ? normalized.authorId.slice(4) : null);
         if (pluginId && !enabledPluginIds.has(pluginId)) {

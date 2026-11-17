@@ -1,6 +1,45 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
+
+export function EphemeralCountdownBadge({ expiresAt, compact = false }) {
+  const { t } = useTranslation();
+  const [remaining, setRemaining] = useState(() =>
+    expiresAt ? Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)) : 0,
+  );
+
+  useEffect(() => {
+    if (!expiresAt) return;
+    const update = () => {
+      setRemaining(Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)));
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
+  if (!expiresAt) return null;
+  const isUrgent = remaining <= 10;
+
+  return (
+    <span
+      title={t("chat.ephemeralRemaining", {
+        seconds: remaining,
+        defaultValue: `Se eliminará en ${remaining}s`,
+      })}
+      className={`inline-flex items-center gap-0.5 rounded-md font-semibold tabular-nums border transition-colors shrink-0 select-none ${
+        compact ? "px-1 py-0 text-[9px]" : "px-1.5 py-0.5 text-[10px] ml-1"
+      } ${
+        isUrgent
+          ? "bg-onicord-danger/20 text-onicord-danger border-onicord-danger/40 animate-pulse"
+          : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+      }`}
+    >
+      <MaterialIcon name="timer" size={compact ? 10 : 11} />
+      <span>{`${remaining}s`}</span>
+    </span>
+  );
+}
 
 export function formatFriendlyDate(ts, t, locale = "es") {
   const date = new Date(ts);
@@ -69,6 +108,8 @@ export default function MessageHeader({
   timestamp,
   edited,
   isForwarded,
+  isEphemeral,
+  expiresAt,
 }) {
   const { t, i18n } = useTranslation();
 
@@ -114,6 +155,9 @@ export default function MessageHeader({
           </span>
         )}
       </time>
+      {isEphemeral && expiresAt && (
+        <EphemeralCountdownBadge expiresAt={expiresAt} />
+      )}
     </div>
   );
 }

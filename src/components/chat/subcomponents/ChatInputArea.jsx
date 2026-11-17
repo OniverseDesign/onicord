@@ -70,6 +70,10 @@ export default function ChatInputArea({
   onSelectSticker,
   onSharePackDirect,
   setContextMenu,
+  onTogglePendingFileNsfw = null,
+  channelAllowsNsfw = false,
+  isEphemeralMode = false,
+  onToggleEphemeralMode = null,
 }) {
   const { t } = useTranslation();
 
@@ -329,92 +333,174 @@ export default function ChatInputArea({
         <div
           className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
             (pendingFiles.length > 0 || pendingFile)
-              ? "max-h-36 opacity-100 mb-2 pointer-events-auto"
+              ? "max-h-40 opacity-100 mb-2 pointer-events-auto"
               : "max-h-0 opacity-0 mb-0 pointer-events-none"
           }`}
         >
           {pendingFiles.length > 1 ? (
             <div className="flex items-center gap-2 overflow-x-auto py-1 px-1 minimal-scrollbar bg-black/20 rounded-lg p-1.5 border border-white/5">
-              {pendingFiles.map((pf, idx) => (
-                <div
-                  key={idx}
-                  className="relative flex items-center gap-2 bg-onicord-base border border-white/10 rounded-lg p-1.5 shrink-0 pr-7 max-w-[200px] shadow"
-                >
-                  <div className="w-10 h-10 rounded bg-black/50 overflow-hidden shrink-0 flex items-center justify-center">
-                    {pf.previewUrl ? (
-                      pf.type?.startsWith("video/") ? (
-                        <video src={pf.previewUrl} className="w-full h-full object-cover" />
-                      ) : (
-                        <img src={pf.previewUrl} alt="preview" className="w-full h-full object-cover" />
-                      )
-                    ) : (
-                      <IconAttach size="sm" className="text-onicord-accent" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-onicord-text" title={pf.name}>
-                      {pf.name}
-                    </p>
-                    <p className="text-2xs text-onicord-muted">{formatBytes(pf.size)}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onRemovePendingFile(idx)}
-                    className="w-5 h-5 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-1 right-1"
-                    title={t("chat.cancelSend")}
+              {pendingFiles.map((pf, idx) => {
+                const isMedia =
+                  pf.type?.startsWith("image/") ||
+                  pf.type?.startsWith("video/") ||
+                  /\.(png|jpe?g|gif|webp|avif|bmp|svg|mp4|webm|mov|mkv|avi)$/i.test(pf.name || "");
+                const isNsfw = Boolean(pf.isNsfw);
+                return (
+                  <div
+                    key={idx}
+                    className="relative flex items-center gap-2 bg-onicord-base border border-white/10 rounded-lg p-1.5 shrink-0 pr-7 max-w-[230px] shadow"
                   >
-                    <span className="text-xs font-bold leading-none">✕</span>
-                  </button>
-                </div>
-              ))}
+                    <div className="w-10 h-10 rounded bg-black/50 overflow-hidden shrink-0 flex items-center justify-center relative">
+                      {pf.previewUrl ? (
+                        pf.type?.startsWith("video/") ? (
+                          <video
+                            src={pf.previewUrl}
+                            className={`w-full h-full object-cover transition-all ${
+                              isNsfw ? "blur-sm brightness-75" : ""
+                            }`}
+                          />
+                        ) : (
+                          <img
+                            src={pf.previewUrl}
+                            alt="preview"
+                            className={`w-full h-full object-cover transition-all ${
+                              isNsfw ? "blur-sm brightness-75" : ""
+                            }`}
+                          />
+                        )
+                      ) : (
+                        <IconAttach size="sm" className="text-onicord-accent" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-onicord-text" title={pf.name}>
+                        {pf.name}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-2xs text-onicord-muted truncate">{formatBytes(pf.size)}</p>
+                        {isMedia && onTogglePendingFileNsfw && (
+                          <button
+                            type="button"
+                            onClick={() => onTogglePendingFileNsfw(idx)}
+                            title={
+                              channelAllowsNsfw
+                                ? t("chat.nsfwMarkTooltip", "Marcar archivo como contenido NSFW (+18)")
+                                : t("chat.nsfwNotAllowedInChannel", "Este canal no tiene permitido el envío de contenido NSFW.")
+                            }
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer shrink-0 ${
+                              isNsfw
+                                ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
+                                : channelAllowsNsfw
+                                  ? "bg-white/5 text-onicord-muted border-white/10 hover:text-onicord-text hover:bg-white/10"
+                                  : "bg-white/5 text-onicord-muted/50 border-white/5"
+                            }`}
+                          >
+                            <MaterialIcon
+                              name={isNsfw ? "check_box" : "check_box_outline_blank"}
+                              size={11}
+                            />
+                            <span>{t("chat.nsfwBadge", "NSFW")}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRemovePendingFile(idx)}
+                      className="w-5 h-5 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-1 right-1"
+                      title={t("chat.cancelSend")}
+                    >
+                      <span className="text-xs font-bold leading-none">✕</span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           ) : displayPendingFile ? (
-            <div className="onicord-pending-file-card group/pending relative overflow-hidden bg-onicord-base border border-white/5 p-2 flex items-center gap-3">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-black/50 overflow-hidden">
-                {displayPreviewUrl ? (
-                  displayPendingFile.type?.startsWith("video/") ? (
-                    <video
-                      src={displayPreviewUrl}
-                      className="w-full h-full object-cover opacity-80"
-                    />
-                  ) : (
-                    <img
-                      src={displayPreviewUrl}
-                      alt="preview"
-                      className="w-full h-full object-cover"
-                    />
-                  )
-                ) : (
-                  <IconAttach size="lg" className="text-onicord-accent" />
-                )}
-              </div>
+            (() => {
+              const activeFile = pendingFile || displayPendingFile;
+              const isMedia =
+                activeFile.type?.startsWith("image/") ||
+                activeFile.type?.startsWith("video/") ||
+                /\.(png|jpe?g|gif|webp|avif|bmp|svg|mp4|webm|mov|mkv|avi)$/i.test(activeFile.name || "");
+              const isNsfw = Boolean(activeFile.isNsfw);
+              return (
+                <div className="onicord-pending-file-card group/pending relative overflow-hidden bg-onicord-base border border-white/5 p-2 flex items-center gap-3">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-black/50 overflow-hidden">
+                    {displayPreviewUrl ? (
+                      displayPendingFile.type?.startsWith("video/") ? (
+                        <video
+                          src={displayPreviewUrl}
+                          className={`w-full h-full object-cover opacity-80 transition-all ${
+                            isNsfw ? "blur-sm brightness-75" : ""
+                          }`}
+                        />
+                      ) : (
+                        <img
+                          src={displayPreviewUrl}
+                          alt="preview"
+                          className={`w-full h-full object-cover transition-all ${
+                            isNsfw ? "blur-sm brightness-75" : ""
+                          }`}
+                        />
+                      )
+                    ) : (
+                      <IconAttach size="lg" className="text-onicord-accent" />
+                    )}
+                  </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-onicord-text">
-                  {displayPendingFile.name}
-                </p>
-                <p className="text-xs text-onicord-muted">
-                  {formatBytes(displayPendingFile.size)} — Ready to send
-                </p>
-              </div>
+                  <div className="min-w-0 flex-1 pr-10">
+                    <p className="truncate text-sm font-bold text-onicord-text">
+                      {displayPendingFile.name}
+                    </p>
+                    <p className="text-xs text-onicord-muted">
+                      {formatBytes(displayPendingFile.size)}
+                    </p>
+                    {isMedia && onTogglePendingFileNsfw && (
+                      <button
+                        type="button"
+                        onClick={() => onTogglePendingFileNsfw(0)}
+                        title={
+                          channelAllowsNsfw
+                            ? t("chat.nsfwMarkTooltip", "Marcar archivo como contenido NSFW (+18)")
+                            : t("chat.nsfwNotAllowedInChannel", "Este canal no tiene permitido el envío de contenido NSFW.")
+                        }
+                        className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                          isNsfw
+                            ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
+                            : channelAllowsNsfw
+                              ? "bg-onicord-surface/80 text-onicord-muted border-white/10 hover:text-onicord-text hover:bg-white/10"
+                              : "bg-onicord-surface/40 text-onicord-muted/50 border-white/5"
+                        }`}
+                      >
+                        <MaterialIcon
+                          name={isNsfw ? "check_box" : "check_box_outline_blank"}
+                          size={14}
+                        />
+                        <span>{t("chat.nsfwLabel", "NSFW (+18)")}</span>
+                      </button>
+                    )}
+                  </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (onClearPendingFiles) {
-                    onClearPendingFiles();
-                  } else {
-                    if (previewUrl) URL.revokeObjectURL(previewUrl);
-                    setPreviewUrl?.(null);
-                    setPendingFile?.(null);
-                  }
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-2 right-2"
-                title={t("chat.cancelSend")}
-              >
-                <span className="text-sm font-bold leading-none">✕</span>
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onClearPendingFiles) {
+                        onClearPendingFiles();
+                      } else {
+                        if (previewUrl) URL.revokeObjectURL(previewUrl);
+                        setPreviewUrl?.(null);
+                        setPendingFile?.(null);
+                      }
+                    }}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-2 right-2"
+                    title={t("chat.cancelSend")}
+                  >
+                    <span className="text-sm font-bold leading-none">✕</span>
+                  </button>
+                </div>
+              );
+            })()
           ) : null}
         </div>
 
@@ -517,6 +603,28 @@ export default function ChatInputArea({
               }}
             />
           </div>
+
+          {onToggleEphemeralMode && (
+            <button
+              type="button"
+              onClick={hasSendMessages ? onToggleEphemeralMode : undefined}
+              className={`onicord-chat-toolbar-btn group relative ${
+                !hasSendMessages
+                  ? "opacity-35 cursor-not-allowed pointer-events-none"
+                  : isEphemeralMode
+                    ? "!border-amber-500/50 bg-amber-500/15 !text-amber-400"
+                    : ""
+              }`}
+              disabled={!hasSendMessages}
+              title={
+                hasSendMessages
+                  ? t("chat.ephemeralToggle", "Mensaje efímero (se elimina en 60s)")
+                  : t("chat.noPermissionShort", "Sin permisos")
+              }
+            >
+              <MaterialIcon name="timer" size="xl" />
+            </button>
+          )}
 
           <button
             ref={emojiButtonRef}

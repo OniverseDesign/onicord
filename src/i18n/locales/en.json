@@ -72,7 +72,13 @@
     "homeTitle": "Home / Dashboard"
   },
   "addServerModal": {
-    "title": "Add Server",
+    "title": "Create Your Server",
+    "subtitle": "Your server is where you hang out with your friends. Make yours and start talking.",
+    "uploadIcon": "Upload",
+    "changeIcon": "Change icon",
+    "removeIcon": "Remove icon",
+    "iconTypeError": "Please select a valid image (PNG, JPG, GIF, WebP).",
+    "iconSizeError": "Icon cannot exceed 8 MB.",
     "createTab": "Create Server",
     "joinTab": "Join Server",
     "serverNameLabel": "Server Name",
@@ -81,8 +87,10 @@
     "joinPlaceholder": "e.g. John's Server",
     "inviteCodeHint": "8 hex characters (0-9, A-F). Ask whoever created the server.",
     "joinInviteInstruction": "Server settings → Invites",
-    "createButton": "Create and Enter",
-    "joinButton": "Join Server",
+    "createButton": "Create Server",
+    "joinButton": "Join a Server",
+    "haveInviteTitle": "Already have an invite?",
+    "invitePlaceholder": "A1B2C3D4 or invite link",
     "codePlaceholder": "A1B2C3D4"
   },
   "deleteServerModal": {
@@ -154,9 +162,10 @@
   },
   "screenShare": {
     "title": "Share screen",
-    "subtitle": "Choose which monitor or app window to stream in the room",
+    "subtitle": "Choose which monitor, app window, or camera to stream in the room",
     "screens": "Screens",
     "windows": "Windows",
+    "cameraTab": "Camera",
     "quality": "Quality:",
     "native": "Original (Native)",
     "shareBtn": "Go Live",
@@ -165,7 +174,25 @@
     "noSourcesDesc": "Make sure target windows are not minimized.",
     "gameMode": "Game Mode",
     "gameModeActiveTip": "Game Mode active: smooth 60 FPS and stereo audio",
-    "gameModeInactiveTip": "Standard Mode: Optimized for text and low CPU usage"
+    "gameModeInactiveTip": "Standard Mode: Optimized for text and low CPU usage",
+    "webcamOverlay": "Webcam",
+    "webcamActiveTip": "Webcam overlay active: shown in a corner over your stream",
+    "webcamInactiveTip": "Overlay webcam on top of the shared screen",
+    "webcamPosition": "Position",
+    "posTopLeft": "Top left",
+    "posTopRight": "Top right",
+    "posBottomLeft": "Bottom left",
+    "posBottomRight": "Bottom right",
+    "webcamMirror": "Mirror",
+    "webcamMirrorTip": "Flip horizontally (mirror effect)",
+    "noCameraFound": "No connected camera detected",
+    "noCameraDesc": "Connect a webcam and try again.",
+    "cameraPermissionError": "Could not access the webcam.",
+    "loadingCamera": "Starting preview...",
+    "systemAudio": "Audio",
+    "audioActiveTip": "System audio enabled. Headphones are recommended to avoid voice echo.",
+    "audioInactiveTip": "Video only: system sounds will not be streamed",
+    "selectPrompt": "Select a screen or window to begin"
   },
   "dashboard": {
     "title": "Main Dashboard",
@@ -396,7 +423,10 @@
       "addAfkBtn": "AFK Channel",
       "addCategoryBtn": "Category",
       "defaultAfkChannelName": "AFK",
-      "afkDisableOption": "Disable as AFK channel"
+      "afkDisableOption": "Disable as AFK channel",
+      "allowNsfw": "Allow NSFW (+18) content in this channel",
+      "disallowNsfw": "Disable NSFW content in this channel",
+      "nsfwBadge": "NSFW"
     },
     "invites": {
       "title": "Server Invites",
@@ -682,7 +712,10 @@
     "resetToServerDefault": "Reset to main profile",
     "serverNicknameLabel": "Nickname in this Server",
     "serverBackgroundColor": "Profile Color for this Server",
-    "editServerProfile": "Edit server profile"
+    "editServerProfile": "Edit server profile",
+    "contentPrivacySettings": "Content Privacy",
+    "blurNsfwTitle": "Automatically blur NSFW content",
+    "blurNsfwDesc": "Displays media marked as NSFW (+18) blurred until you click to reveal them."
   },
   "server": {
     "newMemberJoined": "New Member",
@@ -794,7 +827,18 @@
     "forumPostPlaceholder": "Write a new post...",
     "replyInThreadPlaceholder": "Reply in thread...",
     "commentOnFile": "Comment on {{filename}}...",
-    "editMessagePlaceholder": "Write your message..."
+    "editMessagePlaceholder": "Write your message...",
+    "nsfwLabel": "NSFW (+18)",
+    "nsfwMarkTooltip": "Mark file as NSFW (+18) content",
+    "nsfwBadge": "NSFW",
+    "nsfwWarningTitle": "NSFW Content (+18)",
+    "nsfwClickToReveal": "Click to reveal",
+    "nsfwHideAgain": "Hide NSFW content",
+    "nsfwNotAllowedTitle": "NSFW Content Not Allowed",
+    "nsfwNotAllowedInChannel": "NSFW content is not allowed in this channel. Enable it in Server Settings > Channels or uncheck the NSFW option.",
+    "ephemeralToggle": "Ephemeral message (deletes in 60s)",
+    "ephemeralActiveHint": "Ephemeral mode active (60s)",
+    "ephemeralRemaining": "Deletes in {{seconds}}s"
   },
   "voice": {
     "screenOf": "{{name}}'s Screen",
@@ -827,7 +871,16 @@
     "afkMuteLockedTitle": "AFK Channel",
     "afkMuteLockedDesc": "Microphones are disabled in the AFK channel.",
     "movedTitle": "Voice Channel",
-    "movedByAdmin": "You were moved to #{{channel}} by {{admin}}."
+    "movedByAdmin": "You were moved to #{{channel}} by {{admin}}.",
+    "watchAllStreams": "Watch all streams in split screen ({{count}})",
+    "multiStreamTitle": "Channel streams ({{count}})",
+    "clickToListenStream": "Click to listen to this stream",
+    "listeningStream": "Listening",
+    "mutedStream": "Muted",
+    "localStreamAudioMuted": "Your stream (locally muted)",
+    "enableWebcam": "Enable webcam",
+    "disableWebcam": "Disable webcam",
+    "webcamSettings": "Webcam Settings"
   },
   "flame": {
     "title": "Flame",
@@ -966,13 +1019,18 @@
       "languageDesc": "Select the primary language of the user interface.",
       "zoom": "Interface Scale",
       "zoomDesc": "Adjust the overall size and scale of Onicord elements and text.",
-      "interface": "User Interface",
+      "interface": "Interface & Appearance",
+      "chatAndPrivacy": "Chat & Privacy",
+      "systemAndPerformance": "System & Performance",
       "resetGeneral": "Reset General Settings",
       "langEs": "Spanish (ES)",
       "langEn": "English (US)",
       "continuousAnimations": "Continuous animations",
       "continuousAnimationsDesc": "Keep profile pictures and stickers (.webp) animated in a continuous loop.",
       "streamerMode": "Streamer Mode",
+      "contentPrivacyTitle": "Content Privacy",
+      "blurNsfwTitle": "Automatically blur NSFW content",
+      "blurNsfwDesc": "Displays media marked as NSFW (+18) blurred until you click to reveal them.",
       "streamerModeTitle": "Streamer Mode & Privacy",
       "streamerModeSubtitle": "Hide sensitive data and invite links during your live streams.",
       "streamerModeAuto": "Automatically enable when OBS / Streaming software is detected",
@@ -1000,6 +1058,10 @@
     "voiceVideo": {
       "inputDevice": "Input Device (Microphone)",
       "outputDevice": "Output Device (Speakers)",
+      "cameraDevice": "Video Camera (Webcam)",
+      "cameraLabelFallback": "Camera",
+      "testCamera": "Test Camera",
+      "stopTestCamera": "Stop Camera",
       "volume": "Output Volume",
       "inputVolume": "Input Volume",
       "outputVolume": "Output Volume",
@@ -1400,7 +1462,13 @@
   },
   "pdf": {
     "loading": "Loading PDF document...",
-    "error": "Error loading PDF"
+    "error": "Error loading PDF",
+    "fitWidth": "Fit to width",
+    "resetZoom": "Original size (100%)",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "prevPage": "Previous page",
+    "nextPage": "Next page"
   },
   "time": {
     "daysAgo": "{{count}} days ago",

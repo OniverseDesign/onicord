@@ -60,6 +60,7 @@ export default function AppSettingsModal({
           { id: "confirmExit", label: t("settings.general.confirmOnExit", "Confirmar antes de salir"), keywords: ["confirmar", "salir", "cerrar", "pregunta"] },
           { id: "openGraph", label: t("settings.general.enableOpenGraph", "Vistas previas de enlaces (OpenGraph)"), keywords: ["og", "embeds", "enlaces", "links", "videos", "spotify", "tarjetas"] },
           { id: "clearCache", label: t("settings.general.clearCache", "Limpiar caché de medios y archivos"), keywords: ["cache", "espacio", "limpiar", "disco", "memoria"] },
+          { id: "blurNsfw", label: t("settings.general.blurNsfwTitle", "Desenfocar automáticamente contenido NSFW"), keywords: ["nsfw", "blur", "desenfocar", "censura", "privacidad", "+18"] },
           { id: "streamerMode", label: t("settings.general.streamerMode", "Modo Streamer (Protección OBS)"), keywords: ["stream", "streamer", "obs", "ocultar", "directo", "twitch", "privacidad"] },
         ],
       },
@@ -85,6 +86,7 @@ export default function AppSettingsModal({
         features: [
           { id: "inputDevice", label: t("settings.voiceVideo.inputDevice", "Dispositivo de entrada (Micrófono)"), keywords: ["micro", "microfono", "input", "grabar", "dispositivo"] },
           { id: "outputDevice", label: t("settings.voiceVideo.outputDevice", "Dispositivo de salida (Altavoces)"), keywords: ["auriculares", "altavoz", "auricular", "parlante", "sonido", "output"] },
+          { id: "videoDevice", label: t("settings.voiceVideo.cameraDevice", "Cámara de Video (Webcam)"), keywords: ["camara", "webcam", "video", "camera", "dispositivo"] },
           { id: "inputVolume", label: t("settings.voiceVideo.inputVolume", "Volumen del micrófono"), keywords: ["volumen", "ganancia", "nivel", "micro"] },
           { id: "outputVolume", label: t("settings.voiceVideo.outputVolume", "Volumen de salida"), keywords: ["volumen", "master", "altavoces", "auriculares"] },
           { id: "micTest", label: t("settings.voiceVideo.micTest", "Prueba de micrófono"), keywords: ["test", "probar", "barra", "onda", "microfono", "escuchar"] },
@@ -300,7 +302,7 @@ export default function AppSettingsModal({
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { isTestingMic, micLevel, toggleMicTest } = useMicTest(audio.inputDeviceId);
-  const { inputs, outputs, devicesLoading } = useAudioDevices(section === "audio");
+  const { inputs, outputs, videoInputs, devicesLoading, refreshDevices } = useAudioDevices(section === "audio");
 
   const [visibilidadWidgets, setVisibilidadWidgets] = useState(() => {
     const layoutActual = currentLayout || {};
@@ -465,8 +467,10 @@ export default function AppSettingsModal({
 
     if (currentAudio.inputDeviceId !== originalAudio.inputDeviceId) return true;
     if (currentAudio.outputDeviceId !== originalAudio.outputDeviceId) return true;
+    if (currentAudio.videoDeviceId !== originalAudio.videoDeviceId) return true;
     if (currentAudio.inputDeviceLabel !== originalAudio.inputDeviceLabel) return true;
     if (currentAudio.outputDeviceLabel !== originalAudio.outputDeviceLabel) return true;
+    if (currentAudio.videoDeviceLabel !== originalAudio.videoDeviceLabel) return true;
     if (currentAudio.inputVolume !== originalAudio.inputVolume) return true;
     if (currentAudio.outputVolume !== originalAudio.outputVolume) return true;
     if (currentAudio.autoVad !== originalAudio.autoVad) return true;
@@ -500,6 +504,7 @@ export default function AppSettingsModal({
     if (currentGeneral.autoDownloadFiles !== originalGeneral.autoDownloadFiles) return true;
     if (currentGeneral.autoDownloadMaxSizeMB !== originalGeneral.autoDownloadMaxSizeMB) return true;
     if (currentGeneral.downloadDirectory !== originalGeneral.downloadDirectory) return true;
+    if (currentGeneral.blurNsfwContent !== originalGeneral.blurNsfwContent) return true;
 
     const originalKeybindings = Array.isArray(profile?.keybindings) ? profile.keybindings : [];
     if (keybindings.length !== originalKeybindings.length) return true;
@@ -614,6 +619,9 @@ export default function AppSettingsModal({
         await window.electronAPI.setOverlaySettings(overlay);
       }
       onSaved(saved);
+      if (saved?.audio) {
+        localStorage.setItem("onicord_preferred_webcam", saved.audio.videoDeviceId || "");
+      }
       if (saved?.general) {
         localStorage.setItem("onicord_general_settings", JSON.stringify(saved.general));
         const isContinuous = saved.general.enableContinuousAnimations !== false;
@@ -716,6 +724,8 @@ export default function AppSettingsModal({
           setAudio={setAudio}
           inputs={inputs}
           outputs={outputs}
+          videoInputs={videoInputs}
+          refreshDevices={refreshDevices}
           isTestingMic={isTestingMic}
           micLevel={micLevel}
           toggleMicTest={toggleMicTest}

@@ -1,3 +1,18 @@
+# Onicord v0.2.9
+
+## Changes
+
+- **Webcam Streaming & Live Screen + Camera PiP Compositor**: Added standalone camera broadcasting and real-time screen-plus-webcam compositing (`WebcamStreamCompositor`) powered by a background-safe Web Worker timer, complete with live in-stream toggles, 4-corner placement, horizontal mirroring, and optional system audio capture.
+- **Multi-Stream Channel Grid View**: Introduced `MultiStreamDisplay` to watch multiple concurrent voice-channel streams in an adaptive grid with per-tile audio focus switching, listening/muted indicators, and seamless inline, floating PiP, and fullscreen layouts.
+- **Ephemeral Self-Destructing Messages**: Implemented timed ephemeral messaging across P2P sync and SQLite storage with clock-skew guards, live countdown badges (`EphemeralCountdownBadge`), urgent expiration animations, and automatic local deletion.
+- **NSFW (+18) Channel Policies & Auto-Blur Safeguards**: Added per-channel NSFW toggles, attachment-level NSFW flagging in `ChatInputArea`, global auto-blur preferences (`autoBlurNsfw`), and click-to-reveal/rehide overlays across image galleries and video attachments.
+- **Multichannel Torrent Probing & Cinema Seek Offset Accuracy**: Upgraded `TorrentService` with sequential pipe probing and MP4 `moov` HTTP fallbacks, automatic 5.1/7.1-to-stereo dialogue-preserving AAC downmixing (256 kbps), fast seeking, and accurate `streamTimeOffsetRef` timeline tracking in `AddonStageDisplay`.
+- **HiDPI PDF Viewer & Auto Fit-to-Width Scaling**: Enhanced `PdfViewer` with Retina/HiDPI DPR canvas rendering, responsive fit-to-width auto-scaling, Ctrl+Wheel zooming, 100% reset controls, and precomputed page geometry to prevent layout shifts.
+- **Camera Device Selection & Live Preview in Voice Settings**: Extended device enumeration (`useAudioDevices`) and `AudioTab` with camera selection, permissions handling, and live video preview persisted in audio/video profile settings.
+- **Unified AvatarPicker Component & Add Server Modal Redesign**: Consolidated avatar and server icon upload workflows into a reusable `AvatarPicker` primitive across `ProfileSetup`, `UserProfilePopout`, `ServerOverviewTab`, and a redesigned `AddServerModal` supporting direct icon uploads and full invite link parsing.
+- **Cumulative Server Flame Streak Aggregation**: Updated `evaluateServerFlame` to calculate the server's collective flame streak as the sum of all active member streaks rather than the single highest individual streak.
+- **Settings Polish & Full Multi-Language Localization**: Streamlined `GeneralTab` layout and synced all new strings for webcam streaming, multi-stream grids, ephemeral timers, NSFW controls, and PDF toolbar actions across English, Spanish, and Portuguese locales.
+
 # Onicord v0.2.8
 
 ## Changes

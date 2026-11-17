@@ -24,6 +24,10 @@ import { soundEngine } from "../../lib/soundEngine";
 import { normalizeChatMessage } from "../../hooks/useChatMessages";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { cn } from "../../lib/cn";
+import {
+  WebcamStreamCompositor,
+  acquireWebcamStream,
+} from "../../lib/voice/webcamCompositor";
 
 export default function RoomView({
   profile,
@@ -398,11 +402,62 @@ export default function RoomView({
   }, []);
 
   const [localStream, setLocalStream] = useState(null);
+  const localStreamRef = useRef(null);
+  useEffect(() => {
+    localStreamRef.current = localStream;
+  }, [localStream]);
+  const streamCompositorRef = useRef(null);
+  const rawScreenStreamRef = useRef(null);
+  const localStreamSettingsRef = useRef({
+    resolution: "720",
+    gameMode: false,
+    webcamDeviceId: "",
+  });
+  const [localStreamMode, setLocalStreamMode] = useState("screen");
+  const [isLocalWebcamActive, setIsLocalWebcamActive] = useState(false);
+  const [webcamPosition, setWebcamPosition] = useState(() => {
+    return localStorage.getItem("onicord_stream_webcam_position") || "bottom-right";
+  });
+  const [webcamMirror, setWebcamMirror] = useState(() => {
+    return localStorage.getItem("onicord_stream_webcam_mirror") !== "false";
+  });
+  const [isWebcamBusy, setIsWebcamBusy] = useState(false);
+
   const [isStreamFloating, setIsStreamFloating] = useState(false);
   const [isStreamFullscreen, setIsStreamFullscreen] = useState(false);
   const [activeStreamUserId, setActiveStreamUserId] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
+  const [isMultiStreamMode, setIsMultiStreamMode] = useState(false);
+  const [activeMultiAudioPeerId, setActiveMultiAudioPeerId] = useState(null);
+  const [remoteStreamsMap, setRemoteStreamsMap] = useState({});
   const activeStreamUserIdRef = useRef(null);
+  const pendingMultiChannelRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (streamCompositorRef.current) {
+        streamCompositorRef.current.destroy();
+        streamCompositorRef.current = null;
+      }
+      if (rawScreenStreamRef.current) {
+        rawScreenStreamRef.current.getTracks().forEach((tr) => {
+          try {
+            tr.enabled = false;
+            tr.stop();
+          } catch {}
+        });
+        rawScreenStreamRef.current = null;
+      }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((tr) => {
+          try {
+            tr.enabled = false;
+            tr.stop();
+          } catch {}
+        });
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isStreamFullscreen) return;
@@ -419,9 +474,20 @@ export default function RoomView({
   useEffect(() => {
     const handleVideoUpdate = (e) => {
       const { peerId, stream } = e.detail || {};
-      if (peerId && stream && peerId === activeStreamUserIdRef.current) {
+      if (!peerId) return;
+      if (stream && peerId === activeStreamUserIdRef.current) {
         setRemoteStream(stream);
       }
+      setRemoteStreamsMap((prev) => {
+        if (!stream) {
+          if (!(peerId in prev)) return prev;
+          const next = { ...prev };
+          delete next[peerId];
+          return next;
+        }
+        if (prev[peerId] === stream) return prev;
+        return { ...prev, [peerId]: stream };
+      });
     };
     window.addEventListener("peer-video-update", handleVideoUpdate);
     return () => window.removeEventListener("peer-video-update", handleVideoUpdate);
@@ -823,6 +889,105 @@ export default function RoomView({
     }
   }, [activeStreamUserId, voiceMembersDisplay]);
 
+  const streamingMembersInCurrentChannel = useMemo(() => {
+    if (!selectedVoiceChannelId) return [];
+    return voiceMembersDisplay.filter(
+      (m) => m.channelId === selectedVoiceChannelId && m.isStreaming,
+    );
+  }, [voiceMembersDisplay, selectedVoiceChannelId]);
+
+  useEffect(() => {
+    if (!selectedVoiceChannelId) {
+      setRemoteStreamsMap((prev) => (Object.keys(prev).length > 0 ? {} : prev));
+      return;
+    }
+    const activePeerIds = new Set(
+      streamingMembersInCurrentChannel
+        .filter((m) => !m.isSelf && m.peerId)
+        .map((m) => m.peerId),
+    );
+    setRemoteStreamsMap((prev) => {
+      let changed = false;
+      const next = {};
+      for (const [pid, st] of Object.entries(prev)) {
+        if (activePeerIds.has(pid) && st) {
+          next[pid] = st;
+        } else {
+          changed = true;
+        }
+      }
+      for (const pid of activePeerIds) {
+        if (!next[pid]) {
+          const live = voice.getRemoteStream?.(pid);
+          if (live) {
+            next[pid] = live;
+            changed = true;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [streamingMembersInCurrentChannel, selectedVoiceChannelId, voice]);
+
+  const multiStreamEntries = useMemo(() => {
+    if (!isMultiStreamMode || !selectedVoiceChannelId) return [];
+    return streamingMembersInCurrentChannel
+      .map((m) => {
+        const entryId = m.peerId || (m.isSelf ? localPeerId || "self" : m.id);
+        const streamObj = m.isSelf
+          ? localStream
+          : remoteStreamsMap[m.peerId] || voice.getRemoteStream?.(m.peerId) || null;
+        if (m.isSelf && !streamObj) return null;
+        return {
+          id: entryId,
+          peerId: entryId,
+          stream: streamObj,
+          authorName: m.isSelf
+            ? localEffective?.nickname ?? profile?.nickname ?? t("common.you")
+            : m.nickname,
+          avatar: m.avatar,
+          isLocal: Boolean(m.isSelf),
+        };
+      })
+      .filter(Boolean);
+  }, [
+    isMultiStreamMode,
+    selectedVoiceChannelId,
+    streamingMembersInCurrentChannel,
+    localPeerId,
+    localStream,
+    remoteStreamsMap,
+    voice,
+    localEffective?.nickname,
+    profile?.nickname,
+    t,
+  ]);
+
+  useEffect(() => {
+    if (!isMultiStreamMode) return;
+    if (streamingMembersInCurrentChannel.length === 0) {
+      setIsMultiStreamMode(false);
+      setActiveMultiAudioPeerId(null);
+      setIsStreamFloating(false);
+      setIsStreamFullscreen(false);
+      window.electronAPI?.setFullscreen?.(false);
+      return;
+    }
+    const stillValid = multiStreamEntries.some(
+      (e) => e.id === activeMultiAudioPeerId,
+    );
+    if (!stillValid) {
+      const firstRemote = multiStreamEntries.find((e) => !e.isLocal);
+      const fallback = firstRemote || multiStreamEntries[0] || null;
+      setActiveMultiAudioPeerId(fallback ? fallback.id : null);
+    }
+  }, [
+    isMultiStreamMode,
+    streamingMembersInCurrentChannel.length,
+    multiStreamEntries,
+    activeMultiAudioPeerId,
+  ]);
+
   const serverFlame = useMemo(() => {
     return evaluateServerFlame(server || {}, sanitizedMembersList);
   }, [server, sanitizedMembersList]);
@@ -1077,6 +1242,16 @@ export default function RoomView({
         setActiveStreamUserId(null);
         activeStreamUserIdRef.current = null;
       }
+      if (
+        pendingMultiChannelRef.current &&
+        pendingMultiChannelRef.current === selectedVoiceChannelId
+      ) {
+        pendingMultiChannelRef.current = null;
+      } else {
+        setIsMultiStreamMode(false);
+        setActiveMultiAudioPeerId(null);
+        setRemoteStreamsMap({});
+      }
       // If user leaves voice chat, automatically dismiss active addon stage
       if (wasInVoice && !selectedVoiceChannelId && activeAddonStageRef.current) {
         handleCloseStage(false);
@@ -1095,11 +1270,15 @@ export default function RoomView({
         return;
       }
     }
-    if (localStream || remoteStream) {
+    if (localStream || remoteStream || isMultiStreamMode) {
       await handleStopScreenShare();
       setRemoteStream(null);
       setActiveStreamUserId(null);
       activeStreamUserIdRef.current = null;
+      if (!pendingMultiChannelRef.current || pendingMultiChannelRef.current !== channelId) {
+        setIsMultiStreamMode(false);
+        setActiveMultiAudioPeerId(null);
+      }
     }
     if (channelId) {
       globalVoice.joinVoiceChannel(server, channelId);
@@ -1110,6 +1289,25 @@ export default function RoomView({
       globalVoice.leaveVoiceChannel();
     }
   };
+
+  const handleOpenMultiStream = useCallback(
+    async (targetChannelId) => {
+      const targetId = targetChannelId || selectedVoiceChannelId;
+      if (!targetId) return;
+      if (selectedVoiceChannelId !== targetId) {
+        const canConnect = checkPermission(server, profile?.id, "connect_voice");
+        if (!canConnect) return;
+        pendingMultiChannelRef.current = targetId;
+        await selectVoiceChannel(targetId);
+      }
+      setActiveStreamUserId(null);
+      activeStreamUserIdRef.current = null;
+      setRemoteStream(null);
+      setIsStreamFloating(false);
+      setIsMultiStreamMode(true);
+    },
+    [selectedVoiceChannelId, server, profile?.id],
+  );
 
   // Force voice disconnect if connect_voice permission is revoked in real time
   useEffect(() => {
@@ -1136,9 +1334,29 @@ export default function RoomView({
     voice.setLocalVideoStream?.(null);
     await window.electronAPI?.setStreaming?.(false);
 
-    if (localStream) {
+    if (streamCompositorRef.current) {
       try {
-        localStream.getTracks().forEach((track) => {
+        streamCompositorRef.current.destroy();
+      } catch (err) {
+        console.error("Error destroying stream compositor:", err);
+      }
+      streamCompositorRef.current = null;
+    }
+
+    if (rawScreenStreamRef.current) {
+      try {
+        rawScreenStreamRef.current.getTracks().forEach((track) => {
+          track.enabled = false;
+          track.stop();
+        });
+      } catch {}
+      rawScreenStreamRef.current = null;
+    }
+
+    const activeLocal = localStreamRef.current || localStream;
+    if (activeLocal) {
+      try {
+        activeLocal.getTracks().forEach((track) => {
           track.enabled = false;
           track.stop();
         });
@@ -1148,15 +1366,176 @@ export default function RoomView({
       setLocalStream(null);
     }
 
-    setIsStreamFloating(false);
-    setIsStreamFullscreen(false);
-    window.electronAPI?.setFullscreen?.(false);
+    setIsLocalWebcamActive(false);
+    setLocalStreamMode("screen");
+
+    if (!isMultiStreamMode) {
+      setIsStreamFloating(false);
+      setIsStreamFullscreen(false);
+      window.electronAPI?.setFullscreen?.(false);
+    }
   };
+
+  const handleStartLocalStream = useCallback(
+    async (stream, streamOptions = {}, compositor = null) => {
+      if (streamCompositorRef.current && streamCompositorRef.current !== compositor) {
+        streamCompositorRef.current.destroy();
+        streamCompositorRef.current = null;
+      }
+      if (
+        rawScreenStreamRef.current &&
+        rawScreenStreamRef.current !== stream &&
+        rawScreenStreamRef.current !== compositor?.screenStream
+      ) {
+        try {
+          rawScreenStreamRef.current.getTracks().forEach((tr) => {
+            tr.enabled = false;
+            tr.stop();
+          });
+        } catch {}
+      }
+      if (localStreamRef.current && localStreamRef.current !== stream) {
+        try {
+          localStreamRef.current.getTracks().forEach((tr) => {
+            tr.enabled = false;
+            tr.stop();
+          });
+        } catch {}
+      }
+
+      streamCompositorRef.current = compositor || null;
+      rawScreenStreamRef.current = compositor ? (compositor.screenStream || null) : stream;
+
+      const mode = streamOptions?.mode === "camera" ? "camera" : "screen";
+      const camActive = Boolean(streamOptions?.includeWebcam);
+      const pos =
+        streamOptions?.webcamPosition ||
+        localStorage.getItem("onicord_stream_webcam_position") ||
+        "bottom-right";
+      const mirror =
+        streamOptions?.webcamMirror !== undefined
+          ? Boolean(streamOptions.webcamMirror)
+          : localStorage.getItem("onicord_stream_webcam_mirror") !== "false";
+
+      localStreamSettingsRef.current = {
+        resolution: streamOptions?.resolution || "720",
+        gameMode: Boolean(streamOptions?.gameMode),
+        webcamDeviceId:
+          streamOptions?.webcamDeviceId ||
+          profile?.audio?.videoDeviceId ||
+          localStorage.getItem("onicord_preferred_webcam") ||
+          "",
+      };
+
+      setLocalStreamMode(mode);
+      setIsLocalWebcamActive(camActive);
+      setWebcamPosition(pos);
+      setWebcamMirror(mirror);
+
+      await window.electronAPI?.setStreaming?.(true);
+      setLocalStream(stream);
+      const allowExpand =
+        localStorage.getItem("onicord_dev_allow_local_stream_expand") === "true";
+      setIsStreamFloating(!allowExpand);
+      voice.setIsStreaming?.(true);
+      voice.setLocalVideoStream?.(stream, streamOptions);
+    },
+    [profile?.audio?.videoDeviceId, voice]
+  );
+
+  const handleToggleLocalWebcam = useCallback(async () => {
+    if (isWebcamBusy || !localStreamRef.current) return;
+
+    if (isLocalWebcamActive) {
+      if (streamCompositorRef.current) {
+        streamCompositorRef.current.setWebcamStream(null);
+      }
+      setIsLocalWebcamActive(false);
+      return;
+    }
+
+    setIsWebcamBusy(true);
+    try {
+      const settings = localStreamSettingsRef.current;
+      const camStream = await acquireWebcamStream({
+        deviceId:
+          settings.webcamDeviceId ||
+          profile?.audio?.videoDeviceId ||
+          localStorage.getItem("onicord_preferred_webcam") ||
+          "",
+        resolution: settings.resolution || "720",
+        gameMode: Boolean(settings.gameMode),
+        isPipOverlay: localStreamMode !== "camera",
+      });
+
+      if (!localStreamRef.current) {
+        camStream.getTracks().forEach((tr) => tr.stop());
+        return;
+      }
+
+      if (streamCompositorRef.current) {
+        streamCompositorRef.current.setWebcamStream(camStream);
+      } else {
+        const baseScreen = rawScreenStreamRef.current || localStreamRef.current;
+        const compositor = new WebcamStreamCompositor(baseScreen, camStream, {
+          mode: "screen",
+          position: webcamPosition,
+          mirror: webcamMirror,
+          gameMode: Boolean(settings.gameMode),
+        });
+        streamCompositorRef.current = compositor;
+        rawScreenStreamRef.current = baseScreen;
+        setLocalStream(compositor.outputStream);
+        voice.setLocalVideoStream?.(compositor.outputStream, {
+          gameMode: Boolean(settings.gameMode),
+        });
+      }
+
+      setIsLocalWebcamActive(true);
+    } catch (err) {
+      console.error("[RoomView] Error activando webcam en vivo:", err);
+      notificationManager.showToast(
+        t("screenShare.webcamOverlay", "Webcam"),
+        err?.message ||
+          t("screenShare.cameraPermissionError", "No se pudo acceder a la cámara web."),
+        "danger"
+      );
+    } finally {
+      setIsWebcamBusy(false);
+    }
+  }, [
+    isWebcamBusy,
+    isLocalWebcamActive,
+    localStreamMode,
+    profile?.audio?.videoDeviceId,
+    webcamPosition,
+    webcamMirror,
+    voice,
+    t,
+  ]);
+
+  const handleChangeWebcamPosition = useCallback((nextPos) => {
+    setWebcamPosition(nextPos);
+    localStorage.setItem("onicord_stream_webcam_position", nextPos);
+    streamCompositorRef.current?.setPosition(nextPos);
+  }, []);
+
+  const handleToggleWebcamMirror = useCallback(() => {
+    setWebcamMirror((prev) => {
+      const next = !prev;
+      localStorage.setItem("onicord_stream_webcam_mirror", String(next));
+      streamCompositorRef.current?.setMirror(next);
+      return next;
+    });
+  }, []);
 
   const handleDisconnectVoice = async () => {
     if (activeAddonStageRef.current) {
       handleCloseStage(false);
     }
+    setIsMultiStreamMode(false);
+    setActiveMultiAudioPeerId(null);
+    setRemoteStreamsMap({});
     await handleStopScreenShare();
     globalVoice.leaveVoiceChannel();
   };
@@ -1260,6 +1639,8 @@ export default function RoomView({
         setActiveStreamUserId={setActiveStreamUserId}
         setRemoteStream={setRemoteStream}
         setIsStreamFloating={setIsStreamFloating}
+        setIsMultiStreamMode={setIsMultiStreamMode}
+        onOpenMultiStream={handleOpenMultiStream}
         voice={voice}
         musicState={musicState}
         activeGame={activeGame}
@@ -1269,6 +1650,7 @@ export default function RoomView({
         onOpenAppSettings={onOpenAppSettings}
         localStream={localStream}
         setLocalStream={setLocalStream}
+        onStartLocalStream={handleStartLocalStream}
         onProfileChange={onProfileChange}
         handleStopScreenShare={handleStopScreenShare}
       />
@@ -1311,7 +1693,7 @@ export default function RoomView({
           <div className="flex-1 min-w-0 h-full flex flex-col relative overflow-hidden bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island">
             <div
               className={`flex-1 h-full min-h-0 flex flex-col ${
-                ((localStream || remoteStream) && !isStreamFloating) ||
+                ((localStream || remoteStream || (isMultiStreamMode && multiStreamEntries.length > 0)) && !isStreamFloating) ||
                 (activeAddonStage && !isStageFloating) ||
                 (hasActiveWatchParty && !isWatchPartyFloating)
                   ? "hidden"
@@ -1356,10 +1738,26 @@ export default function RoomView({
               setIsStreamFullscreen={setIsStreamFullscreen}
               voiceMembersDisplay={voiceMembersDisplay}
               onStopScreenShare={handleStopScreenShare}
+              localStreamMode={localStreamMode}
+              isLocalWebcamActive={isLocalWebcamActive}
+              isWebcamBusy={isWebcamBusy}
+              webcamPosition={webcamPosition}
+              webcamMirror={webcamMirror}
+              onToggleLocalWebcam={handleToggleLocalWebcam}
+              onChangeWebcamPosition={handleChangeWebcamPosition}
+              onToggleWebcamMirror={handleToggleWebcamMirror}
               onResetRemoteStream={() => {
                 setRemoteStream(null);
                 setActiveStreamUserId(null);
                 activeStreamUserIdRef.current = null;
+              }}
+              isMultiStreamMode={isMultiStreamMode}
+              multiStreamEntries={multiStreamEntries}
+              activeMultiAudioPeerId={activeMultiAudioPeerId}
+              onSelectMultiAudioPeer={setActiveMultiAudioPeerId}
+              onCloseMultiStream={() => {
+                setIsMultiStreamMode(false);
+                setActiveMultiAudioPeerId(null);
               }}
             />
 

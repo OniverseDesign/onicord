@@ -9,6 +9,7 @@ import MaterialIcon from "../icons/MaterialIcon";
 import {
   IconVolumeUp,
   IconTag,
+  IconVideoCam,
 } from "../icons/StreamIcons";
 import { hasChannelAccess, checkPermission } from "../../lib/permissionsHelper";
 import { getEffectiveProfile } from "../../lib/profileUtils";
@@ -133,6 +134,8 @@ export default function ChannelsSidebar({
   setActiveStreamUserId,
   setRemoteStream,
   setIsStreamFloating,
+  setIsMultiStreamMode,
+  onOpenMultiStream,
   voice,
   musicState,
   activeGame,
@@ -142,6 +145,7 @@ export default function ChannelsSidebar({
   onOpenAppSettings,
   localStream,
   setLocalStream,
+  onStartLocalStream,
   onProfileChange,
   handleStopScreenShare,
 }) {
@@ -236,6 +240,7 @@ export default function ChannelsSidebar({
     }
     if (ch.type === "voice") {
       const usersInChannel = voiceMembersDisplay.filter((m) => m.channelId === ch.id);
+      const streamingMembersInChannel = usersInChannel.filter((m) => m.isStreaming);
       const voiceStartTime = voiceStartTimesRef?.current?.[ch.id];
       const canConnectVoice = checkPermission(server, profile?.id, "connect_voice");
       const isAfkChannel = server?.afkSettings?.channelId === ch.id;
@@ -307,7 +312,36 @@ export default function ChannelsSidebar({
               )
             }
             label={getLocalizedChannelName(ch)}
-            rightContent={<VoiceChannelTimer startTime={voiceStartTime} />}
+            rightContent={
+              <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                {streamingMembersInChannel.length > 1 && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      onOpenMultiStream?.(ch.id);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onOpenMultiStream?.(ch.id);
+                      }
+                    }}
+                    className="onicord-live-badge-interactive"
+                    title={t("voice.watchAllStreams", {
+                      count: streamingMembersInChannel.length,
+                      defaultValue: `Ver todas las transmisiones en pantalla dividida (${streamingMembersInChannel.length})`,
+                    })}
+                  >
+                    <IconVideoCam size="base" />
+                  </span>
+                )}
+                <VoiceChannelTimer startTime={voiceStartTime} />
+              </div>
+            }
           />
           {usersInChannel.length > 0 && (
             <ul className="my-1 pl-6 pr-2 space-y-0.5">
@@ -337,6 +371,7 @@ export default function ChannelsSidebar({
                       : undefined
                   }
                   onJoinStream={async (targetPeerId) => {
+                    setIsMultiStreamMode?.(false);
                     activeStreamUserIdRef.current = targetPeerId;
                     setActiveStreamUserId(targetPeerId);
                     setRemoteStream(null);
@@ -598,7 +633,11 @@ export default function ChannelsSidebar({
         micErrorMessage={voice.micErrorMessage}
         onRetryMicrophone={voice.reclaimMicrophoneAccess}
         onProfileChange={onProfileChange}
-        onStreamStarted={async (stream, streamOptions = {}) => {
+        onStreamStarted={async (stream, streamOptions = {}, compositor = null) => {
+          if (onStartLocalStream) {
+            await onStartLocalStream(stream, streamOptions, compositor);
+            return;
+          }
           await window.electronAPI?.setStreaming?.(true);
           setLocalStream(stream);
           const allowExpand =

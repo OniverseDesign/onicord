@@ -71,6 +71,7 @@ export default function ThreadSidePanel({
 
   const [replyTarget, setReplyTarget] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isEphemeralMode, setIsEphemeralMode] = useState(false);
 
   // Context menu and message action states
   const [contextMenu, setContextMenu] = useState(null);
@@ -269,7 +270,16 @@ export default function ThreadSidePanel({
       };
     }
 
-    onSendThreadReply(parentMessage.id, text, replyData);
+    const outgoingText = isEphemeralMode
+      ? JSON.stringify({
+          body: text,
+          replyTo: replyData || undefined,
+          isEphemeral: true,
+          expiresAt: Date.now() + 60000,
+        })
+      : text;
+
+    onSendThreadReply(parentMessage.id, outgoingText, replyData);
     soundEngine.playCue("send");
     setInput("");
     setReplyTarget(null);
@@ -320,7 +330,7 @@ export default function ThreadSidePanel({
   };
 
   const handleSendSticker = (stickerObj) => {
-    const stickerPayload = JSON.stringify({
+    const baseSticker = JSON.stringify({
       type: "sticker",
       stickerId: stickerObj.id,
       stickerName: stickerObj.name,
@@ -328,6 +338,14 @@ export default function ThreadSidePanel({
       fallbackBase64: stickerObj.fallbackBase64,
       threadParentId: parentMessage.id,
     });
+    const stickerPayload = isEphemeralMode
+      ? JSON.stringify({
+          body: baseSticker,
+          threadParentId: parentMessage.id,
+          isEphemeral: true,
+          expiresAt: Date.now() + 60000,
+        })
+      : baseSticker;
     onSendThreadReply(parentMessage.id, stickerPayload);
     setStickersTargetRect(null);
   };
@@ -369,9 +387,15 @@ export default function ThreadSidePanel({
       const attachmentsPayload = processedAttachments
         .map((att) => `[FILE_ATTACHMENT]:${JSON.stringify(att)}`)
         .join("");
+      const ephemeralMeta = isEphemeralMode
+        ? { isEphemeral: true, expiresAt: Date.now() + 60000 }
+        : null;
 
       if (onSendThreadReply) {
-        await onSendThreadReply(parentMessage.id, attachmentsPayload);
+        const finalPayload = ephemeralMeta
+          ? JSON.stringify({ body: attachmentsPayload, ...ephemeralMeta })
+          : attachmentsPayload;
+        await onSendThreadReply(parentMessage.id, finalPayload);
       } else if (window.electronAPI?.sendChatMessage) {
         await window.electronAPI.sendChatMessage(
           server.roomCode,
@@ -379,6 +403,7 @@ export default function ThreadSidePanel({
           JSON.stringify({
             body: attachmentsPayload,
             threadParentId: parentMessage.id,
+            ...(ephemeralMeta || {}),
           }),
         );
       }
@@ -891,6 +916,8 @@ export default function ThreadSidePanel({
         handleAttachFileClick={() => fileInputRef.current?.click()}
         handleSelectEmoji={handleSelectEmoji}
         onSelectSticker={handleSendSticker}
+        isEphemeralMode={isEphemeralMode}
+        onToggleEphemeralMode={() => setIsEphemeralMode((v) => !v)}
       />
 
       {/* ContextMenu popover in Thread panel */}

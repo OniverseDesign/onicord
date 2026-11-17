@@ -7,7 +7,7 @@ import MaterialIcon from "../icons/MaterialIcon";
 import IconEstrella from "../icons/Estrella.svg?react";
 
 import MessageAvatar from "./subcomponents/MessageAvatar";
-import MessageHeader, { formatTime } from "./subcomponents/MessageHeader";
+import MessageHeader, { formatTime, EphemeralCountdownBadge } from "./subcomponents/MessageHeader";
 import MessageThreadBadge from "./subcomponents/MessageThreadBadge";
 import MessageReactionsBar from "./subcomponents/MessageReactionsBar";
 import MessageActionsHoverBar from "./subcomponents/MessageActionsHoverBar";
@@ -141,6 +141,8 @@ const ChatMessageItem = memo(
     let fileData = null;
     let replyToData = safeMsg.replyTo || null;
     let effectiveThreadParentId = safeMsg.threadParentId || null;
+    let isEphemeral = Boolean(safeMsg.isEphemeral);
+    let expiresAt = safeMsg.expiresAt || null;
     let isForwarded = false;
     let originChannelName = null;
     let originChannelId = null;
@@ -153,37 +155,40 @@ const ChatMessageItem = memo(
     ) {
       try {
         const parsedReplyObj = JSON.parse(safeMsg.text);
-        if (
-          parsedReplyObj &&
-          typeof parsedReplyObj === "object" &&
-          parsedReplyObj.body !== undefined
-        ) {
-          textContent = parsedReplyObj.body;
-          replyToData = parsedReplyObj.replyTo || replyToData;
-          if (parsedReplyObj.threadParentId) {
-            effectiveThreadParentId = parsedReplyObj.threadParentId;
+        if (parsedReplyObj && typeof parsedReplyObj === "object") {
+          if (parsedReplyObj.isEphemeral) isEphemeral = true;
+          if (parsedReplyObj.expiresAt) expiresAt = parsedReplyObj.expiresAt;
+          if (parsedReplyObj.body !== undefined) {
+            textContent = parsedReplyObj.body;
+            replyToData = parsedReplyObj.replyTo || replyToData;
+            if (parsedReplyObj.threadParentId) {
+              effectiveThreadParentId = parsedReplyObj.threadParentId;
+            }
           }
         }
       } catch (e) {}
     } else if (
-      !replyToData &&
       safeMsg.rawText &&
       typeof safeMsg.rawText === "string" &&
       safeMsg.rawText.trim().startsWith("{")
     ) {
       try {
         const parsedReplyObj = JSON.parse(safeMsg.rawText);
-        if (
-          parsedReplyObj &&
-          typeof parsedReplyObj === "object" &&
-          parsedReplyObj.replyTo
-        ) {
-          replyToData = parsedReplyObj.replyTo;
+        if (parsedReplyObj && typeof parsedReplyObj === "object") {
+          if (parsedReplyObj.isEphemeral) isEphemeral = true;
+          if (parsedReplyObj.expiresAt) expiresAt = parsedReplyObj.expiresAt;
+          if (!replyToData && parsedReplyObj.replyTo) {
+            replyToData = parsedReplyObj.replyTo;
+          }
           if (parsedReplyObj.threadParentId) {
             effectiveThreadParentId = parsedReplyObj.threadParentId;
           }
         }
       } catch (e) {}
+    }
+
+    if (isEphemeral && !expiresAt && safeMsg.timestamp) {
+      expiresAt = safeMsg.timestamp + 60000;
     }
 
     if (textContent && typeof textContent === "string" && textContent.startsWith("[FORWARD_MESSAGE]:")) {
@@ -578,8 +583,14 @@ const ChatMessageItem = memo(
           }
         >
           {isGrouped ? (
-            <div className="w-11 shrink-0 flex items-center justify-end select-none text-[10px] text-onicord-muted opacity-0 group-hover:opacity-60 font-medium pr-1">
-              {formatTime(msg.timestamp)}
+            <div className="w-11 shrink-0 flex items-center justify-end select-none text-[10px] text-onicord-muted font-medium pr-1">
+              {isEphemeral && expiresAt ? (
+                <EphemeralCountdownBadge expiresAt={expiresAt} compact />
+              ) : (
+                <span className="opacity-0 group-hover:opacity-60">
+                  {formatTime(msg.timestamp)}
+                </span>
+              )}
             </div>
           ) : (
             <MessageAvatar
@@ -601,6 +612,8 @@ const ChatMessageItem = memo(
                 timestamp={msg.timestamp}
                 edited={msg.edited}
                 isForwarded={msg.isForwarded}
+                isEphemeral={isEphemeral}
+                expiresAt={expiresAt}
               />
             )}
 
@@ -640,6 +653,7 @@ const ChatMessageItem = memo(
                   images={imageAttachments}
                   msg={msg}
                   isMyMessage={isMyMessage}
+                  profile={profile}
                   fileProgress={fileProgress}
                   onDownloadFile={onDownloadFile}
                   onOpenPreview={onOpenPreview}
@@ -653,6 +667,7 @@ const ChatMessageItem = memo(
                 fileData={otherAtt}
                 msg={msg}
                 isMyMessage={isMyMessage}
+                profile={profile}
                 server={server}
                 fileProgress={fileProgress}
                 onDownloadFile={onDownloadFile}

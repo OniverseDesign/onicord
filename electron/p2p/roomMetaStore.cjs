@@ -164,6 +164,7 @@ class RoomMetaStore {
                 name: ch.name,
                 type: ch.type,
                 parentId: ch.category_id || null,
+                nsfw: Boolean(ch.nsfw),
                 isPrivate: Boolean(perms.isPrivate),
                 allowedRoles: Array.isArray(perms.allowedRoles) ? perms.allowedRoles : [],
                 hasSpeakRestrictions: Boolean(perms.hasSpeakRestrictions),

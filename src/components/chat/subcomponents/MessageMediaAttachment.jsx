@@ -49,6 +49,7 @@ export default function MessageMediaAttachment({
   fileData,
   msg,
   isMyMessage,
+  profile = null,
   server,
   fileProgress = {},
   onDownloadFile = () => {},
@@ -58,12 +59,17 @@ export default function MessageMediaAttachment({
 }) {
   const { t } = useTranslation();
   const [overrideRemotePath, setOverrideRemotePath] = useState(null);
+  const [isNsfwRevealed, setIsNsfwRevealed] = useState(false);
   const [execWarningModal, setExecWarningModal] = useState({
     isOpen: false,
     mode: "blocked",
     onConfirm: null,
   });
   const inlineVideoRef = useRef(null);
+
+  const isNsfw = Boolean(fileData?.isNsfw);
+  const autoBlurNsfw = profile?.general?.blurNsfwContent ?? true;
+  const isBlurred = isNsfw && autoBlurNsfw && !isNsfwRevealed;
 
   const fileExtension = fileData?.name?.split(".").pop()?.toLowerCase() || "";
   const isImage = ["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(fileExtension);
@@ -229,20 +235,71 @@ export default function MessageMediaAttachment({
       {isCompleted && (isImage || isVideo) && resolvedMediaSrc ? (
         isImage ? (
           <div
-            onClick={(e) => handleFileActionClick(e)}
-            className="relative mt-1 max-w-[550px] rounded-onicord-inner overflow-hidden bg-black/20 border border-white/5 cursor-pointer hover:border-onicord-accent/40 transition-all duration-200 group/media inline-flex items-center justify-center"
+            onClick={(e) => {
+              if (isBlurred) {
+                e.stopPropagation();
+                setIsNsfwRevealed(true);
+                return;
+              }
+              handleFileActionClick(e);
+            }}
+            className={`relative mt-1 max-w-[550px] rounded-onicord-inner overflow-hidden bg-black/20 border border-white/5 cursor-pointer hover:border-onicord-accent/40 transition-all duration-200 group/media inline-flex items-center justify-center ${
+              isBlurred ? "min-w-[220px] min-h-[140px]" : ""
+            }`}
           >
             <img
               src={resolvedMediaSrc}
               alt={fileData.name}
-              className="w-auto h-auto max-w-full max-h-[400px] object-contain rounded-onicord-inner block animate-fade-in"
+              className={`w-auto h-auto max-w-full max-h-[400px] object-contain rounded-onicord-inner block animate-fade-in transition-all duration-200 ${
+                isBlurred ? "blur-2xl scale-110 brightness-50 select-none pointer-events-none" : ""
+              }`}
             />
-            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/media:opacity-100 transition-opacity duration-150 pointer-events-none" />
+            {isBlurred ? (
+              <div className="absolute inset-0 flex items-center justify-center p-3 z-10 pointer-events-none">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-rose-500/40 text-rose-300 text-xs font-semibold shadow-lg select-none">
+                  <MaterialIcon name="visibility_off" size={16} className="text-rose-400" />
+                  <span className="font-bold uppercase tracking-wider text-rose-400">{t("chat.nsfwBadge", "NSFW")}</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {isNsfw && (
+                  <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1">
+                    {autoBlurNsfw ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsNsfwRevealed(false);
+                        }}
+                        title={t("chat.nsfwHideAgain", "Ocultar contenido NSFW")}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-onicord-base/85 backdrop-blur-md border border-rose-500/40 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold uppercase tracking-wider shadow transition-colors cursor-pointer"
+                      >
+                        <MaterialIcon name="visibility_off" size={12} />
+                        <span>{t("chat.nsfwBadge", "NSFW")}</span>
+                      </button>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded bg-onicord-base/85 backdrop-blur-md border border-rose-500/40 text-rose-400 text-[10px] font-bold uppercase tracking-wider shadow">
+                        {t("chat.nsfwBadge", "NSFW")}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/media:opacity-100 transition-opacity duration-150 pointer-events-none" />
+              </>
+            )}
           </div>
         ) : (
           <div
-            className="relative mt-1 max-w-[550px] rounded-onicord-inner overflow-hidden bg-black/40 border border-white/10 group/vid inline-flex items-center justify-center cursor-pointer hover:border-onicord-accent/40 transition-all duration-200"
+            className={`relative mt-1 max-w-[550px] rounded-onicord-inner overflow-hidden bg-black/40 border border-white/10 group/vid inline-flex items-center justify-center cursor-pointer hover:border-onicord-accent/40 transition-all duration-200 ${
+              isBlurred ? "min-w-[240px] min-h-[150px]" : ""
+            }`}
             onClick={(e) => {
+              if (isBlurred) {
+                e.stopPropagation();
+                setIsNsfwRevealed(true);
+                return;
+              }
               if (inlineVideoRef.current) {
                 const rect = inlineVideoRef.current.getBoundingClientRect();
                 const clickYFromBottom = rect.bottom - e.clientY;
@@ -255,53 +312,116 @@ export default function MessageMediaAttachment({
               ref={inlineVideoRef}
               src={resolvedMediaSrc}
               poster={fileData?.thumbnail || undefined}
-              controls
-              className="w-auto h-auto max-w-full max-h-[400px] object-contain rounded-onicord-inner block animate-fade-in z-10"
+              controls={!isBlurred}
+              className={`w-auto h-auto max-w-full max-h-[400px] object-contain rounded-onicord-inner block animate-fade-in z-10 transition-all duration-200 ${
+                isBlurred ? "blur-2xl scale-110 brightness-50 select-none pointer-events-none" : ""
+              }`}
             />
-            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/vid:opacity-100 transition-opacity duration-150 pointer-events-none z-20" />
+            {isBlurred ? (
+              <div className="absolute inset-0 flex items-center justify-center p-3 z-20 pointer-events-none">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/85 backdrop-blur-md border border-rose-500/40 text-rose-300 text-xs font-semibold shadow-lg select-none">
+                  <MaterialIcon name="visibility_off" size={16} className="text-rose-400" />
+                  <span className="font-bold uppercase tracking-wider text-rose-400">{t("chat.nsfwBadge", "NSFW")}</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {isNsfw && (
+                  <div className="absolute top-2.5 left-2.5 z-30 flex items-center gap-1">
+                    {autoBlurNsfw ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          inlineVideoRef.current?.pause?.();
+                          setIsNsfwRevealed(false);
+                        }}
+                        title={t("chat.nsfwHideAgain", "Ocultar contenido NSFW")}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-onicord-base/85 backdrop-blur-md border border-rose-500/40 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold uppercase tracking-wider shadow transition-colors cursor-pointer"
+                      >
+                        <MaterialIcon name="visibility_off" size={12} />
+                        <span>{t("chat.nsfwBadge", "NSFW")}</span>
+                      </button>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded bg-onicord-base/85 backdrop-blur-md border border-rose-500/40 text-rose-400 text-[10px] font-bold uppercase tracking-wider shadow">
+                        {t("chat.nsfwBadge", "NSFW")}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/vid:opacity-100 transition-opacity duration-150 pointer-events-none z-20" />
+              </>
+            )}
           </div>
         )
       ) : isVideo && fileData?.thumbnail ? (
         <div
-          onClick={(e) => handleFileActionClick(e)}
+          onClick={(e) => {
+            if (isBlurred) {
+              e.stopPropagation();
+              setIsNsfwRevealed(true);
+              return;
+            }
+            handleFileActionClick(e);
+          }}
           className="relative mt-1 max-w-[480px] rounded-onicord-inner overflow-hidden bg-black/40 border border-white/10 cursor-pointer hover:border-onicord-accent/50 transition-all duration-200 group/thumb shadow-lg select-none"
         >
           <img
             src={fileData.thumbnail}
             alt={fileData.name}
-            className="w-full max-h-[280px] object-cover rounded-onicord-inner block opacity-90 group-hover/thumb:opacity-100 transition-opacity"
+            className={`w-full max-h-[280px] object-cover rounded-onicord-inner block transition-all ${
+              isBlurred
+                ? "blur-2xl scale-110 brightness-50"
+                : "opacity-90 group-hover/thumb:opacity-100"
+            }`}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20 flex flex-col justify-between p-3">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-white/90 border border-white/10">
-                <MaterialIcon name="videocam" size={14} className="text-emerald-400" />
-                {fileData.name?.split(".").pop()?.toUpperCase()}
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-onicord-muted border border-white/10">
-                {formatBytes(fileData.size)}
-              </span>
+          {isBlurred ? (
+            <div className="absolute inset-0 flex items-center justify-center p-3 z-20 pointer-events-none">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/85 backdrop-blur-md border border-rose-500/40 text-rose-300 text-xs font-semibold shadow-lg select-none">
+                <MaterialIcon name="visibility_off" size={16} className="text-rose-400" />
+                <span className="font-bold uppercase tracking-wider text-rose-400">{t("chat.nsfwBadge", "NSFW")}</span>
+              </div>
             </div>
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20 flex flex-col justify-between p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-white/90 border border-white/10">
+                    <MaterialIcon name="videocam" size={14} className="text-emerald-400" />
+                    {fileData.name?.split(".").pop()?.toUpperCase()}
+                  </span>
+                  {isNsfw && (
+                    <span className="px-1.5 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-400 text-[10px] font-bold uppercase tracking-wider">
+                      {t("chat.nsfwBadge", "NSFW")}
+                    </span>
+                  )}
+                </div>
+                <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-onicord-muted border border-white/10">
+                  {formatBytes(fileData.size)}
+                </span>
+              </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-onicord-accent text-white shadow-md group-hover/thumb:scale-105 transition-transform">
-                {isDownloading ? (
-                  <MaterialIcon name="downloading" size={22} className="animate-spin" />
-                ) : (
-                  <MaterialIcon name="play_arrow" size={24} />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-white group-hover/thumb:text-onicord-accent transition-colors">
-                  {fileData.name}
-                </p>
-                <p className="text-[11px] text-white/70">
-                  {isDownloading
-                    ? `${t("chat.downloading", "Descargando")} (${status?.progress || 0}%)…`
-                    : t("chat.clickToDownloadPlay", "Haz clic para descargar y reproducir")}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-onicord-accent text-white shadow-md group-hover/thumb:scale-105 transition-transform">
+                  {isDownloading ? (
+                    <MaterialIcon name="downloading" size={22} className="animate-spin" />
+                  ) : (
+                    <MaterialIcon name="play_arrow" size={24} />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium text-white group-hover/thumb:text-onicord-accent transition-colors">
+                    {fileData.name}
+                  </p>
+                  <p className="text-[11px] text-white/70">
+                    {isDownloading
+                      ? `${t("chat.downloading", "Descargando")} (${status?.progress || 0}%)…`
+                      : t("chat.clickToDownloadPlay", "Haz clic para descargar y reproducir")}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
           {isDownloading && (
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
               <div

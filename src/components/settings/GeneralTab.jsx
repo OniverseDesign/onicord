@@ -249,10 +249,10 @@ export default function GeneralTab({ general, setGeneral }) {
 
   return (
     <div className="onicord-settings-container">
-      {/* Interface and language settings */}
+      {/* 1. Interfaz y Apariencia */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
-          <span>{t("settings.general.interface", "Interfaz de Usuario e Idioma")}</span>
+          <span>{t("settings.general.interface", "Interfaz y Apariencia")}</span>
         </h3>
 
         <div>
@@ -364,7 +364,16 @@ export default function GeneralTab({ general, setGeneral }) {
               <div className="onicord-toggle-slider" />
             </label>
           </div>
+        </div>
+      </div>
 
+      {/* 2. Chat y Privacidad */}
+      <div className="onicord-settings-card">
+        <h3 className="onicord-settings-section-title">
+          <span>{t("settings.general.chatAndPrivacy", "Chat y Privacidad")}</span>
+        </h3>
+
+        <div>
           {/* Quick message suggestions */}
           <div className="onicord-settings-row">
             <div className="min-w-0 pr-4">
@@ -387,31 +396,26 @@ export default function GeneralTab({ general, setGeneral }) {
               <div className="onicord-toggle-slider" />
             </label>
           </div>
-        </div>
-      </div>
 
-      {/* CARD 2: SYSTEM INTEGRATION */}
-      <div className="onicord-settings-card">
-        <h3 className="onicord-settings-section-title">
-          <span>{t("settings.general.systemIntegration", "Integración con el Sistema")}</span>
-        </h3>
-
-        <div>
-          <div data-setting-id="startup" className="onicord-settings-row transition-all">
+          {/* Open Graph Preview */}
+          <div data-setting-id="openGraph" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
-                {t("settings.general.openAtLogin", "Abrir Onicord al iniciar el sistema")}
+                {t("settings.general.enableOpenGraph", "Previsualización de enlaces (Open Graph)")}
               </p>
               <p className="onicord-settings-row-desc">
-                {t("settings.general.openAtLoginDesc", "Ejecuta Onicord automáticamente cuando enciendes tu equipo.")}
+                {t("settings.general.enableOpenGraphDesc", "Genera tarjetas interactivas con miniaturas e información al compartir enlaces en el chat. Desactívalo para mejorar el rendimiento y ahorrar recursos.")}
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
               <input
                 type="checkbox"
-                checked={general.openAtLogin ?? false}
+                checked={general.enableOpenGraph ?? true}
                 onChange={(e) =>
-                  handleChange("openAtLogin", e.target.checked)
+                  handleChange(
+                    "enableOpenGraph",
+                    e.target.checked,
+                  )
                 }
                 className="sr-only peer"
               />
@@ -419,66 +423,31 @@ export default function GeneralTab({ general, setGeneral }) {
             </label>
           </div>
 
-          <div data-setting-id="autoDownloadUpdates" className="onicord-settings-row transition-all">
+          {/* Auto-blur NSFW media */}
+          <div data-setting-id="blurNsfw" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
-                {t("settings.general.autoDownloadUpdates", "Descarga automática de actualizaciones")}
+                {t(
+                  "settings.general.blurNsfwTitle",
+                  "Desenfocar automáticamente contenido NSFW",
+                )}
               </p>
               <p className="onicord-settings-row-desc">
-                {t("settings.general.autoDownloadUpdatesDesc", "Descarga las nuevas versiones de Onicord en segundo plano y las instala al reiniciar.")}
+                {t(
+                  "settings.general.blurNsfwDesc",
+                  "Muestra desenfocados los archivos multimedia marcados como NSFW (+18) hasta que hagas clic para revelarlos.",
+                )}
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
               <input
                 type="checkbox"
-                checked={general.autoDownloadAppUpdates ?? true}
+                checked={general?.blurNsfwContent ?? true}
                 onChange={(e) =>
-                  handleChange("autoDownloadAppUpdates", e.target.checked)
-                }
-                className="sr-only peer"
-              />
-              <div className="onicord-toggle-slider" />
-            </label>
-          </div>
-
-          <div data-setting-id="minimizeTray" className="onicord-settings-row transition-all">
-            <div className="min-w-0 pr-4">
-              <p className="onicord-settings-row-title">
-                {t("settings.general.minimizeToTray", "Minimizar a la bandeja del sistema")}
-              </p>
-              <p className="onicord-settings-row-desc">
-                {t("settings.general.minimizeToTrayDesc", "Al cerrar la ventana, la aplicación seguirá en segundo plano.")}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                checked={general.minimizeToTray ?? true}
-                onChange={(e) =>
-                  handleChange("minimizeToTray", e.target.checked)
-                }
-                className="sr-only peer"
-              />
-              <div className="onicord-toggle-slider" />
-            </label>
-          </div>
-
-          <div className={`onicord-settings-row transition-opacity duration-200 ${!general.openAtLogin ? "opacity-40" : ""}`}>
-            <div className="min-w-0 pr-4">
-              <p className="onicord-settings-row-title">
-                {t("settings.general.startMinimized", "Iniciar minimizado")}
-              </p>
-              <p className="onicord-settings-row-desc">
-                {t("settings.general.startMinimizedDesc", "Inicia silenciosamente en la bandeja sin abrir la ventana.")}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                disabled={!general.openAtLogin}
-                checked={general.startMinimized ?? false}
-                onChange={(e) =>
-                  handleChange("startMinimized", e.target.checked)
+                  setGeneral((prev) => ({
+                    ...(prev || {}),
+                    blurNsfwContent: e.target.checked,
+                  }))
                 }
                 className="sr-only peer"
               />
@@ -488,7 +457,7 @@ export default function GeneralTab({ general, setGeneral }) {
         </div>
       </div>
 
-      {/* Notifications and audio settings */}
+      {/* 3. Notificaciones y Sonidos */}
       <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.general.notificationsAndSounds", "Notificaciones y Sonidos")}</span>
@@ -618,71 +587,7 @@ export default function GeneralTab({ general, setGeneral }) {
         </div>
       </div>
 
-      {/* Performance and hardware acceleration */}
-      <div className="onicord-settings-card">
-        <h3 className="onicord-settings-section-title">
-          <span>{t("settings.general.performance", "Rendimiento y Hardware")}</span>
-        </h3>
-
-        <div>
-          {/* Open Graph Preview */}
-          <div data-setting-id="openGraph" className="onicord-settings-row transition-all">
-            <div className="min-w-0 pr-4">
-              <p className="onicord-settings-row-title">
-                {t("settings.general.enableOpenGraph", "Previsualización de enlaces (Open Graph)")}
-              </p>
-              <p className="onicord-settings-row-desc">
-                {t("settings.general.enableOpenGraphDesc", "Genera tarjetas interactivas con miniaturas e información al compartir enlaces en el chat. Desactívalo para mejorar el rendimiento y ahorrar recursos.")}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                checked={general.enableOpenGraph ?? true}
-                onChange={(e) =>
-                  handleChange(
-                    "enableOpenGraph",
-                    e.target.checked,
-                  )
-                }
-                className="sr-only peer"
-              />
-              <div className="onicord-toggle-slider" />
-            </label>
-          </div>
-
-          {/* Disable hardware acceleration */}
-          <div className="onicord-settings-row">
-            <div className="min-w-0 pr-4">
-              <p className="onicord-settings-row-title">
-                {t("settings.general.disableHardwareAccel", "Desactivar aceleración por hardware")}
-              </p>
-              <p className="onicord-settings-row-desc">
-                {t("settings.general.disableHardwareAccelDesc", "Desactiva la renderización mediante GPU.")}
-              </p>
-              <p className="text-[10px] text-onicord-danger font-medium mt-1">
-                {t("settings.general.restartWarning", "Requiere reiniciar la aplicación.")}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                checked={general.disableHardwareAcceleration ?? false}
-                onChange={(e) =>
-                  handleChange(
-                    "disableHardwareAcceleration",
-                    e.target.checked,
-                  )
-                }
-                className="sr-only peer"
-              />
-              <div className="onicord-toggle-slider" />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Descargas y Almacenamiento */}
+      {/* 4. Descargas y Almacenamiento */}
       <div data-setting-id="downloads" className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
           <span>{t("settings.general.downloadsTitle", "Descargas y Almacenamiento")}</span>
@@ -791,60 +696,179 @@ export default function GeneralTab({ general, setGeneral }) {
         </div>
       </div>
 
-      {/* Streamer mode and privacy */}
-      <div data-setting-id="streamerMode" className="onicord-settings-card">
+      {/* 5. Sistema y Rendimiento */}
+      <div className="onicord-settings-card">
         <h3 className="onicord-settings-section-title">
-          <span>{t("settings.general.streamerModeTitle", "Modo Streamer y Privacidad")}</span>
+          <span>{t("settings.general.systemAndPerformance", "Sistema y Rendimiento")}</span>
         </h3>
 
         <div>
-          {/* Manual Streamer Mode activation */}
-          <div className="onicord-settings-row">
+          <div data-setting-id="startup" className="onicord-settings-row transition-all">
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
-                {t("settings.general.streamerModeManualActivate", "Activar Modo Streamer manualmente")}
+                {t("settings.general.openAtLogin", "Abrir Onicord al iniciar el sistema")}
               </p>
               <p className="onicord-settings-row-desc">
-                {t("settings.general.streamerModeSubtitle", "Oculta datos sensibles y enlaces de invitación durante tus transmisiones.")}
+                {t("settings.general.openAtLoginDesc", "Ejecuta Onicord automáticamente cuando enciendes tu equipo.")}
               </p>
-              {isStreamerMode && (
-                <p className="text-[10px] text-purple-400 font-semibold mt-1">
-                  {detectedApp
-                    ? t("settings.general.streamerModeStreaming", { app: detectedApp, defaultValue: `Transmitiendo (${detectedApp})` })
-                    : t("settings.general.streamerModeActive", "Modo Streamer activo")}
-                </p>
-              )}
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
               <input
                 type="checkbox"
-                checked={manualActive}
-                onChange={toggleManual}
+                checked={general.openAtLogin ?? false}
+                onChange={(e) =>
+                  handleChange("openAtLogin", e.target.checked)
+                }
                 className="sr-only peer"
               />
               <div className="onicord-toggle-slider" />
             </label>
           </div>
 
-          {/* Automatic activation */}
-          <div className="onicord-settings-row">
+          <div className={`onicord-settings-row transition-opacity duration-200 ${!general.openAtLogin ? "opacity-40" : ""}`}>
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
-                {t("settings.general.streamerModeAuto", "Activar automáticamente al detectar OBS / Streaming")}
+                {t("settings.general.startMinimized", "Iniciar minimizado")}
               </p>
               <p className="onicord-settings-row-desc">
-                {t("settings.general.streamerModeAutoDesc", "Detecta en segundo plano software como OBS Studio, Streamlabs o XSplit y activa la protección de forma silenciosa sin preguntar.")}
+                {t("settings.general.startMinimizedDesc", "Inicia silenciosamente en la bandeja sin abrir la ventana.")}
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
               <input
                 type="checkbox"
-                checked={autoEnabled}
-                onChange={(e) => setAutoEnabled(e.target.checked)}
+                disabled={!general.openAtLogin}
+                checked={general.startMinimized ?? false}
+                onChange={(e) =>
+                  handleChange("startMinimized", e.target.checked)
+                }
                 className="sr-only peer"
               />
               <div className="onicord-toggle-slider" />
             </label>
+          </div>
+
+          <div data-setting-id="minimizeTray" className="onicord-settings-row transition-all">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.minimizeToTray", "Minimizar a la bandeja del sistema")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.general.minimizeToTrayDesc", "Al cerrar la ventana, la aplicación seguirá en segundo plano.")}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={general.minimizeToTray ?? true}
+                onChange={(e) =>
+                  handleChange("minimizeToTray", e.target.checked)
+                }
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          <div data-setting-id="autoDownloadUpdates" className="onicord-settings-row transition-all">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.autoDownloadUpdates", "Descarga automática de actualizaciones")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.general.autoDownloadUpdatesDesc", "Descarga las nuevas versiones de Onicord en segundo plano y las instala al reiniciar.")}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={general.autoDownloadAppUpdates ?? true}
+                onChange={(e) =>
+                  handleChange("autoDownloadAppUpdates", e.target.checked)
+                }
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          {/* Disable hardware acceleration */}
+          <div className="onicord-settings-row">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.disableHardwareAccel", "Desactivar aceleración por hardware")}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t("settings.general.disableHardwareAccelDesc", "Desactiva la renderización mediante GPU.")}
+              </p>
+              <p className="text-[10px] text-onicord-danger font-medium mt-1">
+                {t("settings.general.restartWarning", "Requiere reiniciar la aplicación.")}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={general.disableHardwareAcceleration ?? false}
+                onChange={(e) =>
+                  handleChange(
+                    "disableHardwareAcceleration",
+                    e.target.checked,
+                  )
+                }
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          {/* Streamer Mode */}
+          <div data-setting-id="streamerMode" className="transition-all">
+            <div className="onicord-settings-row">
+              <div className="min-w-0 pr-4">
+                <p className="onicord-settings-row-title">
+                  {t("settings.general.streamerModeManualActivate", "Activar Modo Streamer manualmente")}
+                </p>
+                <p className="onicord-settings-row-desc">
+                  {t("settings.general.streamerModeSubtitle", "Oculta datos sensibles y enlaces de invitación durante tus transmisiones.")}
+                </p>
+                {isStreamerMode && (
+                  <p className="text-[10px] text-purple-400 font-semibold mt-1">
+                    {detectedApp
+                      ? t("settings.general.streamerModeStreaming", { app: detectedApp, defaultValue: `Transmitiendo (${detectedApp})` })
+                      : t("settings.general.streamerModeActive", "Modo Streamer activo")}
+                  </p>
+                )}
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                <input
+                  type="checkbox"
+                  checked={manualActive}
+                  onChange={toggleManual}
+                  className="sr-only peer"
+                />
+                <div className="onicord-toggle-slider" />
+              </label>
+            </div>
+
+            <div className="onicord-settings-row">
+              <div className="min-w-0 pr-4">
+                <p className="onicord-settings-row-title">
+                  {t("settings.general.streamerModeAuto", "Activar automáticamente al detectar OBS / Streaming")}
+                </p>
+                <p className="onicord-settings-row-desc">
+                  {t("settings.general.streamerModeAutoDesc", "Detecta en segundo plano software como OBS Studio, Streamlabs o XSplit y activa la protección de forma silenciosa sin preguntar.")}
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+                <input
+                  type="checkbox"
+                  checked={autoEnabled}
+                  onChange={(e) => setAutoEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="onicord-toggle-slider" />
+              </label>
+            </div>
           </div>
         </div>
       </div>

@@ -1,9 +1,7 @@
 import { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
-import SmartAnimatedImage from "../ui/SmartAnimatedImage";
-
-const MAX_AVATAR_SIZE = 8 * 1024 * 1024;
+import AvatarPicker from "../ui/AvatarPicker";
 
 const CATEGORY_KEYS = {
   profile: "profileSetup.catProfile",
@@ -342,33 +340,6 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
   const profileReady = nickname.trim().length >= 2;
   const isElectron = Boolean(window.electronAPI);
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError(
-        t(
-          "profileSetup.invalidImage",
-          "Selecciona una imagen válida (PNG, JPG, GIF, WebP)."
-        )
-      );
-      return;
-    }
-    if (file.size > MAX_AVATAR_SIZE) {
-      setError(
-        t("profileSetup.imageTooLarge", "La imagen debe ser menor a 8 MB.")
-      );
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatar(reader.result);
-      setError(null);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!profileReady) return;
@@ -443,54 +414,18 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
             <div className="flex flex-col sm:flex-row gap-6 items-stretch">
               {/* Left Column: Avatar & Action Buttons */}
               <div className="flex flex-col items-center justify-center text-center sm:w-52 shrink-0 py-1">
-                <div className="relative group">
-                  <div
-                    onClick={() => fileRef.current?.click()}
-                    className={`h-28 w-28 rounded-full overflow-hidden flex items-center justify-center text-4xl font-semibold shadow-md cursor-pointer relative transition-all duration-200 ${
-                      avatar
-                        ? "bg-onicord-base"
-                        : "bg-onicord-overlay/60 hover:bg-onicord-overlay"
-                    }`}
-                    style={{
-                      border: "4px solid var(--onicord-surface, #181825)",
-                      boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.08)",
-                    }}
-                    title={t("profileSetup.changeAvatar", "Cambiar foto")}
-                  >
-                    {avatar ? (
-                      <SmartAnimatedImage
-                        src={avatar}
-                        alt=""
-                        className="h-full w-full object-cover rounded-full transition-opacity group-hover:opacity-50"
-                        isAvatar={true}
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center w-full h-full text-onicord-muted group-hover:text-onicord-accent transition-colors">
-                        <MaterialIcon name="person" size={56} className="opacity-40" />
-                      </div>
-                    )}
-
-                    {/* Camera icon hover overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-full pointer-events-none">
-                      <MaterialIcon name="photo_camera" size={28} className="text-white" />
-                    </div>
-                  </div>
-
-                  {/* Remove avatar floating badge on top right */}
-                  {avatar && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAvatar(null);
-                      }}
-                      title={t("profileSetup.deleteAvatar", "Eliminar foto")}
-                      className="absolute top-0 right-0 z-20 w-6 h-6 rounded-full bg-onicord-danger hover:bg-onicord-danger/80 text-white flex items-center justify-center shadow-md transition-opacity cursor-pointer"
-                    >
-                      <MaterialIcon name="close" size={14} />
-                    </button>
-                  )}
-                </div>
+                <AvatarPicker
+                  ref={fileRef}
+                  src={avatar}
+                  onChange={setAvatar}
+                  onError={setError}
+                  initial={nickname.trim() ? nickname.trim().charAt(0).toUpperCase() : ""}
+                  fallbackIcon="person"
+                  size="xl"
+                  disabled={busy}
+                  title={t("profileSetup.changeAvatar", "Cambiar foto")}
+                  removeTitle={t("profileSetup.deleteAvatar", "Eliminar foto")}
+                />
 
                 <div className="mt-3">
                   <h4 className="text-xs font-semibold text-onicord-text">
@@ -612,14 +547,6 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                 </div>
               </div>
             </div>
-
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
           </form>
         )}
       </div>

@@ -97,7 +97,17 @@ class ChatStore {
              LIMIT ?`
           )
           .all(MAX_MESSAGES);
-        return rows.map((r) => this._rowToMessageObject(r, targetChannel));
+        const now = Date.now();
+        const mapped = rows.map((r) => this._rowToMessageObject(r, targetChannel));
+        const active = [];
+        for (const m of mapped) {
+          if (m.isEphemeral && m.expiresAt && m.expiresAt <= now) {
+            this.delete(safeCode, targetChannel, m.id).catch(() => {});
+          } else {
+            active.push(m);
+          }
+        }
+        return active;
       } else {
         const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
         const rows = msgDb
@@ -108,7 +118,17 @@ class ChatStore {
              LIMIT ?`
           )
           .all(targetChannel, MAX_MESSAGES);
-        return rows.map((r) => this._rowToMessageObject(r, targetChannel));
+        const now = Date.now();
+        const mapped = rows.map((r) => this._rowToMessageObject(r, targetChannel));
+        const active = [];
+        for (const m of mapped) {
+          if (m.isEphemeral && m.expiresAt && m.expiresAt <= now) {
+            this.delete(safeCode, targetChannel, m.id).catch(() => {});
+          } else {
+            active.push(m);
+          }
+        }
+        return active;
       }
     } catch (err) {
       console.error(`[ChatStore] Error loading messages (${safeCode}/${targetChannel}):`, err.message);
@@ -381,6 +401,35 @@ class ChatStore {
     return { ok: true, deleted };
   }
 
+  async getMessageById(roomCode, channelId, messageId) {
+    const safeCode = this._safeCode(roomCode);
+    const safeId = String(messageId || "").trim();
+    if (!safeCode || !safeId) return null;
+    try {
+      if (channelId && this._isDmChannel(channelId)) {
+        const peerId = this._resolveDmPeerId(channelId);
+        const dmDb = this._dbMgr().getServerDmDb(safeCode, peerId);
+        const row = dmDb.prepare("SELECT * FROM dm_messages WHERE id = ?").get(safeId);
+        return row ? this._rowToMessageObject(row, channelId) : null;
+      }
+      const msgDb = this._dbMgr().getServerDb(safeCode, "messages");
+      const row = msgDb.prepare("SELECT * FROM messages WHERE id = ?").get(safeId);
+      if (row) return this._rowToMessageObject(row, row.channel_id || channelId || DEFAULT_CHANNEL);
+
+      const dmPeers = this._dbMgr().listServerDmPeerIds(safeCode);
+      for (const peerId of dmPeers) {
+        try {
+          const dmDb = this._dbMgr().getServerDmDb(safeCode, peerId);
+          const dmRow = dmDb.prepare("SELECT * FROM dm_messages WHERE id = ?").get(safeId);
+          if (dmRow) return this._rowToMessageObject(dmRow, channelId || `dm_${peerId}`);
+        } catch {}
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   async listChannelIds(roomCode) {
     const safeCode = this._safeCode(roomCode);
     if (!safeCode) return [DEFAULT_CHANNEL];
@@ -507,7 +556,9 @@ class ChatStore {
     }
 
     out.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-    return out.slice(-limit);
+    const now = Date.now();
+    const active = out.filter((m) => !(m.isEphemeral && m.expiresAt && m.expiresAt <= now));
+    return active.slice(-limit);
   }
 
   async mergeBatch(roomCode, incomingMessages, { onMessage } = {}) {

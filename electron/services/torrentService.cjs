@@ -241,149 +241,320 @@ class TorrentService {
   }
 
   /**
-   * Probes media stream codecs using ffprobe via internal HTTP stream.
-   * Caches results per file index.
+   * Parses FFmpeg probe stderr output into codec capabilities and full audio track list.
+   *
+   * @param {string} stderrData - Raw FFmpeg stderr output
+   * @param {string} [fileExt=""] - Lowercase file extension
+   * @returns {Object} Parsed codec/audio metadata
+   */
+  parseFfmpegProbeStderr(stderrData, fileExt = "") {
+    const videoMatch = stderrData.match(/Stream #\d+:\d+(?:\[[^\]]+\])?.*?: Video:\s*([a-zA-Z0-9_]+)/i);
+    const durMatch = stderrData.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+
+    let duration = 0;
+    if (durMatch) {
+      duration =
+        parseInt(durMatch[1], 10) * 3600 +
+        parseInt(durMatch[2], 10) * 60 +
+        parseFloat(durMatch[3]);
+    }
+
+    // Parse all available audio tracks from ffmpeg probe output
+    const audioTracks = [];
+    const lines = stderrData.split(/\r?\n/);
+    let currentAudioIdx = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const audioLineMatch = line.match(
+        /Stream #\d+:(\d+)(?:\[[^\]]+\])?(?:\(([a-zA-Z0-9_-]+)\))?.*?: Audio:\s*([a-zA-Z0-9_]+)/i
+      );
+      if (audioLineMatch) {
+        const streamIndex = parseInt(audioLineMatch[1], 10);
+        const lang = audioLineMatch[2] ? audioLineMatch[2].toLowerCase() : "";
+        const codec = audioLineMatch[3].toLowerCase();
+        const isMultichannel = /5\.1|7\.1|6\.1|[3-8]\s*channels/i.test(line);
+
+        let title = "";
+        for (let j = i + 1; j < Math.min(lines.length, i + 8); j++) {
+          if (lines[j].includes("Stream #")) break;
+          const titleMatch = lines[j].match(/title\s*:\s*(.+)$/i);
+          if (titleMatch) {
+            title = titleMatch[1].trim();
+            break;
+          }
+        }
+
+        let label = title;
+        if (!label) {
+          if (lang) {
+            label = `Audio (${lang.toUpperCase()})`;
+          } else {
+            label = `Pista de Audio ${currentAudioIdx + 1}`;
+          }
+        }
+
+        audioTracks.push({
+          id: currentAudioIdx,
+          streamIndex,
+          lang: lang || "und",
+          title,
+          label,
+          codec,
+          isMultichannel,
+        });
+        currentAudioIdx++;
+      }
+    }
+
+    const probeSucceeded = Boolean(videoMatch || audioTracks.length > 0 || duration > 0);
+    const videoCodec = videoMatch ? videoMatch[1].toLowerCase() : "unknown";
+    const audioCodec = audioTracks[0]?.codec || "unknown";
+    const isVideoNative = Boolean(videoMatch) && NATIVE_VIDEO_CODECS.has(videoCodec);
+    const allAudioTracksNative =
+      probeSucceeded &&
+      audioTracks.length > 0 &&
+      audioTracks.every((track) => NATIVE_AUDIO_CODECS.has(track.codec) && !track.isMultichannel);
+    const isAudioNative = allAudioTracksNative;
+
+    // Force FFmpeg remux/transcode to AAC stereo whenever:
+    // - probe failed or returned no audio tracks
+    // - video or any audio track codec is non-native or multichannel (5.1/7.1)
+    // - container is .mkv (ensures Chromium never drops multichannel/AC3/DTS tracks or stalls on seeks)
+    // - stream has multiple audio tracks (enables live track switching via ?audio=X)
+    const needsTranscode =
+      !probeSucceeded ||
+      !isVideoNative ||
+      !isAudioNative ||
+      fileExt === ".mkv" ||
+      audioTracks.length > 1;
+
+    return {
+      probeSucceeded,
+      videoCodec,
+      audioCodec,
+      duration,
+      isVideoNative,
+      isAudioNative,
+      needsTranscode,
+      audioTracks,
+    };
+  }
+
+  /**
+   * Probes media stream codecs sequentially from the first P2P bytes via pipe:0,
+   * falling back to Range-based HTTP probe when moov atom resides at EOF (MP4/MOV).
    *
    * @param {Object} entry - Torrent engine entry
    * @param {number} fileIndex - Index of the target media file
-   * @returns {Promise<{videoCodec: string, audioCodec: string, duration: number, isVideoNative: boolean, isAudioNative: boolean, needsTranscode: boolean}>}
+   * @returns {Promise<Object>} Probe result
    */
   async probeStreamCodecs(entry, fileIndex) {
     if (entry.codecCache.has(fileIndex)) {
       return entry.codecCache.get(fileIndex);
     }
 
+    const resolved = this.resolveTargetFile(entry.engine, fileIndex);
+    if (!resolved || !resolved.file) {
+      return {
+        probeSucceeded: false,
+        videoCodec: "unknown",
+        audioCodec: "unknown",
+        duration: 0,
+        isVideoNative: false,
+        isAudioNative: false,
+        needsTranscode: true,
+        audioTracks: [],
+      };
+    }
+
+    const { file } = resolved;
+    const ext = path.extname(file.name).toLowerCase();
+    try {
+      file.select();
+    } catch (_) {}
+
     if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
       const fallback = Promise.resolve({
+        probeSucceeded: false,
         videoCodec: "h264",
         audioCodec: "aac",
         duration: 0,
         isVideoNative: true,
         isAudioNative: true,
         needsTranscode: false,
+        audioTracks: [],
       });
       entry.codecCache.set(fileIndex, fallback);
       return fallback;
     }
 
-    const port = this.getStreamPort();
-    const rawUrl = `http://127.0.0.1:${port}/torrent/${entry.infoHash}/${fileIndex}/raw`;
+    const runHttpFallbackProbe = () =>
+      new Promise((resolve) => {
+        const port = this.getStreamPort();
+        const rawUrl = `http://127.0.0.1:${port}/torrent/${entry.infoHash}/${fileIndex}/raw`;
+        let stderrData = "";
+        const proc = spawn(
+          ffmpegPath,
+          [
+            "-hide_banner",
+            "-analyzeduration",
+            "2500000",
+            "-probesize",
+            "2500000",
+            "-i",
+            rawUrl,
+          ],
+          { windowsHide: true }
+        );
+        entry.ffmpegProcesses.add(proc);
+
+        const timer = setTimeout(() => {
+          try {
+            proc.kill("SIGKILL");
+          } catch (_) {}
+        }, 15000);
+
+        proc.stderr.on("data", (chunk) => {
+          stderrData += chunk.toString();
+        });
+
+        const finish = () => {
+          clearTimeout(timer);
+          entry.ffmpegProcesses.delete(proc);
+          resolve(stderrData);
+        };
+
+        proc.on("close", finish);
+        proc.on("error", finish);
+      });
 
     const probePromise = new Promise((resolve) => {
       let stderrData = "";
+      let gotFirstData = false;
+      let dataTimer = null;
+      let finished = false;
+
+      const maxReadEnd = Math.max(0, Math.min(file.length - 1, 4 * 1024 * 1024));
+      const fileStream = file.createReadStream({ start: 0, end: maxReadEnd });
+
       const proc = spawn(
         ffmpegPath,
         [
           "-hide_banner",
           "-analyzeduration",
-          "1500000",
+          "5000000",
           "-probesize",
-          "1500000",
+          "4000000",
           "-i",
-          rawUrl,
+          "pipe:0",
         ],
-        { windowsHide: true }
+        {
+          stdio: ["pipe", "ignore", "pipe"],
+          windowsHide: true,
+        }
       );
+      entry.ffmpegProcesses.add(proc);
 
-      const timer = setTimeout(() => {
+      const killBoth = () => {
+        try {
+          if (!fileStream.destroyed) fileStream.destroy();
+        } catch (_) {}
         try {
           proc.kill("SIGKILL");
         } catch (_) {}
-      }, 10000);
+      };
+
+      const peerWaitTimer = setTimeout(() => {
+        killBoth();
+      }, 30000);
+
+      fileStream.on("data", (chunk) => {
+        entry.lastAccessed = Date.now();
+        if (!gotFirstData) {
+          gotFirstData = true;
+          clearTimeout(peerWaitTimer);
+          dataTimer = setTimeout(() => {
+            killBoth();
+          }, 10000);
+        }
+        if (proc.stdin && !proc.stdin.destroyed && proc.stdin.writable) {
+          try {
+            const ok = proc.stdin.write(chunk, () => {});
+            if (!ok && !fileStream.destroyed) {
+              fileStream.pause();
+            }
+          } catch (_) {
+            try { fileStream.destroy(); } catch (__) {}
+          }
+        }
+      });
+
+      fileStream.on("end", () => {
+        try {
+          if (proc.stdin && !proc.stdin.destroyed) {
+            proc.stdin.end();
+          }
+        } catch (_) {}
+      });
+
+      fileStream.on("error", () => {
+        try {
+          if (proc.stdin && !proc.stdin.destroyed) {
+            proc.stdin.end();
+          }
+        } catch (_) {}
+      });
+
+      if (proc.stdin) {
+        proc.stdin.on("drain", () => {
+          if (!fileStream.destroyed) {
+            try { fileStream.resume(); } catch (_) {}
+          }
+        });
+        proc.stdin.on("error", () => {
+          try {
+            if (!fileStream.destroyed) fileStream.destroy();
+          } catch (_) {}
+        });
+      }
 
       proc.stderr.on("data", (chunk) => {
         stderrData += chunk.toString();
       });
 
-      proc.on("close", () => {
-        clearTimeout(timer);
-        const videoMatch = stderrData.match(/Stream #\d+:\d+.*?: Video: ([a-zA-Z0-9_]+)/);
-        const audioMatch = stderrData.match(/Stream #\d+:\d+.*?: Audio: ([a-zA-Z0-9_]+)/);
-        const durMatch = stderrData.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+      const handleClose = async () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(peerWaitTimer);
+        if (dataTimer) clearTimeout(dataTimer);
+        entry.ffmpegProcesses.delete(proc);
+        try {
+          if (!fileStream.destroyed) fileStream.destroy();
+        } catch (_) {}
 
-        const videoCodec = videoMatch ? videoMatch[1].toLowerCase() : "h264";
-        const audioCodec = audioMatch ? audioMatch[1].toLowerCase() : "aac";
-        let duration = 0;
-        if (durMatch) {
-          duration =
-            parseInt(durMatch[1], 10) * 3600 +
-            parseInt(durMatch[2], 10) * 60 +
-            parseFloat(durMatch[3]);
+        let finalStderr = stderrData;
+        if (
+          (ext === ".mp4" || ext === ".m4v" || ext === ".mov") &&
+          /moov atom not found/i.test(stderrData)
+        ) {
+          finalStderr = await runHttpFallbackProbe();
         }
 
-        const isVideoNative = NATIVE_VIDEO_CODECS.has(videoCodec);
-        const isAudioNative = !audioMatch || NATIVE_AUDIO_CODECS.has(audioCodec);
-
-        // Parse all available audio tracks from ffmpeg probe output
-        const audioTracks = [];
-        const lines = stderrData.split(/\r?\n/);
-        let currentAudioIdx = 0;
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          const audioLineMatch = line.match(/Stream #\d+:(\d+)(?:\(([a-zA-Z0-9_-]+)\))?.*?: Audio: ([a-zA-Z0-9_]+)/i);
-          if (audioLineMatch) {
-            const streamIndex = parseInt(audioLineMatch[1], 10);
-            const lang = audioLineMatch[2] ? audioLineMatch[2].toLowerCase() : "";
-            const codec = audioLineMatch[3].toLowerCase();
-
-            let title = "";
-            for (let j = i + 1; j < Math.min(lines.length, i + 8); j++) {
-              if (lines[j].includes("Stream #")) break;
-              const titleMatch = lines[j].match(/title\s*:\s*(.+)$/i);
-              if (titleMatch) {
-                title = titleMatch[1].trim();
-                break;
-              }
-            }
-
-            let label = title;
-            if (!label) {
-              if (lang) {
-                label = `Audio (${lang.toUpperCase()})`;
-              } else {
-                label = `Pista de Audio ${currentAudioIdx + 1}`;
-              }
-            }
-
-            audioTracks.push({
-              id: currentAudioIdx,
-              streamIndex,
-              lang: lang || "und",
-              label,
-              codec,
-            });
-            currentAudioIdx++;
-          }
-        }
-
-        const result = {
-          videoCodec,
-          audioCodec,
-          duration,
-          isVideoNative,
-          isAudioNative,
-          needsTranscode: !isVideoNative || !isAudioNative,
-          audioTracks,
-        };
-
+        const result = this.parseFfmpegProbeStderr(finalStderr, ext);
         console.log(
-          `[TorrentService] Probe (${entry.infoHash}/${fileIndex}): video=${videoCodec} (native=${isVideoNative}), audio=${audioCodec} (native=${isAudioNative}), duration=${Math.round(duration)}s`
+          `[TorrentService] Probe (${entry.infoHash}/${fileIndex}): ok=${result.probeSucceeded}, video=${result.videoCodec} (native=${result.isVideoNative}), audio=${result.audioCodec} (tracks=${result.audioTracks.length}, native=${result.isAudioNative}), transcode=${result.needsTranscode}, duration=${Math.round(result.duration)}s`
         );
 
         resolve(result);
-      });
+      };
 
-      proc.on("error", () => {
-        clearTimeout(timer);
-        resolve({
-          videoCodec: "h264",
-          audioCodec: "aac",
-          duration: 0,
-          isVideoNative: true,
-          isAudioNative: true,
-          needsTranscode: false,
-        });
-      });
+      proc.on("close", handleClose);
+      proc.on("error", handleClose);
+    }).then((result) => {
+      if (!result.probeSucceeded && entry.codecCache.get(fileIndex) === probePromise) {
+        entry.codecCache.delete(fileIndex);
+      }
+      return result;
     });
 
     entry.codecCache.set(fileIndex, probePromise);
@@ -487,10 +658,12 @@ class TorrentService {
     const rawUrl = `http://127.0.0.1:${port}/torrent/${entry.infoHash}/${fileIndex}/raw`;
 
     const copyVideo = probeInfo && probeInfo.isVideoNative;
-    const ffmpegArgs = ["-hide_banner", "-loglevel", "error"];
+    const selectedTrack = probeInfo?.audioTracks?.[audioTrackIndex];
+    const isMultichannel = selectedTrack ? Boolean(selectedTrack.isMultichannel) : true;
+    const ffmpegArgs = ["-hide_banner", "-loglevel", "error", "-fflags", "+genpts"];
 
     if (startTimeSec > 0) {
-      ffmpegArgs.push("-ss", String(startTimeSec));
+      ffmpegArgs.push("-noaccurate_seek", "-ss", String(startTimeSec));
     }
 
     ffmpegArgs.push(
@@ -526,13 +699,24 @@ class TorrentService {
       );
     }
 
+    if (isMultichannel) {
+      ffmpegArgs.push(
+        "-af",
+        "pan=stereo|FL=0.9*FC+0.7*FL+0.45*SL+0.45*BL|FR=0.9*FC+0.7*FR+0.45*SR+0.45*BR"
+      );
+    }
+
     ffmpegArgs.push(
       "-c:a",
       "aac",
       "-ac",
       "2",
       "-b:a",
-      "192k",
+      "256k",
+      "-avoid_negative_ts",
+      "make_zero",
+      "-max_muxing_queue_size",
+      "1024",
       "-f",
       "mp4",
       "-movflags",
@@ -610,7 +794,11 @@ class TorrentService {
       if (secondParam === "meta" || subAction === "meta") {
         const resolved = this.resolveTargetFile(entry.engine, secondParam === "meta" ? 0 : secondParam);
         const actualIndex = resolved?.index ?? 0;
+        try {
+          resolved?.file?.select?.();
+        } catch (_) {}
         const probeInfo = await this.probeStreamCodecs(entry, actualIndex);
+        const ext = resolved?.file ? path.extname(resolved.file.name).toLowerCase() : "";
         res.writeHead(200, {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
@@ -621,7 +809,7 @@ class TorrentService {
           duration: probeInfo?.duration || 0,
           videoCodec: probeInfo?.videoCodec || "unknown",
           audioCodec: probeInfo?.audioCodec || "unknown",
-          needsTranscode: Boolean(probeInfo?.needsTranscode),
+          needsTranscode: Boolean(probeInfo?.needsTranscode) || FORCE_REMUX_EXTENSIONS.has(ext),
           audioTracks: probeInfo?.audioTracks || [],
         }));
       }
@@ -672,7 +860,7 @@ class TorrentService {
       const audioTrackIndex = Number.parseInt(parsedUrl.query?.audio || "0", 10) || 0;
       const ext = path.extname(file.name).toLowerCase();
 
-      if (forceTranscode || FORCE_REMUX_EXTENSIONS.has(ext) || audioTrackIndex > 0) {
+      if (forceTranscode || FORCE_REMUX_EXTENSIONS.has(ext) || audioTrackIndex > 0 || startTimeSec > 0) {
         const probeInfo = await this.probeStreamCodecs(entry, actualIndex);
         return this.serveTranscodedStream(req, res, entry, actualIndex, probeInfo, startTimeSec, audioTrackIndex);
       }

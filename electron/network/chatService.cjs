@@ -12,6 +12,7 @@ class ChatService {
     this.callbacks = callbacks;
     this.roomCode = null;
     this.roomCodes = new Set();
+    this._ephemeralTimers = new Map();
   }
 
   setRoomCode(roomCode) {
@@ -35,6 +36,10 @@ class ChatService {
     } else {
       this.roomCodes.clear();
       this.roomCode = null;
+      for (const timer of this._ephemeralTimers.values()) {
+        clearTimeout(timer);
+      }
+      this._ephemeralTimers.clear();
     }
   }
 
@@ -147,24 +152,38 @@ class ChatService {
 
     if (payload.messages?.length) {
       const myUserId = this.p2p.profile?.id;
-      const filteredIncoming = payload.messages.filter((msg) => {
-        if (!msg) return false;
-        const channelId = msg.channelId || "general";
-        if (channelId.startsWith("dm_")) {
-          const parts = channelId.split("_");
-          const user1 = parts[1];
-          const user2 = parts[2];
-          if (myUserId !== user1 && myUserId !== user2) {
-            return false; // Discard DMs that don't involve us
+      const now = Date.now();
+      const filteredIncoming = payload.messages
+        .filter((msg) => {
+          if (!msg) return false;
+          const channelId = msg.channelId || "general";
+          if (channelId.startsWith("dm_")) {
+            const parts = channelId.split("_");
+            const user1 = parts[1];
+            const user2 = parts[2];
+            if (myUserId !== user1 && myUserId !== user2) {
+              return false; // Discard DMs that don't involve us
+            }
           }
-        }
-        return true;
-      }).map((msg) => {
-        if (msg && msg.timestamp) {
-          msg.timestamp = Math.min(msg.timestamp, Date.now());
-        }
-        return msg;
-      });
+          return true;
+        })
+        .map((msg) => {
+          const cloned = { ...msg };
+          if (cloned.timestamp) {
+            cloned.timestamp = Math.min(cloned.timestamp, now);
+          }
+          if (!cloned.isEphemeral) {
+            const eph = this._extractEphemeralMeta(cloned.text, code, cloned.timestamp || now);
+            if (eph.isEphemeral) {
+              cloned.isEphemeral = true;
+              cloned.expiresAt = eph.expiresAt;
+            }
+          } else if (!cloned.expiresAt) {
+            cloned.expiresAt = (cloned.timestamp || now) + 60000;
+          }
+          return cloned;
+        })
+        .filter((msg) => !(msg.isEphemeral && msg.expiresAt && msg.expiresAt <= now));
 
       const peer = this.p2p.peers.get(fromPeerId);
       const { added } = await this.chatStore.mergeBatch(
@@ -180,6 +199,9 @@ class ChatService {
               authorNickname: msg.authorNickname || peer?.nickname || "Usuario",
               authorAvatar: msg.authorAvatar ?? peer?.avatar ?? null,
             };
+            if (normalized.isEphemeral) {
+              this._scheduleEphemeralExpiry(normalized, code);
+            }
             this.callbacks.onChatMessage?.(normalized);
           },
         }
@@ -330,8 +352,95 @@ class ChatService {
     return this.p2p.profile?.id || this.p2p._resolveLocalPeerId() || "anonymous";
   }
 
+  _extractEphemeralMeta(text, roomCode, fallbackTimestamp = Date.now()) {
+    if (!text || typeof text !== "string") {
+      return { isEphemeral: false, expiresAt: null };
+    }
+    let plain = text.trim();
+    if (plain.startsWith("[E2EE]:") && roomCode) {
+      try {
+        const cryptoService = require("../services/cryptoService.cjs");
+        plain = cryptoService.decrypt(roomCode, plain);
+      } catch {}
+    }
+    if (typeof plain !== "string" || !plain.trim().startsWith("{")) {
+      return { isEphemeral: false, expiresAt: null };
+    }
+    try {
+      const parsed = JSON.parse(plain);
+      if (parsed && typeof parsed === "object") {
+        if (parsed.isEphemeral) {
+          return {
+            isEphemeral: true,
+            expiresAt: Number(parsed.expiresAt) || fallbackTimestamp + 60000,
+          };
+        }
+        if (typeof parsed.body === "string" && parsed.body.trim().startsWith("{")) {
+          const inner = JSON.parse(parsed.body);
+          if (inner && inner.isEphemeral) {
+            return {
+              isEphemeral: true,
+              expiresAt: Number(inner.expiresAt) || fallbackTimestamp + 60000,
+            };
+          }
+        }
+      }
+    } catch {}
+    return { isEphemeral: false, expiresAt: null };
+  }
+
+  _clearEphemeralTimer(messageId) {
+    if (!messageId) return;
+    const existing = this._ephemeralTimers.get(messageId);
+    if (existing) {
+      clearTimeout(existing);
+      this._ephemeralTimers.delete(messageId);
+    }
+  }
+
+  _scheduleEphemeralExpiry(message, roomCode) {
+    if (!message?.id || !message?.isEphemeral || !message?.expiresAt) return;
+    const code = this._resolveRoomCode(roomCode || message.roomCode);
+    if (!code) return;
+    const ch = message.channelId || "general";
+    const id = String(message.id);
+    this._clearEphemeralTimer(id);
+
+    const delay = Math.min(
+      Math.max(0, Number(message.expiresAt) - Date.now()),
+      2147483647
+    );
+    const timer = setTimeout(async () => {
+      this._ephemeralTimers.delete(id);
+      try {
+        await this.chatStore?.delete(code, ch, id);
+        if (this.fileIndexStore && code) {
+          await this.fileIndexStore.removeByMessageId(code, id).catch(() => {});
+        }
+        this.callbacks.onChatMessageDeleted?.(id);
+        const localAuthor = this.authorId();
+        if (
+          this.p2p &&
+          (message.authorId === localAuthor || message.authorId === "self")
+        ) {
+          this.p2p._broadcast(
+            "chat-delete",
+            { channelId: ch, id, roomCode: code, ephemeralExpired: true },
+            code
+          );
+        }
+      } catch (err) {
+        console.error("[ChatService] Error expiring ephemeral message:", err.message);
+      }
+    }, delay);
+    this._ephemeralTimers.set(id, timer);
+  }
+
   createChatMessage(channelId, text, roomCode) {
     const code = this._resolveRoomCode(roomCode);
+    const now = Date.now();
+    const trimmed = String(text).trim();
+    const eph = this._extractEphemeralMeta(trimmed, code, now);
     return {
       id: crypto.randomUUID(),
       roomCode: code,
@@ -339,8 +448,9 @@ class ChatService {
       authorId: this.authorId(),
       authorNickname: (require("../services/profileService.cjs").getEffectiveProfile(this.p2p.profile, code)?.nickname) ?? this.p2p.profile?.nickname ?? "Anonymous",
       authorAvatar: (require("../services/profileService.cjs").getEffectiveProfile(this.p2p.profile, code)?.avatar) ?? this.p2p.profile?.avatar ?? null,
-      text: String(text).trim(),
-      timestamp: Date.now(),
+      text: trimmed,
+      timestamp: now,
+      ...(eph.isEphemeral ? { isEphemeral: true, expiresAt: eph.expiresAt } : {}),
     };
   }
 
@@ -419,6 +529,9 @@ class ChatService {
     if (trimmed.length > 128000) throw new Error("Message payload size limit exceeded");
     const message = this.createChatMessage(channelId, trimmed, code);
     await this.persistAndEmit(message, code);
+    if (message.isEphemeral) {
+      this._scheduleEphemeralExpiry(message, code);
+    }
 
     if (channelId.startsWith("dm_")) {
       const raw = channelId.slice(3);
@@ -522,6 +635,7 @@ class ChatService {
     const ch = channelId || "general";
     const id = String(messageId || "").trim();
     if (!id) return { ok: false, deleted: 0 };
+    this._clearEphemeralTimer(id);
     const res = await this.chatStore?.delete(code, ch, id);
     if (this.fileIndexStore && code) {
       await this.fileIndexStore.removeByMessageId(code, id).catch(() => {});
@@ -542,13 +656,18 @@ class ChatService {
     const peer = this.p2p?.peers?.get(fromPeerId);
     const senderUserId = peer?.userId || null;
 
+    let storedMsg = null;
     let msgAuthorId = null;
     if (this.chatStore) {
-      if (typeof this.chatStore.getMessageAuthor === "function") {
+      if (typeof this.chatStore.getMessageById === "function") {
+        storedMsg = await this.chatStore.getMessageById(code, ch, id);
+        msgAuthorId = storedMsg?.authorId || null;
+      } else if (typeof this.chatStore.getMessageAuthor === "function") {
         msgAuthorId = await this.chatStore.getMessageAuthor(code, ch, id);
       } else {
         const msgs = await this.chatStore.load(code, ch);
-        msgAuthorId = msgs.find((m) => m?.id === id)?.authorId || null;
+        storedMsg = msgs.find((m) => m?.id === id) || null;
+        msgAuthorId = storedMsg?.authorId || null;
       }
     }
 
@@ -572,13 +691,20 @@ class ChatService {
       } catch {}
     }
 
-    if (!isAuthor && !isAdmin) {
+    const isEphemeralExpiryAuthorized = Boolean(
+      payload.ephemeralExpired &&
+      storedMsg?.isEphemeral &&
+      (!storedMsg.expiresAt || storedMsg.expiresAt <= Date.now() + 5000)
+    );
+
+    if (!isAuthor && !isAdmin && !isEphemeralExpiryAuthorized) {
       console.warn(
         `[ChatService Security] Blocked unauthorized chat-delete for message ${id} from peer ${fromPeerId} (userId: ${senderUserId})`
       );
       return;
     }
 
+    this._clearEphemeralTimer(id);
     await this.chatStore?.delete(code, ch, id);
     if (this.fileIndexStore && code) {
       await this.fileIndexStore.removeByMessageId(code, id).catch(() => {});
@@ -612,7 +738,18 @@ class ChatService {
 
     if (!roomCode || !this.chatStore) return [];
     const rows = await this.chatStore.load(roomCode, channelId);
-    return rows.map((msg) => this.normalizeStoredMessage(msg));
+    const now = Date.now();
+    return rows
+      .map((msg) => this.normalizeStoredMessage(msg))
+      .filter((m) => {
+        if (m.isEphemeral && m.expiresAt && m.expiresAt <= now) {
+          return false;
+        }
+        if (m.isEphemeral && m.expiresAt) {
+          this._scheduleEphemeralExpiry(m, roomCode);
+        }
+        return true;
+      });
   }
 
   async handleIncomingChat(payload, fromPeerId) {
@@ -635,6 +772,21 @@ class ChatService {
 
     const peer = this.p2p.peers.get(fromPeerId);
     const authorId = this.normalizeIncomingAuthor(payload, fromPeerId);
+    const now = Date.now();
+    const rawTs = payload.timestamp || now;
+    const eph = payload.isEphemeral
+      ? { isEphemeral: true, expiresAt: Number(payload.expiresAt) || rawTs + 60000 }
+      : this._extractEphemeralMeta(payload.text, payload.roomCode, rawTs);
+
+    if (eph.isEphemeral) {
+      if (Math.abs(rawTs - now) > 5000) {
+        const ttl = Math.min(120000, Math.max(1000, (eph.expiresAt - rawTs) || 60000));
+        eph.expiresAt = now + ttl;
+      }
+      if (eph.expiresAt <= now) {
+        return;
+      }
+    }
 
     const message = {
       id: payload.id,
@@ -644,7 +796,7 @@ class ChatService {
       authorNickname: payload.authorNickname || peer?.nickname || "Usuario",
       authorAvatar: payload.authorAvatar ?? peer?.avatar ?? null,
       text: payload.text,
-      timestamp: Math.min(payload.timestamp || Date.now(), Date.now()),
+      timestamp: Math.min(rawTs, now),
       isHidden: Boolean(payload.isHidden),
       isWebhook: Boolean(payload.isWebhook),
       webhookId: payload.webhookId || null,
@@ -652,6 +804,7 @@ class ChatService {
       isSystemMessage: Boolean(payload.isSystemMessage),
       systemType: payload.systemType || null,
       systemData: payload.systemData || null,
+      ...(eph.isEphemeral ? { isEphemeral: true, expiresAt: eph.expiresAt } : {}),
     };
 
     if (message.isHidden) {
@@ -669,6 +822,9 @@ class ChatService {
 
     if (this.chatStore?._recentMessageIds?.has(message.id)) return;
     await this.persistAndEmit(message, payload.roomCode);
+    if (message.isEphemeral) {
+      this._scheduleEphemeralExpiry(message, payload.roomCode);
+    }
 
     const stickerInfo = this._extractStickerInfo(message.text, payload.roomCode);
     if (stickerInfo) {

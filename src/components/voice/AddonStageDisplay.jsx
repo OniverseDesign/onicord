@@ -148,6 +148,10 @@ export default function AddonStageDisplay({
   const currentAudioTrackRef = useRef(0);
   currentAudioTrackRef.current = currentAudioTrack;
   const isLocalMediaActionRef = useRef(0);
+  const needsTranscodeRef = useRef(false);
+  const streamTimeOffsetRef = useRef(0);
+  const resumeAppliedRef = useRef(false);
+  const lastSeekTimestampRef = useRef(0);
   const [showAudioMenu, setShowAudioMenu] = useState(false);
   const [activeCueText, setActiveCueText] = useState("");
 
@@ -261,7 +265,7 @@ export default function AddonStageDisplay({
   // Complete iframe and resource teardown on explicit close
   const handleTerminate = useCallback(() => {
     if (videoRef.current && isCurrentMediaRef.current && activeGameRef.current) {
-      saveContinueWatching(videoRef.current.currentTime, videoRef.current.duration || 0);
+      saveContinueWatching(videoRef.current.currentTime + streamTimeOffsetRef.current, videoRef.current.duration || 0);
     }
     if (iframeRef.current) {
       try {
@@ -277,7 +281,7 @@ export default function AddonStageDisplay({
   // Return to Launcher catalog without unmounting or reloading voice call
   const handleReturnToCatalog = useCallback(() => {
     if (videoRef.current && isCurrentMediaRef.current && activeGameRef.current) {
-      saveContinueWatching(videoRef.current.currentTime, videoRef.current.duration || 0);
+      saveContinueWatching(videoRef.current.currentTime + streamTimeOffsetRef.current, videoRef.current.duration || 0);
     }
     if (isCinemaWatchParty && isSyncHost && stopWatchParty) {
       stopWatchParty();
@@ -294,6 +298,9 @@ export default function AddonStageDisplay({
     setMediaPlaybackTime(0);
     setMediaDuration(0);
     knownTotalDurationRef.current = 0;
+    needsTranscodeRef.current = false;
+    streamTimeOffsetRef.current = 0;
+    resumeAppliedRef.current = false;
     setCurrentSubtitle("off");
     setActiveCueText("");
     setAudioTracks([]);
@@ -624,6 +631,14 @@ export default function AddonStageDisplay({
       hlsRef.current = null;
     }
 
+    try {
+      const parsed = new URL(targetUrl);
+      const ssVal = Number.parseFloat(parsed.searchParams.get("ss") || "0");
+      streamTimeOffsetRef.current = Number.isFinite(ssVal) && ssVal > 0 ? ssVal : 0;
+    } catch (_) {
+      streamTimeOffsetRef.current = 0;
+    }
+
     setMediaError(null);
     setMediaBuffering(false);
     setMediaLoading(true);
@@ -677,6 +692,7 @@ export default function AddonStageDisplay({
       currentSrc.includes("/torrent/") &&
       !currentSrc.includes("transcode=1")
     ) {
+      needsTranscodeRef.current = true;
       const sep = currentSrc.includes("?") ? "&" : "?";
       loadMediaStream(`${currentSrc}${sep}transcode=1`);
       return;
@@ -694,6 +710,7 @@ export default function AddonStageDisplay({
   useEffect(() => {
     let cancelled = false;
     if (isCurrentMedia && activeGame) {
+      resumeAppliedRef.current = false;
       (async () => {
         let targetUrl = activeGame.streamUrl || activeUrl;
         if (activeGame.infoHash && window.electronAPI?.getTorrentStreamUrl) {
@@ -706,12 +723,13 @@ export default function AddonStageDisplay({
           } catch (_) {}
         }
         if (!cancelled && targetUrl) {
-          if (activeGame.resumeTime && activeGame.resumeTime > 5) {
+          if (activeGame.resumeTime && activeGame.resumeTime > 5 && needsTranscodeRef.current) {
             if (targetUrl.includes("/torrent/") && !targetUrl.includes("/raw") && !targetUrl.includes("ss=")) {
               try {
                 const parsed = new URL(targetUrl);
                 parsed.searchParams.set("ss", String(Math.floor(activeGame.resumeTime)));
                 targetUrl = parsed.toString();
+                resumeAppliedRef.current = true;
               } catch (_) {}
             }
           }
@@ -752,57 +770,85 @@ export default function AddonStageDisplay({
     if (currentSrc.includes("/torrent/") && !currentSrc.includes("/raw")) {
       try {
         const parsed = new URL(currentSrc);
+        const effectiveTime = Math.max(0, Math.floor((video.currentTime || 0) + streamTimeOffsetRef.current));
+        streamTimeOffsetRef.current = effectiveTime;
+        lastSeekTimestampRef.current = Date.now();
+        setMediaBuffering(true);
         parsed.searchParams.set("audio", String(trackId));
-        const curTime = Math.max(0, Math.floor(video.currentTime || 0));
-        parsed.searchParams.set("ss", String(curTime));
-        const wasPaused = video.paused;
+        parsed.searchParams.set("ss", String(effectiveTime));
+        const sessionIsPlaying = watchPartySession?.isPlaying;
+        const shouldPlay = isCinemaWatchParty && typeof sessionIsPlaying === "boolean" ? sessionIsPlaying : !video.paused;
         video.src = parsed.toString();
-        video.currentTime = 0;
-        if (!wasPaused) {
+        video.load();
+        if (shouldPlay) {
           video.play().catch(() => {});
         }
       } catch (_) {}
     }
-  }, []);
+  }, [isCinemaWatchParty, watchPartySession?.isPlaying]);
 
-  // Reusable agnostic video seek helper (handles buffer detection and torrent stream parameters)
+  // Reusable agnostic video seek helper (distinguishes HTTP 206 native Range seek vs FFmpeg transcoded stream seek)
   const applyVideoSeek = useCallback((targetTime) => {
     const video = videoRef.current;
     if (!video || typeof targetTime !== "number" || isNaN(targetTime)) return;
     const safeTime = Math.max(0, targetTime);
+    lastSeekTimestampRef.current = Date.now();
+
+    const currentSrc = video.src || "";
+    const isTorrentStream = currentSrc.includes("/torrent/") && !currentSrc.includes("/raw");
+    const isTranscodedStream =
+      isTorrentStream &&
+      (needsTranscodeRef.current ||
+        currentAudioTrackRef.current > 0 ||
+        currentSrc.includes("transcode=1") ||
+        currentSrc.includes("ss=") ||
+        currentSrc.includes("audio="));
+
+    if (!isTranscodedStream) {
+      // Native HTTP Range stream: browser requests exact byte range and torrent-stream prioritizes those pieces
+      streamTimeOffsetRef.current = 0;
+      setMediaBuffering(true);
+      video.currentTime = safeTime;
+      return;
+    }
+
+    // For FFmpeg transcoded streams, check if targetTime is already within the current buffered segment
+    const relativeTarget = safeTime - streamTimeOffsetRef.current;
     let inBuffer = false;
-    if (video.buffered && video.buffered.length > 0) {
+    if (relativeTarget >= 0 && video.buffered && video.buffered.length > 0) {
       for (let i = 0; i < video.buffered.length; i++) {
-        if (safeTime >= video.buffered.start(i) && safeTime <= video.buffered.end(i)) {
+        if (relativeTarget >= video.buffered.start(i) && relativeTarget <= video.buffered.end(i)) {
           inBuffer = true;
           break;
         }
       }
     }
+
     if (inBuffer) {
-      video.currentTime = safeTime;
+      video.currentTime = relativeTarget;
     } else {
-      const currentSrc = video.src || "";
-      if (currentSrc.includes("/torrent/") && !currentSrc.includes("/raw")) {
-        try {
-          const parsed = new URL(currentSrc);
-          parsed.searchParams.set("ss", String(Math.floor(safeTime)));
-          if (currentAudioTrackRef.current > 0) {
-            parsed.searchParams.set("audio", String(currentAudioTrackRef.current));
-          }
-          video.src = parsed.toString();
-          video.currentTime = 0;
-          if (watchPartySession?.isPlaying) {
-            video.play().catch(() => {});
-          }
-        } catch (_) {
-          video.currentTime = safeTime;
+      try {
+        const parsed = new URL(currentSrc);
+        const floorTime = Math.floor(safeTime);
+        streamTimeOffsetRef.current = floorTime;
+        setMediaBuffering(true);
+        setMediaPlaybackTime(safeTime);
+        parsed.searchParams.set("ss", String(floorTime));
+        if (currentAudioTrackRef.current > 0) {
+          parsed.searchParams.set("audio", String(currentAudioTrackRef.current));
         }
-      } else {
-        video.currentTime = safeTime;
+        const sessionIsPlaying = watchPartySession?.isPlaying;
+        const shouldPlay = isCinemaWatchParty && typeof sessionIsPlaying === "boolean" ? sessionIsPlaying : !video.paused;
+        video.src = parsed.toString();
+        video.load();
+        if (shouldPlay) {
+          video.play().catch(() => {});
+        }
+      } catch (_) {
+        video.currentTime = Math.max(0, relativeTarget);
       }
     }
-  }, [watchPartySession?.isPlaying]);
+  }, [isCinemaWatchParty, watchPartySession?.isPlaying]);
 
   // 1. Host processes incoming commands (PLAY, PAUSE, SEEK, AUDIO, SUBTITLE) triggered by channel peers
   useEffect(() => {
@@ -845,10 +891,17 @@ export default function AddonStageDisplay({
     }
 
     // B. Playback time alignment & Drift Correction
-    if (typeof watchPartySession.currentTime === "number" && video.readyState >= 2 && !mediaLoading) {
+    if (
+      !mediaBuffering &&
+      Date.now() - lastSeekTimestampRef.current >= 2500 &&
+      typeof watchPartySession.currentTime === "number" &&
+      video.readyState >= 2 &&
+      !mediaLoading
+    ) {
       const latencyComp = Math.max(0, (Date.now() - (watchPartySession.updatedAt || Date.now())) / 1000);
       const targetTime = watchPartySession.isPlaying ? watchPartySession.currentTime + latencyComp : watchPartySession.currentTime;
-      const drift = targetTime - video.currentTime;
+      const effectiveLocalTime = video.currentTime + streamTimeOffsetRef.current;
+      const drift = targetTime - effectiveLocalTime;
 
       // When paused, align tightly (0.4s). When playing, allow 1.8s tolerance before hard seek
       const hardSeekThreshold = watchPartySession.isPlaying ? 1.8 : 0.4;
@@ -901,35 +954,81 @@ export default function AddonStageDisplay({
 
   // 6. Automatically query backend metadata endpoint for torrent audio tracks (ffmpeg probe)
   useEffect(() => {
-    const infoHash = activeGame?.infoHash || stageData?.infoHash || watchPartySession?.infoHash;
-    const fileIdx = activeGame?.fileIdx ?? stageData?.fileIdx ?? watchPartySession?.fileIdx ?? 0;
+    let infoHash = activeGame?.infoHash || stageData?.infoHash || watchPartySession?.infoHash;
+    let fileIdx = activeGame?.fileIdx ?? stageData?.fileIdx ?? watchPartySession?.fileIdx ?? 0;
+    const candidateUrl = activeGame?.streamUrl || stageData?.streamUrl || watchPartySession?.streamUrl || activeUrl || "";
+
+    let trackerQs = "";
+    if (typeof candidateUrl === "string" && candidateUrl.includes("/torrent/")) {
+      const m = candidateUrl.match(/\/torrent\/([a-f0-9]{40})(?:\/(\d+))?/i);
+      if (m) {
+        if (!infoHash) infoHash = m[1].toLowerCase();
+        if (activeGame?.fileIdx === undefined && stageData?.fileIdx === undefined && watchPartySession?.fileIdx === undefined && m[2] !== undefined) {
+          fileIdx = parseInt(m[2], 10) || 0;
+        }
+      }
+      try {
+        const parsed = new URL(candidateUrl);
+        const trList = parsed.searchParams.getAll("tr");
+        if (trList.length > 0) {
+          const p = new URLSearchParams();
+          trList.forEach((tr) => p.append("tr", tr));
+          trackerQs = p.toString();
+        }
+      } catch (_) {}
+    }
+
+    if (!trackerQs) {
+      const rawTrackers = activeGame?.trackers || stageData?.trackers || watchPartySession?.trackers;
+      if (Array.isArray(rawTrackers) && rawTrackers.length > 0) {
+        const p = new URLSearchParams();
+        rawTrackers.forEach((src) => {
+          if (typeof src === "string") {
+            p.append("tr", src.replace(/^tracker:/i, ""));
+          }
+        });
+        trackerQs = p.toString();
+      }
+    }
+
     if (!infoHash) return;
 
     const port = 42883;
+    const metaUrl = `http://127.0.0.1:${port}/torrent/${infoHash}/${fileIdx}/meta${trackerQs ? `?${trackerQs}` : ""}`;
     let attempts = 0;
     let active = true;
+    let retryTimer = null;
 
     const fetchMeta = () => {
       if (!active) return;
-      fetch(`http://127.0.0.1:${port}/torrent/${infoHash}/${fileIdx}/meta`)
+      fetch(metaUrl)
         .then((r) => (r.ok ? r.json() : null))
         .then((meta) => {
-          if (!active || !meta) return;
+          if (!active || !meta) {
+            if (active && attempts < 20) {
+              attempts++;
+              retryTimer = setTimeout(fetchMeta, 2000);
+            }
+            return;
+          }
+          if (typeof meta.needsTranscode === "boolean") {
+            needsTranscodeRef.current = meta.needsTranscode;
+          }
           if (typeof meta.duration === "number" && meta.duration > 0) {
             knownTotalDurationRef.current = meta.duration;
             setMediaDuration(meta.duration);
           }
           if (Array.isArray(meta.audioTracks) && meta.audioTracks.length > 0) {
             setAudioTracks(meta.audioTracks);
-          } else if (attempts < 6) {
+          } else if (attempts < 20) {
             attempts++;
-            setTimeout(fetchMeta, 1500);
+            retryTimer = setTimeout(fetchMeta, 2000);
           }
         })
         .catch(() => {
-          if (active && attempts < 6) {
+          if (active && attempts < 20) {
             attempts++;
-            setTimeout(fetchMeta, 1500);
+            retryTimer = setTimeout(fetchMeta, 2000);
           }
         });
     };
@@ -937,8 +1036,20 @@ export default function AddonStageDisplay({
     fetchMeta();
     return () => {
       active = false;
+      if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [activeGame?.infoHash, activeGame?.fileIdx, stageData?.infoHash, stageData?.fileIdx, watchPartySession?.infoHash, watchPartySession?.fileIdx]);
+  }, [
+    activeGame?.infoHash,
+    activeGame?.fileIdx,
+    activeGame?.streamUrl,
+    stageData?.infoHash,
+    stageData?.fileIdx,
+    stageData?.streamUrl,
+    watchPartySession?.infoHash,
+    watchPartySession?.fileIdx,
+    watchPartySession?.streamUrl,
+    activeUrl,
+  ]);
 
   // Detect audio tracks from HTML video element
   useEffect(() => {
@@ -965,7 +1076,7 @@ export default function AddonStageDisplay({
           });
         }
       }
-      setAudioTracks(tracks);
+      if (tracks.length > 0) setAudioTracks(tracks);
     };
 
     video.addEventListener("loadedmetadata", detectAudioAudioTracksSafety);
@@ -1027,9 +1138,22 @@ export default function AddonStageDisplay({
         // while continuing to fire cuechange events for our custom high-visibility overlay
         track.mode = "hidden";
         const handleCueChange = () => {
-          const cues = track.activeCues;
-          if (cues && cues.length > 0) {
-            const rawText = Array.from(cues).map((c) => c.text).join("\n");
+          const offset = streamTimeOffsetRef.current || 0;
+          let cues = [];
+          if (offset > 0 && track.cues && track.cues.length > 0) {
+            const effectiveTime = (video.currentTime || 0) + offset;
+            for (let cIdx = 0; cIdx < track.cues.length; cIdx++) {
+              const cue = track.cues[cIdx];
+              if (cue.startTime <= effectiveTime && cue.endTime >= effectiveTime) {
+                cues.push(cue);
+              }
+            }
+          } else if (track.activeCues && track.activeCues.length > 0) {
+            cues = Array.from(track.activeCues);
+          }
+
+          if (cues.length > 0) {
+            const rawText = cues.map((c) => c.text).join("\n");
             // Strip residual HTML tags (e.g. <i>, <b>, <c>) from VTT cues
             const cleanText = rawText.replace(/<[^>]*>/g, "").trim();
             setActiveCueText(cleanText);
@@ -1038,8 +1162,12 @@ export default function AddonStageDisplay({
           }
         };
         track.addEventListener("cuechange", handleCueChange);
+        video.addEventListener("timeupdate", handleCueChange);
         handleCueChange();
-        cleanup = () => track.removeEventListener("cuechange", handleCueChange);
+        cleanup = () => {
+          track.removeEventListener("cuechange", handleCueChange);
+          video.removeEventListener("timeupdate", handleCueChange);
+        };
       } else {
         track.mode = "disabled";
       }
@@ -1167,19 +1295,11 @@ export default function AddonStageDisplay({
       }
 
       if (stageData.infoHash) {
-        const port = 42883;
-        fetch(`http://127.0.0.1:${port}/torrent/${stageData.infoHash}/${stageData.fileIdx || 0}/meta`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((meta) => {
-            if (meta && typeof meta.duration === "number" && meta.duration > 0) {
-              knownTotalDurationRef.current = meta.duration;
-              setMediaDuration(meta.duration);
-            }
-            if (Array.isArray(meta?.audioTracks) && meta.audioTracks.length > 0) {
-              setAudioTracks(meta.audioTracks);
-            }
-          })
-          .catch(() => {});
+        needsTranscodeRef.current = false;
+        streamTimeOffsetRef.current = 0;
+        resumeAppliedRef.current = false;
+        setAudioTracks([]);
+        setCurrentAudioTrack(0);
       }
     } else {
       setActiveGame(null);
@@ -1329,22 +1449,11 @@ export default function AddonStageDisplay({
             const initialDur = typeof game.duration === "number" && game.duration > 0 ? game.duration : 0;
             knownTotalDurationRef.current = initialDur;
             setMediaDuration(initialDur);
-
-            if (game.infoHash) {
-              const port = 42883;
-              fetch(`http://127.0.0.1:${port}/torrent/${game.infoHash}/${game.fileIdx || 0}/meta`)
-                .then((r) => (r.ok ? r.json() : null))
-                .then((meta) => {
-                  if (meta && typeof meta.duration === "number" && meta.duration > 0) {
-                    knownTotalDurationRef.current = meta.duration;
-                    setMediaDuration(meta.duration);
-                  }
-                  if (Array.isArray(meta?.audioTracks) && meta.audioTracks.length > 0) {
-                    setAudioTracks(meta.audioTracks);
-                  }
-                })
-                .catch(() => {});
-            }
+            needsTranscodeRef.current = false;
+            streamTimeOffsetRef.current = 0;
+            resumeAppliedRef.current = false;
+            setAudioTracks([]);
+            setCurrentAudioTrack(0);
           }
 
           if (isMedia && Array.isArray(game.subtitles)) {
@@ -1789,7 +1898,7 @@ export default function AddonStageDisplay({
                 if (videoRef.current) {
                   isLocalMediaActionRef.current = Date.now() + 1500;
                   const v = videoRef.current;
-                  const curT = v.currentTime;
+                  const curT = v.currentTime + streamTimeOffsetRef.current;
                   if (v.paused) {
                     v.play().catch(() => {});
                     setMediaPlaying(true);
@@ -1834,15 +1943,17 @@ export default function AddonStageDisplay({
                 const v = e.currentTarget;
                 v.volume = Math.max(0, Math.min(1, (volume / 100) * duckMultiplier));
                 v.muted = isMuted;
-                if (v.duration && Number.isFinite(v.duration) && v.duration > 0) {
+                if (v.duration && Number.isFinite(v.duration) && v.duration > 0 && streamTimeOffsetRef.current === 0) {
                   if (!knownTotalDurationRef.current || knownTotalDurationRef.current < 60) {
                     knownTotalDurationRef.current = v.duration;
                     setMediaDuration(v.duration);
                   }
                 }
-                if (activeGame?.resumeTime && activeGame.resumeTime > 5) {
-                  if (Math.abs(v.currentTime - activeGame.resumeTime) > 3) {
-                    try { v.currentTime = activeGame.resumeTime; } catch (_) {}
+                if (activeGame?.resumeTime && activeGame.resumeTime > 5 && !resumeAppliedRef.current) {
+                  resumeAppliedRef.current = true;
+                  const currentEffective = v.currentTime + streamTimeOffsetRef.current;
+                  if (Math.abs(currentEffective - activeGame.resumeTime) > 3) {
+                    applyVideoSeek(activeGame.resumeTime);
                   }
                 }
               }}
@@ -1857,17 +1968,21 @@ export default function AddonStageDisplay({
               onLoadedData={() => setLoadingProgress((p) => Math.max(p, 65))}
               onCanPlay={() => {
                 setLoadingProgress((p) => Math.max(p, 88));
-                if (activeGame?.resumeTime && activeGame.resumeTime > 5) {
+                setMediaBuffering(false);
+                if (activeGame?.resumeTime && activeGame.resumeTime > 5 && !resumeAppliedRef.current) {
+                  resumeAppliedRef.current = true;
                   const v = videoRef.current;
-                  if (v && Math.abs(v.currentTime - activeGame.resumeTime) > 3) {
-                    try { v.currentTime = activeGame.resumeTime; } catch (_) {}
+                  const currentEffective = (v?.currentTime || 0) + streamTimeOffsetRef.current;
+                  if (v && Math.abs(currentEffective - activeGame.resumeTime) > 3) {
+                    applyVideoSeek(activeGame.resumeTime);
                   }
                 }
                 if (isCinemaWatchParty && !isSyncHost && watchPartySession && typeof watchPartySession.currentTime === "number") {
                   const latencyComp = Math.max(0, (Date.now() - (watchPartySession.updatedAt || Date.now())) / 1000);
                   const targetTime = watchPartySession.isPlaying ? watchPartySession.currentTime + latencyComp : watchPartySession.currentTime;
-                  if (videoRef.current && Math.abs(targetTime - videoRef.current.currentTime) > 1.5) {
-                    videoRef.current.currentTime = Math.max(0, targetTime);
+                  const currentEffective = (videoRef.current?.currentTime || 0) + streamTimeOffsetRef.current;
+                  if (videoRef.current && Date.now() - lastSeekTimestampRef.current >= 2500 && Math.abs(targetTime - currentEffective) > 2.0) {
+                    applyVideoSeek(targetTime);
                   }
                   if (watchPartySession.isPlaying) {
                     videoRef.current?.play().catch(() => {});
@@ -1877,14 +1992,21 @@ export default function AddonStageDisplay({
                 }
               }}
               onTimeUpdate={(e) => {
-                const ct = e.target.currentTime;
-                const dur = e.target.duration && Number.isFinite(e.target.duration) && e.target.duration > 0 ? e.target.duration : (activeGame?.duration || 0);
-                if (ct > 0 && !e.target.paused) finishMediaLoading();
+                const rawCt = e.target.currentTime;
+                if (streamTimeOffsetRef.current > 0 && rawCt === 0 && e.target.readyState < 2) {
+                  return;
+                }
+                const ct = rawCt + streamTimeOffsetRef.current;
+                const dur =
+                  streamTimeOffsetRef.current === 0 && e.target.duration && Number.isFinite(e.target.duration) && e.target.duration > 0
+                    ? e.target.duration
+                    : (knownTotalDurationRef.current || activeGame?.duration || 0);
+                if (rawCt > 0 && !e.target.paused) finishMediaLoading();
                 setMediaPlaybackTime(ct);
                 if (isCinemaWatchParty && isSyncHost && updateHostPlaybackTime) {
                   updateHostPlaybackTime(ct);
                 }
-                if (dur > 0) {
+                if (dur > 0 && streamTimeOffsetRef.current === 0) {
                   if (!knownTotalDurationRef.current || Math.abs(dur - knownTotalDurationRef.current) < 5) {
                     setMediaDuration(dur);
                   }
@@ -1898,21 +2020,38 @@ export default function AddonStageDisplay({
               onPlay={() => {
                 setMediaPlaying(true);
                 if (isCinemaWatchParty && isSyncHost && broadcastWatchPartyState) {
-                  broadcastWatchPartyState({ isPlaying: true, currentTime: videoRef.current?.currentTime ?? 0 });
+                  const rawCt = videoRef.current?.currentTime ?? 0;
+                  const effectiveCt =
+                    Date.now() - lastSeekTimestampRef.current < 1500 && rawCt === 0 && streamTimeOffsetRef.current > 0
+                      ? streamTimeOffsetRef.current
+                      : rawCt + streamTimeOffsetRef.current;
+                  broadcastWatchPartyState({ isPlaying: true, currentTime: effectiveCt });
                 }
               }}
               onPause={() => {
                 setMediaPlaying(false);
-                if (videoRef.current) {
-                  saveContinueWatching(videoRef.current.currentTime, videoRef.current.duration || 0);
+                const rawCt = videoRef.current?.currentTime ?? 0;
+                const isTransientSeekReset =
+                  Date.now() - lastSeekTimestampRef.current < 1500 && rawCt === 0 && streamTimeOffsetRef.current > 0;
+                const effectiveCt = isTransientSeekReset
+                  ? streamTimeOffsetRef.current
+                  : rawCt + streamTimeOffsetRef.current;
+                if (videoRef.current && !isTransientSeekReset) {
+                  saveContinueWatching(effectiveCt, knownTotalDurationRef.current || videoRef.current.duration || 0);
                 }
-                if (isCinemaWatchParty && isSyncHost && broadcastWatchPartyState) {
-                  broadcastWatchPartyState({ isPlaying: false, currentTime: videoRef.current?.currentTime ?? 0 });
+                if (isCinemaWatchParty && isSyncHost && broadcastWatchPartyState && !isTransientSeekReset) {
+                  broadcastWatchPartyState({ isPlaying: false, currentTime: effectiveCt });
                 }
               }}
               onSeeked={() => {
+                setMediaBuffering(false);
                 if (isCinemaWatchParty && isSyncHost && broadcastWatchPartyState) {
-                  broadcastWatchPartyState({ currentTime: videoRef.current?.currentTime ?? 0 });
+                  const rawCt = videoRef.current?.currentTime ?? 0;
+                  const effectiveCt =
+                    Date.now() - lastSeekTimestampRef.current < 1500 && rawCt === 0 && streamTimeOffsetRef.current > 0
+                      ? streamTimeOffsetRef.current
+                      : rawCt + streamTimeOffsetRef.current;
+                  broadcastWatchPartyState({ currentTime: effectiveCt });
                 }
               }}
               onWaiting={() => {
@@ -2254,7 +2393,7 @@ export default function AddonStageDisplay({
                   isLocalMediaActionRef.current = Date.now() + 1500;
                   if (videoRef.current) {
                     const v = videoRef.current;
-                    const curT = v.currentTime;
+                    const curT = v.currentTime + streamTimeOffsetRef.current;
                     if (v.paused) {
                       v.play().catch(() => {});
                       setMediaPlaying(true);
@@ -2338,7 +2477,7 @@ export default function AddonStageDisplay({
                 menuTitle={t("stage.audioLanguage")}
                 active={audioTracks.length > 1}
                 isOpen={showAudioMenu}
-                widthClass="w-56"
+                widthClass="w-64"
                 onToggle={(e) => {
                   e?.stopPropagation();
                   setShowAudioMenu((prev) => !prev);
@@ -2347,18 +2486,34 @@ export default function AddonStageDisplay({
                 onClose={() => setShowAudioMenu(false)}
                 items={
                   audioTracks.length > 0
-                    ? audioTracks.map((track) => ({
-                        id: track.id,
-                        label: track.label || (track.lang ? `Audio ${formatLanguageName(track.lang, true)}` : `Pista de Audio ${track.id + 1}`),
-                        isSelected: currentAudioTrack === track.id,
-                        onClick: () => {
-                          applyAudioTrackChange(track.id);
-                          if (isCinemaWatchParty && sendWatchPartyAudioTrack) {
-                            sendWatchPartyAudioTrack(track.id);
-                          }
-                          setShowAudioMenu(false);
-                        },
-                      }))
+                    ? audioTracks.map((track) => {
+                        const langCode = track.lang && track.lang !== "und" ? track.lang : "";
+                        const langName = langCode ? formatLanguageName(langCode, true) : "";
+                        let label = "";
+                        if (langName && track.title) {
+                          label = track.title.toLowerCase().includes(langName.toLowerCase())
+                            ? (/^audio\b/i.test(track.title) ? track.title : `Audio ${track.title}`)
+                            : `Audio ${langName} - ${track.title}`;
+                        } else if (langName) {
+                          label = `Audio ${langName}`;
+                        } else if (track.title) {
+                          label = /^audio\b/i.test(track.title) ? track.title : `Audio ${track.title}`;
+                        } else {
+                          label = track.label || `Pista de Audio ${track.id + 1}`;
+                        }
+                        return {
+                          id: track.id,
+                          label,
+                          isSelected: currentAudioTrack === track.id,
+                          onClick: () => {
+                            applyAudioTrackChange(track.id);
+                            if (isCinemaWatchParty && sendWatchPartyAudioTrack) {
+                              sendWatchPartyAudioTrack(track.id);
+                            }
+                            setShowAudioMenu(false);
+                          },
+                        };
+                      })
                     : [
                         {
                           id: 0,

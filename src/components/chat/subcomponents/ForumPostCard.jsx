@@ -8,7 +8,7 @@ import MessageMediaAttachment from "./MessageMediaAttachment";
 import MessageMediaGallery, { isImageFile } from "./MessageMediaGallery";
 import EmojiPickerPopover from "../../ui/EmojiPickerPopover";
 import { resolveAuthorDisplay, buildPeerLookup } from "../../../lib/profileUtils";
-import { formatTime, formatFriendlyDate } from "./MessageHeader";
+import { formatTime, formatFriendlyDate, EphemeralCountdownBadge } from "./MessageHeader";
 
 const ForumPostCard = memo(
   ({
@@ -212,6 +212,9 @@ const ForumPostCard = memo(
               <span className="text-xs text-onicord-muted opacity-60 font-medium ml-1">
                 {formatFriendlyDate(msg.timestamp, t, i18n?.language || "es")}
               </span>
+              {msg.isEphemeral && (msg.expiresAt || msg.timestamp) && (
+                <EphemeralCountdownBadge expiresAt={msg.expiresAt || msg.timestamp + 60000} />
+              )}
             </div>
           </div>
 
@@ -268,6 +271,7 @@ const ForumPostCard = memo(
               images={imageAttachments}
               msg={msg}
               isMyMessage={isMyMessage}
+              profile={profile}
               fileProgress={fileProgress}
               onDownloadFile={onDownloadFile}
               onOpenPreview={onOpenPreview}
@@ -284,6 +288,7 @@ const ForumPostCard = memo(
                 fileData={att}
                 msg={msg}
                 isMyMessage={isMyMessage}
+                profile={profile}
                 server={server}
                 fileProgress={fileProgress}
                 onDownloadFile={onDownloadFile}
