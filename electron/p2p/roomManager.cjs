@@ -443,11 +443,42 @@ class RoomManager {
 
   setLocalActivity(activity) {
     this.localActivity = activity;
-    if (this.p2pService.profile && this.p2pService.profile.showRichPresence === false) {
+    if (this._isHeadlessMode || (this.p2pService.profile && this.p2pService.profile.showRichPresence === false)) {
       this.p2pService._broadcast("activity-state", { name: null });
       return;
     }
     this.p2pService._broadcast("activity-state", activity || { name: null });
+  }
+
+  /**
+   * Toggles headless node mode: broadcasts invisible status and hides rich presence
+   * while keeping P2P swarms, Discover, webhooks, and message sync alive.
+   */
+  setHeadlessMode(enabled) {
+    const next = Boolean(enabled);
+    if (this._isHeadlessMode === next) return;
+    this._isHeadlessMode = next;
+
+    if (!this.p2pService?.profile) return;
+
+    if (next) {
+      this._preHeadlessStatus = this.p2pService.profile.status || "online";
+      this._preHeadlessRichPresence = this.p2pService.profile.showRichPresence;
+      this.p2pService.profile.status = "invisible";
+      this.p2pService.profile.showRichPresence = false;
+      this.p2pService._broadcast("activity-state", { name: null });
+      this.p2pService._broadcast("profile", this.p2pService.profile);
+    } else {
+      this.p2pService.profile.status = this._preHeadlessStatus || "online";
+      if (this._preHeadlessRichPresence !== undefined) {
+        this.p2pService.profile.showRichPresence = this._preHeadlessRichPresence;
+      }
+      this.p2pService._broadcast("profile", this.p2pService.profile);
+      if (this.localActivity?.name && this.p2pService.profile.showRichPresence !== false) {
+        this.p2pService._broadcast("activity-state", this.localActivity);
+      }
+    }
+    this._emitState();
   }
 
   async requestFileDownload(fileId, targetPath, fileName, fileSize, options = {}) {
@@ -829,7 +860,8 @@ class RoomManager {
         peerId: p.id,
         nickname: p.nickname,
         avatar: p.avatar,
-        online: true,
+        status: p.status || "online",
+        online: p.status !== "invisible",
         activity: p.activity || null,
         customLink: p.customLink || "",
         profileColor: p.profileColor || "",
@@ -864,7 +896,7 @@ class RoomManager {
     }
     for (const p of activePeers) {
       if (p.id !== this.p2pService.profile?.id && p.id !== localId)
-        finalMembersMap.set(p.id, { ...p, online: true });
+        finalMembersMap.set(p.id, { ...p, online: p.status !== "invisible" });
     }
 
     return {

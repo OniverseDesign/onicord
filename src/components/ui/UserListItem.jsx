@@ -135,7 +135,7 @@ export default function UserListItem({
 }) {
   const { t } = useTranslation();
   const name = nickname || t("common.user");
-  const isOffline = status === "offline";
+  const isOffline = status === "offline" || status === "invisible";
   const evaluatedFlame = evaluateUserFlame(flame || {}, serverId);
 
   let subtitle = null;

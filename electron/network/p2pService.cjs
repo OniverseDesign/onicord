@@ -380,6 +380,7 @@ class P2PService {
         peer.showRichPresence = payload.showRichPresence ?? true;
         peer.flame = payload.flame || null;
         peer.serverProfiles = payload.serverProfiles || null;
+        peer.status = payload.status || "online";
         peer.isPreview = Boolean(payload.isPreview);
 
         if (Array.isArray(payload.joinedRooms)) {

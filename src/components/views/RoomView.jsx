@@ -613,13 +613,15 @@ export default function RoomView({
     const bannedSet = new Set(Array.isArray(server?.bannedUsers) ? server.bannedUsers : []);
     const kickedUsers = server?.kickedUsers || {};
 
+    const localStatus = profile?.status || "online";
     const localUser = {
       id: profile?.id || "self",
       peerId: null,
       nickname: localEffective?.nickname ?? profile?.nickname ?? t("common.you"),
       avatar: localEffective?.avatar ?? profile?.avatar,
       isSelf: true,
-      online: true,
+      online: localStatus !== "invisible",
+      status: localStatus,
       customLink: localEffective?.customLink ?? profile?.customLink,
       profileColor: localEffective?.profileColor ?? profile?.profileColor,
       customStatus: localEffective?.customStatus ?? profile?.customStatus,
@@ -673,6 +675,7 @@ export default function RoomView({
       list.push({
         ...p,
         id: actualId,
+        status: p.status || (p.online ? "online" : "offline"),
         nickname: effNickname,
         avatar: effAvatar,
         customLink: effLink,

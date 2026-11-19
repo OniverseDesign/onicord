@@ -217,7 +217,11 @@ class WebhookService {
         ...sentMessage,
         text: cryptoService.decrypt(roomCode, sentMessage.text),
       };
-      global.mainWindow?.webContents.send("chat:message", decryptedMsg);
+      if (global.mainWindow && !global.mainWindow.isDestroyed()) {
+        global.mainWindow.webContents.send("chat:message", decryptedMsg);
+      } else {
+        global.recordHeadlessUnread?.(decryptedMsg);
+      }
     } catch (e) {}
 
     res.writeHead(200, { "Content-Type": "application/json" });

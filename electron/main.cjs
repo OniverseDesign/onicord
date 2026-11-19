@@ -186,11 +186,7 @@ if (!gotTheLock) {
   process.exit(0);
 } else {
   app.on("second-instance", (event, commandLine) => {
-    if (global.mainWindow) {
-      if (!global.mainWindow.isVisible()) global.mainWindow.show();
-      if (global.mainWindow.isMinimized()) global.mainWindow.restore();
-      global.mainWindow.focus();
-    }
+    restoreOrCreateWindow();
     const deepLink = commandLine.find((arg) => arg.startsWith("onicord://"));
     if (deepLink) {
       handleDeepLink(deepLink);
@@ -233,6 +229,70 @@ function getAppIconPath() {
   return null;
 }
 
+function getCloseBehavior() {
+  const settings = profileService.activeProfile?.general;
+  if (
+    settings?.closeBehavior === "quit" ||
+    settings?.closeBehavior === "tray" ||
+    settings?.closeBehavior === "headless"
+  ) {
+    return settings.closeBehavior;
+  }
+  return settings?.minimizeToTray === false ? "quit" : "tray";
+}
+
+function enterHeadlessNodeMode() {
+  global.isHeadlessMode = true;
+  try {
+    overlayService.destroyOverlay?.();
+  } catch (_) {}
+  try {
+    if (global.roomManager) {
+      if (global.roomManager.voiceService?.localVoice?.channelId) {
+        global.roomManager.leaveVoice?.().catch(() => {});
+      }
+      global.roomManager.setHeadlessMode?.(true);
+    }
+  } catch (_) {}
+  try {
+    rpcServerService.stopRpcServer?.();
+  } catch (_) {}
+  if (tray) {
+    tray.setToolTip("Onicord (Modo Nodo)");
+  }
+}
+
+function restoreOrCreateWindow() {
+  const wasHeadless = Boolean(global.isHeadlessMode);
+  global.isHeadlessMode = false;
+
+  if (wasHeadless) {
+    try {
+      global.roomManager?.setHeadlessMode?.(false);
+    } catch (_) {}
+    try {
+      if (profileService.activeProfile?.general?.showRichPresence) {
+        rpcServerService.startRpcServer?.();
+      }
+    } catch (_) {}
+    if (tray) {
+      tray.setToolTip("Onicord");
+    }
+  }
+
+  if (global.mainWindow && !global.mainWindow.isDestroyed()) {
+    if (global.mainWindow.isMinimized()) global.mainWindow.restore();
+    global.mainWindow.show();
+    global.mainWindow.focus();
+    return;
+  }
+
+  createWindow();
+  if (updateService) {
+    updateService.mainWindow = global.mainWindow;
+  }
+}
+
 function createTray() {
   if (tray) return;
   const iconPath = getAppIconPath();
@@ -253,32 +313,22 @@ function createTray() {
   const contextMenu = Menu.buildFromTemplate([
     {
       label: "Mostrar Onicord",
-      click: () => {
-        if (global.mainWindow) {
-          global.mainWindow.show();
-          global.mainWindow.focus();
-        }
-      },
+      click: () => restoreOrCreateWindow(),
     },
     {
       label: "Salir",
       click: () => {
         global.isQuitting = true;
+        global.isHeadlessMode = false;
         app.quit();
       },
     },
   ]);
 
-  tray.setToolTip("Onicord");
+  tray.setToolTip(global.isHeadlessMode ? "Onicord (Modo Nodo)" : "Onicord");
   tray.setContextMenu(contextMenu);
 
-  const restoreWindow = () => {
-    if (global.mainWindow) {
-      if (global.mainWindow.isMinimized()) global.mainWindow.restore();
-      global.mainWindow.show();
-      global.mainWindow.focus();
-    }
-  };
+  const restoreWindow = () => restoreOrCreateWindow();
 
   tray.on("click", restoreWindow);
   tray.on("double-click", restoreWindow);
@@ -719,10 +769,9 @@ function createWindow() {
 
   global.mainWindow.on("close", (event) => {
     if (global.isQuitting) return;
-    const settings = profileService.activeProfile?.general;
-    const shouldMinimize = settings?.minimizeToTray !== false;
+    const closeBehavior = getCloseBehavior();
 
-    if (shouldMinimize) {
+    if (closeBehavior === "tray") {
       if (!tray) {
         createTray();
       }
@@ -730,6 +779,16 @@ function createWindow() {
         event.preventDefault();
         global.mainWindow.hide();
       }
+      return;
+    }
+
+    if (closeBehavior === "headless") {
+      if (!tray) {
+        createTray();
+      }
+      enterHeadlessNodeMode();
+      // Allow BrowserWindow to close and destroy the Chromium renderer process
+      // while window-all-closed keeps the Node.js Main Process running.
     }
   });
 
@@ -1004,7 +1063,7 @@ app.whenReady().then(async () => {
   });
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) restoreOrCreateWindow();
   });
 
   global.updateScannerState = (showRP, customGames) => {
@@ -1084,6 +1143,13 @@ app.on("before-quit", () => {
 });
 
 app.on("window-all-closed", async () => {
+  if (global.isHeadlessMode && !global.isQuitting) {
+    console.log(
+      "[Onicord System] Interfaz cerrada en Modo Nodo. Servidores y servicios P2P activos en segundo plano."
+    );
+    return;
+  }
+
   console.log(
     "[Onicord System] Cerrando ventanas detectado. Purgando buffers de red...",
   );

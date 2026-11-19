@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes AFK threshold
 
-export function useAfkTracker(explicitStatusMode = "online", onStatusChange) {
+export function useAfkTracker(explicitStatusMode = "online", onStatusChange, isInVoice = false) {
   const [isAfk, setIsAfk] = useState(false);
   const isAfkRef = useRef(false);
   const timeoutRef = useRef(null);
@@ -11,9 +11,19 @@ export function useAfkTracker(explicitStatusMode = "online", onStatusChange) {
 
   useEffect(() => {
     // Only auto-idle if explicit status is "online" (do not override explicit "dnd" or "invisible")
+    // and the user is NOT currently connected to a voice channel.
     if (explicitStatusMode !== "online") {
       isAfkRef.current = false;
       setIsAfk(false);
+      return;
+    }
+
+    if (isInVoice) {
+      if (isAfkRef.current) {
+        isAfkRef.current = false;
+        setIsAfk(false);
+        onStatusChangeRef.current?.("online");
+      }
       return;
     }
 
@@ -58,7 +68,7 @@ export function useAfkTracker(explicitStatusMode = "online", onStatusChange) {
       window.removeEventListener("mousemove", handleMouseMove);
       otherEvents.forEach((evt) => window.removeEventListener(evt, handleUserActivity));
     };
-  }, [explicitStatusMode]);
+  }, [explicitStatusMode, isInVoice]);
 
   return isAfk;
 }

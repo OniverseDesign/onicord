@@ -41,8 +41,22 @@ class NotificationManager {
       enableNotifications: true,
       enableSoundEffects: true,
     };
+    this.userStatus = "online";
     this._lastJoinTime = 0;
     this._lastToastTime = {};
+  }
+
+  setUserStatus(status) {
+    this.userStatus = status || "online";
+  }
+
+  isDoNotDisturb() {
+    if (this.userStatus === "dnd") return true;
+    try {
+      return typeof localStorage !== "undefined" && localStorage.getItem("onicord_explicit_status") === "dnd";
+    } catch {
+      return false;
+    }
   }
 
   setSettings(general) {
@@ -82,6 +96,9 @@ class NotificationManager {
 
   showToast(title, message, type = "info", duration = 7500, action = null, avatar = null, senderName = null) {
     if (this.settings && this.settings.enableNotifications === false) return;
+    if (this.isDoNotDisturb() && (type === "message" || action?.type === "message")) {
+      return;
+    }
     // In Streamer Mode, suppress message toasts to protect privacy during screen sharing
     if (window.__ONICORD_STREAMER_MODE__ && (type === "message" || action?.type === "message")) {
       return;
@@ -202,6 +219,7 @@ class NotificationManager {
         soundEngine.playCue(data.isDeafened ? "lock" : "unlock");
         break;
       case "RECEIVE_MESSAGE":
+        if (this.isDoNotDisturb()) break;
         if (!data.isCurrentChannel) {
           soundEngine.playCue("notification");
           if (this.settings?.enableNotifications !== false) {
@@ -265,6 +283,7 @@ class NotificationManager {
         }
         break;
       case "MENTION":
+        if (this.isDoNotDisturb()) break;
         soundEngine.playCue("mention");
         {
           const sender = sanitizeNotificationSender(data.nickname);

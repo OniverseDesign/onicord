@@ -73,7 +73,7 @@ export default function MembersSidebar({
         key={`${keyPrefix}-${m.id || m.userId || m.peerId}`}
         nickname={m.nickname}
         avatar={m.avatar}
-        status="online"
+        status={m.status || "online"}
         isSelf={m.isSelf}
         activity={m.activity}
         customStatus={m.customStatus}

@@ -1,6 +1,7 @@
 export const DEFAULT_GENERAL = {
   openAtLogin: false,
   minimizeToTray: true,
+  closeBehavior: "tray",
   startMinimized: false,
   enableNotifications: true,
   enableSoundEffects: true,
@@ -38,9 +39,17 @@ export function normalizeGeneralSettings(general) {
     }
   }
 
+  const validCloseBehaviors = ["quit", "tray", "headless"];
+  const closeBehavior = validCloseBehaviors.includes(general?.closeBehavior)
+    ? general.closeBehavior
+    : general?.minimizeToTray === false
+      ? "quit"
+      : "tray";
+
   return {
     openAtLogin: general?.openAtLogin !== undefined ? Boolean(general.openAtLogin) : false,
-    minimizeToTray: general?.minimizeToTray !== undefined ? Boolean(general.minimizeToTray) : true,
+    minimizeToTray: closeBehavior !== "quit",
+    closeBehavior,
     startMinimized: general?.startMinimized !== undefined ? Boolean(general.startMinimized) : false,
     enableNotifications: general?.enableNotifications !== undefined ? Boolean(general.enableNotifications) : true,
     enableSoundEffects: sfxLevel > 0,

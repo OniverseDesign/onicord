@@ -79,17 +79,20 @@ export function getActivityGroupInfo(activity) {
  * Only activities with 2 or more online members form a group, and each distinct
  * activity gets its own group sorted by member count (descending) then name.
  */
+function isMemberOnline(m) {
+  if (!m) return false;
+  if (m.status === "invisible" || m.status === "offline") return false;
+  if (m.online === false) return false;
+  return true;
+}
+
 export function groupMembersByActivity({ members = [], voiceMembers = [] } = {}) {
   const safeMembers = Array.isArray(members) ? members : [];
   const safeVoice = Array.isArray(voiceMembers) ? voiceMembers : [];
 
   const inVoice = safeVoice.filter((m) => m?.channelId);
-  const online = safeMembers.filter(
-    (m) => m && (m.isSelf || m.online === true || m.online === undefined),
-  );
-  const offline = safeMembers.filter(
-    (m) => m && !(m.isSelf || m.online === true || m.online === undefined),
-  );
+  const online = safeMembers.filter((m) => isMemberOnline(m));
+  const offline = safeMembers.filter((m) => m && !isMemberOnline(m));
 
   // Build fallback activity lookup from voiceMembers in case a member's activity
   // is fresher or only populated on the voice entry.

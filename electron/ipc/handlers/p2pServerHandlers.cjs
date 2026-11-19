@@ -8,6 +8,28 @@ const { RoomMetaStore } = require("../../p2p/roomMetaStore.cjs");
 const { ServerStore } = require("../../p2p/serverStore.cjs");
 const discoverService = require("../../services/discoverService.cjs");
 
+const MAX_HEADLESS_UNREADS = 5000;
+const headlessUnreadQueue = [];
+
+function recordHeadlessUnread(msg) {
+  if (!msg || !msg.roomCode) return;
+  if (global.mainWindow && !global.mainWindow.isDestroyed()) return;
+  if (headlessUnreadQueue.length >= MAX_HEADLESS_UNREADS) {
+    headlessUnreadQueue.shift();
+  }
+  headlessUnreadQueue.push({
+    id: msg.id,
+    roomCode: msg.roomCode,
+    serverId: msg.serverId || null,
+    channelId: msg.channelId || "general",
+    authorId: msg.authorId || null,
+    text: typeof msg.text === "string" ? msg.text.slice(0, 200) : "",
+    timestamp: msg.timestamp || Date.now(),
+  });
+}
+
+global.recordHeadlessUnread = recordHeadlessUnread;
+
 function createRoomManager() {
   if (global.roomManager) return global.roomManager;
   global.roomManager = new RoomManager({
@@ -35,9 +57,15 @@ function createRoomManager() {
           roomCode: msgRoomCode,
           text: cryptoService.decrypt(msgRoomCode, message.text),
         };
-        global.mainWindow?.webContents.send("chat:message", decryptedMsg);
-      } else {
-        global.mainWindow?.webContents.send("chat:message", message);
+        if (global.mainWindow && !global.mainWindow.isDestroyed()) {
+          global.mainWindow.webContents.send("chat:message", decryptedMsg);
+        } else {
+          recordHeadlessUnread(decryptedMsg);
+        }
+      } else if (message) {
+        if (global.mainWindow && !global.mainWindow.isDestroyed()) {
+          global.mainWindow.webContents.send("chat:message", message);
+        }
       }
     },
     onChatMessageDeleted: (id) => {
@@ -130,6 +158,10 @@ function createRoomManager() {
 
 function registerP2PServerHandlers() {
   const activeInvitePreviews = new Map();
+
+  ipcMain.handle("chat:consume-headless-unreads", () => {
+    return headlessUnreadQueue.splice(0, headlessUnreadQueue.length);
+  });
 
   ipcMain.handle("deeplink:check-pending", async () => {
     const code = global.pendingDeepLink || null;

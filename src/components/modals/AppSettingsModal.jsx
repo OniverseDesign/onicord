@@ -489,6 +489,7 @@ export default function AppSettingsModal({
 
     if (currentGeneral.openAtLogin !== originalGeneral.openAtLogin) return true;
     if (currentGeneral.minimizeToTray !== originalGeneral.minimizeToTray) return true;
+    if (currentGeneral.closeBehavior !== originalGeneral.closeBehavior) return true;
     if (currentGeneral.startMinimized !== originalGeneral.startMinimized) return true;
     if (currentGeneral.enableNotifications !== originalGeneral.enableNotifications) return true;
     if (currentGeneral.enableSoundEffects !== originalGeneral.enableSoundEffects) return true;

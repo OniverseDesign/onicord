@@ -237,6 +237,7 @@ class ProfileService {
         general: settingsMap.general || {
           openAtLogin: false,
           minimizeToTray: true,
+          closeBehavior: "tray",
           startMinimized: false,
           enableNotifications: true,
           enableSoundEffects: true,
@@ -547,6 +548,11 @@ class ProfileService {
       general: {
         openAtLogin: profile.general?.openAtLogin ?? existing?.general?.openAtLogin ?? false,
         minimizeToTray: profile.general?.minimizeToTray ?? existing?.general?.minimizeToTray ?? true,
+        closeBehavior: ["quit", "tray", "headless"].includes(profile.general?.closeBehavior)
+          ? profile.general.closeBehavior
+          : (["quit", "tray", "headless"].includes(existing?.general?.closeBehavior)
+              ? existing.general.closeBehavior
+              : ((profile.general?.minimizeToTray ?? existing?.general?.minimizeToTray ?? true) ? "tray" : "quit")),
         startMinimized: profile.general?.startMinimized ?? existing?.general?.startMinimized ?? false,
         enableNotifications: profile.general?.enableNotifications ?? existing?.general?.enableNotifications ?? true,
         enableSoundEffects: profile.general?.enableSoundEffects ?? existing?.general?.enableSoundEffects ?? true,

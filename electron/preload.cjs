@@ -132,6 +132,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   searchChatMessages: (roomCode, query, options) =>
     ipcRenderer.invoke("chat:search", roomCode, query, options),
   sendTyping: (channelId) => ipcRenderer.invoke("chat:setTyping", channelId),
+  consumeHeadlessUnreads: () =>
+    ipcRenderer.invoke("chat:consume-headless-unreads"),
   onChatMessage: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("chat:message", handler);

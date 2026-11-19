@@ -241,7 +241,11 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
             ? `${widgetHeight + (hasMultipleWidgets ? 30 : 0)}px`
             : "56px",
         }}
-        className="w-full shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island overflow-hidden relative flex flex-col justify-between select-none shadow-sm transition-all duration-300 ease-out"
+        className={`w-full shrink-0 rounded-onicord-outer-p4 border border-onicord-island overflow-hidden relative flex flex-col justify-between select-none shadow-sm transition-all duration-300 ease-out ${
+          isExpanded && !displayWidget?.supportsLightMode
+            ? "bg-onicord-base [.light-mode_&]:bg-[#1e1e2e]"
+            : "bg-onicord-base"
+        }`}
       >
         {/* 1. Capsule Mode (visible when collapsed to 56px) */}
         {!isExpanded && (
@@ -351,7 +355,11 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
         <div className="flex items-center justify-center gap-2 pb-2.5 pt-0.5 shrink-0 select-none">
           <button
             onClick={handlePrev}
-            className="p-0.5 rounded-full transition-colors flex items-center justify-center text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 cursor-pointer active:scale-90"
+            className={`p-0.5 rounded-full transition-colors flex items-center justify-center cursor-pointer active:scale-90 ${
+              !displayWidget?.supportsLightMode
+                ? "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 [.light-mode_&]:text-white/50 [.light-mode_&]:hover:text-white [.light-mode_&]:hover:bg-white/10"
+                : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
+            }`}
             title={t("plugins.prevPlugin", "Anterior complemento")}
           >
             <MaterialIcon name="chevron_left" size={16} />
@@ -367,7 +375,11 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
                 }}
                 className={`rounded-full transition-all duration-200 cursor-pointer ${
                   idx === currentIndex
-                    ? "bg-onicord-text w-2 h-2 opacity-95"
+                    ? !displayWidget?.supportsLightMode
+                      ? "bg-onicord-text [.light-mode_&]:bg-white w-2 h-2 opacity-95"
+                      : "bg-onicord-text w-2 h-2 opacity-95"
+                    : !displayWidget?.supportsLightMode
+                    ? "bg-onicord-tint/25 hover:bg-onicord-tint/40 [.light-mode_&]:bg-white/25 [.light-mode_&]:hover:bg-white/40 w-1.5 h-1.5"
                     : "bg-onicord-tint/25 hover:bg-onicord-tint/40 w-1.5 h-1.5"
                 }`}
               />
@@ -376,7 +388,11 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
 
           <button
             onClick={handleNext}
-            className="p-0.5 rounded-full transition-colors flex items-center justify-center text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 cursor-pointer active:scale-90"
+            className={`p-0.5 rounded-full transition-colors flex items-center justify-center cursor-pointer active:scale-90 ${
+              !displayWidget?.supportsLightMode
+                ? "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 [.light-mode_&]:text-white/50 [.light-mode_&]:hover:text-white [.light-mode_&]:hover:bg-white/10"
+                : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
+            }`}
             title={t("plugins.nextPlugin", "Siguiente complemento")}
           >
             <MaterialIcon name="chevron_right" size={16} />

@@ -748,26 +748,73 @@ export default function GeneralTab({ general, setGeneral }) {
             </label>
           </div>
 
-          <div data-setting-id="minimizeTray" className="onicord-settings-row transition-all">
-            <div className="min-w-0 pr-4">
-              <p className="onicord-settings-row-title">
-                {t("settings.general.minimizeToTray", "Minimizar a la bandeja del sistema")}
-              </p>
-              <p className="onicord-settings-row-desc">
-                {t("settings.general.minimizeToTrayDesc", "Al cerrar la ventana, la aplicación seguirá en segundo plano.")}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
-              <input
-                type="checkbox"
-                checked={general.minimizeToTray ?? true}
-                onChange={(e) =>
-                  handleChange("minimizeToTray", e.target.checked)
-                }
-                className="sr-only peer"
-              />
-              <div className="onicord-toggle-slider" />
-            </label>
+          <div data-setting-id="minimizeTray" className="onicord-settings-row flex-col items-stretch gap-2.5 transition-all">
+            {(() => {
+              const currentCloseBehavior =
+                general.closeBehavior || (general.minimizeToTray === false ? "quit" : "tray");
+              const closeOptions = [
+                {
+                  id: "quit",
+                  label: t("settings.general.closeBehaviorQuit", "Cerrar app"),
+                  desc: t(
+                    "settings.general.closeBehaviorQuitDesc",
+                    "Al cerrar la ventana, la aplicación se cierra por completo y se desconecta de los servidores."
+                  ),
+                },
+                {
+                  id: "tray",
+                  label: t("settings.general.closeBehaviorTray", "Minimizar"),
+                  desc: t(
+                    "settings.general.closeBehaviorTrayDesc",
+                    "Oculta la ventana en la bandeja del sistema manteniendo la interfaz y llamadas de voz activas."
+                  ),
+                },
+                {
+                  id: "headless",
+                  label: t("settings.general.closeBehaviorHeadless", "Modo Nodo"),
+                  desc: t(
+                    "settings.general.closeBehaviorHeadlessDesc",
+                    "Cierra la interfaz para ahorrar recursos, te marca como invisible y mantiene servidores, Discover, webhooks y recepción de mensajes activos."
+                  ),
+                },
+              ];
+              const currentMeta =
+                closeOptions.find((o) => o.id === currentCloseBehavior) || closeOptions[1];
+              return (
+                <>
+                  <div className="flex justify-between items-start">
+                    <div className="min-w-0 pr-2">
+                      <p className="onicord-settings-row-title">
+                        {t("settings.general.closeBehaviorTitle", "Al cerrar la ventana")}
+                      </p>
+                      <p className="onicord-settings-row-desc">{currentMeta.desc}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-onicord-base/40 rounded-xl border border-onicord-border">
+                    {closeOptions.map((opt) => {
+                      const isActive = opt.id === currentCloseBehavior;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            handleChange("closeBehavior", opt.id);
+                            handleChange("minimizeToTray", opt.id !== "quit");
+                          }}
+                          className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
+                            isActive
+                              ? "bg-onicord-accent/15 border-onicord-accent/40 text-onicord-accent font-semibold text-xs shadow-sm"
+                              : "border-transparent text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 font-medium text-xs"
+                          }`}
+                        >
+                          <span className="truncate block">{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           <div data-setting-id="autoDownloadUpdates" className="onicord-settings-row transition-all">

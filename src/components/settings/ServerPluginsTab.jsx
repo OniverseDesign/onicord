@@ -187,7 +187,8 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
         ) : (
           <ul className="space-y-2">
             {serverPlugins.map((sp) => {
-              const installedMeta = installedPlugins.find((p) => p.id === sp.id) || {};
+              const installedMeta =
+                installedPlugins.find((p) => p.id === sp.id || p.dirName === sp.id) || {};
               const pluginObj = { ...installedMeta, ...sp };
               const meta = getPluginLocalizedMeta(pluginObj, i18n.language);
               const name = meta.name || sp.id;
@@ -225,7 +226,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                           {name}
                         </span>
                         <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted font-mono">
-                          v{sp.version || installedMeta.version || "1.0"}
+                          v{installedMeta.version || sp.version || "1.0"}
                         </span>
                         <span
                           className={`text-[10px] px-2 py-0.5 rounded-md border flex items-center gap-1 font-semibold ${scopeInfo.badgeClass}`}

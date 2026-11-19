@@ -1,3 +1,16 @@
+# Onicord v0.3.1
+
+## Changes
+
+- **Headless Node Mode & Configurable Window Close Behaviors**: Added a 3-way window close behavior setting in `GeneralTab` (`quit`, `tray`, `headless`). In Headless Node Mode, closing the window completely terminates the Chromium renderer process to free RAM and GPU resources while keeping Node.js, Hyperswarm P2P swarms, SQLite sync, Discover service, and webhook listeners active 24/7 in the background.
+- **Headless Message Queue & Background Unread Sync**: Implemented `headlessUnreadQueue` and the `chat:consume-headless-unreads` IPC channel, allowing `useUnreadTracker` to ingest all encrypted messages received while headless and immediately update server and channel badge counts upon reopening.
+- **P2P Invisible & Offline Status Mesh Synchronization**: Added full mesh support for `invisible` and `offline` statuses across `RoomManager`, `RoomView`, and `MembersSidebar`, automatically masking node presence during headless operation and properly excluding invisible members from shared activity lists.
+- **Sandboxed Plugin Dynamic Theming Engine**: Integrated real-time CSS variable synchronization (`MutationObserver`) in `SandboxedPluginFrame` alongside the `window.onicord.theme` sandbox API (`getMode`, `getTokens`, `onChange`), enabling iframed plugins to adapt dynamically to light/dark themes.
+- **Plugin Island Contrast & Fallback Styling**: Added dark-mode container fallbacks (`[.light-mode_&]:bg-[#1e1e2e]`) and high-contrast navigation controls in `PluginIsland` for third-party widgets that do not declare light mode support.
+- **Do Not Disturb (DND) Audio & Toast Suppression**: Updated `notificationManager` to track explicit user presence and suppress desktop toast popups, mention sound cues, and incoming message audio alerts when set to Do Not Disturb.
+- **Voice-Aware Inactivity & AFK Tracker Protection**: Extended `useAfkTracker` with voice channel awareness (`isInVoice`), preventing users actively participating in voice calls from prematurely transitioning into idle AFK status.
+- **Server Plugin Identifier & Version Resolution**: Enhanced `ServerPluginsTab` to support directory-based plugin lookups (`dirName`) and prioritize installed plugin manifest versions.
+
 # Onicord v0.3.0
 
 ## Changes

@@ -1,5 +1,48 @@
 import { useEffect, useRef, useCallback } from "react";
 
+const THEME_VARS_TO_SYNC = [
+  "--onicord-text",
+  "--onicord-subtext",
+  "--onicord-muted",
+  "--onicord-faded",
+  "--onicord-text-dark",
+  "--onicord-text-dark-sub",
+  "--onicord-text-dark-muted",
+  "--onicord-bg-base",
+  "--onicord-bg-surface",
+  "--onicord-bg-mantle",
+  "--onicord-bg-overlay",
+  "--onicord-lavender",
+  "--onicord-accent",
+  "--onicord-danger",
+  "--onicord-success",
+  "--onicord-sapphire",
+  "--onicord-tint-rgb",
+  "--onicord-border",
+  "--onicord-on-accent",
+  "--onicord-on-danger",
+];
+
+function getThemeSnapshot() {
+  const root = document.documentElement;
+  const computed = getComputedStyle(root);
+  const isLight = root.classList.contains("light-mode");
+  const get = (name) => computed.getPropertyValue(name).trim();
+  return {
+    mode: isLight ? "light" : "dark",
+    accent: get("--onicord-accent"),
+    text: get("--onicord-text"),
+    subtext: get("--onicord-subtext"),
+    muted: get("--onicord-muted"),
+    base: `rgb(${get("--onicord-bg-base")})`,
+    surface: `rgb(${get("--onicord-bg-surface")})`,
+    mantle: `rgb(${get("--onicord-bg-mantle")})`,
+    overlay: `rgb(${get("--onicord-bg-overlay")})`,
+    border: get("--onicord-border"),
+    onAccent: get("--onicord-on-accent"),
+  };
+}
+
 /**
  * SandboxedPluginFrame: Unified, secure sandbox frame for Onicord plugins
  * (Bento Dashboard Widgets, Room Right-Sidebar Plugin Islands, and Stage Addons).
@@ -22,6 +65,7 @@ export default function SandboxedPluginFrame({
 }) {
   const iframeRef = useRef(null);
   const p2pListenersRef = useRef(new Set());
+  const themeListenersRef = useRef(new Set());
   const onActivityRef = useRef(onActivity);
 
   useEffect(() => {
@@ -85,9 +129,71 @@ export default function SandboxedPluginFrame({
     return unsub;
   }, [pluginId, widgetId, fullId]);
 
+  const syncThemeToIframe = useCallback(() => {
+    const iframeEl = iframeRef.current;
+    const iframeWin = iframeEl?.contentWindow;
+    if (!iframeWin) return getThemeSnapshot();
+
+    const snapshot = getThemeSnapshot();
+    const isLight = snapshot.mode === "light";
+
+    try {
+      const iframeDocEl = iframeWin.document?.documentElement;
+      if (iframeDocEl) {
+        const parentComputed = getComputedStyle(document.documentElement);
+        for (const varName of THEME_VARS_TO_SYNC) {
+          const val = parentComputed.getPropertyValue(varName).trim();
+          if (val) iframeDocEl.style.setProperty(varName, val);
+        }
+
+        if (isLight) {
+          iframeDocEl.classList.add("light-mode");
+          iframeDocEl.setAttribute("data-theme", "light");
+        } else {
+          iframeDocEl.classList.remove("light-mode");
+          iframeDocEl.removeAttribute("data-theme");
+        }
+
+        // Keep parent & iframe color-scheme aligned so Chromium preserves transparency
+        iframeDocEl.style.colorScheme = snapshot.mode;
+        iframeEl.style.colorScheme = snapshot.mode;
+      }
+    } catch (_) {}
+
+    return snapshot;
+  }, []);
+
+  useEffect(() => {
+    if (typeof MutationObserver === "undefined") return;
+    const observer = new MutationObserver(() => {
+      const snapshot = syncThemeToIframe();
+      const iframeWin = iframeRef.current?.contentWindow;
+      themeListenersRef.current.forEach((cb) => {
+        try {
+          cb(snapshot);
+        } catch (_) {}
+      });
+      if (iframeWin) {
+        try {
+          iframeWin.postMessage({ type: "ONICORD_THEME_CHANGE", theme: snapshot }, "*");
+          iframeWin.dispatchEvent(new CustomEvent("onicord:theme-change", { detail: snapshot }));
+        } catch (_) {}
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme", "style"],
+    });
+    return () => observer.disconnect();
+  }, [syncThemeToIframe]);
+
   const handleIframeLoad = useCallback(() => {
-    const iframeWin = iframeRef.current?.contentWindow;
+    const iframeEl = iframeRef.current;
+    const iframeWin = iframeEl?.contentWindow;
     if (!iframeWin || !widget) return;
+
+    syncThemeToIframe();
 
     if (onIframeClick) {
       try {
@@ -234,6 +340,16 @@ export default function SandboxedPluginFrame({
           localStorage.setItem(storeKey, value);
         },
       },
+
+      theme: {
+        getMode: () => getThemeSnapshot().mode,
+        getTokens: () => getThemeSnapshot(),
+        onChange: (callback) => {
+          if (typeof callback !== "function") return () => {};
+          themeListenersRef.current.add(callback);
+          return () => themeListenersRef.current.delete(callback);
+        },
+      },
     };
 
     iframeWin.dispatchEvent(new CustomEvent("onicord:widget-ready"));
@@ -253,6 +369,7 @@ export default function SandboxedPluginFrame({
     voice,
     onSummaryChange,
     setCustomBackground,
+    syncThemeToIframe,
   ]);
 
   return (
@@ -263,7 +380,7 @@ export default function SandboxedPluginFrame({
       onLoad={handleIframeLoad}
       sandbox="allow-scripts allow-same-origin"
       className={className}
-      style={style}
+      style={{ colorScheme: "normal", ...style }}
     />
   );
 }

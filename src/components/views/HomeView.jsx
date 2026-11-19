@@ -15,6 +15,7 @@ import MaterialIcon from "../icons/MaterialIcon";
 import { CONFIG_ISLAS, STORAGE_KEY, getCombinedConfigs } from "../dashboard/dashboardConfig";
 import { useUnreadTracker } from "../../hooks/useUnreadTracker";
 import { useAfkTracker } from "../../hooks/useAfkTracker";
+import { notificationManager } from "../../lib/notificationManager";
 import { useVoiceChannelInfo } from "../../context/VoiceContext";
 import { useMusicSession } from "../../context/MusicContext";
 import { isTypingInInput, isSingleKeyShortcut } from "../../lib/inputUtils";
@@ -110,7 +111,11 @@ export default function HomeView({
     }
   }, [onProfileChange]);
 
-  useAfkTracker(explicitStatus, handleAfkStatusChange);
+  useEffect(() => {
+    notificationManager.setUserStatus?.(profile?.status || explicitStatus);
+  }, [profile?.status, explicitStatus]);
+
+  useAfkTracker(explicitStatus, handleAfkStatusChange, Boolean(currentVoiceServerId));
 
   const canonicalizeShortcut = useCallback((str) => {
     if (!str) return "";

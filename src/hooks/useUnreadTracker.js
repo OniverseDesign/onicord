@@ -5,6 +5,54 @@ import { hasChannelAccess } from "../lib/permissionsHelper";
 import { getNotificationAuthor } from "../lib/profileUtils";
 
 /**
+ * Resolves whether an incoming message should increment unread counts and returns
+ * the matching server and unread key, or null if it should be ignored.
+ */
+function resolveUnreadTarget(msg, profileId, servers, activeRoomCode, activeChannelId) {
+  if (
+    !msg ||
+    !msg.roomCode ||
+    msg.authorId === profileId ||
+    msg.authorId === "self" ||
+    msg.text?.includes("[MUSIC_ACTION]") ||
+    msg.text?.includes("[NUDGE_MESSAGE]")
+  ) {
+    return null;
+  }
+
+  const rawChannelId = msg.channelId || "general";
+  if (msg.roomCode === activeRoomCode && rawChannelId === activeChannelId) {
+    return null;
+  }
+
+  if (rawChannelId.startsWith("dm_")) {
+    const parts = rawChannelId.slice(3).split("_");
+    if (profileId && parts.length >= 2 && !parts.includes(profileId)) {
+      return null;
+    }
+  }
+
+  const targetServer = servers?.find(
+    (s) =>
+      (msg.roomCode && s.roomCode?.toUpperCase() === msg.roomCode.toUpperCase()) ||
+      (msg.serverId && String(s.id).toUpperCase() === String(msg.serverId).toUpperCase())
+  );
+
+  if (targetServer && !rawChannelId.startsWith("dm_")) {
+    const targetChannel = targetServer?.channels?.find((c) => c.id === rawChannelId);
+    if (targetChannel && !hasChannelAccess(targetServer, targetChannel, profileId)) {
+      return null;
+    }
+  }
+
+  return {
+    key: `${msg.roomCode}_${rawChannelId}`,
+    rawChannelId,
+    targetServer,
+  };
+}
+
+/**
  * Hook to track, persist, and manage unread message counters across P2P servers and direct channels.
  * Enforces strict isolation boundaries:
  * - Direct messages (DMs) are filtered to only count if the local profile is a recipient.
@@ -100,114 +148,120 @@ export function useUnreadTracker(activeRoomCode, activeChannelId, profileOrId, s
 
   useEffect(() => {
     const api = window.electronAPI;
+    if (!api?.consumeHeadlessUnreads || !profileId || !Array.isArray(servers) || servers.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+    api.consumeHeadlessUnreads().then((queued) => {
+      if (cancelled || !Array.isArray(queued) || queued.length === 0) return;
+      const increments = {};
+      for (const msg of queued) {
+        const resolved = resolveUnreadTarget(
+          msg,
+          profileId,
+          servers,
+          activeRoomCode,
+          activeChannelId
+        );
+        if (resolved) {
+          increments[resolved.key] = (increments[resolved.key] || 0) + 1;
+        }
+      }
+      const keys = Object.keys(increments);
+      if (keys.length === 0) return;
+      setUnreads((prev) => {
+        const next = { ...prev };
+        for (const key of keys) {
+          next[key] = (next[key] || 0) + increments[key];
+        }
+        return next;
+      });
+    }).catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId, servers, activeRoomCode, activeChannelId]);
+
+  useEffect(() => {
+    const api = window.electronAPI;
     if (!api) return;
 
     const unsub = api.onChatMessage((msg) => {
-      if (
-        msg.authorId === profileId ||
-        msg.authorId === "self" ||
-        msg.text?.includes("[MUSIC_ACTION]") ||
-        msg.text?.includes("[NUDGE_MESSAGE]")
-      )
-        return;
+      const resolved = resolveUnreadTarget(
+        msg,
+        profileId,
+        servers,
+        activeRoomCode,
+        activeChannelId
+      );
+      if (!resolved) return;
 
-      const rawChannelId = msg.channelId || "general";
+      const { key, rawChannelId, targetServer } = resolved;
 
-      const isCurrent =
-        msg.roomCode === activeRoomCode &&
-        rawChannelId === activeChannelId;
+      setUnreads((prev) => ({
+        ...prev,
+        [key]: (prev[key] || 0) + 1,
+      }));
 
-      if (!isCurrent) {
-        // 1. If direct message (DM) channel, verify it belongs to current user
-        if (rawChannelId.startsWith("dm_")) {
-          const parts = rawChannelId.slice(3).split("_");
-          if (profileId && parts.length >= 2 && !parts.includes(profileId)) {
-            return;
-          }
-        }
+      let isMuted = false;
+      try {
+        const muted = JSON.parse(localStorage.getItem("onicord_muted_servers") || "[]");
+        isMuted = Array.isArray(muted) && muted.includes(msg.roomCode);
+      } catch (err) {}
 
-        // 2. If channel belongs to a known server, verify access permissions
-        const targetServer = servers?.find(
-          (s) =>
-            (msg.roomCode && s.roomCode?.toUpperCase() === msg.roomCode.toUpperCase()) ||
-            (msg.serverId && String(s.id).toUpperCase() === String(msg.serverId).toUpperCase())
+      if (!isMuted) {
+        const targetChannel = targetServer?.channels?.find(
+          (c) => c.id === rawChannelId
         );
 
-        if (targetServer && !rawChannelId.startsWith("dm_")) {
-          const targetChannel = targetServer?.channels?.find(
-            (c) => c.id === rawChannelId
-          );
-          // If channel exists but user lacks view permissions, ignore
-          if (targetChannel && !hasChannelAccess(targetServer, targetChannel, profileId)) {
-            return;
+        let channelName = targetChannel?.name || null;
+        if (!channelName) {
+          if (rawChannelId && rawChannelId.startsWith("dm_")) {
+            channelName = "Mensaje directo";
+          } else if (rawChannelId && rawChannelId.startsWith("thread_")) {
+            channelName = msg.title || "Hilo";
           }
         }
+        const serverName = targetServer?.name;
 
-        const key = `${msg.roomCode}_${rawChannelId}`;
+        const profileObj = typeof profileOrId === "object" ? profileOrId : null;
+        const senderInfo = getNotificationAuthor(msg, targetServer, profileObj);
+        const senderNickname = senderInfo.nickname;
+        const senderAvatar = senderInfo.avatar;
 
-        setUnreads((prev) => ({
-          ...prev,
-          [key]: (prev[key] || 0) + 1,
-        }));
+        const textLower = (msg.text || "").toLowerCase();
+        const myName = (profileNickname || "").toLowerCase();
+        const isDirectMention =
+          (myName && textLower.includes(`@${myName}`)) ||
+          (profileId && (textLower.includes(`<@${profileId}>`) || textLower.includes(`@${profileId}`))) ||
+          textLower.includes("@everyone") ||
+          textLower.includes("@here");
 
-        let isMuted = false;
-        try {
-          const muted = JSON.parse(localStorage.getItem("onicord_muted_servers") || "[]");
-          isMuted = Array.isArray(muted) && muted.includes(msg.roomCode);
-        } catch (err) {}
-
-        if (!isMuted) {
-          const targetChannel = targetServer?.channels?.find(
-            (c) => c.id === rawChannelId
-          );
-
-          let channelName = targetChannel?.name || null;
-          if (!channelName) {
-            if (rawChannelId && rawChannelId.startsWith("dm_")) {
-              channelName = "Mensaje directo";
-            } else if (rawChannelId && rawChannelId.startsWith("thread_")) {
-              channelName = msg.title || "Hilo";
-            }
-          }
-          const serverName = targetServer?.name;
-
-          const profileObj = typeof profileOrId === "object" ? profileOrId : null;
-          const senderInfo = getNotificationAuthor(msg, targetServer, profileObj);
-          const senderNickname = senderInfo.nickname;
-          const senderAvatar = senderInfo.avatar;
-
-          const textLower = (msg.text || "").toLowerCase();
-          const myName = (profileNickname || "").toLowerCase();
-          const isDirectMention =
-            (myName && textLower.includes(`@${myName}`)) ||
-            (profileId && (textLower.includes(`<@${profileId}>`) || textLower.includes(`@${profileId}`))) ||
-            textLower.includes("@everyone") ||
-            textLower.includes("@here");
-
-          if (isDirectMention) {
-            notificationManager.trigger("MENTION", {
-              nickname: senderNickname,
-              avatar: senderAvatar,
-              text: msg.text,
-              roomCode: msg.roomCode,
-              channelId: msg.channelId || "general",
-              serverId: targetServer?.id || msg.serverId,
-              serverName,
-              channelName,
-            });
-          } else {
-            notificationManager.trigger("RECEIVE_MESSAGE", {
-              nickname: senderNickname,
-              avatar: senderAvatar,
-              text: msg.text,
-              isCurrentChannel: false,
-              roomCode: msg.roomCode,
-              channelId: msg.channelId || "general",
-              serverId: targetServer?.id || msg.serverId,
-              serverName,
-              channelName,
-            });
-          }
+        if (isDirectMention) {
+          notificationManager.trigger("MENTION", {
+            nickname: senderNickname,
+            avatar: senderAvatar,
+            text: msg.text,
+            roomCode: msg.roomCode,
+            channelId: msg.channelId || "general",
+            serverId: targetServer?.id || msg.serverId,
+            serverName,
+            channelName,
+          });
+        } else {
+          notificationManager.trigger("RECEIVE_MESSAGE", {
+            nickname: senderNickname,
+            avatar: senderAvatar,
+            text: msg.text,
+            isCurrentChannel: false,
+            roomCode: msg.roomCode,
+            channelId: msg.channelId || "general",
+            serverId: targetServer?.id || msg.serverId,
+            serverName,
+            channelName,
+          });
         }
       }
     });
