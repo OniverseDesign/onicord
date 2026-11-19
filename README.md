@@ -16,7 +16,7 @@
       <img src="https://img.shields.io/github/downloads/OniverseDesign/onicord/total?style=for-the-badge&color=89b4fa&label=Downloads" alt="Total Downloads" />
     </a>
     <a href="LICENSE">
-      <img src="https://img.shields.io/badge/License-GPL%20v3-74c7ec.svg?style=for-the-badge" alt="License: GPL-3.0" />
+      <img src="https://img.shields.io/badge/License-AGPL%20v3-74c7ec.svg?style=for-the-badge" alt="License: AGPL-3.0" />
     </a>
     <a href="docs/guides/mcp-server.md">
       <img src="https://img.shields.io/badge/AI-MCP%20Native-a6e3a1.svg?style=for-the-badge" alt="MCP Server" />
@@ -126,7 +126,7 @@ Official release assets are available on the [Latest Release Page](https://githu
 
 ## Support and Community
 
-Onicord is free, open-source software under the **[GPL-3.0 License](LICENSE)**, crafted with passion by **Oniverse**. If you value decentralized software and want to support independent development:
+Onicord is free, open-source software under the **[AGPL-3.0 License](LICENSE)**, crafted with passion by **Oniverse**. If you value decentralized software and want to support independent development:
 
 <div align="center">
 

@@ -730,7 +730,7 @@ export default function AboutTab() {
             </p>
           )}
           <p className="text-onicord-muted/60 pt-1">
-            {t("settings.about.copyright", "Licencia GNU GPL v3 — Copyright © 2026 Oniverse")}
+            {t("settings.about.copyright", "Licencia GNU AGPL v3 — Copyright © 2026 Oniverse")}
           </p>
         </div>
       </div>
