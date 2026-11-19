@@ -366,7 +366,7 @@ export function renderHTMLForInput(text, allUsers) {
       .map((token) => {
         switch (token.type) {
           case "code":
-            return `<span class="bg-black/35 border border-white/10 rounded px-1 text-[14px] text-onicord-accent font-semibold mx-0.5"><span class="opacity-30">\`</span>${escapeHTML(token.content)}<span class="opacity-30">\`</span></span>`;
+            return `<span class="bg-black/35 border border-onicord-tint/10 rounded px-1 text-[14px] text-onicord-accent font-semibold mx-0.5"><span class="opacity-30">\`</span>${escapeHTML(token.content)}<span class="opacity-30">\`</span></span>`;
           case "bold_italic":
             return `<span class="font-bold italic text-white underline decoration-onicord-accent/40 decoration-1 underline-offset-2"><span class="opacity-30">***</span>${escapeHTML(token.content)}<span class="opacity-30">***</span></span>`;
           case "bold":

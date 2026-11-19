@@ -187,7 +187,7 @@ export default function ServerDiscoverTab({
                 className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                   accessMode === "public"
                     ? "bg-onicord-accent/10 border-onicord-accent/50 text-onicord-text"
-                    : "bg-onicord-base/40 border-white/5 text-onicord-muted hover:border-white/10"
+                    : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1.5">
@@ -215,7 +215,7 @@ export default function ServerDiscoverTab({
                 className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                   accessMode === "approval"
                     ? "bg-onicord-accent/10 border-onicord-accent/50 text-onicord-text"
-                    : "bg-onicord-base/40 border-white/5 text-onicord-muted hover:border-white/10"
+                    : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1.5">
@@ -271,7 +271,7 @@ export default function ServerDiscoverTab({
                       "discover.descPlaceholder",
                       "Escribe una breve presentación de tu comunidad para los exploradores..."
                     )}
-                    className="onicord-input w-full p-3 rounded-onicord-button bg-onicord-base text-onicord-text border border-white/5 outline-none ring-onicord-accent focus:ring-2 placeholder:text-onicord-faded text-xs sm:text-sm transition-all duration-150 resize-none min-h-[100px] leading-relaxed"
+                    className="onicord-input w-full p-3 rounded-onicord-button bg-onicord-base text-onicord-text border border-onicord-border outline-none ring-onicord-accent focus:ring-2 placeholder:text-onicord-faded text-xs sm:text-sm transition-all duration-150 resize-none min-h-[100px] leading-relaxed"
                   />
                 </div>
 
@@ -328,7 +328,7 @@ export default function ServerDiscoverTab({
                           <button
                             type="button"
                             onClick={() => removeTag(idx)}
-                            className="hover:text-white transition-colors cursor-pointer flex items-center justify-center p-0.5"
+                            className="hover:text-onicord-text transition-colors cursor-pointer flex items-center justify-center p-0.5"
                             title={t("common.delete", "Eliminar")}
                           >
                             <MaterialIcon name="close" size={13} />
@@ -340,7 +340,7 @@ export default function ServerDiscoverTab({
                 </div>
 
                 {/* Helpful tip card to optimize space balance */}
-                <div className="p-3 rounded-xl bg-onicord-base/30 border border-white/5 flex items-start gap-2.5 text-onicord-muted text-[11px] leading-relaxed">
+                <div className="p-3 rounded-xl bg-onicord-base/30 border border-onicord-border flex items-start gap-2.5 text-onicord-muted text-[11px] leading-relaxed">
                   <MaterialIcon name="tips_and_updates" size={16} className="text-onicord-accent shrink-0 mt-0.5" />
                   <span>
                     {t(
@@ -408,7 +408,7 @@ export default function ServerDiscoverTab({
             </p>
 
             {pendingRequests.length === 0 ? (
-              <div className="p-6 rounded-xl border border-dashed border-white/10 bg-onicord-base/20 text-center flex flex-col items-center justify-center">
+              <div className="p-6 rounded-xl border border-dashed border-onicord-tint/10 bg-onicord-base/20 text-center flex flex-col items-center justify-center">
                 <MaterialIcon name="mark_email_read" size={28} className="text-onicord-muted mb-2 opacity-60" />
                 <p className="text-xs font-semibold text-onicord-subtext">
                   {t("discover.noPendingRequests", "No hay solicitudes de acceso pendientes.")}
@@ -424,11 +424,11 @@ export default function ServerDiscoverTab({
                   return (
                     <div
                       key={req.applicant?.id || idx}
-                      className="p-3 rounded-xl bg-onicord-base/40 border border-white/5 flex items-center justify-between gap-3 animate-fade-in"
+                      className="p-3 rounded-xl bg-onicord-base/40 border border-onicord-border flex items-center justify-between gap-3 animate-fade-in"
                     >
                       {/* Avatar + User info */}
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-onicord-base border border-white/10 shrink-0 flex items-center justify-center font-bold text-xs text-onicord-accent">
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-onicord-base border border-onicord-tint/10 shrink-0 flex items-center justify-center font-bold text-xs text-onicord-accent">
                           {applicant.avatar ? (
                             <img src={applicant.avatar} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -466,7 +466,7 @@ export default function ServerDiscoverTab({
                         <button
                           type="button"
                           onClick={() => handleApprove(req)}
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-onicord-accent text-white hover:bg-onicord-accent/90 transition-all cursor-pointer shadow-sm"
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-onicord-accent text-onicord-on-accent hover:bg-onicord-accent/90 transition-all cursor-pointer shadow-sm"
                         >
                           {t("discover.approveBtn", "Aprobar")}
                         </button>

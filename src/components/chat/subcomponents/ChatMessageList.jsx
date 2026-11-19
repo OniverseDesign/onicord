@@ -382,7 +382,7 @@ export default function ChatMessageList({
           type="button"
           onClick={handleScrollButtonClick}
           tabIndex={showScrollBottom ? 0 : -1}
-          className={`absolute bottom-4 right-6 z-30 inline-flex items-center gap-1 pl-3 pr-2 py-1 rounded-full bg-onicord-accent border border-onicord-accent/30 text-onicord-dark text-xs font-bold transition-all duration-300 ease-out cursor-pointer select-none shadow-xs ${
+          className={`absolute bottom-4 right-6 z-30 inline-flex items-center gap-1 pl-3 pr-2 py-1 rounded-full bg-onicord-accent border border-onicord-accent/30 text-onicord-on-accent text-xs font-bold transition-all duration-300 ease-out cursor-pointer select-none shadow-xs ${
             showScrollBottom
               ? "opacity-100 translate-y-0 pointer-events-auto"
               : "opacity-0 translate-y-2 pointer-events-none"

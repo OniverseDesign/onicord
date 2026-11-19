@@ -10,7 +10,7 @@ import MaterialIcon from "../icons/MaterialIcon";
 import ThreadSidePanel from "../chat/subcomponents/ThreadSidePanel";
 import ForumTagsBar from "../chat/subcomponents/ForumTagsBar";
 import { notificationManager } from "../../lib/notificationManager";
-import { evaluateServerFlame } from "../../lib/flameService";
+import { evaluateServerFlame, triggerServerFlameInteraction } from "../../lib/flameService";
 import { checkPermission, hasChannelAccess } from "../../lib/permissionsHelper";
 import { buildPeerLookup, getEffectiveProfile } from "../../lib/profileUtils";
 
@@ -289,11 +289,12 @@ export default function RoomView({
           textChannelId,
           threadPayload,
         );
+        triggerServerFlameInteraction(profile, server, onProfileChange);
       } catch (err) {
         console.error("Error sending thread reply:", err);
       }
     },
-    [server.roomCode, textChannelId, profile],
+    [server, textChannelId, profile, onProfileChange],
   );
 
   useEffect(() => {

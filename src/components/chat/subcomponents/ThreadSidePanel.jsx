@@ -29,6 +29,7 @@ import {
   applyMarkdownFormat,
 } from "../../../lib/inputFormatter";
 import { soundEngine } from "../../../lib/soundEngine";
+import { triggerServerFlameInteraction } from "../../../lib/flameService";
 import { normalizeChatMessage } from "../../../hooks/useChatMessages";
 import { useChatComposer } from "../composer/useChatComposer";
 
@@ -209,6 +210,7 @@ export default function ThreadSidePanel({
                     threadParentId: parentMessage.id,
                   }),
                 );
+                triggerServerFlameInteraction(profile, server);
               }
             },
             fullInput: text,
@@ -231,6 +233,7 @@ export default function ThreadSidePanel({
         } else {
           window.electronAPI.execPluginCommand(server?.roomCode, targetChannelId, text);
         }
+        triggerServerFlameInteraction(profile, server);
         setInput("");
         setReplyTarget(null);
         setShowCommandsPopup(false);
@@ -406,6 +409,7 @@ export default function ThreadSidePanel({
             ...(ephemeralMeta || {}),
           }),
         );
+        triggerServerFlameInteraction(profile, server);
       }
       soundEngine.playCue("send");
     }
@@ -611,9 +615,10 @@ export default function ThreadSidePanel({
           parentMessage.channelId || "general",
           `[REACTION_ACTION]:${JSON.stringify({ messageId, emoji, userId: myId })}`
         );
+        triggerServerFlameInteraction(profile, server);
       }
     },
-    [onToggleReaction, profile?.id, server, parentMessage.channelId]
+    [onToggleReaction, profile, server, parentMessage.channelId]
   );
 
   const suggestions = useMemo(() => {
@@ -702,7 +707,7 @@ export default function ThreadSidePanel({
       {/* Drag overlay matching main ChatPanel */}
       {isDragging && (
         <div className="absolute inset-0 bg-onicord-accent/10 border-2 border-dashed border-onicord-accent m-2 rounded-onicord-outer-p4 flex flex-col items-center justify-center text-onicord-text pointer-events-none z-40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-onicord-surface p-3 rounded-full shadow-xl border border-white/5 mb-2">
+          <div className="bg-onicord-surface p-3 rounded-full shadow-xl border border-onicord-border mb-2">
             <svg
               className="w-6 h-6 text-onicord-accent animate-bounce"
               fill="none"
@@ -746,7 +751,7 @@ export default function ThreadSidePanel({
         <button
           type="button"
           onClick={onClose}
-          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 text-onicord-muted hover:text-onicord-text transition-colors cursor-pointer"
+          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors cursor-pointer"
           title={t("common.close", "Cerrar")}
         >
           <MaterialIcon name="close" size={18} />

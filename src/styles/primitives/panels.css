@@ -16,18 +16,18 @@
   }
 
   .bg-onicord-overlayer {
-    background-color: rgba(17, 17, 27, 0.92);
+    background-color: var(--onicord-overlayer-bg);
   }
 
   /* Border / Outline modifications */
   .onicord-panel-bordered {
-    @apply border border-white/5;
+    @apply border border-onicord-border;
   }
   .onicord-panel-bordered-soft {
-    @apply border border-white/[0.02];
+    @apply border border-onicord-tint/[0.04];
   }
   .onicord-panel-bordered-overlay {
-    @apply border border-white/[0.04];
+    @apply border border-onicord-tint/[0.06];
   }
 
   .border-onicord-island {
@@ -45,6 +45,6 @@
     @apply onicord-panel onicord-panel-base onicord-panel-bordered rounded-onicord-inner transition-colors duration-200 select-none;
   }
   .onicord-modal-preview-box {
-    @apply flex items-center justify-center gap-4 p-3.5 rounded-onicord-inner bg-onicord-base/50 border border-white/5 shadow-inner;
+    @apply flex items-center justify-center gap-4 p-3.5 rounded-onicord-inner bg-onicord-base/50 border border-onicord-border shadow-inner;
   }
 }

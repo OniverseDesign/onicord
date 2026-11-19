@@ -177,7 +177,7 @@ export default function ToastContainer() {
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {toast.avatar ? (
-                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 shadow-sm border border-white/10 flex items-center justify-center bg-onicord-surface">
+                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 shadow-sm border border-onicord-tint/10 flex items-center justify-center bg-onicord-surface">
                   <SmartAnimatedImage
                     src={toast.avatar}
                     alt={toast.senderName || ""}
@@ -230,7 +230,7 @@ export default function ToastContainer() {
                   e.stopPropagation();
                   handleDismiss(toast.id);
                 }}
-                className="text-onicord-muted hover:text-onicord-text text-xs p-1 rounded-md hover:bg-white/10 transition cursor-pointer"
+                className="text-onicord-muted hover:text-onicord-text text-xs p-1 rounded-md hover:bg-onicord-tint/10 transition cursor-pointer"
                 aria-label="Cerrar notificación"
               >
                 ✕

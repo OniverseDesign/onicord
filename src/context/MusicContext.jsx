@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { useVoiceChannelInfo } from "./VoiceContext";
 import { checkPermission } from "../lib/permissionsHelper";
+import { triggerServerFlameInteraction } from "../lib/flameService";
 
 const MusicContext = createContext(null);
 
@@ -400,7 +401,8 @@ export function MusicProvider({ profile, activeServer, children }) {
         currentVoiceRoomCode
       );
     }
-  }, [inVoice, currentVoiceChannelId, currentVoiceRoomCode, canManageMusic, djUserId, profile, broadcastCurrentState, recordToHistory]);
+    triggerServerFlameInteraction(profile, currentVoiceRoomCode || currentVoiceServer || activeServer);
+  }, [inVoice, currentVoiceChannelId, currentVoiceRoomCode, currentVoiceServer, activeServer, canManageMusic, djUserId, profile, broadcastCurrentState, recordToHistory]);
 
   const enqueueTrack = useCallback(async (trackOrUrl) => {
     if (!inVoice || !currentVoiceChannelId) return;
@@ -439,7 +441,8 @@ export function MusicProvider({ profile, activeServer, children }) {
         currentVoiceRoomCode
       );
     }
-  }, [inVoice, currentVoiceChannelId, currentVoiceRoomCode, currentTrack, isDJ, playTrackNow, broadcastCurrentState]);
+    triggerServerFlameInteraction(profile, currentVoiceRoomCode || currentVoiceServer || activeServer);
+  }, [inVoice, currentVoiceChannelId, currentVoiceRoomCode, currentVoiceServer, activeServer, currentTrack, isDJ, playTrackNow, broadcastCurrentState, profile]);
 
   const pauseTrack = useCallback(() => {
     if (!canManageMusic) return;
@@ -736,6 +739,11 @@ export function MusicProvider({ profile, activeServer, children }) {
     };
   }, [pauseTrack, resumeTrack, skipTrack, stopTrack, isDJ, broadcastCurrentState, playTrackNow, enqueueTrack]);
 
+  const joinMusic = useCallback(() => {
+    setHasJoinedMusic(true);
+    triggerServerFlameInteraction(profile, currentVoiceRoomCode || currentVoiceServer || activeServer);
+  }, [profile, currentVoiceRoomCode, currentVoiceServer, activeServer]);
+
   const value = useMemo(
     () => ({
       currentTrack,
@@ -752,7 +760,7 @@ export function MusicProvider({ profile, activeServer, children }) {
       setRepeatMode,
       hasJoinedMusic,
       setHasJoinedMusic,
-      joinMusic: () => setHasJoinedMusic(true),
+      joinMusic,
       ignoreMusic: () => setHasJoinedMusic("ignored"),
       audioRef,
       canManageMusic,
@@ -776,6 +784,7 @@ export function MusicProvider({ profile, activeServer, children }) {
       playHistory,
       repeatMode,
       hasJoinedMusic,
+      joinMusic,
       canManageMusic,
       isDJ,
       playTrackNow,

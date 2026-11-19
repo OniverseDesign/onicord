@@ -197,7 +197,7 @@ export default function UserProfilePopout({
   const textMutedClass = isLightBg
     ? "text-onicord-dark-muted font-bold"
     : "text-onicord-muted";
-  const dividerClass = isLightBg ? "border-black/10" : "border-white/5";
+  const dividerClass = isLightBg ? "border-black/10" : "border-onicord-border";
   const boxBgClass = isLightBg ? "bg-black/5" : "bg-black/10";
   const linkBgClass = isLightBg
     ? "bg-black/10 hover:bg-black/20 text-onicord-dark"

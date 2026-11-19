@@ -1,7 +1,7 @@
 @layer components {
   /* 📝 ONICORD ATOMIC INPUTS SYSTEM (Control Heights: sm=32px, md=36px, lg=44px) */
   .onicord-input-base {
-    @apply h-9 px-3.5 text-xs sm:text-sm rounded-onicord-button bg-onicord-base text-onicord-text outline-none ring-onicord-accent focus:ring-2 border border-white/5 placeholder:text-onicord-faded transition-all duration-150 box-border;
+    @apply h-9 px-3.5 text-xs sm:text-sm rounded-onicord-button bg-onicord-base text-onicord-text outline-none ring-onicord-accent focus:ring-2 border border-onicord-border placeholder:text-onicord-faded transition-all duration-150 box-border;
   }
 
   /* Modificadores de altura para inputs */
@@ -23,25 +23,25 @@
     @apply onicord-input-base w-full cursor-pointer appearance-none;
   }
   .onicord-input-readonly {
-    @apply break-all rounded-onicord-button bg-onicord-overlay px-3 py-2 font-mono text-xs text-onicord-muted border border-white/5 selection:bg-onicord-accent/20;
+    @apply break-all rounded-onicord-button bg-onicord-overlay px-3 py-2 font-mono text-xs text-onicord-muted border border-onicord-border selection:bg-onicord-accent/20;
   }
   .onicord-input-code {
-    @apply w-full rounded-onicord-inner bg-onicord-overlay px-4 py-3 text-center font-mono text-2xl tracking-[0.3em] text-white uppercase outline-none ring-onicord-accent focus:ring-2;
+    @apply w-full rounded-onicord-inner bg-onicord-overlay px-4 py-3 text-center font-mono text-2xl tracking-[0.3em] text-onicord-text uppercase outline-none ring-onicord-accent focus:ring-2;
   }
   .onicord-color-input {
     @apply w-8 h-8 rounded-md bg-transparent border-0 cursor-pointer shrink-0;
   }
   .onicord-file-upload-label {
-    @apply inline-block px-5 py-2.5 border border-white/5 text-sm font-semibold text-white rounded-onicord-button transition-opacity shadow-sm bg-onicord-overlay hover:bg-white/5 cursor-pointer active:scale-95;
+    @apply inline-block px-5 py-2.5 border border-onicord-border text-sm font-semibold text-onicord-text rounded-onicord-button transition-opacity shadow-sm bg-onicord-overlay hover:bg-onicord-tint/5 cursor-pointer active:scale-95;
   }
   .onicord-file-upload-label-disabled {
-    @apply bg-black/20 opacity-50 cursor-wait;
+    @apply bg-onicord-tint/10 opacity-50 cursor-wait;
   }
   .onicord-invite-code-display {
-    @apply flex min-w-0 flex-1 items-center justify-center rounded-onicord-button bg-onicord-overlay px-4 py-3 border border-white/5 shadow-onicord-elevated;
+    @apply flex min-w-0 flex-1 items-center justify-center rounded-onicord-button bg-onicord-overlay px-4 py-3 border border-onicord-border shadow-onicord-elevated;
   }
   .onicord-toggle-slider {
-    @apply w-9 h-5 bg-black/40 rounded-full transition-colors duration-150 relative;
+    @apply w-9 h-5 bg-onicord-tint/15 rounded-full transition-colors duration-150 relative;
   }
   .peer:focus ~ .onicord-toggle-slider {
     @apply outline-none;
@@ -57,7 +57,7 @@
     @apply translate-x-full border-white bg-white;
   }
   .onicord-range-input {
-    @apply w-full accent-onicord-accent bg-black/40 h-1.5 rounded-lg appearance-none cursor-pointer;
+    @apply w-full accent-onicord-accent bg-onicord-tint/15 h-1.5 rounded-lg appearance-none cursor-pointer;
   }
 }
 

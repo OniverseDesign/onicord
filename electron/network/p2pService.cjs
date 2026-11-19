@@ -294,6 +294,7 @@ class P2PService {
       decoder: new StringDecoder("utf8"),
       isDirectTCP: Boolean(peerInfo?.isDirectTCP),
       remoteAddress: remoteAddr,
+      lastPingAck: Date.now(),
     };
     this.peers.set(peerId, peer);
     this._buffers.set(peerId, "");
@@ -338,6 +339,7 @@ class P2PService {
   async _onSocketData(peerId, chunk) {
     const peer = this.peers.get(peerId);
     if (!peer) return;
+    peer.lastPingAck = Date.now();
     if (!peer.decoder) peer.decoder = new StringDecoder("utf8");
 
     const prev = this._buffers.get(peerId) || "";

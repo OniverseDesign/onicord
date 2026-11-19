@@ -22,6 +22,12 @@ export default {
           "dark-sub": "var(--onicord-text-dark-sub)",
           "dark-muted": "var(--onicord-text-dark-muted)",
 
+          // 🌗 TINTE, BORDES Y TEXTO SOBRE ACENTOS ADAPTATIVOS
+          tint: "rgb(var(--onicord-tint-rgb) / <alpha-value>)",
+          border: "var(--onicord-border)",
+          "on-accent": "var(--onicord-on-accent)",
+          "on-danger": "var(--onicord-on-danger)",
+
           // ── ACENTOS NATIVOS CORE ENVOLVILLES EN ALFA ──
           accent: "rgb(var(--onicord-lavender) / <alpha-value>)",
           danger: "rgb(var(--onicord-danger) / <alpha-value>)",

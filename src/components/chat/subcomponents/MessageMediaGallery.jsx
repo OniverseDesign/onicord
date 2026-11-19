@@ -169,7 +169,7 @@ export default function MessageMediaGallery({
             {img.name || t("chat.imageLabel", "Imagen")}
           </span>
           {isDownloading ? (
-            <div className="w-16 h-1.5 bg-white/10 rounded-full mt-2 overflow-hidden">
+            <div className="w-16 h-1.5 bg-onicord-tint/10 rounded-full mt-2 overflow-hidden">
               <div
                 className="h-full bg-onicord-accent transition-all duration-150"
                 style={{ width: `${status?.progress || 0}%` }}
@@ -264,7 +264,7 @@ export default function MessageMediaGallery({
 
     if (!diskPath || !url) {
       return (
-        <div className={`mt-2 max-w-sm rounded-xl overflow-hidden border border-white/5 ${className}`}>
+        <div className={`mt-2 max-w-sm rounded-xl overflow-hidden border border-onicord-border ${className}`}>
           {renderTileContent(singleImg, 0)}
         </div>
       );
@@ -272,7 +272,7 @@ export default function MessageMediaGallery({
 
     return (
       <div
-        className={`mt-2 relative rounded-xl overflow-hidden max-w-xl cursor-pointer group bg-black/20 border border-white/5 hover:border-onicord-accent/40 transition-all duration-200 inline-block ${
+        className={`mt-2 relative rounded-xl overflow-hidden max-w-xl cursor-pointer group bg-black/20 border border-onicord-border hover:border-onicord-accent/40 transition-all duration-200 inline-block ${
           isBlurred ? "min-w-[220px] min-h-[140px]" : ""
         } ${className}`}
         onClick={(e) => {
@@ -333,7 +333,7 @@ export default function MessageMediaGallery({
   if (total === 2) {
     return (
       <div
-        className={`mt-2 grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/9] max-h-[320px] max-w-2xl bg-black/20 border border-white/5 ${className}`}
+        className={`mt-2 grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/9] max-h-[320px] max-w-2xl bg-black/20 border border-onicord-border ${className}`}
       >
         {renderTileContent(images[0], 0)}
         {renderTileContent(images[1], 1)}
@@ -345,7 +345,7 @@ export default function MessageMediaGallery({
   if (total === 3) {
     return (
       <div
-        className={`mt-2 grid grid-cols-2 grid-rows-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/10] max-h-[360px] max-w-2xl bg-black/20 border border-white/5 ${className}`}
+        className={`mt-2 grid grid-cols-2 grid-rows-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/10] max-h-[360px] max-w-2xl bg-black/20 border border-onicord-border ${className}`}
       >
         <div className="row-span-2 col-span-1 w-full h-full overflow-hidden">
           {renderTileContent(images[0], 0)}
@@ -364,7 +364,7 @@ export default function MessageMediaGallery({
   if (total === 4) {
     return (
       <div
-        className={`mt-2 grid grid-cols-2 grid-rows-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/10] max-h-[360px] max-w-2xl bg-black/20 border border-white/5 ${className}`}
+        className={`mt-2 grid grid-cols-2 grid-rows-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/10] max-h-[360px] max-w-2xl bg-black/20 border border-onicord-border ${className}`}
       >
         {images.slice(0, 4).map((img, idx) => (
           <div key={img.id || idx} className="w-full h-full overflow-hidden">
@@ -379,7 +379,7 @@ export default function MessageMediaGallery({
   const remainingCount = total - 5;
   return (
     <div
-      className={`mt-2 grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/9] max-h-[380px] max-w-2xl bg-black/20 border border-white/5 ${className}`}
+      className={`mt-2 grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/9] max-h-[380px] max-w-2xl bg-black/20 border border-onicord-border ${className}`}
     >
       {/* Left Column: 1 Large Image */}
       <div className="w-full h-full overflow-hidden">

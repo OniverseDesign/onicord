@@ -504,7 +504,7 @@ export default function HomeDashboard({
                   alert("Layout copiado a la consola.");
                 }
               }}
-              className="px-4 py-2 bg-onicord-island text-onicord-text border border-white/10 font-semibold rounded-onicord-inner text-xs transition-all duration-150 active:scale-95 hover:bg-white/5 cursor-pointer shadow-sm"
+              className="px-4 py-2 bg-onicord-island text-onicord-text border border-onicord-tint/10 font-semibold rounded-onicord-inner text-xs transition-all duration-150 active:scale-95 hover:bg-onicord-tint/5 cursor-pointer shadow-sm"
             >
               Fijar Layout Base (💾)
             </button>
@@ -527,7 +527,7 @@ export default function HomeDashboard({
             style={{
               gridArea: `${islas[activeOp.key].y} / ${islas[activeOp.key].x} / span ${islas[activeOp.key].h} / span ${islas[activeOp.key].w}`,
             }}
-            className="bg-white/5 border border-dashed border-white/20 rounded-onicord-outer-p4 pointer-events-none z-10 transition-all duration-150 ease-out"
+            className="bg-onicord-tint/5 border border-dashed border-onicord-tint/20 rounded-onicord-outer-p4 pointer-events-none z-10 transition-all duration-150 ease-out"
           />
         )}
 

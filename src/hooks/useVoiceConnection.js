@@ -7,7 +7,7 @@ import {
 } from "../lib/audioSettings";
 import { notificationManager } from "../lib/notificationManager";
 import { soundEngine } from "../lib/soundEngine";
-import { recordUserInteraction } from "../lib/flameService";
+import { triggerServerFlameInteraction } from "../lib/flameService";
 import { isTypingInInput } from "../lib/inputUtils";
 import { useVoiceStore } from "../stores/useVoiceStore";
 
@@ -85,11 +85,25 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
   }, [localPeerId]);
 
   const isJoiningChannelRef = useRef(null);
+  const prevVoiceStreamStateRef = useRef({ channelId: null, streamingPeers: new Map() });
 
   const profileRef = useRef(profile);
   useEffect(() => {
     profileRef.current = profile;
   }, [profile]);
+
+  const serverIdRef = useRef(serverId);
+  useEffect(() => {
+    serverIdRef.current = serverId;
+  }, [serverId]);
+
+  const triggerVoiceFlame = useCallback((targetServerId = serverIdRef.current) => {
+    if (!profileRef.current || !targetServerId) return;
+    const updatedFlame = triggerServerFlameInteraction(profileRef.current, targetServerId);
+    if (updatedFlame) {
+      profileRef.current = { ...profileRef.current, flame: updatedFlame };
+    }
+  }, []);
 
   const hardwareRef = useRef({ inputDeviceId: "", outputDeviceId: "" });
   const audioSettings = normalizeAudioSettings(profile?.audio);
@@ -153,6 +167,36 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     });
 
     const self = cleanMembers.find((m) => m.isSelf);
+    const currentChannelId = self?.channelId ?? null;
+    if (!currentChannelId) {
+      prevVoiceStreamStateRef.current = { channelId: null, streamingPeers: new Map() };
+    } else {
+      const nextStreamingPeers = new Map();
+      for (const m of cleanMembers) {
+        if (!m.isSelf && m.channelId === currentChannelId) {
+          nextStreamingPeers.set(m.peerId, Boolean(m.isStreaming));
+        }
+      }
+      if (prevVoiceStreamStateRef.current.channelId === currentChannelId) {
+        for (const [peerId, isNowStreaming] of nextStreamingPeers.entries()) {
+          const wasStreaming = prevVoiceStreamStateRef.current.streamingPeers.get(peerId) || false;
+          if (!wasStreaming && isNowStreaming) {
+            notificationManager.trigger("USER_START_STREAM", { peerId });
+          } else if (
+            wasStreaming &&
+            !isNowStreaming &&
+            prevVoiceStreamStateRef.current.streamingPeers.has(peerId)
+          ) {
+            notificationManager.trigger("USER_STOP_STREAM", { peerId });
+          }
+        }
+      }
+      prevVoiceStreamStateRef.current = {
+        channelId: currentChannelId,
+        streamingPeers: nextStreamingPeers,
+      };
+    }
+
     setInVoice(Boolean(self?.channelId));
     setVoiceChannelId(self?.channelId ?? null);
     if (self) {
@@ -254,6 +298,22 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
       lanPeerIPs: lanPeerIPsRef.current,
       initialMuted: mutedRef.current,
       initialDeafened: deafenedRef.current,
+      onDeviceRebound: (updates) => {
+        if (profileRef.current && updates && typeof updates === "object") {
+          const nextAudio = {
+            ...(profileRef.current.audio || {}),
+            ...updates,
+          };
+          profileRef.current = {
+            ...profileRef.current,
+            audio: nextAudio,
+          };
+          hardwareRef.current = {
+            inputDeviceId: nextAudio.inputDeviceId || "",
+            outputDeviceId: nextAudio.outputDeviceId || "",
+          };
+        }
+      },
       onSignalOut: (toPeerId, channelId, signal) => {
         window.electronAPI.sendVoiceSignal(toPeerId, channelId, signal);
       },
@@ -466,13 +526,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
           }
         }
 
-        if (profileRef.current) {
-          const updatedFlame = recordUserInteraction(profileRef.current, serverId);
-          if (updatedFlame && window.electronAPI?.saveProfile) {
-            profileRef.current.flame = updatedFlame;
-            window.electronAPI.saveProfile(profileRef.current);
-          }
-        }
+        triggerVoiceFlame(serverId);
       } catch (err) {
         if (activeTokenRef.current === effectToken) {
           console.error("[voice] Error fatal de hardware multimedia:", err);
@@ -672,16 +726,19 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
   }, []);
 
   const setLocalVideoStream = useCallback((stream, streamOptions = {}) => {
-    if (stream) {
-      soundEngine.playCue("start");
-    } else if (managerRef.current?.localVideoStream) {
-      soundEngine.playCue("stop");
+    const hadLocalVideo = Boolean(managerRef.current?.localVideoStream);
+    if (stream && !hadLocalVideo) {
+      notificationManager.trigger("LOCAL_START_STREAM");
+      triggerVoiceFlame();
+    } else if (!stream && hadLocalVideo) {
+      notificationManager.trigger("LOCAL_STOP_STREAM");
     }
     managerRef.current?.setLocalVideoStream?.(stream, streamOptions);
-  }, []);
+  }, [triggerVoiceFlame]);
 
   const leaveVoice = useCallback(async () => {
     isJoiningChannelRef.current = null;
+    prevVoiceStreamStateRef.current = { channelId: null, streamingPeers: new Map() };
 
     notificationManager.trigger("LOCAL_LEFT_VOICE");
 
@@ -809,6 +866,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
 
           currentSessionKeyRef.current = sessionKey;
           notificationManager.trigger("LOCAL_JOIN_VOICE");
+          triggerVoiceFlame(serverId);
 
           await refreshState();
         }
@@ -830,6 +888,9 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
       const { peerId, isSpeaking, volumeLevel } = e.detail;
 
       if (peerId === "self" || peerId === localPeerId) {
+        if (isSpeaking) {
+          triggerVoiceFlame();
+        }
         window.electronAPI?.sendSpeakingState?.(
           isSpeaking,
           Math.round(volumeLevel || 0),
@@ -858,17 +919,29 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     };
   }, [localPeerId]);
 
+  const lastVideoUpdateRef = useRef(new Map());
+
   useEffect(() => {
     const handleVideoReady = (e) => {
-      const { peerId } = e.detail;
-      console.log(
-        `[WebRTC] Video track detected and ready for peer: ${peerId}`,
-      );
+      const { peerId, stream } = e.detail || {};
+      if (!peerId) return;
+      const now = Date.now();
+      const prevTime = lastVideoUpdateRef.current.get(peerId) || 0;
+      if (stream && now - prevTime < 200) {
+        return;
+      }
+      lastVideoUpdateRef.current.set(peerId, now);
+
+      if (stream) {
+        console.log(
+          `[WebRTC] Video track detected and ready for peer: ${peerId}`,
+        );
+      }
 
       setMembers((prev) =>
         prev.map((m) =>
           m.peerId === peerId || m.id === peerId
-            ? { ...m, _videoTrigger: Date.now() } 
+            ? { ...m, _videoTrigger: now } 
             : m,
         ),
       );

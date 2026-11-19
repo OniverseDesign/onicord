@@ -86,7 +86,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
 
         {/* Test Overlay on Screen */}
         <div
-          className={`pt-3 mt-3 border-t border-white/5 flex items-center justify-between transition-opacity ${
+          className={`pt-3 mt-3 border-t border-onicord-border flex items-center justify-between transition-opacity ${
             !enabled ? "opacity-40 pointer-events-none" : ""
           }`}
         >
@@ -105,7 +105,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
             type="button"
             onClick={handleTestOverlay}
             disabled={!enabled || isTesting}
-            className="px-4 py-2 rounded-onicord-button bg-onicord-overlay hover:bg-white/10 text-white text-xs font-semibold flex items-center gap-2 border border-white/10 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+            className="px-4 py-2 rounded-onicord-button bg-onicord-overlay hover:bg-onicord-tint/10 text-onicord-text text-xs font-semibold flex items-center gap-2 border border-onicord-tint/10 transition-all cursor-pointer disabled:opacity-50 shrink-0"
           >
             <MaterialIcon name={isTesting ? "timer" : "visibility"} size={16} />
             <span>
@@ -117,7 +117,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
         </div>
 
         {/* Nota informativa */}
-        <div className="mt-3 p-2.5 rounded-xl bg-onicord-base/40 border border-white/5 flex items-start gap-2 text-[11px] text-onicord-muted">
+        <div className="mt-3 p-2.5 rounded-xl bg-onicord-base/40 border border-onicord-border flex items-start gap-2 text-[11px] text-onicord-muted">
           <MaterialIcon
             name="info"
             size={15}
@@ -152,13 +152,13 @@ export default function OverlayTab({ overlay, setOverlay }) {
 
         {/* Interactive 3x3 mockup */}
         <div className="flex flex-col items-center justify-center pt-2 pb-1">
-          <div className="relative w-[260px] h-[165px] bg-onicord-base/60 rounded-xl border border-white/10 overflow-hidden shadow-inner">
+          <div className="relative w-[260px] h-[165px] bg-onicord-base/60 rounded-xl border border-onicord-tint/10 overflow-hidden shadow-inner">
             {/* Grid background lines */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[1px] h-full bg-white/5 absolute left-1/3" />
-              <div className="w-[1px] h-full bg-white/5 absolute left-2/3" />
-              <div className="h-[1px] w-full bg-white/5 absolute top-1/3" />
-              <div className="h-[1px] w-full bg-white/5 absolute top-2/3" />
+              <div className="w-[1px] h-full bg-onicord-tint/5 absolute left-1/3" />
+              <div className="w-[1px] h-full bg-onicord-tint/5 absolute left-2/3" />
+              <div className="h-[1px] w-full bg-onicord-tint/5 absolute top-1/3" />
+              <div className="h-[1px] w-full bg-onicord-tint/5 absolute top-2/3" />
             </div>
 
             {/* Position buttons */}
@@ -177,7 +177,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
                   className={`absolute w-[40px] h-[30px] rounded-lg border transition-all duration-200 cursor-pointer flex items-center justify-center ${
                     isSelected
                       ? "bg-onicord-accent/30 border-onicord-accent shadow-[0_0_10px_rgba(var(--onicord-accent),0.4)]"
-                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                      : "bg-onicord-tint/5 border-onicord-tint/10 hover:bg-onicord-tint/10 hover:border-onicord-tint/20"
                   }`}
                   style={{ left, top }}
                   title={POSITION_LABELS[pos.id]}
@@ -280,7 +280,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-white/5 mt-1">
+          <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
             <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[32px]">
               0%
             </span>
@@ -303,13 +303,13 @@ export default function OverlayTab({ overlay, setOverlay }) {
           {/* Dynamic Live Preview Box */}
           <div className="mt-4 flex justify-center">
             <div
-              className="rounded-xl p-2.5 flex flex-col gap-2 border border-white/10 transition-all shadow-md min-w-[170px]"
+              className="rounded-xl p-2.5 flex flex-col gap-2 border border-onicord-tint/10 transition-all shadow-md min-w-[170px]"
               style={{ background: `rgba(0, 0, 0, ${opacity})` }}
             >
               {/* Demo Member 1: Speaking (Green ring #a6e3a1) */}
               <div className="flex items-center gap-2">
                 <div
-                  className="w-7 h-7 rounded-full bg-onicord-accent flex items-center justify-center text-white text-[11px] font-bold shrink-0"
+                  className="w-7 h-7 rounded-full bg-onicord-accent flex items-center justify-center text-onicord-on-accent text-[11px] font-bold shrink-0"
                   style={{ boxShadow: "0 0 0 2px #a6e3a1" }}
                 >
                   A
@@ -324,14 +324,14 @@ export default function OverlayTab({ overlay, setOverlay }) {
               {/* Demo Member 2: Silent / Muted (Red ring #f38ba8) */}
               <div className="flex items-center gap-2">
                 <div
-                  className="w-7 h-7 rounded-full bg-onicord-faded flex items-center justify-center text-white text-[11px] font-bold shrink-0"
+                  className="w-7 h-7 rounded-full bg-onicord-faded flex items-center justify-center text-onicord-text text-[11px] font-bold shrink-0"
                   style={{ boxShadow: "0 0 0 2px #f38ba8" }}
                 >
                   S
                 </div>
                 {!avatarOnly && !showNameOnlyWhenSpeaking && (
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="text-xs font-medium text-white/80">
+                    <span className="text-xs font-medium text-onicord-subtext">
                       Sam
                     </span>
                     <span className="text-[#f38ba8] text-[10px]">🔇</span>

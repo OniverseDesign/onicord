@@ -15,7 +15,7 @@ export default function Isla({
 
   const mapaFondos = {
     dark: "bg-onicord-base text-onicord-text border-onicord-island",
-    lavender: "bg-onicord-accent text-onicord-dark border-transparent",
+    lavender: "bg-onicord-accent text-onicord-on-accent border-transparent",
     danger: "bg-onicord-danger text-onicord-dark border-transparent",
     success: "bg-onicord-success text-onicord-dark border-transparent",
     pink: "bg-onicord-pink text-onicord-dark border-transparent",

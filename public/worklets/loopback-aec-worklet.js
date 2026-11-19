@@ -7,12 +7,14 @@
  * Output 0: Cleaned desktop audio with Onicord's voice loopback suppressed
  */
 
-const RING_SIZE = 16384; // ~341ms at 48kHz (must be power of 2)
+const RING_SIZE = 32768; // ~682ms at 48kHz (must be power of 2)
 const RING_MASK = RING_SIZE - 1;
 const DS_FACTOR = 8; // 48kHz -> 6kHz for fast coarse delay search
-const DS_SIZE = RING_SIZE / DS_FACTOR; // 2048
+const DS_SIZE = RING_SIZE / DS_FACTOR; // 4096
 const DS_MASK = DS_SIZE - 1;
-const TAPS = 64; // ~1.33ms FIR window centered around locked delay
+const TAPS = 160; // ~3.33ms FIR window centered around locked delay
+const PRE_TAPS = 40; // ~0.83ms pre-delay taps to absorb coarse jitter
+const MAX_LAG_DS = 2400; // up to 400ms at 48kHz
 
 class LoopbackAecProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -33,6 +35,8 @@ class LoopbackAecProcessor extends AudioWorkletProcessor {
     this.wR = new Float32Array(TAPS);
     this.delaySamples = 0;
     this.delayLocked = false;
+    this.lastCorr = 0;
+    this.unlockStreak = 0;
     this.badFrameCount = 0;
 
     this.refEnv = 0;
@@ -40,20 +44,28 @@ class LoopbackAecProcessor extends AudioWorkletProcessor {
     this.echoEnv = 0;
     this.capEnv = 0;
     this.errEnv = 0;
+    this.nlpGain = 1.0;
+  }
+
+  _corrAtLag(lag, win) {
+    let dot = 0;
+    let refEnergy = 0;
+    let capEnergy = 0;
+    for (let i = 0; i < win; i++) {
+      const c = this.capDs[(this.dsWriteIdx - 1 - i) & DS_MASK];
+      const r = this.refDs[(this.dsWriteIdx - 1 - i - lag) & DS_MASK];
+      dot += c * r;
+      refEnergy += r * r;
+      capEnergy += c * c;
+    }
+    if (refEnergy <= 1e-6 || capEnergy <= 1e-6) return 0;
+    return Math.abs(dot) / Math.sqrt(capEnergy * refEnergy + 1e-12);
   }
 
   _estimateDelay() {
-    const WIN = 96; // 96 * 8 = 768 samples window (~16ms at 48kHz? 96 ds samples = 16ms at 6kHz -> actually 16ms of coarse texture)
-    const MAX_LAG_DS = 1600; // up to ~266ms at 48kHz
-    const startLag = this.delayLocked
-      ? Math.max(0, Math.floor(this.delaySamples / DS_FACTOR) - 10)
-      : 0;
-    const endLag = this.delayLocked
-      ? Math.min(MAX_LAG_DS, Math.floor(this.delaySamples / DS_FACTOR) + 10)
-      : MAX_LAG_DS;
-
+    const FINE_WIN = 256; // ~42.6ms at 6kHz
     let capEnergy = 0;
-    for (let i = 0; i < WIN; i++) {
+    for (let i = 0; i < FINE_WIN; i++) {
       const c = this.capDs[(this.dsWriteIdx - 1 - i) & DS_MASK];
       capEnergy += c * c;
     }
@@ -62,25 +74,65 @@ class LoopbackAecProcessor extends AudioWorkletProcessor {
     let bestCorr = 0;
     let bestLag = -1;
 
-    for (let lag = startLag; lag <= endLag; lag++) {
-      let dot = 0;
-      let refEnergy = 0;
-      for (let i = 0; i < WIN; i++) {
-        const c = this.capDs[(this.dsWriteIdx - 1 - i) & DS_MASK];
-        const r = this.refDs[(this.dsWriteIdx - 1 - i - lag) & DS_MASK];
-        dot += c * r;
-        refEnergy += r * r;
+    if (!this.delayLocked) {
+      // Two-stage coarse + fine search across 0..400ms
+      const COARSE_WIN = 160;
+      let coarseBestLag = -1;
+      let coarseBestCorr = 0;
+      for (let lag = 0; lag <= MAX_LAG_DS; lag += 2) {
+        const corr = this._corrAtLag(lag, COARSE_WIN);
+        if (corr > coarseBestCorr) {
+          coarseBestCorr = corr;
+          coarseBestLag = lag;
+        }
       }
-      if (refEnergy > 1e-6) {
-        const normCorr = dot / Math.sqrt(capEnergy * refEnergy + 1e-12);
-        if (normCorr > bestCorr) {
-          bestCorr = normCorr;
+      if (coarseBestLag >= 0) {
+        const fineStart = Math.max(0, coarseBestLag - 3);
+        const fineEnd = Math.min(MAX_LAG_DS, coarseBestLag + 3);
+        for (let lag = fineStart; lag <= fineEnd; lag++) {
+          const corr = this._corrAtLag(lag, FINE_WIN);
+          if (corr > bestCorr) {
+            bestCorr = corr;
+            bestLag = lag;
+          }
+        }
+      }
+    } else {
+      const centerLag = Math.floor(this.delaySamples / DS_FACTOR);
+      const startLag = Math.max(0, centerLag - 12);
+      const endLag = Math.min(MAX_LAG_DS, centerLag + 12);
+      for (let lag = startLag; lag <= endLag; lag++) {
+        const corr = this._corrAtLag(lag, FINE_WIN);
+        if (corr > bestCorr) {
+          bestCorr = corr;
           bestLag = lag;
         }
       }
     }
 
-    const lockThreshold = this.delayLocked ? 0.72 : 0.42;
+    this.lastCorr = bestCorr;
+
+    // Detect if delay drifted outside the locked search window and recover automatically
+    if (this.delayLocked) {
+      const poorLock =
+        this.alignedRefEnv > 1e-6 &&
+        this.capEnv > 1e-6 &&
+        bestCorr < 0.3 &&
+        this.errEnv > 0.72 * this.capEnv;
+      if (poorLock) {
+        this.unlockStreak++;
+        if (this.unlockStreak >= 12) {
+          this.delayLocked = false;
+          this.unlockStreak = 0;
+          this.wL.fill(0);
+          this.wR.fill(0);
+        }
+      } else {
+        this.unlockStreak = 0;
+      }
+    }
+
+    const lockThreshold = this.delayLocked ? 0.5 : 0.45;
     if (bestLag >= 0 && bestCorr > lockThreshold) {
       const newDelay = bestLag * DS_FACTOR;
       if (!this.delayLocked || Math.abs(newDelay - this.delaySamples) > 16) {
@@ -90,6 +142,7 @@ class LoopbackAecProcessor extends AudioWorkletProcessor {
         }
         this.delaySamples = newDelay;
         this.delayLocked = true;
+        this.unlockStreak = 0;
       }
     }
   }
@@ -122,6 +175,7 @@ class LoopbackAecProcessor extends AudioWorkletProcessor {
 
     const refInL = refInput[0];
     const refInR = refInput[1] || refInput[0];
+    const searchStride = this.delayLocked ? 2048 : 4096;
 
     for (let i = 0; i < blockLen; i++) {
       const xL = refInL[i];
@@ -149,12 +203,20 @@ class LoopbackAecProcessor extends AudioWorkletProcessor {
       this.refEnv = 0.995 * this.refEnv + 0.005 * xPowInst;
       this.capEnv = 0.995 * this.capEnv + 0.005 * yPowInst;
 
-      // Fast path when no voice reference has been active recently
+      const alignedIdx = (this.writeIdx - this.delaySamples) & RING_MASK;
+      const alignedPowInst =
+        0.5 *
+        (this.refL[alignedIdx] * this.refL[alignedIdx] +
+          this.refR[alignedIdx] * this.refR[alignedIdx]);
+      this.alignedRefEnv = 0.995 * this.alignedRefEnv + 0.005 * alignedPowInst;
+
+      // Fast transparent path when no voice reference has been active recently
       if (!this.delayLocked || (this.alignedRefEnv < 1e-8 && this.refEnv < 1e-8)) {
-        outL[i] = yL;
-        if (outR !== outL) outR[i] = yR;
+        this.nlpGain = 0.995 * this.nlpGain + 0.005 * 1.0;
+        outL[i] = yL * this.nlpGain;
+        if (outR !== outL) outR[i] = yR * this.nlpGain;
       } else {
-        const startTap = Math.max(0, this.delaySamples - 24);
+        const startTap = Math.max(0, this.delaySamples - PRE_TAPS);
         let echoL = 0;
         let echoR = 0;
         let normL = 0;
@@ -170,13 +232,6 @@ class LoopbackAecProcessor extends AudioWorkletProcessor {
           normR += rr * rr;
         }
 
-        const alignedIdx = (this.writeIdx - this.delaySamples) & RING_MASK;
-        const alignedPowInst =
-          0.5 *
-          (this.refL[alignedIdx] * this.refL[alignedIdx] +
-            this.refR[alignedIdx] * this.refR[alignedIdx]);
-        this.alignedRefEnv = 0.995 * this.alignedRefEnv + 0.005 * alignedPowInst;
-
         const eL = yL - echoL;
         const eR = yR - echoR;
         const ePowInst = 0.5 * (eL * eL + eR * eR);
@@ -184,6 +239,8 @@ class LoopbackAecProcessor extends AudioWorkletProcessor {
         this.errEnv = 0.995 * this.errEnv + 0.005 * ePowInst;
         this.echoEnv = 0.995 * this.echoEnv + 0.005 * echoPowInst;
 
+        let cleanL;
+        let cleanR;
         // Safety guard: never amplify signal if loopback source doesn't contain Onicord output
         if (this.errEnv > this.capEnv * 1.18 + 1e-5) {
           this.badFrameCount++;
@@ -193,37 +250,59 @@ class LoopbackAecProcessor extends AudioWorkletProcessor {
               this.wR[k] *= 0.9;
             }
           }
-          outL[i] = yL;
-          if (outR !== outL) outR[i] = yR;
+          cleanL = yL;
+          cleanR = yR;
         } else {
           this.badFrameCount = 0;
-          outL[i] = eL;
-          if (outR !== outL) outR[i] = eR;
+          cleanL = eL;
+          cleanR = eR;
         }
 
-        // Adapt NLMS weights only during voice activity and freeze during heavy double-talk
-        if (this.alignedRefEnv > 1e-6) {
-          const isConverged = this.echoEnv > 1e-6;
-          const isDoubleTalk = isConverged
-            ? this.errEnv > 0.25 * this.echoEnv && this.capEnv > 1.25 * this.echoEnv
-            : this.capEnv > 3.5 * this.alignedRefEnv;
-
-          if (!isDoubleTalk) {
-            const mu = 0.32;
-            const stepL = (mu * eL) / (normL + 0.05 + eL * eL * 4);
-            const stepR = (mu * eR) / (normR + 0.05 + eR * eR * 4);
-            for (let k = 0; k < TAPS; k++) {
-              const idx = (this.writeIdx - startTap - k) & RING_MASK;
-              this.wL[k] += stepL * this.refL[idx];
-              this.wR[k] += stepR * this.refR[idx];
+        // Smooth non-linear residual suppressor (NLP) when voice loopback dominates capture
+        let targetNlp = 1.0;
+        if (this.alignedRefEnv > 1e-7 && this.capEnv > 1e-8) {
+          const cancelRatio = 1.0 - Math.min(1.0, this.errEnv / (this.capEnv + 1e-8));
+          const hasConfirmedEcho =
+            cancelRatio > 0.35 ||
+            (this.lastCorr > 0.58 && this.capEnv < 2.0 * this.alignedRefEnv);
+          if (hasConfirmedEcho) {
+            if (cancelRatio > 0.55 && this.errEnv < 0.45 * this.capEnv) {
+              targetNlp = 0.02;
+            } else {
+              const residualRatio = this.errEnv / (this.capEnv + 1e-8);
+              targetNlp = Math.max(0.04, Math.min(1.0, residualRatio * 0.6));
             }
+          }
+        }
+        const nlpCoeff = targetNlp < this.nlpGain ? 0.96 : 0.997;
+        this.nlpGain = nlpCoeff * this.nlpGain + (1.0 - nlpCoeff) * targetNlp;
+
+        outL[i] = cleanL * this.nlpGain;
+        if (outR !== outL) outR[i] = cleanR * this.nlpGain;
+
+        // Adapt NLMS weights only during voice activity; gently throttle during heavy desktop double-talk
+        if (this.alignedRefEnv > 1e-7) {
+          const isHeavyDoubleTalk =
+            this.echoEnv > 1e-6 &&
+            this.errEnv > 0.85 * this.capEnv &&
+            this.capEnv > 2.2 * Math.max(this.alignedRefEnv, this.echoEnv);
+
+          const mu = isHeavyDoubleTalk ? 0.04 : 0.38;
+          const stepL = (mu * eL) / (normL + 0.02 + eL * eL * 4);
+          const stepR = (mu * eR) / (normR + 0.02 + eR * eR * 4);
+          for (let k = 0; k < TAPS; k++) {
+            const idx = (this.writeIdx - startTap - k) & RING_MASK;
+            const nextL = this.wL[k] + stepL * this.refL[idx];
+            const nextR = this.wR[k] + stepR * this.refR[idx];
+            this.wL[k] = nextL > 2 ? 2 : nextL < -2 ? -2 : nextL;
+            this.wR[k] = nextR > 2 ? 2 : nextR < -2 ? -2 : nextR;
           }
         }
       }
 
       this.writeIdx = (this.writeIdx + 1) & RING_MASK;
       this.samplesSinceSearch++;
-      if (this.samplesSinceSearch >= 2048) {
+      if (this.samplesSinceSearch >= searchStride) {
         this.samplesSinceSearch = 0;
         if (this.refEnv > 1e-6) {
           this._estimateDelay();

@@ -133,7 +133,7 @@ export default function ServerAuditTab({ server }) {
             type="button"
             onClick={fetchAuditLogs}
             disabled={loading}
-            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-onicord-muted hover:text-white transition-colors flex items-center gap-1.5 text-xs border border-white/5 disabled:opacity-50 shrink-0"
+            className="p-1.5 rounded-lg bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors flex items-center gap-1.5 text-xs border border-onicord-border disabled:opacity-50 shrink-0"
             title={t("common.refresh", "Actualizar")}
           >
             <MaterialIcon
@@ -149,13 +149,13 @@ export default function ServerAuditTab({ server }) {
 
         <div>
           {loading && auditLog.length === 0 ? (
-            <div className="p-8 rounded-xl bg-onicord-base/30 border border-white/5 flex flex-col items-center justify-center text-center space-y-2">
+            <div className="p-8 rounded-xl bg-onicord-base/30 border border-onicord-border flex flex-col items-center justify-center text-center space-y-2">
               <MaterialIcon
                 name="sync"
                 size={32}
                 className="text-onicord-accent animate-spin opacity-80"
               />
-              <h4 className="text-xs font-bold text-white">
+              <h4 className="text-xs font-bold text-onicord-text">
                 {t("serverSettings.audit.loading", "Cargando registros...")}
               </h4>
               <p className="text-[11px] text-onicord-muted max-w-sm leading-relaxed">
@@ -166,13 +166,13 @@ export default function ServerAuditTab({ server }) {
               </p>
             </div>
           ) : auditLog.length === 0 ? (
-            <div className="p-8 rounded-xl bg-onicord-base/30 border border-white/5 flex flex-col items-center justify-center text-center space-y-2">
+            <div className="p-8 rounded-xl bg-onicord-base/30 border border-onicord-border flex flex-col items-center justify-center text-center space-y-2">
               <MaterialIcon
                 name="history"
                 size={36}
                 className="text-onicord-muted opacity-40"
               />
-              <h4 className="text-xs font-bold text-white">
+              <h4 className="text-xs font-bold text-onicord-text">
                 {t("serverSettings.audit.noLogs", "No hay registros disponibles")}
               </h4>
               <p className="text-[11px] text-onicord-muted max-w-sm leading-relaxed">
@@ -195,11 +195,11 @@ export default function ServerAuditTab({ server }) {
                 return (
                   <div
                     key={log.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-white/5 hover:border-white/10 transition-colors gap-3"
+                    className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-onicord-border hover:border-onicord-tint/10 transition-colors gap-3"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Avatar circular */}
-                      <div className="relative w-8 h-8 rounded-full bg-onicord-accent overflow-hidden flex items-center justify-center shrink-0 border border-white/10 shadow-sm">
+                      <div className="relative w-8 h-8 rounded-full bg-onicord-accent overflow-hidden flex items-center justify-center shrink-0 border border-onicord-tint/10 shadow-sm">
                         {avatarUrl ? (
                           <img
                             src={avatarUrl}
@@ -207,7 +207,7 @@ export default function ServerAuditTab({ server }) {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-white font-bold text-xs">
+                          <span className="text-onicord-text font-bold text-xs">
                             {firstChar}
                           </span>
                         )}
@@ -215,7 +215,7 @@ export default function ServerAuditTab({ server }) {
 
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-bold text-white truncate">
+                          <span className="text-xs font-bold text-onicord-text truncate">
                             {log.nickname}
                           </span>
 
@@ -227,7 +227,7 @@ export default function ServerAuditTab({ server }) {
                           </div>
 
                           {log.target && (
-                            <span className="text-[9px] bg-white/5 text-onicord-text/80 px-1.5 py-0.5 rounded border border-white/5 font-mono max-w-[120px] truncate">
+                            <span className="text-[9px] bg-onicord-tint/5 text-onicord-text/80 px-1.5 py-0.5 rounded border border-onicord-border font-mono max-w-[120px] truncate">
                               {log.target}
                             </span>
                           )}

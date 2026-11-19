@@ -41,7 +41,7 @@ export default function ForwardMessageModal({
     >
       <div className="space-y-4 py-2">
         {/* Preview of message to be forwarded */}
-        <div className="bg-onicord-base/60 p-3 rounded-lg border border-white/5 text-sm">
+        <div className="bg-onicord-base/60 p-3 rounded-lg border border-onicord-border text-sm">
           <div className="text-xs font-semibold text-onicord-accent mb-1 flex items-center gap-1">
             <MaterialIcon name="shortcut" size={14} />
             <span>{message.authorNickname || "Usuario"}</span>
@@ -103,7 +103,7 @@ export default function ForwardMessageModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
+        <div className="flex justify-end gap-2 pt-3 border-t border-onicord-border">
           <button
             type="button"
             onClick={onClose}

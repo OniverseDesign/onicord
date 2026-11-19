@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
+import { triggerServerFlameInteraction } from "../../../lib/flameService";
 
 const COLORS = [
   // Vibrant classic sticky note colors
@@ -450,6 +451,10 @@ export default function SketchpadWidget({ connectedServer, profile }) {
         });
       }
 
+      if (connectedServer && serverId !== "solo") {
+        triggerServerFlameInteraction(profile, connectedServer);
+      }
+
       currentStroke.current = null;
       redrawCanvas();
     }
@@ -541,7 +546,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
       tabIndex={0}
       onKeyDown={handleKeyDown}
       style={{ containerType: "inline-size" }}
-      className="onicord-widget-shell w-full h-full p-4 flex flex-col justify-between select-none relative focus:outline-none focus-within:border-white/10 group"
+      className="onicord-widget-shell w-full h-full p-4 flex flex-col justify-between select-none relative focus:outline-none focus-within:border-onicord-tint/10 group"
     >
       {/* Widget Header */}
       <div className="onicord-widget-header p-2 flex justify-between items-center w-full gap-2 shrink-0 z-10 mb-2">
@@ -635,7 +640,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
           <button
             type="button"
             onClick={handleZoomOut}
-            className="w-4 h-4 flex items-center justify-center text-onicord-muted hover:text-onicord-text rounded transition-colors text-sm hover:bg-white/5 cursor-pointer"
+            className="w-4 h-4 flex items-center justify-center text-onicord-muted hover:text-onicord-text rounded transition-colors text-sm hover:bg-onicord-tint/5 cursor-pointer"
           >
             <MaterialIcon name="remove" size={16} />
           </button>
@@ -645,15 +650,15 @@ export default function SketchpadWidget({ connectedServer, profile }) {
           <button
             type="button"
             onClick={handleZoomIn}
-            className="w-4 h-4 flex items-center justify-center text-onicord-muted hover:text-onicord-text rounded transition-colors text-sm hover:bg-white/5 cursor-pointer"
+            className="w-4 h-4 flex items-center justify-center text-onicord-muted hover:text-onicord-text rounded transition-colors text-sm hover:bg-onicord-tint/5 cursor-pointer"
           >
             <MaterialIcon name="add" size={16} />
           </button>
-          <div className="w-[1px] h-3.5 bg-white/15" />
+          <div className="w-[1px] h-3.5 bg-onicord-tint/15" />
           <button
             type="button"
             onClick={handleResetCamera}
-            className="text-[10px] font-bold text-onicord-muted hover:text-onicord-text transition-colors cursor-pointer tracking-wider items-center flex gap-1.5 rounded hover:bg-white/5"
+            className="text-[10px] font-bold text-onicord-muted hover:text-onicord-text transition-colors cursor-pointer tracking-wider items-center flex gap-1.5 rounded hover:bg-onicord-tint/5"
           >
             <MaterialIcon name="settings_backup_restore" size={16} />
           </button>
@@ -674,7 +679,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
               className={`w-8 h-[30px] flex items-center justify-center rounded-lg transition-all cursor-pointer ${
                 activeTool === "brush"
                   ? "bg-onicord-accent text-onicord-text-dark shadow-sm"
-                  : "text-onicord-muted hover:text-onicord-text hover:bg-white/5"
+                  : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
               }`}
               title={t("widgets.sketchpad.brushTool", "Pincel")}
             >
@@ -686,7 +691,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
               className={`w-8 h-[30px] flex items-center justify-center rounded-lg transition-all cursor-pointer ${
                 activeTool === "eraser"
                   ? "bg-onicord-accent text-onicord-text-dark shadow-sm"
-                  : "text-onicord-muted hover:text-onicord-text hover:bg-white/5"
+                  : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
               }`}
               title={t("widgets.sketchpad.eraserTool", "Goma de borrar")}
             >
@@ -750,7 +755,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
               max="20"
               value={brushWidth}
               onChange={(e) => setBrushWidth(Number(e.target.value))}
-              className="w-16 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[rgb(var(--onicord-lavender))]"
+              className="w-16 h-1 bg-onicord-tint/10 rounded-lg appearance-none cursor-pointer accent-[rgb(var(--onicord-lavender))]"
             />
             {/* dynamic size circle preview */}
             <div className="w-5 h-5 rounded-full flex items-center justify-center bg-onicord-mantle border border-onicord-island shrink-0">
@@ -772,7 +777,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
               type="button"
               onClick={handleUndo}
               disabled={strokes.length === 0}
-              className="w-8 h-[30px] flex items-center justify-center rounded-lg text-onicord-muted hover:text-onicord-text hover:bg-white/5 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+              className="w-8 h-[30px] flex items-center justify-center rounded-lg text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
               title={t("widgets.sketchpad.undo", "Deshacer (Ctrl+Z)")}
             >
               <MaterialIcon name="undo" size={16} />
@@ -781,7 +786,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
               type="button"
               onClick={handleRedo}
               disabled={undoneStrokes.length === 0}
-              className="w-8 h-[30px] flex items-center justify-center rounded-lg text-onicord-muted hover:text-onicord-text hover:bg-white/5 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
+              className="w-8 h-[30px] flex items-center justify-center rounded-lg text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 disabled:opacity-20 disabled:pointer-events-none transition-all cursor-pointer"
               title={t("widgets.sketchpad.redo", "Rehacer (Ctrl+Shift+Z)")}
             >
               <MaterialIcon name="redo" size={16} />

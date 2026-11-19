@@ -62,6 +62,7 @@ class GlobalKeybindService {
   constructor() {
     this.mainWindow = null;
     this.keybindings = [];
+    this._keybindingsSignature = null;
     this.isAppFocused = true;
     this.isRunning = false;
     this.lastTriggerTime = 0;
@@ -74,11 +75,21 @@ class GlobalKeybindService {
     };
   }
 
+  _computeKeybindingsSignature(list) {
+    return JSON.stringify(
+      (Array.isArray(list) ? list : []).map((kb) => ({
+        action: kb?.action || "",
+        shortcut: canonicalizeShortcut(kb?.shortcut || ""),
+      })),
+    );
+  }
+
   init(mainWindow, initialKeybindings) {
     this.mainWindow = mainWindow;
     this.keybindings = Array.isArray(initialKeybindings)
       ? initialKeybindings
       : [];
+    this._keybindingsSignature = this._computeKeybindingsSignature(this.keybindings);
 
     try {
       uIOhook.on("mousedown", this.handleMouseDown.bind(this));
@@ -105,7 +116,13 @@ class GlobalKeybindService {
   }
 
   updateKeybindings(keybindings) {
-    this.keybindings = Array.isArray(keybindings) ? keybindings : [];
+    const normalized = Array.isArray(keybindings) ? keybindings : [];
+    const nextSignature = this._computeKeybindingsSignature(normalized);
+    if (nextSignature === this._keybindingsSignature) {
+      return;
+    }
+    this._keybindingsSignature = nextSignature;
+    this.keybindings = normalized;
     diagService.log(
       "info",
       "Keybinds",

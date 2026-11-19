@@ -10,6 +10,7 @@ import React, {
 import { useVoiceChannelInfo } from "./VoiceContext";
 import { extractYouTubeId, clientOgCache } from "../components/chat/subcomponents/MessageEmbedCard";
 import { notificationManager } from "../lib/notificationManager";
+import { triggerServerFlameInteraction } from "../lib/flameService";
 
 const WatchPartyContext = createContext(null);
 
@@ -221,12 +222,14 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
         window.electronAPI.broadcastWatchPartyState(currentChannelId, newSession, currentRoomCode);
       }
 
+      triggerServerFlameInteraction(profile, currentRoomCode || activeServer);
+
       // Enviar automáticamente la tarjeta de invitación interactiva al chat
       if (autoShare) {
         shareWatchPartyToChat(null, newSession);
       }
     },
-    [currentChannelId, currentRoomCode, localPeerId, profile?.nickname, inVoice, shareWatchPartyToChat]
+    [currentChannelId, currentRoomCode, localPeerId, profile, activeServer, inVoice, shareWatchPartyToChat]
   );
 
   // Start Cinema watch party (P2P Movie/Series stream)
@@ -264,8 +267,10 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
       if (window.electronAPI?.broadcastWatchPartyState) {
         window.electronAPI.broadcastWatchPartyState(currentChannelId, newSession, currentRoomCode);
       }
+
+      triggerServerFlameInteraction(profile, currentRoomCode || activeServer);
     },
-    [currentChannelId, currentRoomCode, localPeerId, profile?.nickname, profile?.username, inVoice]
+    [currentChannelId, currentRoomCode, localPeerId, profile, activeServer, inVoice]
   );
 
   // End watch party
@@ -574,7 +579,8 @@ export function WatchPartyProvider({ profile, activeServer, children }) {
   const joinWatchParty = useCallback(() => {
     if (!inVoice) return;
     setHasJoined(true);
-  }, [inVoice]);
+    triggerServerFlameInteraction(profile, currentRoomCode || activeServer);
+  }, [inVoice, profile, currentRoomCode, activeServer]);
 
   const dismissPrompt = useCallback(() => {}, []);
 

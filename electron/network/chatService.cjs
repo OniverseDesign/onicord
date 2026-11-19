@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+const { checkAdminPermission } = require("../p2p/roomMetaStore.cjs");
 
 class ChatService {
   constructor(p2pService, chatStore, fileIndexStore, roomMetaStore, callbacks) {
@@ -135,12 +136,44 @@ class ChatService {
       });
     const theirV = watermarks._metaVersion || 0;
     const theirT = watermarks._metaUpdatedAt || 0;
-    const sendMeta =
+    const myUserId = this.p2p.profile?.id || this.p2p._resolveLocalPeerId();
+    const hasMetaAuthority = Boolean(
       meta &&
-      (meta.version > theirV ||
-        (meta.version === theirV && meta.updatedAt > theirT))
-        ? meta
-        : null;
+        myUserId &&
+        (meta.ownerId === myUserId ||
+          meta.creatorID === myUserId ||
+          meta.creatorId === myUserId ||
+          checkAdminPermission(meta, myUserId))
+    );
+
+    let shouldSendMeta = false;
+    if (meta && (meta.version > 0 || theirV === 0)) {
+      if (theirV === 0) {
+        shouldSendMeta = Boolean(meta.version > 0);
+      } else if (meta.version > theirV) {
+        shouldSendMeta = true;
+      } else if (meta.version === theirV && meta.updatedAt > theirT && hasMetaAuthority) {
+        shouldSendMeta = true;
+      }
+    }
+
+    const peer = requestingPeerId ? this.p2p.peers.get(requestingPeerId) : null;
+    if (shouldSendMeta && peer) {
+      if (!peer.lastSentMetaStamp) peer.lastSentMetaStamp = new Map();
+      const metaStamp = `${meta.version || 0}:${meta.updatedAt || 0}`;
+      const prevSent = peer.lastSentMetaStamp.get(code);
+      if (
+        prevSent &&
+        prevSent.stamp === metaStamp &&
+        (theirV >= (meta.version || 0) || Date.now() - prevSent.sentAt < 60000)
+      ) {
+        shouldSendMeta = false;
+      } else {
+        peer.lastSentMetaStamp.set(code, { stamp: metaStamp, sentAt: Date.now() });
+      }
+    }
+
+    const sendMeta = shouldSendMeta ? meta : null;
     return { messages: allowedMessages, meta: sendMeta, files };
   }
 
@@ -253,19 +286,42 @@ class ChatService {
         hasMore: (messages && messages.length > 0),
       });
 
-      // Phase 2: Send messages in safe chunks (< 1.5MB / 75 msgs per chunk) to avoid socket overflow
+      // Phase 2: Send messages in safe batches (max 40 msgs and < 512 KB per batch) to prevent socket/ping starvation
       if (messages && messages.length > 0) {
-        const CHUNK_SIZE = 75;
-        const total = messages.length;
-        for (let i = 0; i < total; i += CHUNK_SIZE) {
-          const chunk = messages.slice(i, i + CHUNK_SIZE);
-          const isLastChunk = i + CHUNK_SIZE >= total;
-          // Slight yield to avoid blocking socket buffer
-          await new Promise((resolve) => setTimeout(resolve, 30));
+        const MAX_BATCH_MSGS = 40;
+        const MAX_BATCH_BYTES = 512 * 1024;
+        const batches = [];
+        let currentBatch = [];
+        let currentBytes = 0;
+
+        for (const msg of messages) {
+          let msgBytes = 512;
+          try {
+            msgBytes = Buffer.byteLength(JSON.stringify(msg), "utf8");
+          } catch {}
+          if (
+            currentBatch.length > 0 &&
+            (currentBatch.length >= MAX_BATCH_MSGS || currentBytes + msgBytes > MAX_BATCH_BYTES)
+          ) {
+            batches.push(currentBatch);
+            currentBatch = [];
+            currentBytes = 0;
+          }
+          currentBatch.push(msg);
+          currentBytes += msgBytes;
+        }
+        if (currentBatch.length > 0) {
+          batches.push(currentBatch);
+        }
+
+        for (let i = 0; i < batches.length; i++) {
+          const isLastBatch = i === batches.length - 1;
+          // Yield to event loop so ping/pong keepalives are never blocked by bulk sync
+          await new Promise((resolve) => setTimeout(resolve, 50));
           this.p2p._sendToPeer(fromPeerId, "sync-res", {
-            messages: chunk,
+            messages: batches[i],
             roomCode: code,
-            hasMore: !isLastChunk,
+            hasMore: !isLastBatch,
           });
         }
       }

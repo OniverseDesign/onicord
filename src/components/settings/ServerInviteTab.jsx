@@ -96,7 +96,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
             </p>
 
             <div className="space-y-3 pt-1">
-              <div className="relative w-full bg-onicord-base/80 border border-white/10 rounded-xl p-3 flex items-center justify-center font-mono text-lg font-bold tracking-widest text-onicord-accent shadow-inner select-all">
+              <div className="relative w-full bg-onicord-base/80 border border-onicord-tint/10 rounded-xl p-3 flex items-center justify-center font-mono text-lg font-bold tracking-widest text-onicord-accent shadow-inner select-all">
                 <span>{displayedRoomCode}</span>
                 {isStreamerMode && (
                   <button
@@ -115,7 +115,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
               <button
                 type="button"
                 onClick={handleCopyCodeOnly}
-                className="w-full h-10 rounded-xl bg-onicord-accent hover:opacity-90 text-onicord-dark text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                className="w-full h-10 rounded-xl bg-onicord-accent hover:opacity-90 text-onicord-on-accent text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
               >
                 <MaterialIcon
                   name={copiedCodeState ? "check" : "content_copy"}
@@ -149,14 +149,14 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
             </p>
 
             <div className="space-y-3 pt-1">
-              <div className="w-full bg-onicord-base/80 border border-white/10 rounded-xl p-3 flex items-center justify-center font-mono text-xs font-semibold text-onicord-accent shadow-inner truncate select-all">
+              <div className="w-full bg-onicord-base/80 border border-onicord-tint/10 rounded-xl p-3 flex items-center justify-center font-mono text-xs font-semibold text-onicord-accent shadow-inner truncate select-all">
                 {displayedWebLink}
               </div>
 
               <button
                 type="button"
                 onClick={handleCopyWebLink}
-                className="w-full h-10 rounded-xl bg-onicord-accent hover:opacity-90 text-onicord-dark text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                className="w-full h-10 rounded-xl bg-onicord-accent hover:opacity-90 text-onicord-on-accent text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
               >
                 <MaterialIcon
                   name={isLinkCopied ? "check" : "link"}
@@ -175,7 +175,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
               <button
                 type="button"
                 onClick={handleCopyRawProtocolLink}
-                className="w-full text-center text-xs text-white/50 hover:text-white/80 transition-colors pt-1 cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full text-center text-xs text-onicord-muted hover:text-onicord-text/80 transition-colors pt-1 cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <span>
                   {copiedRawLinkState
@@ -215,7 +215,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
                       />
                     ) : (
                       <div
-                        className="w-full h-full flex items-center justify-center text-3xl font-black text-white select-none"
+                        className="w-full h-full flex items-center justify-center text-3xl font-black text-onicord-text select-none"
                         style={{
                           background:
                             "linear-gradient(135deg, rgba(var(--onicord-lavender)/0.9), rgba(var(--onicord-lavender)/0.5))",
@@ -246,8 +246,8 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 border border-white/60 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-white/60 shrink-0" />
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-onicord-tint/10 border border-onicord-tint/60 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-onicord-tint/60 shrink-0" />
                     <span className="text-[11px] font-semibold text-onicord-text leading-none">
                       {memberCount}{" "}
                       {memberCount === 1

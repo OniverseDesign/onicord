@@ -168,22 +168,22 @@ export default function ServerMembersTab({
             return (
               <div
                 key={m.id}
-                className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-white/5 hover:border-white/10 transition-colors gap-3"
+                className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-onicord-border hover:border-onicord-tint/10 transition-colors gap-3"
               >
                 {/* Info del Miembro */}
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative w-9 h-9 rounded-full bg-onicord-accent overflow-hidden flex items-center justify-center shrink-0 border border-white/10 shadow-sm">
+                  <div className="relative w-9 h-9 rounded-full bg-onicord-accent overflow-hidden flex items-center justify-center shrink-0 border border-onicord-tint/10 shadow-sm">
                     {m.avatar ? (
                       <img src={m.avatar} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-white font-bold text-xs">
+                      <span className="text-onicord-text font-bold text-xs">
                         {(m.nickname || "U").charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
                   <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-xs font-bold text-white truncate">
+                      <span className="text-xs font-bold text-onicord-text truncate">
                         {m.nickname || t("common.user", "Usuario")}
                       </span>
                       {isSelf && (
@@ -245,7 +245,7 @@ export default function ServerMembersTab({
 
                         {/* Trash icon on hover */}
                         {isAllowedToEditRoles && (
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-white">
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-onicord-text">
                             <Delete size="sm" />
                           </div>
                         )}
@@ -261,7 +261,7 @@ export default function ServerMembersTab({
                             e.stopPropagation();
                             setActiveMemberMenuId(activeMemberMenuId === m.id ? null : m.id);
                           }}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-onicord-surface hover:bg-onicord-accent hover:text-onicord-dark text-onicord-muted transition-colors cursor-pointer"
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-onicord-surface hover:bg-onicord-accent hover:text-onicord-on-accent text-onicord-muted transition-colors cursor-pointer"
                           title={t("serverSettings.roles.title", "Asignar rol")}
                         >
                           <IconAdd size="sm" />
@@ -271,9 +271,9 @@ export default function ServerMembersTab({
                         {activeMemberMenuId === m.id && (
                           <div
                             ref={menuRef}
-                            className="onicord-floating-menu w-52 right-0 top-8 z-[100] shadow-2xl p-2 space-y-1 text-left bg-onicord-base border border-white/10 rounded-xl"
+                            className="onicord-floating-menu w-52 right-0 top-8 z-[100] shadow-2xl p-2 space-y-1 text-left bg-onicord-base border border-onicord-tint/10 rounded-xl"
                           >
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted px-2 py-1 border-b border-white/5">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted px-2 py-1 border-b border-onicord-border">
                               {t("serverSettings.members.assignRoleTitle", "Asignar Rol al Miembro")}
                             </p>
                             <div className="max-h-[160px] overflow-y-auto minimal-scrollbar space-y-1 pt-1">
@@ -295,7 +295,7 @@ export default function ServerMembersTab({
                                     }}
                                     className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all ${
                                       isEligible
-                                        ? "hover:bg-white/10 cursor-pointer"
+                                        ? "hover:bg-onicord-tint/10 cursor-pointer"
                                         : "opacity-40 cursor-not-allowed"
                                     }`}
                                   >
@@ -318,7 +318,7 @@ export default function ServerMembersTab({
 
                   {/* Moderation Actions (Kick / Ban) */}
                   {isAllowedToModerate && (
-                    <div className="flex items-center gap-1 pl-2 border-l border-white/10 shrink-0">
+                    <div className="flex items-center gap-1 pl-2 border-l border-onicord-tint/10 shrink-0">
                       <button
                         type="button"
                         onClick={() => handleKick(m.id, m.nickname)}
@@ -379,7 +379,7 @@ export default function ServerMembersTab({
                       )}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white">{nickname}</p>
+                      <p className="text-xs font-bold text-onicord-text">{nickname}</p>
                       <p className="text-[10px] text-onicord-muted font-mono">ID: {bannedId}</p>
                     </div>
                   </div>
@@ -387,7 +387,7 @@ export default function ServerMembersTab({
                   <button
                     type="button"
                     onClick={() => handleUnban(bannedId)}
-                    className="px-3 py-1 text-xs font-bold rounded-lg bg-onicord-surface hover:bg-white/10 text-white transition-colors cursor-pointer"
+                    className="px-3 py-1 text-xs font-bold rounded-lg bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-text transition-colors cursor-pointer"
                   >
                     {t("settings.members.unbanButton", "Desbanear")}
                   </button>

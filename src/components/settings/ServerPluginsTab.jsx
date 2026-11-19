@@ -148,7 +148,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
           <button
             type="button"
             onClick={() => setStatusMessage(null)}
-            className="text-white/40 hover:text-white transition cursor-pointer p-1"
+            className="text-onicord-muted hover:text-onicord-text transition cursor-pointer p-1"
           >
             <MaterialIcon name="close" size={14} />
           </button>
@@ -174,7 +174,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
         </div>
 
         {serverPlugins.length === 0 ? (
-          <div className="py-8 text-center border border-white/5 rounded-2xl p-4 bg-onicord-base/20">
+          <div className="py-8 text-center border border-onicord-border rounded-2xl p-4 bg-onicord-base/20">
             <MaterialIcon
               name="extension"
               size={32}
@@ -202,7 +202,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
               return (
                 <li
                   key={sp.id}
-                  className="flex flex-col bg-onicord-base/60 border border-white/5 p-3 rounded-2xl hover:border-white/10 transition-colors"
+                  className="flex flex-col bg-onicord-base/60 border border-onicord-border p-3 rounded-2xl hover:border-onicord-tint/10 transition-colors"
                 >
                   <div className="flex items-center gap-3 w-full">
                     {/* Main Icon */}
@@ -224,7 +224,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                         <span className="font-bold text-xs text-onicord-text truncate">
                           {name}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-white/5 text-onicord-muted font-mono">
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted font-mono">
                           v{sp.version || installedMeta.version || "1.0"}
                         </span>
                         <span
@@ -247,7 +247,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                       className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors shrink-0 cursor-pointer ${
                         isExpanded
                           ? "bg-onicord-accent/20 text-onicord-accent"
-                          : "hover:bg-white/10 text-onicord-muted hover:text-onicord-accent"
+                          : "hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-accent"
                       }`}
                       title={t("serverSettings.plugins.configTitle", "Configuración del complemento")}
                     >
@@ -280,8 +280,8 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
 
                   {/* COLLAPSIBLE PLUGIN CONFIGURATION SECTION IN THIS ROOM */}
                   {isExpanded && (
-                    <div className="w-full mt-3 p-3.5 bg-onicord-surface/80 border border-white/5 rounded-xl animate-fade-in space-y-3">
-                      <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                    <div className="w-full mt-3 p-3.5 bg-onicord-surface/80 border border-onicord-border rounded-xl animate-fade-in space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-onicord-border">
                         <p className="font-bold text-onicord-accent uppercase tracking-wider text-[10px] flex items-center gap-1.5">
                           <MaterialIcon name="tune" size={14} />
                           <span>{t("serverSettings.plugins.settingsFor", "Ajustes: {{name}}", { name })}</span>
@@ -365,7 +365,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                                       : e.target.value
                                   )
                                 }
-                                className="w-32 h-8 px-2.5 text-xs bg-onicord-base/60 border border-white/10 rounded-xl text-onicord-text focus:outline-none focus:border-onicord-accent shrink-0"
+                                className="w-32 h-8 px-2.5 text-xs bg-onicord-base/60 border border-onicord-tint/10 rounded-xl text-onicord-text focus:outline-none focus:border-onicord-accent shrink-0"
                               />
                             </div>
                           );
@@ -409,7 +409,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
               return (
                 <li
                   key={plugin.id}
-                  className="flex items-center justify-between gap-3 bg-onicord-base/60 border border-white/5 p-3 rounded-2xl hover:border-white/10 transition-colors"
+                  className="flex items-center justify-between gap-3 bg-onicord-base/60 border border-onicord-border p-3 rounded-2xl hover:border-onicord-tint/10 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden">
@@ -428,7 +428,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                         <span className="font-bold text-xs text-onicord-text truncate">
                           {meta.name}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-white/5 text-onicord-muted font-mono">
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted font-mono">
                           v{plugin.version || "1.0"}
                         </span>
                         <span
@@ -448,7 +448,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
                   <button
                     type="button"
                     onClick={() => handleAddLocalPluginToServer(plugin)}
-                    className="px-3.5 py-1.5 rounded-onicord-button bg-onicord-accent/15 border border-onicord-accent/30 text-onicord-accent hover:bg-onicord-accent hover:text-onicord-mantle text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm active:scale-95"
+                    className="px-3.5 py-1.5 rounded-onicord-button bg-onicord-accent/15 border border-onicord-accent/30 text-onicord-accent hover:bg-onicord-accent hover:text-onicord-on-accent text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm active:scale-95"
                   >
                     <MaterialIcon name="add_link" size={16} />
                     <span>{t("serverSettings.plugins.linkToServer", "Vincular a este servidor")}</span>
@@ -461,7 +461,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
       )}
 
       {/* CARD 3: APP CATALOG SHORTCUT */}
-      <div className="onicord-settings-card p-4 border border-dashed border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-onicord-base/60 to-onicord-surface/40">
+      <div className="onicord-settings-card p-4 border border-dashed border-onicord-tint/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gradient-to-r from-onicord-base/60 to-onicord-surface/40">
         <div className="flex items-center gap-3 min-w-0 text-left">
           <div className="w-9 h-9 rounded-2xl bg-onicord-accent/10 border border-onicord-accent/20 text-onicord-accent flex items-center justify-center shrink-0">
             <MaterialIcon name="storefront" size={20} />
@@ -482,7 +482,7 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
         <button
           type="button"
           onClick={handleNavigateToGlobalStore}
-          className="onicord-btn-secondary px-4 py-2 text-xs font-bold flex items-center gap-1.5 rounded-xl border border-white/10 hover:border-onicord-accent/40 hover:text-onicord-accent transition cursor-pointer shrink-0"
+          className="onicord-btn-secondary px-4 py-2 text-xs font-bold flex items-center gap-1.5 rounded-xl border border-onicord-tint/10 hover:border-onicord-accent/40 hover:text-onicord-accent transition cursor-pointer shrink-0"
         >
           <MaterialIcon name="open_in_new" size={15} />
           <span>{t("serverSettings.plugins.browseStore", "Abrir Catálogo en Ajustes")}</span>

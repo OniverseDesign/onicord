@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 import { IconTag, IconSearch, IconClose } from "../../icons/StreamIcons";
+import Tooltip from "../../ui/Tooltip";
 
 export default function RoomHeader({
   resolvedDmUser,
@@ -32,7 +33,7 @@ export default function RoomHeader({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-2xs font-bold text-white uppercase select-none">
+                  <span className="text-2xs font-bold text-onicord-text uppercase select-none">
                     {(resolvedDmUser.nickname || "?").charAt(0)}
                   </span>
                 )}
@@ -48,18 +49,20 @@ export default function RoomHeader({
               ) : (
                 <IconTag size="lg" className="text-onicord-accent" />
               )}
-              <h2
-                title={
+              <Tooltip
+                content={
                   activeTextChannel?.name === "general"
                     ? t("serverSettings.channels.defaultTextChannelName", "general")
                     : activeTextChannel?.name || "general"
                 }
-                className="text-base font-semibold text-onicord-text truncate max-w-[200px] sm:max-w-[320px] md:max-w-[450px]"
+                side="bottom"
               >
-                {activeTextChannel?.name === "general"
-                  ? t("serverSettings.channels.defaultTextChannelName", "general")
-                  : activeTextChannel?.name || "general"}
-              </h2>
+                <h2 className="text-base font-semibold text-onicord-text truncate max-w-[200px] sm:max-w-[320px] md:max-w-[450px]">
+                  {activeTextChannel?.name === "general"
+                    ? t("serverSettings.channels.defaultTextChannelName", "general")
+                    : activeTextChannel?.name || "general"}
+                </h2>
+              </Tooltip>
             </>
           )}
         </div>
@@ -116,10 +119,10 @@ export default function RoomHeader({
                   setInputValue("from:");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">from:</code>
-                <span className="text-onicord-text text-xs group-hover:text-white truncate">{t("chat.searchFilterFrom", "Filtrar por autor o apodo")}</span>
+                <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterFrom", "Filtrar por autor o apodo")}</span>
               </button>
 
               <button
@@ -128,10 +131,10 @@ export default function RoomHeader({
                   setInputValue("has:image ");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">has:image</code>
-                <span className="text-onicord-text text-xs group-hover:text-white truncate">{t("chat.searchFilterImage", "Solo fotos e imágenes")}</span>
+                <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterImage", "Solo fotos e imágenes")}</span>
               </button>
 
               <button
@@ -140,10 +143,10 @@ export default function RoomHeader({
                   setInputValue("has:file ");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">has:file</code>
-                <span className="text-onicord-text text-xs group-hover:text-white truncate">{t("chat.searchFilterFile", "Archivos y documentos")}</span>
+                <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterFile", "Archivos y documentos")}</span>
               </button>
 
               <button
@@ -152,10 +155,10 @@ export default function RoomHeader({
                   setInputValue("has:link ");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">has:link</code>
-                <span className="text-onicord-text text-xs group-hover:text-white truncate">{t("chat.searchFilterLink", "Mensajes con enlaces web")}</span>
+                <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterLink", "Mensajes con enlaces web")}</span>
               </button>
 
               <button
@@ -164,10 +167,10 @@ export default function RoomHeader({
                   setInputValue("in:");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">in:</code>
-                <span className="text-onicord-text text-xs group-hover:text-white truncate">{t("chat.searchFilterIn", "Buscar en canal específico")}</span>
+                <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterIn", "Buscar en canal específico")}</span>
               </button>
 
               <button
@@ -176,24 +179,25 @@ export default function RoomHeader({
                   setInputValue('""');
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-white/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
               >
-                <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">"frase"</code>
-                <span className="text-onicord-text text-xs group-hover:text-white truncate">{t("chat.searchFilterPhrase", "Coincidencia exacta")}</span>
+                <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">&quot;frase&quot;</code>
+                <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterPhrase", "Coincidencia exacta")}</span>
               </button>
             </div>
           </div>
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new CustomEvent("onicord:open-pinned-modal"))}
-        className="h-12 w-12 rounded-full bg-onicord-base border border-onicord-island hover:bg-white/10 text-onicord-muted hover:text-onicord-accent transition-colors cursor-pointer shrink-0 flex items-center justify-center"
-        title={t("chat.pinnedMessages", "Mensajes Fijados")}
-      >
-        <MaterialIcon name="push_pin" size="lg" />
-      </button>
+      <Tooltip content={t("chat.pinnedMessages", "Mensajes Fijados")} side="bottom">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("onicord:open-pinned-modal"))}
+          className="h-12 w-12 rounded-full bg-onicord-base border border-onicord-island hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-accent transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+        >
+          <MaterialIcon name="push_pin" size="lg" />
+        </button>
+      </Tooltip>
     </div>
   );
 }

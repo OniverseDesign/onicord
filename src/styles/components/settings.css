@@ -12,7 +12,7 @@
 
   /* LÍNEAS DIVISORIAS LISAS Y CENTRADAS (SIN BORDES DOBLES REPETIDOS) */
   .onicord-settings-divider {
-    @apply border-t border-white/5 my-3 w-full;
+    @apply border-t border-onicord-border my-3 w-full;
   }
 
   /* FILA CON SWITCHES (ALTO CONSISTENTE DE 52px Y CENTRADO VERTICAL PERFECTO) */
@@ -22,12 +22,12 @@
 
   /* FILA CON SLIDERS (ALTO CONSISTENTE DE 68px Y ESPACIADO UNIFORME) */
   .onicord-settings-slider-row {
-    @apply flex flex-col justify-center py-3.5 border-b border-white/5 last:border-b-0 min-h-[68px] gap-2;
+    @apply flex flex-col justify-center py-3.5 border-b border-onicord-border last:border-b-0 min-h-[68px] gap-2;
   }
 
   /* FILA CON INPUTS O SELECTS (ALTO CONSISTENTE DE 56px) */
   .onicord-settings-input-row {
-    @apply flex items-center justify-between py-3 border-b border-white/5 last:border-b-0 min-h-[56px] gap-4;
+    @apply flex items-center justify-between py-3 border-b border-onicord-border last:border-b-0 min-h-[56px] gap-4;
   }
 
   .onicord-settings-row-title {
@@ -37,15 +37,15 @@
     @apply text-xs text-onicord-muted leading-relaxed mt-0.5;
   }
   .onicord-icon-badge {
-    @apply w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-base border border-white/5 flex items-center justify-center text-onicord-accent shrink-0 shadow-sm;
+    @apply w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-base border border-onicord-border flex items-center justify-center text-onicord-accent shrink-0 shadow-sm;
   }
   .onicord-theme-color-row {
-    @apply flex items-center justify-between bg-onicord-surface p-2.5 rounded-onicord-button border border-white/5;
+    @apply flex items-center justify-between bg-onicord-surface p-2.5 rounded-onicord-button border border-onicord-border;
   }
   .onicord-user-panel-profile-btn {
     @apply flex w-full items-center gap-2 rounded-onicord-inner p-1 text-left hover:bg-onicord-overlay/40 overflow-hidden cursor-pointer;
   }
   .onicord-avatar-picker {
-    @apply shrink-0 overflow-hidden rounded-full border-2 border-dashed border-white/5 bg-onicord-overlay hover:border-onicord-accent transition-colors cursor-pointer;
+    @apply shrink-0 overflow-hidden rounded-full border-2 border-dashed border-onicord-border bg-onicord-overlay hover:border-onicord-accent transition-colors cursor-pointer;
   }
 }

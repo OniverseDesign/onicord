@@ -100,6 +100,17 @@ export class VoiceAudioEngine {
       }
 
       const captureStream = new MediaStream([rawAudioTrack]);
+
+      // Chromium stream keep-alive: ensures desktop loopback frames stay actively pumped to AudioWorklet
+      const keepAliveAudio = document.createElement("audio");
+      keepAliveAudio.autoplay = true;
+      keepAliveAudio.playsInline = true;
+      keepAliveAudio.muted = true;
+      keepAliveAudio.style.display = "none";
+      keepAliveAudio.srcObject = captureStream;
+      document.body.appendChild(keepAliveAudio);
+      keepAliveAudio.play().catch(() => {});
+
       const captureSource = ctx.createMediaStreamSource(captureStream);
       const workletNode = new AudioWorkletNode(ctx, "loopback-aec-processor", {
         numberOfInputs: 2,
@@ -121,6 +132,11 @@ export class VoiceAudioEngine {
       const cleanup = () => {
         if (cleanedUp) return;
         cleanedUp = true;
+        try {
+          keepAliveAudio.pause();
+          keepAliveAudio.srcObject = null;
+          keepAliveAudio.remove();
+        } catch {}
         try { captureSource.disconnect(); } catch {}
         try { this.masterOutputNode?.disconnect(workletNode); } catch {}
         try { workletNode.disconnect(); } catch {}

@@ -436,7 +436,7 @@ export default function StreamDisplay({
                 }}
                 className={`flex h-7 w-7 items-center justify-center rounded-full border transition duration-150 cursor-pointer ${
                   isLocalWebcamActive
-                    ? "bg-onicord-accent text-onicord-dark border-onicord-accent hover:brightness-110"
+                    ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent hover:brightness-110"
                     : "bg-onicord-surface border-white/10 text-onicord-text hover:bg-onicord-overlay hover:text-white"
                 } ${isWebcamBusy ? "opacity-50 cursor-wait" : ""}`}
                 title={

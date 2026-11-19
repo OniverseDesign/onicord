@@ -10,6 +10,7 @@ import CommandsPopover from "../CommandsPopover";
 import MentionsPopover from "../MentionsPopover";
 import EmojiPickerPopover from "../../ui/EmojiPickerPopover";
 import StickerPopover from "../StickerPopover";
+import Tooltip from "../../ui/Tooltip";
 import { soundEngine } from "../../../lib/soundEngine";
 
 function formatBytes(bytes) {
@@ -231,10 +232,10 @@ export default function ChatInputArea({
             <div className="onicord-reply-bar !mx-0 !mb-0">
               <div className="flex items-center gap-1.5 truncate text-onicord-muted">
                 <span>{t("chat.replyingTo")}</span>
-                <div className="h-4 w-4 rounded-full bg-onicord-accent overflow-hidden shrink-0 flex items-center justify-center text-2xs font-bold text-white">
+                <div className="h-4 w-4 rounded-full bg-onicord-accent overflow-hidden shrink-0 flex items-center justify-center text-2xs font-bold text-onicord-on-accent">
                   {usuarioCitado.avatar === "bot-star" ||
                   (usuarioCitado.isComplement && !usuarioCitado.avatar) ? (
-                    <IconEstrella className="w-2.5 h-2.5 text-white" />
+                    <IconEstrella className="w-2.5 h-2.5 text-onicord-on-accent" />
                   ) : usuarioCitado.avatar ? (
                     <img
                       src={usuarioCitado.avatar}
@@ -338,7 +339,7 @@ export default function ChatInputArea({
           }`}
         >
           {pendingFiles.length > 1 ? (
-            <div className="flex items-center gap-2 overflow-x-auto py-1 px-1 minimal-scrollbar bg-black/20 rounded-lg p-1.5 border border-white/5">
+            <div className="flex items-center gap-2 overflow-x-auto py-1 px-1 minimal-scrollbar bg-black/20 rounded-lg p-1.5 border border-onicord-border">
               {pendingFiles.map((pf, idx) => {
                 const isMedia =
                   pf.type?.startsWith("image/") ||
@@ -348,7 +349,7 @@ export default function ChatInputArea({
                 return (
                   <div
                     key={idx}
-                    className="relative flex items-center gap-2 bg-onicord-base border border-white/10 rounded-lg p-1.5 shrink-0 pr-7 max-w-[230px] shadow"
+                    className="relative flex items-center gap-2 bg-onicord-base border border-onicord-tint/10 rounded-lg p-1.5 shrink-0 pr-7 max-w-[230px] shadow"
                   >
                     <div className="w-10 h-10 rounded bg-black/50 overflow-hidden shrink-0 flex items-center justify-center relative">
                       {pf.previewUrl ? (
@@ -391,8 +392,8 @@ export default function ChatInputArea({
                               isNsfw
                                 ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
                                 : channelAllowsNsfw
-                                  ? "bg-white/5 text-onicord-muted border-white/10 hover:text-onicord-text hover:bg-white/10"
-                                  : "bg-white/5 text-onicord-muted/50 border-white/5"
+                                  ? "bg-onicord-tint/5 text-onicord-muted border-onicord-tint/10 hover:text-onicord-text hover:bg-onicord-tint/10"
+                                  : "bg-onicord-tint/5 text-onicord-muted/50 border-onicord-border"
                             }`}
                           >
                             <MaterialIcon
@@ -425,7 +426,7 @@ export default function ChatInputArea({
                 /\.(png|jpe?g|gif|webp|avif|bmp|svg|mp4|webm|mov|mkv|avi)$/i.test(activeFile.name || "");
               const isNsfw = Boolean(activeFile.isNsfw);
               return (
-                <div className="onicord-pending-file-card group/pending relative overflow-hidden bg-onicord-base border border-white/5 p-2 flex items-center gap-3">
+                <div className="onicord-pending-file-card group/pending relative overflow-hidden bg-onicord-base border border-onicord-border p-2 flex items-center gap-3">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-black/50 overflow-hidden">
                     {displayPreviewUrl ? (
                       displayPendingFile.type?.startsWith("video/") ? (
@@ -469,8 +470,8 @@ export default function ChatInputArea({
                           isNsfw
                             ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
                             : channelAllowsNsfw
-                              ? "bg-onicord-surface/80 text-onicord-muted border-white/10 hover:text-onicord-text hover:bg-white/10"
-                              : "bg-onicord-surface/40 text-onicord-muted/50 border-white/5"
+                              ? "bg-onicord-surface/80 text-onicord-muted border-onicord-tint/10 hover:text-onicord-text hover:bg-onicord-tint/10"
+                              : "bg-onicord-surface/40 text-onicord-muted/50 border-onicord-border"
                         }`}
                       >
                         <MaterialIcon
@@ -513,15 +514,19 @@ export default function ChatInputArea({
             disabled={!hasSendMessages}
             multiple
           />
-          <button
-            type="button"
-            onClick={hasSendMessages ? handleAttachFileClick : undefined}
-            className={`onicord-chat-toolbar-btn group ${!hasSendMessages ? "opacity-35 cursor-not-allowed pointer-events-none" : ""}`}
-            disabled={!hasSendMessages}
-            title={hasSendMessages ? t("chat.attachUnlimited") : t("chat.noPermissionShort", "Sin permisos")}
+          <Tooltip
+            content={hasSendMessages ? t("chat.attachUnlimited") : t("chat.noPermissionShort", "Sin permisos")}
+            side="top"
           >
-            <IconAttach size="xl" />
-          </button>
+            <button
+              type="button"
+              onClick={hasSendMessages ? handleAttachFileClick : undefined}
+              className={`onicord-chat-toolbar-btn group ${!hasSendMessages ? "opacity-35 cursor-not-allowed pointer-events-none" : ""}`}
+              disabled={!hasSendMessages}
+            >
+              <IconAttach size="xl" />
+            </button>
+          </Tooltip>
 
           <div className="relative flex-1 min-w-0 flex flex-col justify-center">
             {/* Forum post title expansion input */}
@@ -553,7 +558,7 @@ export default function ChatInputArea({
                       tyrannyInputRef.current?.focus();
                     }
                   }}
-                  className="w-full bg-transparent text-base sm:text-lg font-bold text-white placeholder:text-onicord-muted outline-none px-1 py-1"
+                  className="w-full bg-transparent text-base sm:text-lg font-bold text-onicord-text placeholder:text-onicord-muted outline-none px-1 py-1"
                 />
               </div>
             )}
@@ -605,69 +610,81 @@ export default function ChatInputArea({
           </div>
 
           {onToggleEphemeralMode && (
-            <button
-              type="button"
-              onClick={hasSendMessages ? onToggleEphemeralMode : undefined}
-              className={`onicord-chat-toolbar-btn group relative ${
-                !hasSendMessages
-                  ? "opacity-35 cursor-not-allowed pointer-events-none"
-                  : isEphemeralMode
-                    ? "!border-amber-500/50 bg-amber-500/15 !text-amber-400"
-                    : ""
-              }`}
-              disabled={!hasSendMessages}
-              title={
+            <Tooltip
+              content={
                 hasSendMessages
                   ? t("chat.ephemeralToggle", "Mensaje efímero (se elimina en 60s)")
                   : t("chat.noPermissionShort", "Sin permisos")
               }
+              side="top"
             >
-              <MaterialIcon name="timer" size="xl" />
-            </button>
+              <button
+                type="button"
+                onClick={hasSendMessages ? onToggleEphemeralMode : undefined}
+                className={`onicord-chat-toolbar-btn group relative ${
+                  !hasSendMessages
+                    ? "opacity-35 cursor-not-allowed pointer-events-none"
+                    : isEphemeralMode
+                      ? "!border-amber-500/50 bg-amber-500/15 !text-amber-400"
+                      : ""
+                }`}
+                disabled={!hasSendMessages}
+              >
+                <MaterialIcon name="timer" size="xl" />
+              </button>
+            </Tooltip>
           )}
 
-          <button
-            ref={emojiButtonRef}
-            type="button"
-            onClick={hasSendMessages ? (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (emojisTargetRect) {
-                setEmojisTargetRect(null);
-              } else {
-                setStickersTargetRect(null);
-                const rect = stickerButtonRef?.current ? stickerButtonRef.current.getBoundingClientRect() : e.currentTarget.getBoundingClientRect();
-                setEmojisTargetRect(rect);
-              }
-            } : undefined}
-            className={`onicord-chat-toolbar-btn group ${!hasSendMessages ? "opacity-35 cursor-not-allowed pointer-events-none" : ""}`}
-            disabled={!hasSendMessages}
-            title={hasSendMessages ? t("chat.emoji", "Emoji") : t("chat.noPermissionShort", "Sin permisos")}
+          <Tooltip
+            content={hasSendMessages ? t("chat.emoji", "Emoji") : t("chat.noPermissionShort", "Sin permisos")}
+            side="top"
           >
-            <MaterialIcon name="sentiment_satisfied" size="xl" />
-          </button>
-
-          {/* Sticker picker button (hidden on root forum post, shown in threads and regular text channels) */}
-          {!isForum && (
             <button
-              ref={stickerButtonRef}
+              ref={emojiButtonRef}
               type="button"
               onClick={hasSendMessages ? (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (stickersTargetRect) {
-                  setStickersTargetRect(null);
-                } else {
+                if (emojisTargetRect) {
                   setEmojisTargetRect(null);
-                  setStickersTargetRect(e.currentTarget.getBoundingClientRect());
+                } else {
+                  setStickersTargetRect(null);
+                  const rect = stickerButtonRef?.current ? stickerButtonRef.current.getBoundingClientRect() : e.currentTarget.getBoundingClientRect();
+                  setEmojisTargetRect(rect);
                 }
               } : undefined}
               className={`onicord-chat-toolbar-btn group ${!hasSendMessages ? "opacity-35 cursor-not-allowed pointer-events-none" : ""}`}
               disabled={!hasSendMessages}
-              title={hasSendMessages ? t("chat.sendSticker") : t("chat.noPermissionShort", "Sin permisos")}
             >
-              <IconSticker size="xl" />
+              <MaterialIcon name="sentiment_satisfied" size="xl" />
             </button>
+          </Tooltip>
+
+          {/* Sticker picker button (hidden on root forum post, shown in threads and regular text channels) */}
+          {!isForum && (
+            <Tooltip
+              content={hasSendMessages ? t("chat.sendSticker") : t("chat.noPermissionShort", "Sin permisos")}
+              side="top"
+            >
+              <button
+                ref={stickerButtonRef}
+                type="button"
+                onClick={hasSendMessages ? (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (stickersTargetRect) {
+                    setStickersTargetRect(null);
+                  } else {
+                    setEmojisTargetRect(null);
+                    setStickersTargetRect(e.currentTarget.getBoundingClientRect());
+                  }
+                } : undefined}
+                className={`onicord-chat-toolbar-btn group ${!hasSendMessages ? "opacity-35 cursor-not-allowed pointer-events-none" : ""}`}
+                disabled={!hasSendMessages}
+              >
+                <IconSticker size="xl" />
+              </button>
+            </Tooltip>
           )}
         </div>
       </form>

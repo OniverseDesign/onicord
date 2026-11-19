@@ -38,10 +38,10 @@ export default function DiscoverServerCard({
   };
 
   return (
-    <div className="flex flex-col w-full max-w-[340px] mx-auto sm:max-w-none rounded-onicord-inner bg-onicord-surface hover:bg-onicord-surface/75 border border-white/5 hover:border-white/10 overflow-hidden transition-all duration-200 group text-left select-none relative">
+    <div className="flex flex-col w-full max-w-[340px] mx-auto sm:max-w-none rounded-onicord-inner bg-onicord-surface hover:bg-onicord-surface/75 border border-onicord-border hover:border-onicord-tint/10 overflow-hidden transition-all duration-200 group text-left select-none relative">
       {/* 1. Header Banner (Same design as server: rounded corners, no gradient) */}
       <div className="p-2.5 pb-0">
-        <div className="w-full h-32 rounded-xl relative overflow-hidden bg-onicord-mantle border border-white/5">
+        <div className="w-full h-32 rounded-xl relative overflow-hidden bg-onicord-mantle border border-onicord-border">
           {server?.banner ? (
             <SmartAnimatedImage
               src={server.banner}

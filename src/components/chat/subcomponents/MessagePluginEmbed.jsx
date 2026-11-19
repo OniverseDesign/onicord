@@ -94,7 +94,7 @@ export default function MessagePluginEmbed({
                 className={`relative flex flex-col p-3 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden group ${
                   isSelected
                     ? "bg-onicord-accent/15 border-onicord-accent"
-                    : "bg-white/[0.02] border border-onicord-island hover:bg-white/[0.05]"
+                    : "bg-onicord-tint/[0.02] border border-onicord-island hover:bg-onicord-tint/[0.05]"
                 }`}
               >
                 <div

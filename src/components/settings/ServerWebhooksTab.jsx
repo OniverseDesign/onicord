@@ -264,7 +264,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
           <button
             type="button"
             onClick={() => setStatusMsg(null)}
-            className="text-white/40 hover:text-white transition cursor-pointer p-1"
+            className="text-onicord-muted hover:text-onicord-text transition cursor-pointer p-1"
           >
             <MaterialIcon name="close" size={14} />
           </button>
@@ -286,7 +286,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
             <button
               type="button"
               onClick={() => setNewWebhookTokenInfo(null)}
-              className="text-white/40 hover:text-white transition cursor-pointer p-1"
+              className="text-onicord-muted hover:text-onicord-text transition cursor-pointer p-1"
             >
               <MaterialIcon name="close" size={14} />
             </button>
@@ -297,7 +297,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
               "Copia esta URL completa ahora. Por seguridad criptográfica, el token secreto se almacena en hash y no volverá a mostrarse en texto plano."
             )}
           </p>
-          <div className="flex items-center gap-2 bg-onicord-base/90 p-2 rounded-xl border border-white/10 font-mono text-xs">
+          <div className="flex items-center gap-2 bg-onicord-base/90 p-2 rounded-xl border border-onicord-tint/10 font-mono text-xs">
             <input
               type="text"
               readOnly
@@ -307,7 +307,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
             <button
               type="button"
               onClick={() => handleCopy(newWebhookTokenInfo.fullUrl, "new-token")}
-              className="h-8 px-3 rounded-lg bg-onicord-accent hover:opacity-90 text-onicord-dark font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm active:scale-[0.98] select-none"
+              className="h-8 px-3 rounded-lg bg-onicord-accent hover:opacity-90 text-onicord-on-accent font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm active:scale-[0.98] select-none"
             >
               <MaterialIcon
                 name={copiedUrlId === "new-token" ? "check" : "content_copy"}
@@ -331,7 +331,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
             <button
               type="button"
               onClick={resetForm}
-              className="h-7 px-2.5 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-onicord-muted hover:text-white border border-white/10 transition cursor-pointer"
+              className="h-7 px-2.5 rounded-lg text-xs font-semibold bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text border border-onicord-tint/10 transition cursor-pointer"
             >
               {t("serverSettings.webhooks.cancelEdit", "Cancelar edición")}
             </button>
@@ -408,7 +408,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
           </div>
 
           {formType === "pull_poller" && (
-            <div className="p-3 rounded-xl bg-onicord-base/40 border border-white/5 space-y-2.5">
+            <div className="p-3 rounded-xl bg-onicord-base/40 border border-onicord-border space-y-2.5">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
                   <label className="text-xs font-semibold text-onicord-text block mb-1">
@@ -445,14 +445,14 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
               <button
                 type="button"
                 onClick={resetForm}
-                className="h-8 px-3 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-onicord-muted hover:text-white border border-white/10 transition cursor-pointer"
+                className="h-8 px-3 rounded-lg text-xs font-semibold bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text border border-onicord-tint/10 transition cursor-pointer"
               >
                 {t("common.cancel", "Cancelar")}
               </button>
             )}
             <button
               type="submit"
-              className="h-8 px-4 rounded-lg text-xs font-semibold bg-onicord-accent hover:opacity-90 text-onicord-dark transition-all cursor-pointer shadow-sm active:scale-[0.98] select-none flex items-center gap-1.5"
+              className="h-8 px-4 rounded-lg text-xs font-semibold bg-onicord-accent hover:opacity-90 text-onicord-on-accent transition-all cursor-pointer shadow-sm active:scale-[0.98] select-none flex items-center gap-1.5"
             >
               <MaterialIcon name={editingWebhook ? "check" : "add"} size={16} />
               <span>{editingWebhook ? t("serverSettings.webhooks.saveChanges", "Guardar Cambios") : t("serverSettings.webhooks.createButton", "Crear Webhook")}</span>
@@ -474,12 +474,12 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
         </p>
 
         {loading ? (
-          <div className="py-8 text-center border border-white/5 rounded-2xl p-4 bg-onicord-base/20">
+          <div className="py-8 text-center border border-onicord-border rounded-2xl p-4 bg-onicord-base/20">
             <span className="loading loading-spinner loading-sm text-onicord-accent mb-2"></span>
             <p className="text-xs text-onicord-muted italic">{t("serverSettings.webhooks.loading", "Cargando webhooks...")}</p>
           </div>
         ) : webhooks.length === 0 ? (
-          <div className="py-8 text-center border border-white/5 rounded-2xl p-4 bg-onicord-base/20">
+          <div className="py-8 text-center border border-onicord-border rounded-2xl p-4 bg-onicord-base/20">
             <MaterialIcon
               name="hub"
               size={32}
@@ -501,7 +501,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                   className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl border transition-colors ${
                     isCurrentlyEditing
                       ? "bg-onicord-accent/10 border-onicord-accent/40"
-                      : "bg-onicord-base/60 border-white/5 hover:border-white/10"
+                      : "bg-onicord-base/60 border-onicord-border hover:border-onicord-tint/10"
                   }`}
                 >
                   {/* Avatar + Info */}
@@ -523,7 +523,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                         <span className="font-bold text-xs text-onicord-text truncate">
                           {wh.name}
                         </span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-onicord-surface text-onicord-muted border border-white/5">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-onicord-surface text-onicord-muted border border-onicord-border">
                           {wh.type === "pull_poller" ? t("serverSettings.webhooks.p2pPoller", "Sondeo P2P ({{minutes}}m)", { minutes: Math.round((wh.intervalSeconds || 300) / 60) }) : t("serverSettings.webhooks.httpIngress", "Ingress HTTP")}
                         </span>
                         {isCurrentlyEditing && (
@@ -539,7 +539,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                         </span>
                         <span>•</span>
                         {wh.type === "pull_poller" && wh.targetUrl ? (
-                          <span className="truncate max-w-[200px] sm:max-w-[260px] text-white/50" title={wh.targetUrl}>
+                          <span className="truncate max-w-[200px] sm:max-w-[260px] text-onicord-muted" title={wh.targetUrl}>
                             {wh.targetUrl}
                           </span>
                         ) : (
@@ -570,7 +570,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                         <button
                           type="button"
                           onClick={() => handleCopy(wh.targetUrl || "", wh.id)}
-                          className="h-8 px-3 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-onicord-text border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 select-none"
+                          className="h-8 px-3 rounded-lg text-xs font-semibold bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 select-none"
                           title={t("serverSettings.webhooks.copyFeedTitle", "Copiar URL del feed")}
                         >
                           <MaterialIcon
@@ -601,7 +601,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                           type="button"
                           disabled={testingId === wh.id}
                           onClick={() => handleTestWebhook(wh)}
-                          className="h-8 px-3 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-onicord-text border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 select-none"
+                          className="h-8 px-3 rounded-lg text-xs font-semibold bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 select-none"
                           title={t("serverSettings.webhooks.testTitle", "Probar webhook enviando un mensaje")}
                         >
                           <MaterialIcon
@@ -615,7 +615,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                         <button
                           type="button"
                           onClick={() => setWebhookToRegenerate(wh)}
-                          className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 text-onicord-muted hover:text-amber-400 border border-white/10 transition-all flex items-center justify-center cursor-pointer shrink-0 select-none"
+                          className="h-8 w-8 rounded-lg bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-muted hover:text-amber-400 border border-onicord-tint/10 transition-all flex items-center justify-center cursor-pointer shrink-0 select-none"
                           title={t("serverSettings.webhooks.regenerateToken", "Regenerar Token")}
                         >
                           <MaterialIcon name="refresh" size={16} />
@@ -628,8 +628,8 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                       onClick={() => startEditing(wh)}
                       className={`h-8 w-8 rounded-lg border transition-all flex items-center justify-center cursor-pointer shrink-0 select-none ${
                         isCurrentlyEditing
-                          ? "bg-onicord-accent text-onicord-dark border-onicord-accent"
-                          : "bg-white/5 hover:bg-white/10 text-onicord-muted hover:text-white border border-white/10"
+                          ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent"
+                          : "bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text border border-onicord-tint/10"
                       }`}
                       title={isCurrentlyEditing ? t("serverSettings.webhooks.currentlyEditing", "Editando actualmente") : t("serverSettings.webhooks.editTooltip", "Editar Webhook")}
                     >
@@ -639,7 +639,7 @@ export default function ServerWebhooksTab({ server, onUpdateServer, profile }) {
                     <button
                       type="button"
                       onClick={() => setWebhookToDelete(wh)}
-                      className="h-8 w-8 rounded-lg bg-white/5 hover:bg-onicord-danger/20 text-onicord-muted hover:text-onicord-danger border border-white/10 hover:border-onicord-danger/30 transition-all flex items-center justify-center cursor-pointer shrink-0 select-none"
+                      className="h-8 w-8 rounded-lg bg-onicord-tint/5 hover:bg-onicord-danger/20 text-onicord-muted hover:text-onicord-danger border border-onicord-tint/10 hover:border-onicord-danger/30 transition-all flex items-center justify-center cursor-pointer shrink-0 select-none"
                       title={t("serverSettings.webhooks.deleteWebhook", "Eliminar Webhook")}
                     >
                       <MaterialIcon name="delete" size={16} />

@@ -87,9 +87,20 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
               customStatus: m.customStatus !== undefined ? m.customStatus : (antiguo?.customStatus ?? ""),
               globalNickname: m.globalNickname || antiguo?.globalNickname || peer.nickname,
               hasCustomProfile: Boolean(m.hasCustomProfile || (m.globalNickname && m.nickname !== m.globalNickname)),
+              ...(m.flame && typeof m.flame === "object" ? { flame: m.flame } : {}),
               updatedAt: m.updatedAt || Date.now(),
               joinedAt: antiguo?.joinedAt || Date.now(),
             };
+            if (m.flame && typeof m.flame === "object") {
+              const existingPeerFlame =
+                peer.flame && typeof peer.flame === "object" && !("currentStreak" in peer.flame)
+                  ? peer.flame
+                  : {};
+              peer.flame = {
+                ...existingPeerFlame,
+                [targetRoom]: m.flame,
+              };
+            }
             await roomManager.roomMetaStore.updateSavedMembers(targetRoom, meta.savedMembers);
             roomManager._callbacks.onServerMetaUpdated?.(targetRoom, meta);
 

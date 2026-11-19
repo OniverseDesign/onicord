@@ -37,7 +37,7 @@
     @apply m-3 p-3 max-w-[360px] rounded-onicord-inner bg-onicord-surface border border-onicord-mantle flex items-center gap-3 relative animate-fade-in;
   }
   .onicord-dismiss-chip {
-    @apply absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-full bg-black/40 text-onicord-muted hover:bg-onicord-danger hover:text-white transition-colors duration-150 shadow cursor-pointer;
+    @apply absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-full bg-onicord-tint/15 text-onicord-muted hover:bg-onicord-danger hover:text-onicord-on-danger transition-colors duration-150 shadow cursor-pointer;
   }
   .onicord-channel-welcome-icon {
     @apply mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-onicord-surface;

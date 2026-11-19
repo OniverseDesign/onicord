@@ -119,7 +119,7 @@ export default function MediaPreviewModal({
             e.stopPropagation();
             onNavigate(currentIndex - 1);
           }}
-          className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-mantle text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-modal-controls group"
+          className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-on-accent text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-modal-controls group"
           title={t("common.previous", "Anterior (←)")}
         >
           <MaterialIcon name="chevron_left" size="lg" />
@@ -134,7 +134,7 @@ export default function MediaPreviewModal({
             e.stopPropagation();
             onNavigate(currentIndex + 1);
           }}
-          className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-mantle text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-modal-controls group"
+          className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-on-accent text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-modal-controls group"
           title={t("common.next", "Siguiente (→)")}
         >
           <MaterialIcon name="chevron_right" size="lg" />
@@ -220,7 +220,7 @@ export default function MediaPreviewModal({
                 console.warn("showItemInFolder is not defined");
               }
             }}
-            className="onicord-btn-secondary px-3 py-1.5 text-xs shrink-0 border border-onicord-island hover:bg-onicord-accent hover:text-onicord-mantle rounded-full flex items-center gap-1.5 transition-all duration-150"
+            className="onicord-btn-secondary px-3 py-1.5 text-xs shrink-0 border border-onicord-island hover:bg-onicord-accent hover:text-onicord-on-accent rounded-full flex items-center gap-1.5 transition-all duration-150"
           >
             <MaterialIcon name="folder_open" size="sm" />
             <span>{t("chat.openLocation", "Abrir carpeta")}</span>

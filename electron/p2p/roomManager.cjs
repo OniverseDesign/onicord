@@ -387,6 +387,13 @@ class RoomManager {
         console.error("[RoomManager] Error resolving effective profile:", e);
       }
 
+      const serverFlameObj =
+        updatedFullProfile?.flame && typeof updatedFullProfile.flame === "object"
+          ? updatedFullProfile.flame[code] ||
+            updatedFullProfile.flame[targetRoomCode] ||
+            ("currentStreak" in updatedFullProfile.flame ? updatedFullProfile.flame : null)
+          : null;
+
       if (this.roomMetaStore && effective?.id) {
         try {
           const meta = await this.roomMetaStore.load(code);
@@ -401,6 +408,7 @@ class RoomManager {
             profileColor: effective.profileColor || "",
             customStatus: effective.customStatus || "",
             globalNickname: updatedFullProfile.nickname || null,
+            ...(serverFlameObj ? { flame: serverFlameObj } : {}),
             updatedAt: Date.now(),
             joinedAt: oldMember?.joinedAt || Date.now(),
           };
@@ -421,6 +429,7 @@ class RoomManager {
           profileColor: effective.profileColor || "",
           customStatus: effective.customStatus || "",
           globalNickname: updatedFullProfile.nickname || null,
+          ...(serverFlameObj ? { flame: serverFlameObj } : {}),
           updatedAt: Date.now(),
         },
       }, code);

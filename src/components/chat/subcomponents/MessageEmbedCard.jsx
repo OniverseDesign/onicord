@@ -231,7 +231,7 @@ export default function MessageEmbedCard({ url }) {
         )}
 
         {ogData.image && (
-          <div className="w-full relative bg-black/40 overflow-hidden rounded-xl border border-white/5 flex items-center justify-center max-h-[420px] mt-1">
+          <div className="w-full relative bg-black/40 overflow-hidden rounded-xl border border-onicord-border flex items-center justify-center max-h-[420px] mt-1">
             <img
               src={ogData.image}
               alt=""
@@ -305,7 +305,7 @@ export default function MessageEmbedCard({ url }) {
         <div
           className={`w-full relative bg-black/40 ${
             isVertical ? "aspect-[9/16]" : isGifOrTenor && !ogData.video ? "aspect-auto max-h-[360px]" : "aspect-video"
-          } overflow-hidden rounded-xl mt-1 border border-white/5 flex items-center justify-center`}
+          } overflow-hidden rounded-xl mt-1 border border-onicord-border flex items-center justify-center`}
         >
           {isYouTube ? (
             isPlaying ? (
@@ -352,7 +352,7 @@ export default function MessageEmbedCard({ url }) {
                         }),
                       );
                     }}
-                    className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 hover:bg-onicord-accent text-white text-xs font-semibold tracking-wide backdrop-blur-md shadow-lg border border-white/10 opacity-0 group-hover/yt:opacity-100 transition-all duration-200"
+                    className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 hover:bg-onicord-accent text-white text-xs font-semibold tracking-wide backdrop-blur-md shadow-lg border border-onicord-tint/10 opacity-0 group-hover/yt:opacity-100 transition-all duration-200"
                   >
                     <MaterialIcon name="smart_display" size={14} />
                     <span>Watch Party</span>

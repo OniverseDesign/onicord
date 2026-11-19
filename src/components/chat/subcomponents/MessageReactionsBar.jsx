@@ -50,7 +50,7 @@ export default function MessageReactionsBar({
             className={`onicord-reaction-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all duration-150 cursor-pointer active:scale-95 hover:scale-105 ${
               hasMyReaction
                 ? "bg-onicord-accent/20 text-onicord-accent border-onicord-accent/40"
-                : "bg-white/5 text-onicord-subtext border-white/10 hover:bg-white/10 hover:text-white"
+                : "bg-onicord-tint/5 text-onicord-subtext border-onicord-tint/10 hover:bg-onicord-tint/10 hover:text-white"
             }`}
             title={tooltipText}
           >
@@ -73,7 +73,7 @@ export default function MessageReactionsBar({
             setPickerTargetRect(e.currentTarget.getBoundingClientRect());
           }
         }}
-        className="inline-flex items-center justify-center w-7 h-[26px] rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-onicord-muted hover:text-white transition-all duration-150 cursor-pointer active:scale-95"
+        className="inline-flex items-center justify-center w-7 h-[26px] rounded-xl bg-onicord-tint/5 border border-onicord-tint/10 hover:bg-onicord-tint/10 hover:border-onicord-tint/20 text-onicord-muted hover:text-white transition-all duration-150 cursor-pointer active:scale-95"
         title={t("chat.addReaction")}
       >
         <MaterialIcon name="add_reaction" size={15} />

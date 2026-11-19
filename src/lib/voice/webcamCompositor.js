@@ -82,6 +82,18 @@ export async function acquireWebcamStream({
   }
 }
 
+export const DESKTOP_AUDIO_CONSTRAINTS = {
+  mandatory: {
+    chromeMediaSource: "desktop",
+  },
+  optional: [
+    { googEchoCancellation: false },
+    { googAutoGainControl: false },
+    { googNoiseSuppression: false },
+    { googHighpassFilter: false },
+  ],
+};
+
 /**
  * Captures system loopback audio on Electron without keeping any video track.
  * Used when sharing only the webcam while system audio is enabled.
@@ -89,11 +101,7 @@ export async function acquireWebcamStream({
 export async function acquireSystemAudioOnlyStream() {
   try {
     const audioOnly = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        mandatory: {
-          chromeMediaSource: "desktop",
-        },
-      },
+      audio: DESKTOP_AUDIO_CONSTRAINTS,
       video: false,
     });
     if (audioOnly.getAudioTracks().length > 0) {
@@ -111,11 +119,7 @@ export async function acquireSystemAudioOnlyStream() {
     if (!screenSource) return null;
 
     const desktopStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        mandatory: {
-          chromeMediaSource: "desktop",
-        },
-      },
+      audio: DESKTOP_AUDIO_CONSTRAINTS,
       video: {
         mandatory: {
           chromeMediaSource: "desktop",

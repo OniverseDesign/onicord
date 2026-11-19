@@ -34,12 +34,12 @@ function waitForVite() {
   })
 }
 
-function run(command, args, label) {
-  const isWin = process.platform === 'win32'
-  const child = spawn(command, args, {
+function run(command, args = [], label) {
+  const fullCommand = args.length > 0 ? `${command} ${args.join(' ')}` : command
+  const child = spawn(fullCommand, {
     cwd: ROOT,
     stdio: 'inherit',
-    shell: isWin,
+    shell: true,
     env: { ...process.env, VITE_DEV_SERVER_URL: DEV_URL },
   })
   child.on('exit', (code) => {

@@ -23,7 +23,7 @@ import ForwardMessageModal from "../modals/ForwardMessageModal";
 const MediaPreviewModal = lazy(() => import("../modals/MediaPreviewModal"));
 import { notificationManager } from "../../lib/notificationManager";
 import { soundEngine } from "../../lib/soundEngine";
-import { recordUserInteraction } from "../../lib/flameService";
+import { triggerServerFlameInteraction } from "../../lib/flameService";
 
 import { useChatMessages, normalizeChatMessage } from "../../hooks/useChatMessages";
 import { useChatScroll } from "../../hooks/useChatScroll";
@@ -463,6 +463,7 @@ export default function ChatPanel({
                   channelId,
                   payloadRendicion,
                 );
+                triggerServerFlameInteraction(profile, server, onProfileChange);
               }
             },
             fullInput: text,
@@ -480,6 +481,7 @@ export default function ChatPanel({
       } else {
         if (window.electronAPI?.sendPluginCommand) {
           window.electronAPI.sendPluginCommand(roomCode, channelId, text);
+          triggerServerFlameInteraction(profile, server, onProfileChange);
           setInput("");
           setReplyTarget(null);
           return;
@@ -684,15 +686,7 @@ export default function ChatPanel({
 
       soundEngine.playCue("send");
 
-      if (profile && server) {
-        const updatedFlame = recordUserInteraction(profile, server.roomCode || server.id);
-        if (updatedFlame && window.electronAPI?.saveProfile) {
-          const nextProf = { ...profile, flame: updatedFlame };
-          window.electronAPI.saveProfile(nextProf).then((saved) => {
-            if (saved) onProfileChange?.(saved);
-          });
-        }
-      }
+      triggerServerFlameInteraction(profile, server, onProfileChange);
     } catch (err) {
       console.error("Error al enviar mensaje:", err);
     } finally {
@@ -932,9 +926,10 @@ export default function ChatPanel({
           targetChannelId || channelId,
           `[REACTION_ACTION]:${JSON.stringify({ messageId, emoji, userId: myId })}`
         );
+        triggerServerFlameInteraction(profile, server, onProfileChange);
       }
     },
-    [profile?.id, roomCode, channelId, setMessages],
+    [profile, server, onProfileChange, roomCode, channelId, setMessages],
   );
 
   useEffect(() => {
@@ -961,6 +956,7 @@ export default function ChatPanel({
         avatar: safeAvatar,
       };
 
+      let flameTriggered = false;
       setMessages((prevMsgs) => {
         return prevMsgs.map((m) => {
           if (m.id !== msgId) return m;
@@ -1003,6 +999,12 @@ export default function ChatPanel({
                   channelId,
                   `[PLUGIN_ACTION]:${actionPayload}`
                 );
+                if (!flameTriggered) {
+                  flameTriggered = true;
+                  queueMicrotask(() => {
+                    triggerServerFlameInteraction(profile, server, onProfileChange);
+                  });
+                }
               }
 
               return { ...m, text: updatedText };
@@ -1016,7 +1018,7 @@ export default function ChatPanel({
         });
       });
     },
-    [profile, roomCode, channelId, setMessages]
+    [profile, server, onProfileChange, roomCode, channelId, setMessages]
   );
 
   const handleSaveEditMessage = useCallback(
@@ -1068,12 +1070,13 @@ export default function ChatPanel({
           text: cleanText,
         })}`;
         await window.electronAPI.sendChatMessage(roomCode, targetChannelId, forwardedText);
+        triggerServerFlameInteraction(profile, server, onProfileChange);
         notificationManager.showToast("Mensaje Reenviado", "El mensaje ha sido reenviado con éxito", "info");
       } catch (err) {
         console.error("Error forwarding message:", err);
       }
     },
-    [roomCode, channelId, channelName]
+    [roomCode, channelId, channelName, profile, server, onProfileChange]
   );
 
   const handleJumpToMessage = useCallback(
@@ -1241,15 +1244,7 @@ export default function ChatPanel({
               payloadSticker,
             );
 
-            if (profile && server) {
-              const updatedFlame = recordUserInteraction(profile, server.roomCode || server.id);
-              if (updatedFlame && window.electronAPI?.saveProfile) {
-                const nextProf = { ...profile, flame: updatedFlame };
-                window.electronAPI.saveProfile(nextProf).then((saved) => {
-                  if (saved) onProfileChange?.(saved);
-                });
-              }
-            }
+            triggerServerFlameInteraction(profile, server, onProfileChange);
           }
           setStickersTargetRect(null);
         }}
@@ -1274,15 +1269,7 @@ export default function ChatPanel({
               payloadFilePack,
             );
 
-            if (profile && server) {
-              const updatedFlame = recordUserInteraction(profile, server.roomCode || server.id);
-              if (updatedFlame && window.electronAPI?.saveProfile) {
-                const nextProf = { ...profile, flame: updatedFlame };
-                window.electronAPI.saveProfile(nextProf).then((saved) => {
-                  if (saved) onProfileChange?.(saved);
-                });
-              }
-            }
+            triggerServerFlameInteraction(profile, server, onProfileChange);
           }
           setStickersTargetRect(null);
         }}

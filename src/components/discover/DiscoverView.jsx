@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import Heading from "../ui/Heading";
 import DiscoverServerCard from "./DiscoverServerCard";
+import Tooltip from "../ui/Tooltip";
 import { soundEngine } from "../../lib/soundEngine";
 import { notificationManager } from "../../lib/notificationManager";
 
@@ -388,49 +389,50 @@ export default function DiscoverView({
             {tagsList.length > 0 && (
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 shrink-0">
                 {/* Reset / All communities button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playNav("select");
-                    setSelectedTag(null);
-                  }}
-                  className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate shrink-0 flex items-center gap-1.5 ${
-                    !selectedTag
-                      ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs"
-                      : "bg-onicord-surface/80 border-white/10 text-onicord-muted hover:text-onicord-text hover:border-white/20 hover:bg-onicord-surface"
-                  }`}
-                  title={t("chat.forumAllPosts", "Ver todas las comunidades")}
-                >
-                  <MaterialIcon name="apps" size={14} />
-                  <span>{t("chat.forumAll", "Todos")}</span>
-                </button>
+                <Tooltip content={t("chat.forumAllPosts", "Ver todas las comunidades")} side="bottom">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playNav("select");
+                      setSelectedTag(null);
+                    }}
+                    className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate shrink-0 flex items-center gap-1.5 ${
+                      !selectedTag
+                        ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs"
+                        : "bg-onicord-surface/80 border-onicord-tint/10 text-onicord-muted hover:text-onicord-text hover:border-onicord-tint/20 hover:bg-onicord-surface"
+                    }`}
+                  >
+                    <MaterialIcon name="apps" size={14} />
+                    <span>{t("chat.forumAll", "Todos")}</span>
+                  </button>
+                </Tooltip>
 
                 {/* Tag Badges */}
                 {tagsList.map(({ name, count }) => {
                   const isActive = selectedTag?.toLowerCase() === name.toLowerCase();
                   return (
-                    <button
-                      key={name}
-                      type="button"
-                      onClick={() => {
-                        soundEngine.playNav("select");
-                        setSelectedTag(isActive ? null : name);
-                      }}
-                      className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate max-w-[200px] shrink-0 flex items-center gap-1 ${
-                        isActive
-                          ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs scale-[1.02]"
-                          : "bg-onicord-surface/80 border-white/10 text-onicord-text hover:text-onicord-accent hover:border-onicord-accent/50 hover:bg-onicord-surface"
-                      }`}
-                      title={`#${name}`}
-                    >
-                      <span className={`font-semibold ${isActive ? "text-onicord-accent" : "text-onicord-muted"}`}>
-                        #
-                      </span>
-                      <span>{name}</span>
-                      <span className="text-2xs opacity-40 ml-0.5 font-mono">
-                        {count}
-                      </span>
-                    </button>
+                    <Tooltip key={name} content={`#${name}`} side="bottom">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playNav("select");
+                          setSelectedTag(isActive ? null : name);
+                        }}
+                        className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate max-w-[200px] shrink-0 flex items-center gap-1 ${
+                          isActive
+                            ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs scale-[1.02]"
+                            : "bg-onicord-surface/80 border-onicord-tint/10 text-onicord-text hover:text-onicord-accent hover:border-onicord-accent/50 hover:bg-onicord-surface"
+                        }`}
+                      >
+                        <span className={`font-semibold ${isActive ? "text-onicord-accent" : "text-onicord-muted"}`}>
+                          #
+                        </span>
+                        <span>{name}</span>
+                        <span className="text-2xs opacity-40 ml-0.5 font-mono">
+                          {count}
+                        </span>
+                      </button>
+                    </Tooltip>
                   );
                 })}
               </div>

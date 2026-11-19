@@ -107,7 +107,7 @@ export default function ServerStorageTab({ server }) {
           </h3>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-white bg-onicord-base/80 border border-white/10 px-2.5 py-1 rounded-lg">
+            <span className="text-xs font-mono font-bold text-onicord-text bg-onicord-base/80 border border-onicord-tint/10 px-2.5 py-1 rounded-lg">
               {formatBytes(totalSize)}
             </span>
             {files.length > 0 && (
@@ -130,8 +130,8 @@ export default function ServerStorageTab({ server }) {
 
         {/* Storage Bar Chart */}
         {files.length > 0 && (
-          <div className="space-y-2 pt-2 border-t border-white/5">
-            <div className="h-2.5 w-full bg-onicord-base/80 rounded-full overflow-hidden flex border border-white/5">
+          <div className="space-y-2 pt-2 border-t border-onicord-border">
+            <div className="h-2.5 w-full bg-onicord-base/80 rounded-full overflow-hidden flex border border-onicord-border">
               <div
                 style={{ width: `${getPercentage(imagesSize)}%` }}
                 className="bg-sky-500 h-full transition-all duration-300"
@@ -204,8 +204,8 @@ export default function ServerStorageTab({ server }) {
               onClick={() => handleCategoryChange(c.id)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
                 category === c.id
-                  ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold"
-                  : "bg-onicord-base/40 text-onicord-muted border-white/5 hover:bg-white/10 hover:text-white"
+                  ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold"
+                  : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-onicord-text"
               }`}
             >
               <MaterialIcon name={c.icon} size={14} />
@@ -223,9 +223,9 @@ export default function ServerStorageTab({ server }) {
             <span className="text-xs font-medium">{t("common.loading", "Cargando archivos...")}</span>
           </div>
         ) : filteredFiles.length === 0 ? (
-          <div className="p-8 rounded-xl bg-onicord-base/30 border border-white/5 flex flex-col items-center justify-center text-center space-y-2">
+          <div className="p-8 rounded-xl bg-onicord-base/30 border border-onicord-border flex flex-col items-center justify-center text-center space-y-2">
             <MaterialIcon name="folder_zip" size={36} className="text-onicord-muted opacity-40" />
-            <h4 className="text-xs font-bold text-white">
+            <h4 className="text-xs font-bold text-onicord-text">
               {t("serverSettings.storage.noFilesTitle", "Sin archivos en esta categoría")}
             </h4>
             <p className="text-[11px] text-onicord-muted max-w-sm leading-relaxed">
@@ -239,7 +239,7 @@ export default function ServerStorageTab({ server }) {
                 <div
                   key={file.id || file.localPath || `${file.name}-${index}`}
                   onClick={() => setPreviewIndex(index)}
-                  className="group relative bg-onicord-base/60 hover:bg-onicord-base border border-white/5 hover:border-onicord-accent/40 rounded-xl p-2.5 flex flex-col justify-between transition-all duration-200 cursor-pointer"
+                  className="group relative bg-onicord-base/60 hover:bg-onicord-base border border-onicord-border hover:border-onicord-accent/40 rounded-xl p-2.5 flex flex-col justify-between transition-all duration-200 cursor-pointer"
                   style={{ contain: "content" }}
                   title={t("common.clickToPreview", "Clic para previsualizar")}
                 >
@@ -276,12 +276,12 @@ export default function ServerStorageTab({ server }) {
 
                   {/* File text info */}
                   <div className="min-w-0">
-                    <h4 className="text-xs font-semibold text-white truncate leading-tight" title={file.name}>
+                    <h4 className="text-xs font-semibold text-onicord-text truncate leading-tight" title={file.name}>
                       {file.name}
                     </h4>
                     <div className="flex items-center justify-between mt-1 text-[10px] text-onicord-muted">
                       <span>{formatBytes(file.size)}</span>
-                      <span className="uppercase text-[9px] bg-white/5 px-1.5 py-0.5 rounded font-mono">
+                      <span className="uppercase text-[9px] bg-onicord-tint/5 px-1.5 py-0.5 rounded font-mono">
                         {file.extension.slice(1) || "FILE"}
                       </span>
                     </div>
@@ -296,7 +296,7 @@ export default function ServerStorageTab({ server }) {
                 <button
                   type="button"
                   onClick={() => setVisibleCount((prev) => prev + 24)}
-                  className="onicord-btn-secondary px-5 py-2 text-xs font-bold border border-onicord-island hover:bg-onicord-accent hover:text-onicord-mantle rounded-xl flex items-center gap-2 transition duration-150 cursor-pointer shadow-md"
+                  className="onicord-btn-secondary px-5 py-2 text-xs font-bold border border-onicord-island hover:bg-onicord-accent hover:text-onicord-on-accent rounded-xl flex items-center gap-2 transition duration-150 cursor-pointer shadow-md"
                 >
                   <MaterialIcon name="expand_more" size={16} />
                   <span>Cargar más ({filteredFiles.length - visibleCount} restantes)</span>

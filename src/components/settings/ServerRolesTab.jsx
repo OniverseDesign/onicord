@@ -102,7 +102,7 @@ export default function ServerRolesTab({
               onDragStart={(e) => handleRoleDragStart(e, "role", role.id)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleRoleDrop(e, role.id)}
-              className="flex flex-col bg-onicord-base/40 border border-white/5 p-3 rounded-2xl cursor-grab active:cursor-grabbing hover:border-white/10 transition-colors group"
+              className="flex flex-col bg-onicord-base/40 border border-onicord-border p-3 rounded-2xl cursor-grab active:cursor-grabbing hover:border-onicord-tint/10 transition-colors group"
             >
               <div className="flex gap-3 items-center w-full">
                 <div className="text-onicord-muted opacity-40 group-hover:opacity-80 px-1 py-1 select-none flex flex-col gap-[3px] shrink-0">
@@ -150,7 +150,7 @@ export default function ServerRolesTab({
                   className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors shrink-0 cursor-pointer ${
                     expandedRoleId === role.id
                       ? "bg-onicord-accent/20 text-onicord-accent"
-                      : "hover:bg-white/10 text-onicord-muted"
+                      : "hover:bg-onicord-tint/10 text-onicord-muted"
                   }`}
                   title={t("settings.roles.permissions", "Permisos del Rol")}
                 >
@@ -172,7 +172,7 @@ export default function ServerRolesTab({
               {expandedRoleId === role.id && (
                 <div
                   onMouseDown={(e) => e.stopPropagation()}
-                  className="w-full mt-3 p-4 bg-onicord-surface/80 border border-white/5 rounded-xl animate-fade-in cursor-default space-y-3"
+                  className="w-full mt-3 p-4 bg-onicord-surface/80 border border-onicord-border rounded-xl animate-fade-in cursor-default space-y-3"
                 >
                   <p className="font-bold text-onicord-accent uppercase tracking-wider text-[10px] select-none text-left flex items-center gap-1.5">
                     <MaterialIcon name="lock_person" size={14} />
@@ -351,7 +351,7 @@ export default function ServerRolesTab({
           </div>
 
           {defaultRoleSettings?.enabled && (
-            <div className="mt-3 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+            <div className="mt-3 pt-3 border-t border-onicord-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
               <label className="text-xs font-semibold text-onicord-text">
                 {t(
                   "serverSettings.roles.chooseDefaultRole",

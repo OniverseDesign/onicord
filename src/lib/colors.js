@@ -163,6 +163,54 @@ export const ACCENT_PALETTE = Object.fromEntries(
 );
 
 /**
+ * Catppuccin Latte palette for Light Mode (higher contrast on light surfaces).
+ */
+export const ACCENT_PALETTE_LIGHT = {
+  lavender: "114 135 253",
+  rosewater: "220 138 120",
+  flamingo: "221 120 120",
+  pink: "234 118 203",
+  mauve: "136 57 239",
+  red: "210 15 57",
+  maroon: "230 69 83",
+  peach: "254 100 11",
+  yellow: "223 142 29",
+  green: "64 160 43",
+  teal: "23 146 153",
+  sky: "4 165 229",
+  sapphire: "32 159 181",
+  blue: "30 102 245",
+};
+
+const SEMANTIC_VAR_MAP = {
+  red: ["--onicord-danger", "--onicord-red", "--color-red-rgb"],
+  green: ["--onicord-success", "--color-green-rgb"],
+  sapphire: ["--onicord-sapphire", "--color-sapphire-rgb"],
+  rosewater: ["--onicord-rosewater", "--color-rosewater-rgb"],
+  flamingo: ["--onicord-flamingo", "--color-flamingo-rgb"],
+  pink: ["--onicord-pink", "--color-pink-rgb"],
+  mauve: ["--onicord-mauve", "--color-mauve-rgb"],
+  maroon: ["--onicord-maroon", "--color-maroon-rgb"],
+  peach: ["--onicord-peach", "--color-peach-rgb"],
+  yellow: ["--onicord-yellow", "--color-yellow-rgb"],
+  teal: ["--onicord-teal", "--color-teal-rgb"],
+  sky: ["--onicord-sky", "--color-sky-rgb"],
+  blue: ["--onicord-blue", "--color-blue-rgb"],
+};
+
+/**
+ * Returns "#11111b" or "#ffffff" for optimal contrast against an RGB background.
+ */
+function getContrastTextColor(r, g, b) {
+  const toLinear = (v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+  return luminance > 0.38 ? "#11111b" : "#ffffff";
+}
+
+/**
  * Converts RGB channels (0-255) to HSL ({ h: 0..360, s: 0..100, l: 0..100 })
  */
 export function rgbToHsl(r, g, b) {
@@ -317,10 +365,26 @@ export function applyDynamicTheme({
   if (isLight) {
     root.classList.add("light-mode");
     root.setAttribute("data-theme", "light");
+    root.style.colorScheme = "light";
   } else {
     root.classList.remove("light-mode");
     root.removeAttribute("data-theme");
+    root.style.colorScheme = "dark";
   }
+
+  // Apply adaptive interaction & border tokens
+  root.style.setProperty("--onicord-tint-rgb", isLight ? "15 23 42" : "255 255 255");
+  root.style.setProperty(
+    "--onicord-border",
+    isLight ? "rgb(15 23 42 / 0.09)" : "rgb(255 255 255 / 0.06)"
+  );
+  root.style.setProperty(
+    "--onicord-overlayer-bg",
+    isLight ? "rgba(248, 250, 252, 0.94)" : "rgba(17, 17, 27, 0.92)"
+  );
+  root.style.setProperty("--hover", isLight ? "rgba(15, 23, 42, 0.05)" : "rgba(255, 255, 255, 0.06)");
+  root.style.setProperty("--active", isLight ? "rgba(15, 23, 42, 0.10)" : "rgba(255, 255, 255, 0.12)");
+  root.style.setProperty("--message-hover", isLight ? "rgba(15, 23, 42, 0.035)" : "rgba(0, 0, 0, 0.12)");
 
   // Apply shadow variables
   const shadowVars = SHADOW_VARIABLES[isLight ? "light" : "dark"];
@@ -328,32 +392,48 @@ export function applyDynamicTheme({
     root.style.setProperty(varName, val);
   });
 
-  let accentRawRgb = "203 166 247";
+  // Update semantic & pastel palette for current mode (Mocha vs Latte)
+  const activePalette = isLight ? ACCENT_PALETTE_LIGHT : ACCENT_PALETTE;
+  Object.entries(SEMANTIC_VAR_MAP).forEach(([key, varNames]) => {
+    const val = activePalette[key];
+    if (val) {
+      varNames.forEach((varName) => root.style.setProperty(varName, val));
+    }
+  });
+
+  const dangerRgb = parseRgb(activePalette.red);
+  root.style.setProperty("--onicord-on-danger", getContrastTextColor(dangerRgb.r, dangerRgb.g, dangerRgb.b));
+
+  let accentRawRgb = activePalette.lavender;
   if (accentKeyOrHex.startsWith("#")) {
     const { r, g, b } = parseRgb(accentKeyOrHex);
     accentRawRgb = `${r} ${g} ${b}`;
   } else {
-    accentRawRgb = ACCENT_PALETTE[accentKeyOrHex] || "203 166 247";
+    accentRawRgb = activePalette[accentKeyOrHex] || activePalette.lavender;
   }
 
-  // Set active accent color variable
+  // Set active accent color variable & contrast-safe foreground
   root.style.setProperty("--onicord-lavender", accentRawRgb);
   root.style.setProperty("--onicord-accent", `rgb(${accentRawRgb})`);
 
-  // Extract accent hue
+  // Extract accent hue & contrast text color
   const { r, g, b } = parseRgb(accentRawRgb);
+  root.style.setProperty("--onicord-on-accent", getContrastTextColor(r, g, b));
   const { h: accentHue } = rgbToHsl(r, g, b);
 
   // Saturation factor: 50% slider value = 1.0 multiplier (default subtle tint)
   const satFactor = Math.max(0, Number(saturationPercentage)) / 50;
+  const textSatFactor = Math.min(1.0, satFactor * 0.55);
   const lightOffset = Number(lightnessOffset) || 0;
+  // Compress positive lightness offsets in light mode so layers never collapse into pure white
+  const effectiveLightOffset = isLight && lightOffset > 0 ? lightOffset * 0.075 : lightOffset;
 
   const structureBases = isLight ? STRUCTURE_BASES_LIGHT : STRUCTURE_BASES_DARK;
 
   // Recalculate each structural layer
   Object.values(structureBases).forEach(({ baseL, baseS, cssVar, bgVar }) => {
     const calculatedS = Math.min(100, Math.max(0, baseS * satFactor));
-    const calculatedL = Math.min(99, Math.max(1, baseL + lightOffset));
+    const calculatedL = Math.min(99, Math.max(1, baseL + effectiveLightOffset));
     const rawRgb = hslToRawRgb(accentHue, calculatedS, calculatedL);
 
     root.style.setProperty(cssVar, rawRgb);
@@ -363,7 +443,7 @@ export function applyDynamicTheme({
   // Recalculate dynamic text color variables tinted by accentHue
   const textBases = isLight ? TEXT_BASES_LIGHT : TEXT_BASES_DARK;
   Object.entries(textBases).forEach(([varName, { baseL, baseS }]) => {
-    const calculatedS = Math.min(100, Math.max(0, baseS * satFactor));
+    const calculatedS = Math.min(100, Math.max(0, baseS * textSatFactor));
     const calculatedL = Math.min(99, Math.max(1, baseL));
     const rawRgb = hslToRawRgb(accentHue, calculatedS, calculatedL);
 
@@ -375,7 +455,7 @@ export function applyDynamicTheme({
   const iconBgColor = `rgb(${hslToRawRgb(
     accentHue,
     Math.min(100, Math.max(0, 16.2 * satFactor)),
-    Math.min(99, Math.max(1, (isLight ? 20 : 22.9) + lightOffset))
+    Math.min(99, Math.max(1, (isLight ? 92 : 22.9) + effectiveLightOffset))
   )})`;
 
   updateDynamicAppIcon({

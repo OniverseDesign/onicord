@@ -404,7 +404,7 @@ export default function PdfViewer({ filePath, className = "" }) {
           onClick={handleToggleFitWidth}
           className={`onicord-icon-btn w-8 h-8 rounded-full flex items-center justify-center text-sm cursor-pointer transition-all ${
             autoFit
-              ? "bg-onicord-accent text-onicord-mantle hover:bg-onicord-accent/90"
+              ? "bg-onicord-accent text-onicord-on-accent hover:bg-onicord-accent/90"
               : "hover:text-onicord-accent"
           }`}
           title={t("pdf.fitWidth", "Ajustar al ancho")}
@@ -418,7 +418,7 @@ export default function PdfViewer({ filePath, className = "" }) {
         ref={scrollContainerRef}
         onScroll={handleScroll}
         onWheel={handleWheel}
-        className="w-full flex-1 min-h-[300px] overflow-auto rounded-2xl border border-white/10 bg-neutral-900/90 shadow-2xl relative select-text"
+        className="w-full flex-1 min-h-[300px] overflow-auto rounded-2xl border border-onicord-tint/10 bg-neutral-900/90 shadow-2xl relative select-text"
       >
         <div
           style={{

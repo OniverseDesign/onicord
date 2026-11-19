@@ -62,8 +62,37 @@
   --onicord-sky: var(--color-sky-rgb);
   --onicord-blue: var(--color-blue-rgb);
 
-  /* Interacciones */
-  --hover: hsla(2, 15%, 53%, 0.1);
-  --active: hsla(235, 15%, 53%, 0.2);
-  --message-hover: hsla(235, 0%, 0%, 0.1);
+  /* Interacciones y bordes adaptativos */
+  --onicord-tint-rgb: 255 255 255;
+  --onicord-border: rgb(var(--onicord-tint-rgb) / 0.06);
+  --onicord-on-accent: #11111b;
+  --onicord-on-danger: #11111b;
+  --onicord-overlayer-bg: rgba(17, 17, 27, 0.92);
+
+  --hover: rgba(255, 255, 255, 0.06);
+  --active: rgba(255, 255, 255, 0.12);
+  --message-hover: rgba(0, 0, 0, 0.12);
+}
+
+:root[data-theme="light"],
+:root.light-mode {
+  --color-base-rgb: 248 249 252;
+  --color-surface-rgb: 238 240 246;
+  --color-mantle-rgb: 224 227 236;
+  --color-overlay-rgb: 210 214 226;
+
+  --onicord-text: #181a24;
+  --onicord-subtext: #313545;
+  --onicord-muted: #5e6378;
+  --onicord-faded: #898ea3;
+
+  --onicord-tint-rgb: 15 23 42;
+  --onicord-border: rgb(var(--onicord-tint-rgb) / 0.09);
+  --onicord-on-accent: #ffffff;
+  --onicord-on-danger: #ffffff;
+  --onicord-overlayer-bg: rgba(248, 250, 252, 0.94);
+
+  --hover: rgba(15, 23, 42, 0.05);
+  --active: rgba(15, 23, 42, 0.10);
+  --message-hover: rgba(15, 23, 42, 0.035);
 }

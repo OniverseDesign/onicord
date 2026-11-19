@@ -18,13 +18,13 @@
     opacity: 1;
   }
   .onicord-message-toolbar-btn {
-    @apply flex h-7 w-8 items-center justify-center text-onicord-muted transition-colors cursor-pointer hover:bg-onicord-accent hover:text-white;
+    @apply flex h-7 w-8 items-center justify-center text-onicord-muted transition-colors cursor-pointer hover:bg-onicord-accent hover:text-onicord-on-accent;
   }
   .onicord-message-toolbar-btn-danger {
-    @apply hover:bg-onicord-danger hover:text-white;
+    @apply hover:bg-onicord-danger hover:text-onicord-on-danger;
   }
   .onicord-message-toolbar-btn-divider {
-    @apply border-r border-white/5;
+    @apply border-r border-onicord-border;
   }
   .onicord-mention {
     @apply font-bold text-onicord-accent text-sm shrink-0 cursor-pointer;

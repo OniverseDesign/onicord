@@ -328,7 +328,7 @@ export default function StickerManagerTab() {
         </h3>
 
         {Object.keys(packs).length === 0 ? (
-          <div className="py-8 text-center border border-white/5 rounded-2xl p-4 bg-onicord-base/20">
+          <div className="py-8 text-center border border-onicord-border rounded-2xl p-4 bg-onicord-base/20">
             <MaterialIcon
               name="collections"
               size={32}
@@ -357,12 +357,12 @@ export default function StickerManagerTab() {
               return (
                 <li
                   key={`pack-group-${packTitle}`}
-                  className="flex flex-col bg-onicord-base/60 border border-white/5 p-3.5 rounded-2xl hover:border-white/10 transition-colors space-y-3"
+                  className="flex flex-col bg-onicord-base/60 border border-onicord-border p-3.5 rounded-2xl hover:border-onicord-tint/10 transition-colors space-y-3"
                 >
                   {/* Installed Pack Header */}
                   <div className="flex items-center gap-3 w-full">
                     {/* Pack Icon */}
-                    <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden border border-white/5">
+                    <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden border border-onicord-border">
                       {firstStk ? (
                         <img
                           src={getMediaUrl(firstStk.localPath)}
@@ -380,7 +380,7 @@ export default function StickerManagerTab() {
                         <span className="font-bold text-xs text-onicord-text truncate">
                           {packTitle}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-white/5 text-onicord-muted">
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted">
                           v{version}
                         </span>
                         <span className="text-[10px] text-onicord-accent font-medium">
@@ -401,7 +401,7 @@ export default function StickerManagerTab() {
                       <button
                         type="button"
                         onClick={() => handleExportOPK(packTitle)}
-                        className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-onicord-text text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-text text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
                         title={t("stickers.exportPackTitle", "Exportar paquete .onipkg")}
                       >
                         <MaterialIcon name="download" size={14} />
@@ -410,7 +410,7 @@ export default function StickerManagerTab() {
                       <button
                         type="button"
                         onClick={() => handleEditPackInit(packTitle)}
-                        className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-onicord-text text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-text text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
                         title={t("stickers.editGroupTitle", "Editar grupo de stickers")}
                       >
                         <MaterialIcon name="edit" size={14} />
@@ -428,11 +428,11 @@ export default function StickerManagerTab() {
                   </div>
 
                   {/* Horizontal Sticker Pack Preview */}
-                  <div className="flex gap-2 overflow-x-auto minimal-scrollbar py-1.5 bg-black/20 p-2 rounded-xl border border-white/5">
+                  <div className="flex gap-2 overflow-x-auto minimal-scrollbar py-1.5 bg-onicord-base/50 p-2 rounded-xl border border-onicord-border">
                     {packStickers.map((stk) => (
                       <div
                         key={`pack-thumb-${packTitle}-${stk.id}`}
-                        className="w-11 h-11 rounded-lg bg-onicord-surface border border-white/5 shrink-0 flex items-center justify-center overflow-hidden"
+                        className="w-11 h-11 rounded-lg bg-onicord-surface border border-onicord-border shrink-0 flex items-center justify-center overflow-hidden"
                       >
                         <img
                           src={getMediaUrl(stk.localPath)}
@@ -464,7 +464,7 @@ export default function StickerManagerTab() {
             <span>{t("settings.stickers.loadingPacksCatalog", "Cargando catálogo de paquetes disponibles...")}</span>
           </div>
         ) : catalogPacks.length === 0 ? (
-          <div className="py-6 text-center border border-white/5 rounded-2xl p-4 bg-onicord-base/20">
+          <div className="py-6 text-center border border-onicord-border rounded-2xl p-4 bg-onicord-base/20">
             <p className="text-xs text-onicord-muted italic">
               {t("settings.stickers.noRemotePacks", "No hay paquetes de stickers disponibles en el catálogo remoto.")}
             </p>
@@ -483,10 +483,10 @@ export default function StickerManagerTab() {
               return (
                 <li
                   key={pack.id}
-                  className="flex items-center gap-3 bg-onicord-base/60 border border-white/5 p-3.5 rounded-2xl hover:border-white/10 transition-colors"
+                  className="flex items-center gap-3 bg-onicord-base/60 border border-onicord-border p-3.5 rounded-2xl hover:border-onicord-tint/10 transition-colors"
                 >
                   {/* Pack Cover / Icon */}
-                  <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden border border-white/5">
+                  <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden border border-onicord-border">
                     {pack.icon && !failedIcons[pack.id] ? (
                       <img
                         src={pack.icon}
@@ -510,7 +510,7 @@ export default function StickerManagerTab() {
                       <span className="font-bold text-xs text-onicord-text truncate">
                         {pack.name}
                       </span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-white/5 text-onicord-muted">
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted">
                         v{pack.version || "1.0"}
                       </span>
                       <span className="text-[10px] text-onicord-accent font-medium">
@@ -555,7 +555,7 @@ export default function StickerManagerTab() {
                       type="button"
                       onClick={() => handleDownloadCatalogPack(pack)}
                       disabled={isDownloading}
-                      className="px-3.5 py-1.5 rounded-onicord-button bg-onicord-accent text-onicord-dark text-xs font-semibold hover:opacity-90 transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
+                      className="px-3.5 py-1.5 rounded-onicord-button bg-onicord-accent text-onicord-on-accent text-xs font-semibold hover:opacity-90 transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
                     >
                       <MaterialIcon
                         name={isDownloading ? "sync" : "download"}
@@ -574,7 +574,7 @@ export default function StickerManagerTab() {
         )}
       </div>
 
-      <label className="onicord-btn-secondary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 rounded-2xl border border-white/10 hover:bg-onicord-surface transition cursor-pointer">
+      <label className="onicord-btn-secondary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 rounded-2xl border border-onicord-tint/10 hover:bg-onicord-surface transition cursor-pointer">
         <MaterialIcon name="add" size={16} />
         <span>
           {isuploadingMassive
@@ -682,13 +682,13 @@ export default function StickerManagerTab() {
                           className={`relative aspect-square rounded-onicord-button overflow-hidden bg-onicord-base/60 border cursor-pointer flex items-center justify-center group transition-all ${
                             isSelected
                               ? " border-2 border-onicord-accent bg-onicord-accent/10"
-                              : "border-onicord-island hover:border-white/20"
+                              : "border-onicord-island hover:border-onicord-tint/20"
                           }`}
                         >
                           <button
                             type="button"
                             onClick={(e) => handleDeleteStickerClick(e, stk)}
-                            className="absolute top-1.5 right-1.5 h-6 w-6 flex items-center justify-center rounded-lg bg-onicord-base text-onicord-muted border border-white/10 hover:text-white hover:bg-onicord-danger hover:border-onicord-danger/20 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-30"
+                            className="absolute top-1.5 right-1.5 h-6 w-6 flex items-center justify-center rounded-lg bg-onicord-base text-onicord-muted border border-onicord-tint/10 hover:text-onicord-text hover:bg-onicord-danger hover:border-onicord-danger/20 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-30"
                             title={t("common.delete", "Eliminar sticker")}
                           >
                             <Delete size="sm" />

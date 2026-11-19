@@ -38,7 +38,7 @@ export default function DeleteServerModal({ server, onClose, onConfirm }) {
 
           {/* Preview box */}
           <div className="onicord-modal-preview-box !justify-start items-center gap-3.5 p-3.5">
-            <div className="h-12 w-12 shrink-0 rounded-[14px] overflow-hidden bg-onicord-surface flex items-center justify-center border border-white/10 select-none shadow-sm">
+            <div className="h-12 w-12 shrink-0 rounded-[14px] overflow-hidden bg-onicord-surface flex items-center justify-center border border-onicord-tint/10 select-none shadow-sm">
               {server.icon ? (
                 <SmartAnimatedImage
                   src={server.icon}

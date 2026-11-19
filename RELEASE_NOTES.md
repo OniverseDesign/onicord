@@ -1,3 +1,18 @@
+# Onicord v0.3.0
+
+## Changes
+
+- **Server Rail Drag-and-Drop & Folder Management**: Implemented a pointer-events DND engine (`useServerRailDnd.js`) enabling smooth server reordering, drag-to-merge folder creation, extracting servers to the top rail, folder reordering, and boundary edge autoscrolling with animated drop indicators.
+- **Global Adaptive Design Token & Theme Standardization**: Systematically refactored over 100 UI components from hardcoded color literals to semantic, adaptive Onicord tokens (`border-onicord-border`, `bg-onicord-tint/*`, `text-onicord-text`, `text-onicord-on-accent`), guaranteeing visual consistency across themes.
+- **Portal-Based Tooltip System**: Introduced `Tooltip.jsx` rendered via React portals with viewport collision detection, directional arrows, configurable hover delays, and smooth exit transitions, replacing browser tooltips across rail, chat, and headers.
+- **WebRTC Voice Mesh & Peer Reconnection Safeguards**: Hardened P2P voice signaling, ICE candidate batching, and remote track attachment in `VoicePeerManager` and `WebRtcPeerWrapper`, preventing audio dropouts and renegotiation loops during rapid channel switches.
+- **Torrent Stream & Transcode Process Optimization**: Fine-tuned child process lifecycle management in `TorrentService`, adding graceful FFmpeg process cleanup on stream termination, fast seeking, and stereo downmix stabilization for multi-channel video playback.
+- **Chat Feed Layout & Markdown Rendering Polish**: Standardized typography tokens, hover action bars, reaction pills, and embed cards across `ChatMessageList` and `ChatInputArea`, eliminating layout shifts during media and message hydration.
+- **Interactive Dashboard & Sketchpad Widget Overhaul**: Refined dashboard grid layout, improved canvas responsiveness and palette selection in `SketchpadWidget`, and standardized hardware telemetry cards.
+- **Navigation & Sidebar Responsiveness**: Optimized `ChannelsSidebar` and `MembersSidebar` with adaptive scrollbars, role-grouped participant ordering, and persistent voice connection controls in `UserPanel`.
+- **Automated Theme Class Audit Tooling**: Introduced `scripts/audit-theme-classes.cjs` to scan the codebase for hardcoded color literals and untokenized classes, guaranteeing design system enforcement in continuous development.
+- **Application Lifecycle & IPC Performance Tuning**: Deferred non-essential background service initializations, refined global shortcut registration in `globalKeybindService`, and synchronized server metadata caches across SQLite and Hyperswarm swarms.
+
 # Onicord v0.2.9
 
 ## Changes

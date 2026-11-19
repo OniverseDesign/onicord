@@ -229,7 +229,7 @@ export default function Select({
                     "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-left text-xs transition-all duration-150 cursor-pointer",
                     isSelected
                       ? "bg-onicord-accent/15 text-onicord-accent font-semibold"
-                      : "text-onicord-text hover:bg-white/5 hover:text-white",
+                      : "text-onicord-text hover:bg-onicord-tint/5 hover:text-white",
                     opt.disabled && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-inherit",
                     optionClassName
                   )}

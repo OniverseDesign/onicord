@@ -346,7 +346,7 @@ export default function AboutTab() {
         <div className="absolute -top-12 -right-12 w-36 h-36 bg-onicord-accent/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="cursor-pointer group py-1" onClick={() => handleOpenLink(OFFICIAL_SITE_URL)}>
-          <OnicordLogo className="h-8 w-auto text-white group-hover:text-onicord-accent transition duration-300 drop-shadow-[0_0_12px_rgba(168,85,247,0.3)]" />
+          <OnicordLogo className="h-8 w-auto text-onicord-text group-hover:text-onicord-accent transition duration-300 drop-shadow-[0_0_12px_rgba(168,85,247,0.3)]" />
         </div>
         <p className="text-xs text-onicord-muted font-medium mt-1.5">
           {t("settings.about.tagline", "Chat de Voz y Texto P2P Abierto y Descentralizado")}
@@ -411,7 +411,7 @@ export default function AboutTab() {
                 <button
                   type="button"
                   onClick={() => handleOpenChangelog(APP_VERSION, false)}
-                  className="h-9 px-3.5 rounded-onicord-button bg-white/5 hover:bg-white/10 border border-white/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  className="h-9 px-3.5 rounded-onicord-button bg-onicord-tint/5 hover:bg-onicord-tint/10 border border-onicord-tint/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
                   title={t("settings.about.viewCurrentNotesTooltip", "Ver las notas de lanzamiento de la versión instalada")}
                 >
                   <MaterialIcon name="history_edu" size={16} />
@@ -434,7 +434,7 @@ export default function AboutTab() {
               <button
                 type="button"
                 onClick={() => handleOpenChangelog(updateState.version, true)}
-                className="h-9 px-3.5 rounded-onicord-button bg-white/5 hover:bg-white/10 border border-white/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                className="h-9 px-3.5 rounded-onicord-button bg-onicord-tint/5 hover:bg-onicord-tint/10 border border-onicord-tint/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
                 title={t("settings.about.viewNewNotesTooltip", "Ver notas de la nueva versión")}
               >
                 <MaterialIcon name="article" size={16} />
@@ -480,7 +480,7 @@ export default function AboutTab() {
         {/* Download progress bar */}
         {updateState.status === "downloading" && (
           <div className="mt-4 space-y-1.5 animate-fade-in">
-            <div className="w-full h-2 rounded-full bg-onicord-base overflow-hidden border border-white/5">
+            <div className="w-full h-2 rounded-full bg-onicord-base overflow-hidden border border-onicord-border">
               <div
                 className="h-full bg-gradient-to-r from-onicord-accent to-emerald-400 transition-all duration-300 rounded-full"
                 style={{ width: `${updateState.percent}%` }}
@@ -536,9 +536,9 @@ export default function AboutTab() {
           <button
             type="button"
             onClick={() => handleOpenLink(GITHUB_REPO_URL)}
-            className="flex items-center gap-3 p-3 rounded-xl bg-onicord-base/50 hover:bg-onicord-base/90 border border-white/5 hover:border-onicord-accent/30 transition text-left group cursor-pointer"
+            className="flex items-center gap-3 p-3 rounded-xl bg-onicord-base/50 hover:bg-onicord-base/90 border border-onicord-border hover:border-onicord-accent/30 transition text-left group cursor-pointer"
           >
-            <div className="w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-surface border border-white/5 flex items-center justify-center text-onicord-text group-hover:text-onicord-accent transition shrink-0">
+            <div className="w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-surface border border-onicord-border flex items-center justify-center text-onicord-text group-hover:text-onicord-accent transition shrink-0">
               <MaterialIcon name="code" size={20} className="leading-none" />
             </div>
             <div className="min-w-0 flex-1">
@@ -555,9 +555,9 @@ export default function AboutTab() {
           <button
             type="button"
             onClick={() => handleOpenLink(GITHUB_ISSUES_URL)}
-            className="flex items-center gap-3 p-3 rounded-xl bg-onicord-base/50 hover:bg-onicord-base/90 border border-white/5 hover:border-onicord-accent/30 transition text-left group cursor-pointer"
+            className="flex items-center gap-3 p-3 rounded-xl bg-onicord-base/50 hover:bg-onicord-base/90 border border-onicord-border hover:border-onicord-accent/30 transition text-left group cursor-pointer"
           >
-            <div className="w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-surface border border-white/5 flex items-center justify-center text-onicord-text group-hover:text-onicord-accent transition shrink-0">
+            <div className="w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-surface border border-onicord-border flex items-center justify-center text-onicord-text group-hover:text-onicord-accent transition shrink-0">
               <MaterialIcon name="bug_report" size={20} className="leading-none" />
             </div>
             <div className="min-w-0 flex-1">
@@ -574,9 +574,9 @@ export default function AboutTab() {
           <button
             type="button"
             onClick={() => handleOpenLink(OFFICIAL_SITE_URL)}
-            className="flex items-center gap-3 p-3 rounded-xl bg-onicord-base/50 hover:bg-onicord-base/90 border border-white/5 hover:border-onicord-accent/30 transition text-left group cursor-pointer sm:col-span-2"
+            className="flex items-center gap-3 p-3 rounded-xl bg-onicord-base/50 hover:bg-onicord-base/90 border border-onicord-border hover:border-onicord-accent/30 transition text-left group cursor-pointer sm:col-span-2"
           >
-            <div className="w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-surface border border-white/5 flex items-center justify-center text-onicord-text group-hover:text-onicord-accent transition shrink-0">
+            <div className="w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-surface border border-onicord-border flex items-center justify-center text-onicord-text group-hover:text-onicord-accent transition shrink-0">
               <MaterialIcon name="language" size={20} className="leading-none" />
             </div>
             <div className="min-w-0 flex-1">
@@ -594,7 +594,7 @@ export default function AboutTab() {
 
       {/* Open-source software credits */}
       <div className="onicord-settings-card">
-        <div className="border-b border-white/5 pb-2.5 mb-3.5">
+        <div className="border-b border-onicord-border pb-2.5 mb-3.5">
           <div className="flex items-center gap-2">
             <MaterialIcon name="code" size={18} className="text-onicord-accent shrink-0" />
             <h4 className="text-xs font-bold text-onicord-text uppercase tracking-wider">
@@ -612,9 +612,9 @@ export default function AboutTab() {
               key={project.name}
               type="button"
               onClick={() => handleOpenLink(project.url)}
-              className="flex items-start gap-3 p-3 rounded-xl bg-onicord-base/40 hover:bg-onicord-base/80 border border-white/5 hover:border-onicord-accent/30 transition text-left group cursor-pointer"
+              className="flex items-start gap-3 p-3 rounded-xl bg-onicord-base/40 hover:bg-onicord-base/80 border border-onicord-border hover:border-onicord-accent/30 transition text-left group cursor-pointer"
             >
-              <div className="w-9 h-9 min-w-[36px] min-h-[36px] aspect-square rounded-xl bg-onicord-surface border border-white/5 flex items-center justify-center text-onicord-text group-hover:text-onicord-accent transition shrink-0 mt-0.5">
+              <div className="w-9 h-9 min-w-[36px] min-h-[36px] aspect-square rounded-xl bg-onicord-surface border border-onicord-border flex items-center justify-center text-onicord-text group-hover:text-onicord-accent transition shrink-0 mt-0.5">
                 <MaterialIcon name={project.icon} size={18} className="leading-none" />
               </div>
               <div className="min-w-0 flex-1">
@@ -622,7 +622,7 @@ export default function AboutTab() {
                   <span className="text-xs font-bold text-onicord-text group-hover:text-onicord-accent transition truncate">
                     {project.name}
                   </span>
-                  <span className="text-2xs font-mono font-medium px-1.5 py-0.5 rounded bg-white/5 text-onicord-muted shrink-0">
+                  <span className="text-2xs font-mono font-medium px-1.5 py-0.5 rounded bg-onicord-tint/5 text-onicord-muted shrink-0">
                     {project.license}
                   </span>
                 </div>
@@ -638,11 +638,11 @@ export default function AboutTab() {
         </div>
 
         {/* Full dependencies and licenses list */}
-        <div className="mt-3.5 pt-3 border-t border-white/5">
+        <div className="mt-3.5 pt-3 border-t border-onicord-border">
           <button
             type="button"
             onClick={() => setShowThirdPartyLicenses((prev) => !prev)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-onicord-base/40 hover:bg-onicord-base/70 border border-white/5 text-xs text-onicord-muted hover:text-onicord-text transition cursor-pointer"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-onicord-base/40 hover:bg-onicord-base/70 border border-onicord-border text-xs text-onicord-muted hover:text-onicord-text transition cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <MaterialIcon name="policy" size={16} className="text-onicord-muted shrink-0" />
@@ -660,18 +660,18 @@ export default function AboutTab() {
           </button>
 
           {showThirdPartyLicenses && (
-            <div className="mt-2.5 p-3 rounded-lg bg-onicord-base/60 border border-white/5 text-xs space-y-2 animate-fadeIn">
+            <div className="mt-2.5 p-3 rounded-lg bg-onicord-base/60 border border-onicord-border text-xs space-y-2 animate-fadeIn">
               <p className="text-onicord-muted text-xs leading-relaxed">
                 {t(
                   "settings.about.thirdPartyNotice",
                   "Agradecemos profundamente a la comunidad de código abierto por hacer posible el ecosistema de Onicord."
                 )}
               </p>
-              <div className="divide-y divide-white/5 border border-white/5 rounded-md overflow-hidden bg-onicord-surface/40">
+              <div className="divide-y divide-onicord-border border border-onicord-border rounded-md overflow-hidden bg-onicord-surface/40">
                 {THIRD_PARTY_LIBRARIES.map((lib) => (
                   <div
                     key={lib.name}
-                    className="flex items-center justify-between px-3 py-1.5 text-xs font-mono hover:bg-white/[0.02] transition"
+                    className="flex items-center justify-between px-3 py-1.5 text-xs font-mono hover:bg-onicord-tint/[0.02] transition"
                   >
                     <div className="min-w-0 flex items-center gap-2">
                       <span className="font-semibold text-onicord-text truncate">{lib.name}</span>
@@ -679,7 +679,7 @@ export default function AboutTab() {
                         {`(${lib.purpose})`}
                       </span>
                     </div>
-                    <span className="text-2xs font-semibold text-onicord-muted px-1.5 py-0.5 rounded bg-white/5 shrink-0">
+                    <span className="text-2xs font-semibold text-onicord-muted px-1.5 py-0.5 rounded bg-onicord-tint/5 shrink-0">
                       {lib.license}
                     </span>
                   </div>
@@ -692,14 +692,14 @@ export default function AboutTab() {
 
       {/* System diagnostic data */}
       <div className="onicord-settings-card">
-        <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-2.5">
+        <div className="flex items-center justify-between border-b border-onicord-border pb-2.5 mb-2.5">
           <h4 className="text-xs font-bold text-onicord-muted uppercase tracking-wider">
             {t("settings.about.systemDebug", "Información de Diagnóstico")}
           </h4>
           <button
             type="button"
             onClick={handleCopyDebugInfo}
-            className="h-8 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-white/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer"
+            className="h-8 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-onicord-tint/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer"
           >
             <MaterialIcon
               name={copiedDebug ? "check" : "content_copy"}

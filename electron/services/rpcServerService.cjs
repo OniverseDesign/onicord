@@ -503,6 +503,9 @@ function createPipeServer(pipePath) {
 }
 
 function startRpcServer() {
+  if (activeServers.some((item) => item.server?.listening)) {
+    return;
+  }
   stopRpcServer();
   const paths = getPipePaths();
   for (const p of paths) {

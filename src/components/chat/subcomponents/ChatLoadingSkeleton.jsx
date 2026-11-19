@@ -7,7 +7,7 @@ export function SkeletonBox({ className = "", stagger = 1 }) {
   const staggerClass = `onicord-skeleton-stagger-${Math.min(Math.max(stagger, 1), 8)}`;
   return (
     <div
-      className={`onicord-skeleton-breath ${staggerClass} bg-white/[0.06] ${className}`}
+      className={`onicord-skeleton-breath ${staggerClass} bg-onicord-tint/[0.06] ${className}`}
       aria-hidden="true"
     />
   );
@@ -19,7 +19,7 @@ export function SkeletonBox({ className = "", stagger = 1 }) {
 export function ForumChannelSkeleton() {
   return (
     <div className="py-4 px-2 sm:px-4 md:px-6 max-w-6xl mx-auto w-full flex flex-col select-none animate-fade-in">
-      <div className="group relative bg-onicord-surface/40 border border-white/5 rounded-2xl p-4 sm:p-5 mb-3.5 text-left w-full shadow-xs flex flex-col">
+      <div className="group relative bg-onicord-surface/40 border border-onicord-border rounded-2xl p-4 sm:p-5 mb-3.5 text-left w-full shadow-xs flex flex-col">
         <div className="flex items-center gap-3 mb-2.5">
           <SkeletonBox className="h-11 w-11 rounded-full shrink-0 mt-0.5" stagger={1} />
           <div className="flex flex-col min-w-0 flex-1 leading-tight gap-1.5">
@@ -39,7 +39,7 @@ export function ForumChannelSkeleton() {
 
         <SkeletonBox className="aspect-[16/9] max-h-56 w-full max-w-2xl rounded-xl mb-3" stagger={3} />
 
-        <div className="flex flex-wrap items-center gap-2 mt-2 pt-2.5 border-t border-white/5">
+        <div className="flex flex-wrap items-center gap-2 mt-2 pt-2.5 border-t border-onicord-border">
           <SkeletonBox className="h-8 w-24 rounded-full" stagger={4} />
           <SkeletonBox className="h-8 w-28 rounded-full" stagger={4} />
           <div className="ml-auto">
@@ -48,7 +48,7 @@ export function ForumChannelSkeleton() {
         </div>
       </div>
 
-      <div className="group relative bg-onicord-surface/40 border border-white/5 rounded-2xl p-4 sm:p-5 mb-3.5 text-left w-full shadow-xs flex flex-col">
+      <div className="group relative bg-onicord-surface/40 border border-onicord-border rounded-2xl p-4 sm:p-5 mb-3.5 text-left w-full shadow-xs flex flex-col">
         <div className="flex items-center gap-3 mb-2.5">
           <SkeletonBox className="h-11 w-11 rounded-full shrink-0 mt-0.5" stagger={2} />
           <div className="flex flex-col min-w-0 flex-1 leading-tight gap-1.5">
@@ -73,13 +73,13 @@ export function ForumChannelSkeleton() {
           <SkeletonBox className="h-6 w-14 rounded-full" stagger={5} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 mt-2 pt-2.5 border-t border-white/5">
+        <div className="flex flex-wrap items-center gap-2 mt-2 pt-2.5 border-t border-onicord-border">
           <SkeletonBox className="h-8 w-24 rounded-full" stagger={5} />
           <SkeletonBox className="h-8 w-28 rounded-full" stagger={5} />
         </div>
       </div>
 
-      <div className="group relative bg-onicord-surface/40 border border-white/5 rounded-2xl p-4 sm:p-5 mb-3.5 text-left w-full shadow-xs flex flex-col">
+      <div className="group relative bg-onicord-surface/40 border border-onicord-border rounded-2xl p-4 sm:p-5 mb-3.5 text-left w-full shadow-xs flex flex-col">
         <div className="flex items-center gap-3 mb-2.5">
           <SkeletonBox className="h-11 w-11 rounded-full shrink-0 mt-0.5" stagger={3} />
           <div className="flex flex-col min-w-0 flex-1 leading-tight gap-1.5">
@@ -98,7 +98,7 @@ export function ForumChannelSkeleton() {
           <SkeletonBox className="h-7 w-14 rounded-full" stagger={5} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 mt-2 pt-2.5 border-t border-white/5">
+        <div className="flex flex-wrap items-center gap-2 mt-2 pt-2.5 border-t border-onicord-border">
           <SkeletonBox className="h-8 w-24 rounded-full" stagger={5} />
           <SkeletonBox className="h-8 w-28 rounded-full" stagger={5} />
         </div>
@@ -230,7 +230,7 @@ export function ThreadLoadingSkeleton({ isForum = false, isFadingOut = false, cl
     >
       {isForum ? (
         <div className="px-3">
-          <div className="group relative bg-onicord-surface/40 border border-white/5 rounded-2xl p-4 sm:p-5 mb-3.5 w-full shadow-xs flex flex-col">
+          <div className="group relative bg-onicord-surface/40 border border-onicord-border rounded-2xl p-4 sm:p-5 mb-3.5 w-full shadow-xs flex flex-col">
             <div className="flex items-center gap-3 mb-2.5">
               <SkeletonBox className="h-11 w-11 rounded-full shrink-0 mt-0.5" stagger={1} />
               <div className="flex flex-col gap-1.5 flex-1 min-w-0">

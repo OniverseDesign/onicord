@@ -8,7 +8,7 @@ export default function ChatDropZone({ isDragging }) {
 
   return (
     <div className="absolute inset-0 bg-onicord-accent/10 border-2 border-dashed border-onicord-accent m-2 rounded-onicord-outer-p4 flex flex-col items-center justify-center text-onicord-text pointer-events-none z-40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-onicord-surface p-4 rounded-full shadow-xl border border-white/5 mb-3">
+      <div className="bg-onicord-surface p-4 rounded-full shadow-xl border border-onicord-border mb-3">
         <svg
           className="w-8 h-8 text-onicord-accent animate-bounce"
           fill="none"

@@ -189,7 +189,7 @@ export default function NetworkPopover({
         )}
       </div>
 
-      <div className="text-[9px] font-mono bg-black/30 p-1.5 rounded-lg border border-white/5 text-onicord-faded space-y-0.5">
+      <div className="text-[9px] font-mono bg-black/30 p-1.5 rounded-lg border border-onicord-border text-onicord-faded space-y-0.5">
         <div>
           <span className="text-onicord-accent font-bold">{t("network.topology")}:</span> {networkTopology.toUpperCase()}
         </div>

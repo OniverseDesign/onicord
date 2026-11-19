@@ -258,7 +258,7 @@ const MentionsPopover = memo(
         onMouseDown={(e) => e.preventDefault()}
         className="onicord-floating-menu bottom-[calc(100%+8px)] left-2 w-[calc(100%-32px)] max-w-md"
       >
-        <div className="onicord-context-menu-title border-b border-white/[0.02] pb-1 mb-1 flex items-center justify-between text-xs text-onicord-muted">
+        <div className="onicord-context-menu-title border-b border-onicord-tint/[0.02] pb-1 mb-1 flex items-center justify-between text-xs text-onicord-muted">
           <span>{t ? t("chat.mentionUser", "Menciones") : "Menciones"}</span>
           {filteredRoles.length > 0 && (
             <span className="text-[10px] opacity-60 font-mono">
@@ -277,7 +277,7 @@ const MentionsPopover = memo(
                 onMouseEnter={() => setSelectedIndex(index)}
                 className={`flex items-center justify-between px-2.5 py-1.5 rounded cursor-pointer transition-colors text-xs group ${
                   isSelected
-                    ? "bg-onicord-accent text-onicord-surface"
+                    ? "bg-onicord-accent text-onicord-on-accent"
                     : "hover:bg-onicord-accent/20 text-onicord-text"
                 }`}
               >
@@ -294,7 +294,7 @@ const MentionsPopover = memo(
                         className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${
                           isSelected
                             ? "bg-onicord-surface/20 text-onicord-surface"
-                            : "bg-white/10 text-onicord-muted group-hover:text-onicord-surface"
+                            : "bg-onicord-tint/10 text-onicord-muted group-hover:text-onicord-surface"
                         }`}
                       >
                         Rol
@@ -316,7 +316,7 @@ const MentionsPopover = memo(
                           className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold ${
                             isSelected
                               ? "bg-onicord-surface/20 text-onicord-surface"
-                              : "bg-white/5 text-onicord-muted group-hover:text-onicord-surface"
+                              : "bg-onicord-tint/5 text-onicord-muted group-hover:text-onicord-surface"
                           }`}
                         >
                           Vos

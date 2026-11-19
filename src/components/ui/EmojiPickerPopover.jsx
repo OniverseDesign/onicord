@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import MaterialIcon from "../icons/MaterialIcon";
+import Tooltip from "./Tooltip";
 import { soundEngine } from "../../lib/soundEngine";
 
 const calculateEmojiCoords = (targetRect, align = "right") => {
@@ -553,20 +554,20 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
       className="onicord-floating-menu w-80 h-96 flex flex-col !p-0 overflow-hidden z-popover"
     >
       {/* Search Header */}
-      <div className="p-2.5 border-b border-white/10 bg-onicord-mantle/50 flex items-center gap-2">
+      <div className="p-2.5 border-b border-onicord-tint/10 bg-onicord-mantle/50 flex items-center gap-2">
         <MaterialIcon name="search" size="lg" className="text-onicord-muted pl-1" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={t("chat.searchEmojisPlaceholder", "Buscar emojis...")}
-          className="w-full bg-transparent text-xs text-white placeholder-onicord-muted outline-none"
+          className="w-full bg-transparent text-xs text-onicord-text placeholder-onicord-muted outline-none"
           autoFocus
         />
         {searchTerm && (
           <button
             onClick={() => setSearchTerm("")}
-            className="text-onicord-muted hover:text-white text-xs pr-1"
+            className="text-onicord-muted hover:text-onicord-text text-xs pr-1"
           >
             ✕
           </button>
@@ -575,36 +576,37 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
 
       {/* Tabs Navigation (only when not searching) */}
       {!searchTerm && (
-        <div className="flex items-center justify-around px-2 py-1.5 border-b border-white/5 bg-white/[0.02] shrink-0">
+        <div className="flex items-center justify-around px-2 py-1.5 border-b border-onicord-border bg-onicord-tint/[0.02] shrink-0">
           {/* Clock icon for Recents if populated */}
           {recentEmojis.length > 0 && (
-            <button
-              onClick={() => handleTabClick("recent")}
-              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 cursor-pointer ${
-                activeTab === "recent"
-                  ? "bg-onicord-accent text-white scale-110 font-bold"
-                  : "hover:bg-onicord-accent/50 text-onicord-text hover:text-white/80"
-              }`}
-              title={t("chat.emojis.recent", "Recientes")}
-            >
-              <MaterialIcon name="schedule" size={16} />
-            </button>
+            <Tooltip content={t("chat.emojis.recent", "Recientes")} side="top">
+              <button
+                onClick={() => handleTabClick("recent")}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 cursor-pointer ${
+                  activeTab === "recent"
+                    ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold"
+                    : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent"
+                }`}
+              >
+                <MaterialIcon name="schedule" size={16} />
+              </button>
+            </Tooltip>
           )}
 
           {/* Standard Categories */}
           {EMOJI_CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => handleTabClick(cat.id)}
-              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 cursor-pointer ${
-                activeTab === cat.id
-                  ? "bg-onicord-accent text-white scale-110 font-bold"
-                  : "hover:bg-onicord-accent/50 text-onicord-text hover:text-white/80"
-              }`}
-              title={t(`chat.emojis.${cat.id}`, cat.name)}
-            >
-              <MaterialIcon name={cat.icon} size={16} />
-            </button>
+            <Tooltip key={cat.id} content={t(`chat.emojis.${cat.id}`, cat.name)} side="top">
+              <button
+                onClick={() => handleTabClick(cat.id)}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 cursor-pointer ${
+                  activeTab === cat.id
+                    ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold"
+                    : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent"
+                }`}
+              >
+                <MaterialIcon name={cat.icon} size={16} />
+              </button>
+            </Tooltip>
           ))}
         </div>
       )}
@@ -621,7 +623,7 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
               <button
                 key={`${emoji}-${idx}`}
                 onClick={() => handleSelectEmojiLocal(emoji)}
-                className="w-9 h-9 flex items-center justify-center text-xl hover:bg-white/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-110 cursor-pointer"
+                className="w-9 h-9 flex items-center justify-center text-xl hover:bg-onicord-tint/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-110 cursor-pointer"
               >
                 {emoji}
               </button>
@@ -647,7 +649,7 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
               ref={(el) => (sectionRefs.current["recent"] = el)}
               className="space-y-1.5"
             >
-              <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1">
+              <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
                 {t("chat.emojis.recent", "Recientes")}
               </h4>
               <div className="grid grid-cols-7 gap-1 pt-1">
@@ -655,7 +657,7 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
                   <button
                     key={`recent-${emoji}-${idx}`}
                     onClick={() => handleSelectEmojiLocal(emoji)}
-                    className="w-9 h-9 flex items-center justify-center text-xl hover:bg-white/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-110 cursor-pointer"
+                    className="w-9 h-9 flex items-center justify-center text-xl hover:bg-onicord-tint/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-110 cursor-pointer"
                   >
                     {emoji}
                   </button>
@@ -671,7 +673,7 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
               ref={(el) => (sectionRefs.current[cat.id] = el)}
               className="space-y-1.5 animate-fade-in"
             >
-              <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1">
+              <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
                 {t(`chat.emojis.${cat.id}`, cat.name)}
               </h4>
               <div className="grid grid-cols-7 gap-1 pt-1">
@@ -679,7 +681,7 @@ export default function EmojiPickerPopover({ targetRect, onSelectEmoji, onClose,
                   <button
                     key={`${cat.id}-${emoji}-${idx}`}
                     onClick={() => handleSelectEmojiLocal(emoji)}
-                    className="w-9 h-9 flex items-center justify-center text-xl hover:bg-white/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-110 cursor-pointer"
+                    className="w-9 h-9 flex items-center justify-center text-xl hover:bg-onicord-tint/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-110 cursor-pointer"
                   >
                     {emoji}
                   </button>

@@ -214,7 +214,7 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
         </div>
 
         {/* Join Server Section */}
-        <div className="mt-6 pt-5 border-t border-white/5">
+        <div className="mt-6 pt-5 border-t border-onicord-border">
           <Heading level={3} size="lg" className="text-center mb-3">
             {t("addServerModal.haveInviteTitle", "¿Ya tienes una invitación?")}
           </Heading>
@@ -235,7 +235,7 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
             type="button"
             disabled={Boolean(busyAction) || !parsedInvite.valid}
             onClick={handleJoin}
-            className="onicord-btn-secondary w-full mt-2.5 h-10 bg-onicord-overlay/60 hover:bg-onicord-overlay border border-white/5 text-onicord-text"
+            className="onicord-btn-secondary w-full mt-2.5 h-10 bg-onicord-overlay/60 hover:bg-onicord-overlay border border-onicord-border text-onicord-text"
           >
             {busyAction === "join"
               ? t("common.loading", "Cargando...")

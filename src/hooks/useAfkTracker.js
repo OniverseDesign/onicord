@@ -4,6 +4,7 @@ const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes AFK threshold
 
 export function useAfkTracker(explicitStatusMode = "online", onStatusChange) {
   const [isAfk, setIsAfk] = useState(false);
+  const isAfkRef = useRef(false);
   const timeoutRef = useRef(null);
   const onStatusChangeRef = useRef(onStatusChange);
   onStatusChangeRef.current = onStatusChange;
@@ -11,45 +12,53 @@ export function useAfkTracker(explicitStatusMode = "online", onStatusChange) {
   useEffect(() => {
     // Only auto-idle if explicit status is "online" (do not override explicit "dnd" or "invisible")
     if (explicitStatusMode !== "online") {
+      isAfkRef.current = false;
       setIsAfk(false);
       return;
     }
 
-    const resetTimer = () => {
-      if (isAfk) {
-        setIsAfk(false);
-        onStatusChangeRef.current?.("online");
-      }
-
+    const scheduleTimer = () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       timeoutRef.current = setTimeout(() => {
-        setIsAfk(true);
-        onStatusChangeRef.current?.("idle");
+        if (!isAfkRef.current) {
+          isAfkRef.current = true;
+          setIsAfk(true);
+          onStatusChangeRef.current?.("idle");
+        }
       }, IDLE_TIMEOUT_MS);
     };
 
-    resetTimer();
+    const handleUserActivity = () => {
+      if (isAfkRef.current) {
+        isAfkRef.current = false;
+        setIsAfk(false);
+        onStatusChangeRef.current?.("online");
+      }
+      scheduleTimer();
+    };
+
+    scheduleTimer();
 
     let lastMove = 0;
     const handleMouseMove = () => {
       const now = Date.now();
       if (now - lastMove > 2000) {
         lastMove = now;
-        resetTimer();
+        handleUserActivity();
       }
     };
 
     const otherEvents = ["keydown", "click", "scroll", "touchstart"];
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    otherEvents.forEach((evt) => window.addEventListener(evt, resetTimer, { passive: true }));
+    otherEvents.forEach((evt) => window.addEventListener(evt, handleUserActivity, { passive: true }));
 
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       window.removeEventListener("mousemove", handleMouseMove);
-      otherEvents.forEach((evt) => window.removeEventListener(evt, resetTimer));
+      otherEvents.forEach((evt) => window.removeEventListener(evt, handleUserActivity));
     };
-  }, [explicitStatusMode, isAfk]);
+  }, [explicitStatusMode]);
 
   return isAfk;
 }

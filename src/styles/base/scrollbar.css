@@ -18,7 +18,7 @@ html,
 
 ::-webkit-scrollbar-thumb,
 *::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--onicord-bg-overlay)) !important;
+  background-color: rgb(var(--onicord-bg-overlay) / 0.85) !important;
   border-radius: 9999px !important;
   border: 4px solid transparent !important;
   background-clip: padding-box !important;
@@ -49,7 +49,7 @@ html,
 
 .minimal-scrollbar::-webkit-scrollbar-thumb,
 * .minimal-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--onicord-bg-overlay)) !important;
+  background-color: rgb(var(--onicord-bg-overlay) / 0.85) !important;
   border-radius: 9999px !important;
   border: 2px solid transparent !important;
   background-clip: padding-box !important;

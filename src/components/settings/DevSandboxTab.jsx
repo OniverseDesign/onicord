@@ -185,15 +185,15 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-white/5">
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-onicord-border">
           {[0, 1, 5, 10, 20, 35, 65].map((d) => (
             <button
               key={d}
               onClick={() => handleApplyUserFlame(d)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                 flameDays === d
-                  ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold"
-                  : "bg-onicord-base/60 text-onicord-text border-white/10 hover:bg-white/10"
+                  ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold"
+                  : "bg-onicord-base/60 text-onicord-text border-onicord-tint/10 hover:bg-onicord-tint/10"
               }`}
             >
               {t("settings.devSandbox.set", "Fijar")} {d}d
@@ -256,7 +256,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
             </span>
           </button>
 
-          <div className="pt-2 border-t border-white/5">
+          <div className="pt-2 border-t border-onicord-border">
             <span className="text-[11px] font-semibold text-onicord-muted block mb-2">
               {t("settings.devSandbox.soundTestTitle", "Prueba de Sonidos de Interfaz:")}
             </span>
@@ -265,7 +265,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
                 <button
                   key={snd}
                   onClick={() => handlePlaySound(snd)}
-                  className="px-2.5 py-1.5 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-white/10 text-xs font-mono text-onicord-muted transition-colors cursor-pointer capitalize"
+                  className="px-2.5 py-1.5 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-onicord-tint/10 text-xs font-mono text-onicord-muted transition-colors cursor-pointer capitalize"
                 >
                   {snd}
                 </button>
@@ -284,7 +284,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
           <button
             disabled={exportingLogs}
             onClick={handleSaveAllUserLogs}
-            className="px-3.5 py-1.5 rounded-xl bg-onicord-accent hover:opacity-90 text-onicord-dark text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="px-3.5 py-1.5 rounded-xl bg-onicord-accent hover:opacity-90 text-onicord-on-accent text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             <MaterialIcon name={exportingLogs ? "sync" : "download"} size={14} className={exportingLogs ? "animate-spin" : ""} />
             <span>
@@ -347,7 +347,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
               window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 1 } }));
               notificationManager.showToast("Badge", "Insignia establecida en 1", "info");
             }}
-            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-white/10 text-white border border-white/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
           >
             <span className="w-2 h-2 rounded-full bg-onicord-danger" />
             <span>Badge: 1</span>
@@ -360,7 +360,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
               window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 5 } }));
               notificationManager.showToast("Badge", "Insignia establecida en 5", "info");
             }}
-            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-white/10 text-white border border-white/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
           >
             <span className="w-2 h-2 rounded-full bg-onicord-danger" />
             <span>Badge: 5</span>
@@ -373,7 +373,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
               window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 9 } }));
               notificationManager.showToast("Badge", "Insignia establecida en 9", "info");
             }}
-            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-white/10 text-white border border-white/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
           >
             <span className="w-2 h-2 rounded-full bg-onicord-danger" />
             <span>Badge: 9</span>
@@ -403,7 +403,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
               window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { reset: true } }));
               notificationManager.showToast("Badge", "Insignia limpiada (0)", "success");
             }}
-            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-onicord-muted hover:text-white border border-white/5 text-xs font-medium cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text border border-onicord-border text-xs font-medium cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
           >
             <MaterialIcon name="cleaning_services" size={14} />
             <span>Limpiar (0)</span>

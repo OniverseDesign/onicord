@@ -114,6 +114,8 @@ class ServerStore {
       createdAt: extra.createdAt || joinedRow.joined_at || Date.now(),
       joinedAt: joinedRow.joined_at || Date.now(),
       lastVisitedAt: joinedRow.last_visited_at || joinedRow.joined_at || Date.now(),
+      position: joinedRow.position ?? 0,
+      folderId: joinedRow.folder_id || null,
       plugins: Array.isArray(meta.plugins) ? meta.plugins : [],
       roles: Array.isArray(meta.roles) ? meta.roles : [],
       userRoles: meta.userRoles || {},
@@ -147,7 +149,7 @@ class ServerStore {
     const dbMgr = this._dbMgr();
     const serversListDb = dbMgr.getGlobalDb("servers_list");
     const rows = serversListDb
-      .prepare("SELECT * FROM joined_servers ORDER BY last_visited_at DESC")
+      .prepare("SELECT * FROM joined_servers ORDER BY position ASC, last_visited_at DESC")
       .all();
 
     const servers = rows.map((r) => this._assembleServerObjectSync(r));
@@ -329,6 +331,13 @@ class ServerStore {
       extraObj.metaVersion = Math.max(existingMeta?.version || 0, resolvedIsOwner ? 1 : 0);
       extraObj.metaUpdatedAt = Math.max(existingMeta?.updatedAt || 0, resolvedIsOwner ? now : 0);
 
+      const defaultPosition = existingRow?.position ?? (() => {
+        const maxRow = serversListDb
+          .prepare("SELECT MAX(position) AS max_pos FROM joined_servers")
+          .get();
+        return typeof maxRow?.max_pos === "number" ? maxRow.max_pos + 1 : 0;
+      })();
+
       serversListDb
         .prepare(`
           INSERT OR REPLACE INTO joined_servers (
@@ -344,7 +353,7 @@ class ServerStore {
           resolvedOwnerId,
           resolvedCreatorId,
           resolvedIsOwner ? 1 : 0,
-          existingRow?.position ?? 0,
+          defaultPosition,
           existingRow?.folder_id ?? null,
           existingRow?.muted ?? 0,
           existingRow?.last_read_channel_id || "general",

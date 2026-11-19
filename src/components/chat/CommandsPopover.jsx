@@ -280,7 +280,7 @@ const CommandsPopover = memo(
         onMouseDown={(e) => e.preventDefault()}
         className="onicord-floating-menu bottom-[calc(100%+8px)] left-2 w-[calc(100%-32px)] max-w-md"
       >
-        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-onicord-muted border-b border-white/[0.02] mb-1">
+        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-onicord-muted border-b border-onicord-tint/[0.02] mb-1">
           {t("chat.roomCommands", "Comandos de la sala")}
         </div>
         <div className="space-y-0.5 max-h-56 overflow-y-auto minimal-scrollbar">
@@ -294,7 +294,7 @@ const CommandsPopover = memo(
                 onMouseEnter={() => setSelectedIndex(index)}
                 className={`flex items-center justify-between px-2.5 py-1.5 rounded cursor-pointer transition-colors text-xs group ${
                   isSelected
-                    ? "bg-onicord-accent text-onicord-surface"
+                    ? "bg-onicord-accent text-onicord-on-accent"
                     : "hover:bg-onicord-accent/20 hover:text-white text-onicord-text"
                 }`}
               >

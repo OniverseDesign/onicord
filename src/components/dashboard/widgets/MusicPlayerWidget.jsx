@@ -176,7 +176,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
         {!currentTrack ? (
           <div className="flex flex-col items-center text-center gap-2 py-4 opacity-40">
             <div
-              className={`w-12 h-12 rounded-xl bg-white/[0.05] border border-white/5 flex items-center justify-center transition-colors ${textColor}`}
+              className={`w-12 h-12 rounded-xl bg-onicord-tint/[0.05] border border-onicord-border flex items-center justify-center transition-colors ${textColor}`}
             >
               <IconPlay size="lg" />
             </div>
@@ -189,7 +189,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
         ) : (
           <div className="w-full flex flex-col gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-24 h-24 rounded-onicord-button overflow-hidden bg-black/40 border border-white/5 shrink-0 shadow-md">
+              <div className="w-24 h-24 rounded-onicord-button overflow-hidden bg-black/40 border border-onicord-border shrink-0 shadow-md">
                 <img
                   src={currentTrack.thumbnail}
                   className="w-full h-full object-cover"
@@ -214,7 +214,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                     <span>{currentTime}</span>
                     <span>{currentTrack.duration}</span>
                   </div>
-                  <div className="h-2 bg-white/10 rounded-full overflow-hidden w-full relative transition-all">
+                  <div className="h-2 bg-onicord-tint/10 rounded-full overflow-hidden w-full relative transition-all">
                     <div
                       className="h-full bg-onicord-accent transition-all duration-150 rounded-full"
                       style={{ width: `${progressPercent}%` }}
@@ -229,9 +229,9 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                 <button
                   onClick={togglePlayPause}
                   disabled={!canManageMusic}
-                  className={`w-10 h-10 rounded-full bg-white/[0.05] hover:bg-onicord-accent hover:text-onicord-text flex items-center justify-center font-bold shadow-md transition-all border border-white/5 text-xs active:scale-95 ${
+                  className={`w-10 h-10 rounded-full bg-onicord-tint/[0.05] hover:bg-onicord-accent hover:text-onicord-text flex items-center justify-center font-bold shadow-md transition-all border border-onicord-border text-xs active:scale-95 ${
                     !canManageMusic
-                      ? "opacity-40 cursor-not-allowed hover:bg-white/[0.05]"
+                      ? "opacity-40 cursor-not-allowed hover:bg-onicord-tint/[0.05]"
                       : "cursor-pointer"
                   } ${textColor}`}
                   title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : undefined}
@@ -241,9 +241,9 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                 <button
                   onClick={handleSkip}
                   disabled={!canManageMusic}
-                  className={`w-8 h-8 rounded-full bg-white/[0.05] hover:bg-onicord-overlay hover:text-onicord-text flex items-center justify-center text-xs transition-all border border-white/5 active:scale-95 ${
+                  className={`w-8 h-8 rounded-full bg-onicord-tint/[0.05] hover:bg-onicord-overlay hover:text-onicord-text flex items-center justify-center text-xs transition-all border border-onicord-border active:scale-95 ${
                     !canManageMusic
-                      ? "opacity-40 cursor-not-allowed hover:bg-white/[0.05]"
+                      ? "opacity-40 cursor-not-allowed hover:bg-onicord-tint/[0.05]"
                       : "cursor-pointer"
                   } ${textColor}`}
                   title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : undefined}
@@ -253,9 +253,9 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                 <button
                   onClick={forceStop}
                   disabled={!canManageMusic}
-                  className={`w-8 h-8 rounded-full bg-white/[0.05] hover:bg-onicord-overlay hover:text-onicord-text flex items-center justify-center text-xs transition-all border border-white/5 active:scale-95 ${
+                  className={`w-8 h-8 rounded-full bg-onicord-tint/[0.05] hover:bg-onicord-overlay hover:text-onicord-text flex items-center justify-center text-xs transition-all border border-onicord-border active:scale-95 ${
                     !canManageMusic
-                      ? "opacity-40 cursor-not-allowed hover:bg-white/[0.05]"
+                      ? "opacity-40 cursor-not-allowed hover:bg-onicord-tint/[0.05]"
                       : "cursor-pointer"
                   } ${textColor}`}
                   title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : undefined}
@@ -268,10 +268,10 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all border active:scale-95 ${
                     repeatMode !== 0
                       ? "bg-onicord-accent/20 text-onicord-accent border-onicord-accent/30"
-                      : `bg-white/[0.05] hover:bg-onicord-overlay hover:text-onicord-text border-white/5 ${textColor}`
+                      : `bg-onicord-tint/[0.05] hover:bg-onicord-overlay hover:text-onicord-text border-onicord-border ${textColor}`
                   } ${
                     !canManageMusic
-                      ? "opacity-40 cursor-not-allowed hover:bg-white/[0.05]"
+                      ? "opacity-40 cursor-not-allowed hover:bg-onicord-tint/[0.05]"
                       : "cursor-pointer"
                   }`}
                   title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : t("widgets.music.repeatMode")}
@@ -283,7 +283,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                   )}
                 </button>
               </div>
-              <div className="flex-1 max-w-[150px] flex rounded-full bg-white/[0.05] items-center px-2.5 gap-1.5 min-w-0 h-8 border border-white/5 transition-all">
+              <div className="flex-1 max-w-[150px] flex rounded-full bg-onicord-tint/[0.05] items-center px-2.5 gap-1.5 min-w-0 h-8 border border-onicord-border transition-all">
                 <div
                   className={`flex items-center justify-center shrink-0 transition-colors ${textColor}`}
                 >
@@ -300,7 +300,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                     setVolume(val);
                     if (audioRef.current) audioRef.current.volume = val;
                   }}
-                  className="w-full h-1 bg-white/10 rounded-full appearance-none accent-onicord-accent cursor-pointer"
+                  className="w-full h-1 bg-onicord-tint/10 rounded-full appearance-none accent-onicord-accent cursor-pointer"
                   style={{
                     background: `linear-gradient(to right, #ffffff ${volume * 100}%, rgba(255, 255, 255, 0.1) ${volume * 100}%)`,
                   }}
@@ -311,8 +311,8 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
         )}
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0 z-10 bg-white/[0.03] rounded-xl border border-white/5 mt-4 overflow-hidden">
-        <div className="px-3 py-2 flex items-center gap-4 shrink-0 border-b border-white/[0.04]">
+      <div className="flex-1 flex flex-col min-h-0 z-10 bg-onicord-tint/[0.03] rounded-xl border border-onicord-border mt-4 overflow-hidden">
+        <div className="px-3 py-2 flex items-center gap-4 shrink-0 border-b border-onicord-tint/[0.04]">
           <button
             onClick={() => setActiveTab("queue")}
             className={`text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer ${activeTab === "queue" ? "text-onicord-accent" : `${textColor} opacity-50 hover:opacity-100`}`}
@@ -378,9 +378,9 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                 }}
                 onDragEnd={() => setDraggedIdx(null)}
                 onClick={() => handlePlayTrack(track)}
-                className={`flex items-center gap-2.5 p-1.5 rounded-lg group/item hover:bg-white/[0.04] transition-colors cursor-pointer select-none ${draggedIdx === idx ? "opacity-30 border border-dashed border-onicord-accent" : ""}`}
+                className={`flex items-center gap-2.5 p-1.5 rounded-lg group/item hover:bg-onicord-tint/[0.04] transition-colors cursor-pointer select-none ${draggedIdx === idx ? "opacity-30 border border-dashed border-onicord-accent" : ""}`}
               >
-                <div className="relative w-7 h-7 rounded-lg overflow-hidden bg-black/40 border border-white/5 shrink-0">
+                <div className="relative w-7 h-7 rounded-lg overflow-hidden bg-black/40 border border-onicord-border shrink-0">
                   <img
                     src={track.thumbnail}
                     className="w-full h-full object-cover"

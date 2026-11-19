@@ -115,7 +115,7 @@ export default function ActivityInviteCard({
   return (
     <div className="w-full max-w-md my-2 p-3 rounded-2xl bg-onicord-mantle border border-onicord-island select-none text-onicord-text font-sans flex items-stretch gap-3.5 shadow-sm transition-all duration-200 hover:border-onicord-accent/30">
       {/* Columna Izquierda: Imagen / Carátula de ancho fijo y altura completa */}
-      <div className="w-28 sm:w-32 self-stretch min-h-[108px] rounded-xl overflow-hidden shrink-0 bg-onicord-surface/40 border border-white/5 relative flex items-center justify-center">
+      <div className="w-28 sm:w-32 self-stretch min-h-[108px] rounded-xl overflow-hidden shrink-0 bg-onicord-surface/40 border border-onicord-border relative flex items-center justify-center">
         {coverUrl && !imgError ? (
           <img
             src={coverUrl}
@@ -160,12 +160,12 @@ export default function ActivityInviteCard({
 
           {roomCode && (
             <div className="flex items-center gap-1.5 pt-0.5">
-              <div className="flex items-center gap-1 bg-onicord-base/70 px-2 py-0.5 rounded border border-white/5 text-2xs font-mono font-bold text-onicord-accent tracking-wider">
+              <div className="flex items-center gap-1 bg-onicord-base/70 px-2 py-0.5 rounded border border-onicord-border text-2xs font-mono font-bold text-onicord-accent tracking-wider">
                 <span>#{roomCode}</span>
                 <button
                   type="button"
                   onClick={handleCopyCode}
-                  className="p-0.5 rounded hover:bg-white/10 text-onicord-muted hover:text-white transition-all cursor-pointer flex items-center justify-center"
+                  className="p-0.5 rounded hover:bg-onicord-tint/10 text-onicord-muted hover:text-white transition-all cursor-pointer flex items-center justify-center"
                   title={copied ? t("activityInvite.copied", "Copiado") : t("activityInvite.copyCode", "Copiar código")}
                 >
                   <MaterialIcon
@@ -183,7 +183,7 @@ export default function ActivityInviteCard({
         <button
           type="button"
           onClick={handleJoin}
-          className="w-full py-2 px-4 bg-onicord-accent hover:bg-onicord-accent/90 text-onicord-dark rounded-full font-bold text-xs transition-all duration-150 flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer shadow-sm"
+          className="w-full py-2 px-4 bg-onicord-accent hover:bg-onicord-accent/90 text-onicord-on-accent rounded-full font-bold text-xs transition-all duration-150 flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer shadow-sm"
         >
           <MaterialIcon name="play_arrow" size={15} />
           <span>{buttonText}</span>

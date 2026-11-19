@@ -160,7 +160,7 @@ export default function KeybindingsTab({
   return (
     <div className="onicord-settings-container space-y-5 animate-fade-in">
       <div className="onicord-settings-card">
-        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="flex items-center justify-between border-b border-onicord-border pb-3">
           <div>
             <h3 className="onicord-settings-section-title !m-0">
               <span>{t("settings.tabs.keybindings", "Atajos de Teclado")}</span>
@@ -173,7 +173,7 @@ export default function KeybindingsTab({
             <button
               type="button"
               onClick={handleResetDefaults}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 border border-white/10 text-onicord-muted hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-onicord-tint/5 border border-onicord-tint/10 text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/10 transition-colors cursor-pointer flex items-center gap-1.5"
               title={t("keybindings.resetDefaults", "Restablecer atajos por defecto")}
             >
               <MaterialIcon name="restart_alt" size={14} />
@@ -182,7 +182,7 @@ export default function KeybindingsTab({
             <button
               type="button"
               onClick={handleAddKeybinding}
-              className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-onicord-accent text-onicord-dark hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
+              className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-onicord-accent text-onicord-on-accent hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
             >
               <MaterialIcon name="add" size={14} weight={700} />
               <span>{t("keybindings.addShortcut", "Añadir atajo")}</span>
@@ -198,14 +198,14 @@ export default function KeybindingsTab({
             <button
               type="button"
               onClick={handleResetDefaults}
-              className="mt-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/5 border border-white/10 text-onicord-accent hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-1.5"
+              className="mt-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-onicord-tint/5 border border-onicord-tint/10 text-onicord-accent hover:bg-onicord-tint/10 transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <MaterialIcon name="restart_alt" size={14} />
               <span>{t("keybindings.resetDefaults", "Restablecer atajos por defecto")}</span>
             </button>
           </div>
         ) : (
-          <div className="pt-2 divide-y divide-white/5">
+          <div className="pt-2 divide-y divide-onicord-border">
             {keybindings.map((kb) => (
               <div key={kb.id} className="flex items-center justify-between py-3.5 gap-4">
                 {/* Action Selector */}
@@ -226,7 +226,7 @@ export default function KeybindingsTab({
                     className={`h-9 flex items-center justify-center px-3 rounded-lg border text-xs font-mono font-bold min-w-[120px] text-center select-none shadow-inner uppercase cursor-pointer transition-colors box-border ${
                       recordingId === kb.id
                         ? "bg-onicord-danger/10 border-onicord-danger/50 text-onicord-danger animate-pulse"
-                        : "bg-onicord-base border-white/15 text-onicord-accent hover:border-white/25"
+                        : "bg-onicord-base border-onicord-tint/15 text-onicord-accent hover:border-onicord-tint/25"
                     }`}
                   >
                     {recordingId === kb.id
@@ -249,10 +249,10 @@ export default function KeybindingsTab({
         )}
 
         {/* Info card sobre atajos de teclado vs mouse */}
-        <div className="mt-4 p-3 rounded-xl bg-onicord-base/40 border border-white/5 flex items-start gap-2.5 text-[11px] text-onicord-muted leading-relaxed">
+        <div className="mt-4 p-3 rounded-xl bg-onicord-base/40 border border-onicord-border flex items-start gap-2.5 text-[11px] text-onicord-muted leading-relaxed">
           <MaterialIcon name="info" size={16} className="text-onicord-accent shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-white/90 mb-0.5">
+            <p className="font-semibold text-onicord-text/90 mb-0.5">
               {t("keybindings.infoTitle", "Atajos de Teclado y Botones del Mouse")}
             </p>
             <p>

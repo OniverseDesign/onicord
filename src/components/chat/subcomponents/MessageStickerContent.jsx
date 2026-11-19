@@ -85,7 +85,7 @@ export default function MessageStickerContent({ rawText, timestamp }) {
             timestamp={timestamp}
           />
         ) : (
-          <div className="h-24 w-24 bg-white/[0.03] border border-white/5 animate-pulse rounded-onicord-button flex items-center justify-center opacity-40">
+          <div className="h-24 w-24 bg-onicord-tint/[0.03] border border-onicord-border animate-pulse rounded-onicord-button flex items-center justify-center opacity-40">
             🖼️
           </div>
         )}

@@ -117,7 +117,7 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
         <div className="flex flex-col gap-5 py-2">
           <div
             onClick={handleSelectFile}
-            className="p-8 rounded-onicord-inner bg-onicord-base/40 border-2 border-dashed border-white/10 hover:border-onicord-accent/50 hover:bg-onicord-base/60 transition-all text-center cursor-pointer group"
+            className="p-8 rounded-onicord-inner bg-onicord-base/40 border-2 border-dashed border-onicord-tint/10 hover:border-onicord-accent/50 hover:bg-onicord-base/60 transition-all text-center cursor-pointer group"
           >
             <div className="w-14 h-14 rounded-2xl bg-onicord-accent/10 border border-onicord-accent/25 flex items-center justify-center mx-auto mb-3 text-onicord-accent group-hover:scale-105 transition-transform">
               <MaterialIcon name="settings_backup_restore" size={28} />
@@ -212,7 +212,7 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
                         className={`flex items-center justify-between p-2.5 rounded-onicord-button border text-left text-xs transition-all cursor-pointer ${
                           isSelected
                             ? "bg-onicord-accent/15 border-onicord-accent/40 text-onicord-text font-medium shadow-sm"
-                            : "bg-onicord-base/30 border-white/5 text-onicord-muted hover:border-white/10"
+                            : "bg-onicord-base/30 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
                         }`}
                       >
                         <span className="truncate">
@@ -281,7 +281,7 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
                 {progress?.percent || 0}%
               </span>
             </div>
-            <div className="h-2.5 w-full bg-onicord-base rounded-full overflow-hidden border border-white/5 p-[2px]">
+            <div className="h-2.5 w-full bg-onicord-base rounded-full overflow-hidden border border-onicord-border p-[2px]">
               <div
                 className="h-full bg-onicord-accent rounded-full transition-all duration-300"
                 style={{ width: `${progress?.percent || 0}%` }}
@@ -372,7 +372,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
       <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-onicord-accent/5 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-onicord-accent/5 blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-[620px] rounded-onicord-outer-p4 border border-white/10 bg-onicord-surface p-6 sm:p-7 shadow-2xl shadow-black/50 onicord-animate-modal-in">
+      <div className="relative z-10 w-full max-w-[620px] rounded-onicord-outer-p4 border border-onicord-tint/10 bg-onicord-surface p-6 sm:p-7 shadow-2xl shadow-black/50 onicord-animate-modal-in">
         {showRestore ? (
           <>
             <header className="flex items-center justify-between mb-4">
@@ -441,7 +441,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="onicord-btn-secondary h-8 px-3 rounded-onicord-button text-xs font-semibold border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all cursor-pointer text-onicord-text"
+                    className="onicord-btn-secondary h-8 px-3 rounded-onicord-button text-xs font-semibold border border-onicord-tint/10 hover:border-onicord-tint/20 hover:bg-onicord-tint/5 transition-all cursor-pointer text-onicord-text"
                   >
                     {avatar
                       ? t("profileSetup.changeAvatar", "Cambiar foto")
@@ -478,7 +478,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                       value={nickname}
                       onChange={(e) => setNickname(e.target.value)}
                       maxLength={32}
-                      className="onicord-input h-10 px-3.5 text-sm rounded-onicord-button bg-onicord-base border border-white/10 text-onicord-text placeholder:text-onicord-faded focus:border-onicord-accent focus:ring-1 focus:ring-onicord-accent transition-all w-full"
+                      className="onicord-input h-10 px-3.5 text-sm rounded-onicord-button bg-onicord-base border border-onicord-tint/10 text-onicord-text placeholder:text-onicord-faded focus:border-onicord-accent focus:ring-1 focus:ring-onicord-accent transition-all w-full"
                       placeholder={t("profileTab.yourNamePlaceholder", "e.g. PlayerOne")}
                       autoFocus
                     />
@@ -503,7 +503,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                       value={customStatus}
                       onChange={(e) => setCustomStatus(e.target.value)}
                       maxLength={64}
-                      className="onicord-input h-10 px-3.5 text-sm rounded-onicord-button bg-onicord-base border border-white/10 text-onicord-text placeholder:text-onicord-faded focus:border-onicord-accent focus:ring-1 focus:ring-onicord-accent transition-all w-full"
+                      className="onicord-input h-10 px-3.5 text-sm rounded-onicord-button bg-onicord-base border border-onicord-tint/10 text-onicord-text placeholder:text-onicord-faded focus:border-onicord-accent focus:ring-1 focus:ring-onicord-accent transition-all w-full"
                       placeholder={t(
                         "profileTab.statusPlaceholder",
                         "Ej. En llamada de voz / Programando..."
@@ -525,7 +525,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                     <button
                       type="button"
                       onClick={() => setShowRestore(true)}
-                      className="onicord-btn-secondary h-10 px-4 rounded-onicord-button border border-white/10 hover:border-white/20 text-xs sm:text-sm font-semibold text-onicord-text transition-colors cursor-pointer"
+                      className="onicord-btn-secondary h-10 px-4 rounded-onicord-button border border-onicord-tint/10 hover:border-onicord-tint/20 text-xs sm:text-sm font-semibold text-onicord-text transition-colors cursor-pointer"
                     >
                       {t("profileSetup.restoreAccount", "Restaurar cuenta")}
                     </button>

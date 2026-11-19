@@ -41,7 +41,7 @@ export default function InviteModal({
     >
       <div
         className={cn(
-          "relative w-full max-w-sm rounded-2xl bg-onicord-surface border border-white/[0.06] shadow-2xl overflow-hidden onicord-animate-modal-in",
+          "relative w-full max-w-sm rounded-2xl bg-onicord-surface border border-onicord-tint/[0.06] shadow-2xl overflow-hidden onicord-animate-modal-in",
           isClosing && "onicord-animate-modal-out"
         )}
         onClick={(e) => e.stopPropagation()}
@@ -94,8 +94,8 @@ export default function InviteModal({
                 </div>
               )}
               {memberCount != null && memberCount > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/10 border border-white/60 shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-white/60 flex-shrink-0" />
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-onicord-tint/10 border border-onicord-tint/60 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-onicord-tint/60 flex-shrink-0" />
                   <span className="text-[11px] font-semibold text-onicord-text leading-none">
                     {memberCount.toLocaleString()} {t("inviteModal.members")}
                   </span>

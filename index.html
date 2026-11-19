@@ -12,6 +12,14 @@
       if (typeof global === "undefined") {
         window.global = window;
       }
+      try {
+        if (localStorage.getItem("onicord_theme_mode") === "light") {
+          var root = document.documentElement;
+          root.classList.add("light-mode");
+          root.setAttribute("data-theme", "light");
+          root.style.colorScheme = "light";
+        }
+      } catch (_) {}
     </script>
     <title>Onicord</title>
   </head>

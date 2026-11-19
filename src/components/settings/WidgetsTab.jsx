@@ -71,7 +71,7 @@ export default function WidgetsTab({
           })}
         </div>
 
-        <div className="pt-3 border-t border-white/5">
+        <div className="pt-3 border-t border-onicord-border">
           <button
             type="button"
             onClick={handleResetBento}

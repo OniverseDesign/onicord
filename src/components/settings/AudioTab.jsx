@@ -239,7 +239,7 @@ export default function AudioTab({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
           {/* Inputs (Microphone) */}
-          <div data-setting-id="inputDevice" className="space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-white/5 transition-all">
+          <div data-setting-id="inputDevice" className="space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-onicord-border transition-all">
             <label className="text-xs font-semibold text-onicord-text flex items-center justify-between">
               <span>{t("settings.voiceVideo.inputDevice", "Dispositivo de Entrada")}</span>
               <MaterialIcon name="mic" size={16} className="text-onicord-muted" />
@@ -285,7 +285,7 @@ export default function AudioTab({
           </div>
 
           {/* Salidas (Altavoces) */}
-          <div data-setting-id="outputDevice" className="space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-white/5 transition-all">
+          <div data-setting-id="outputDevice" className="space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-onicord-border transition-all">
             <label className="text-xs font-semibold text-onicord-text flex items-center justify-between">
               <span>{t("settings.voiceVideo.outputDevice", "Dispositivo de Salida")}</span>
               <MaterialIcon name="volume_up" size={16} className="text-onicord-muted" />
@@ -334,7 +334,7 @@ export default function AudioTab({
         {/* Camera (Webcam) */}
         <div
           data-setting-id="videoDevice"
-          className="mt-5 space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-white/5 transition-all"
+          className="mt-5 space-y-3 bg-onicord-base/40 p-4 rounded-xl border border-onicord-border transition-all"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex-1 min-w-0 space-y-2">
@@ -367,7 +367,7 @@ export default function AudioTab({
               className={`px-4 py-2 text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer sm:self-end ${
                 isTestingCamera
                   ? "bg-onicord-danger/20 text-onicord-danger border border-onicord-danger/30 hover:bg-onicord-danger/30"
-                  : "bg-onicord-accent text-onicord-dark font-semibold hover:opacity-90 shadow-sm"
+                  : "bg-onicord-accent text-onicord-on-accent font-semibold hover:opacity-90 shadow-sm"
               }`}
             >
               {isTestingCamera
@@ -382,7 +382,7 @@ export default function AudioTab({
 
           {isTestingCamera && (
             <div className="pt-2 flex justify-center">
-              <div className="w-full max-w-[320px] aspect-video rounded-xl overflow-hidden bg-black border border-white/10 shadow-lg relative">
+              <div className="w-full max-w-[320px] aspect-video rounded-xl overflow-hidden bg-black border border-onicord-tint/10 shadow-lg relative">
                 <video
                   ref={previewVideoRef}
                   autoPlay
@@ -410,7 +410,7 @@ export default function AudioTab({
             className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
               audio.inputMode === "vad"
                 ? "bg-onicord-accent/10 border-onicord-accent/50 text-onicord-text"
-                : "bg-onicord-base/40 border-white/5 text-onicord-muted hover:border-white/10"
+                : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
             }`}
           >
             <div className="flex items-center gap-2 mb-1.5">
@@ -435,7 +435,7 @@ export default function AudioTab({
             className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
               audio.inputMode === "ptt"
                 ? "bg-onicord-accent/10 border-onicord-accent/50 text-onicord-text"
-                : "bg-onicord-base/40 border-white/5 text-onicord-muted hover:border-white/10"
+                : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
             }`}
           >
             <div className="flex items-center gap-2 mb-1.5">
@@ -455,7 +455,7 @@ export default function AudioTab({
         </div>
 
         {audio.inputMode === "ptt" && (
-          <div className="mt-4 p-3.5 rounded-xl bg-onicord-base/40 border border-white/5 flex items-center justify-between gap-3 animate-fade-in">
+          <div className="mt-4 p-3.5 rounded-xl bg-onicord-base/40 border border-onicord-border flex items-center justify-between gap-3 animate-fade-in">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-onicord-accent/10 border border-onicord-accent/20 flex items-center justify-center text-onicord-accent shrink-0">
                 <MaterialIcon name="keyboard" size={18} />
@@ -481,7 +481,7 @@ export default function AudioTab({
 
         <div>
           {/* Microphone Test */}
-          <div data-setting-id="micTest" className="pb-3 border-b border-white/5 space-y-2 transition-all">
+          <div data-setting-id="micTest" className="pb-3 border-b border-onicord-border space-y-2 transition-all">
             <p className="onicord-settings-row-desc">
               {t("settings.voiceVideo.micTestHint", "¿Tienes problemas? Prueba hablar en tu micrófono para verificar la señal.")}
             </p>
@@ -492,12 +492,12 @@ export default function AudioTab({
                 className={`px-4 py-2 text-xs font-bold rounded-xl transition-all w-full sm:w-auto shrink-0 cursor-pointer ${
                   isTestingMic
                     ? "bg-onicord-danger/20 text-onicord-danger border border-onicord-danger/30 hover:bg-onicord-danger/30"
-                    : "bg-onicord-accent text-onicord-dark font-semibold hover:opacity-90 shadow-sm"
+                    : "bg-onicord-accent text-onicord-on-accent font-semibold hover:opacity-90 shadow-sm"
                 }`}
               >
                 {isTestingMic ? t("settings.voiceVideo.stopTest", "Detener Prueba") : t("settings.voiceVideo.testMic", "Probar Micrófono")}
               </button>
-              <div className="flex-1 w-full h-3 bg-onicord-base/60 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
+              <div className="flex-1 w-full h-3 bg-onicord-base/60 rounded-full overflow-hidden relative border border-onicord-border shadow-inner">
                 <div
                   className="absolute top-0 left-0 h-full bg-onicord-accent transition-all duration-75 ease-out rounded-full"
                   style={{ width: `${micLevel}%` }}
@@ -536,7 +536,7 @@ export default function AudioTab({
                 <span className="text-onicord-accent font-bold">Umbral: {audio.vadThreshold || 50}%</span>
                 <span>100dB</span>
               </div>
-              <div className="relative w-full h-4 bg-onicord-base/60 rounded-full overflow-hidden border border-white/5 shadow-inner group">
+              <div className="relative w-full h-4 bg-onicord-base/60 rounded-full overflow-hidden border border-onicord-border shadow-inner group">
                 <div
                   className={`absolute top-0 left-0 h-full transition-all duration-75 ${
                     micLevel > (audio.vadThreshold || 50) ? "bg-onicord-accent" : "bg-amber-500"
@@ -684,7 +684,7 @@ export default function AudioTab({
           </div>
 
           {(audio.autoDucking ?? true) && (
-            <div className="py-2.5 px-4 bg-onicord-base/30 rounded-lg mt-2 mb-1 border border-white/5">
+            <div className="py-2.5 px-4 bg-onicord-base/30 rounded-lg mt-2 mb-1 border border-onicord-border">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-[11px] font-semibold text-onicord-muted">
                   {t("settings.voiceVideo.autoDuckingAmount", "Nivel de atenuación")}

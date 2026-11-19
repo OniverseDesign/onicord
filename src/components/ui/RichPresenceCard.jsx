@@ -176,7 +176,7 @@ export default function RichPresenceCard({
 
             {/* Party / Lobby badge from RPC */}
             {party && party.size && (
-              <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-white/5 text-onicord-subtext flex items-center gap-1">
+              <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-onicord-tint/5 text-onicord-subtext flex items-center gap-1">
                 <MaterialIcon name="groups" size={12} />
                 <span>
                   {party.size}/{party.max || party.size}

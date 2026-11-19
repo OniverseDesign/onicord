@@ -150,8 +150,8 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
       </p>
 
       {!inspectedBackup ? (
-        <div className="border border-dashed border-white/10 hover:border-onicord-accent/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 bg-onicord-base/30 transition-colors text-center">
-          <div className="w-10 h-10 rounded-xl bg-onicord-base border border-white/5 flex items-center justify-center text-onicord-accent shadow-sm">
+        <div className="border border-dashed border-onicord-tint/10 hover:border-onicord-accent/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 bg-onicord-base/30 transition-colors text-center">
+          <div className="w-10 h-10 rounded-xl bg-onicord-base border border-onicord-border flex items-center justify-center text-onicord-accent shadow-sm">
             <MaterialIcon name="upload_file" size={22} />
           </div>
           <div>
@@ -172,9 +172,9 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
           </button>
         </div>
       ) : (
-        <div className="border border-white/10 rounded-2xl bg-onicord-base/40 p-4 space-y-4">
+        <div className="border border-onicord-tint/10 rounded-2xl bg-onicord-base/40 p-4 space-y-4">
           {/* Header of inspected backup */}
-          <div className="flex items-start justify-between gap-3 pb-3 border-b border-white/5">
+          <div className="flex items-start justify-between gap-3 pb-3 border-b border-onicord-border">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-full bg-onicord-accent/20 border border-onicord-accent/40 flex items-center justify-center shrink-0 overflow-hidden">
                 {inspectedBackup.profile?.avatar && (
@@ -198,7 +198,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
                 </div>
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold text-white truncate">
+                <p className="text-xs font-bold text-onicord-text truncate">
                   {inspectedBackup.profile?.nickname
                     ? inspectedBackup.profile.nickname
                     : inspectedBackup.fileName}
@@ -213,7 +213,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
               type="button"
               onClick={onCancelInspected}
               disabled={restoring}
-              className="p-1 rounded-lg text-onicord-muted hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 transition-colors cursor-pointer"
               title={t("common.close", "Cerrar")}
             >
               <MaterialIcon name="close" size={16} />
@@ -239,7 +239,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
                         size={15}
                         className="text-onicord-accent"
                       />
-                      <span className="text-xs font-medium text-white">{label}</span>
+                      <span className="text-xs font-medium text-onicord-text">{label}</span>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
                       <input
@@ -419,7 +419,7 @@ function LocalVaultCard({
         </div>
 
         {!loadingLocal && localBackups.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 gap-2 text-onicord-muted border border-white/5 rounded-2xl bg-onicord-base/20">
+          <div className="flex flex-col items-center justify-center py-6 gap-2 text-onicord-muted border border-onicord-border rounded-2xl bg-onicord-base/20">
             <MaterialIcon name="folder_off" size={24} className="opacity-30" />
             <p className="text-xs text-center">
               {t("settings.backup.noLocalBackups", "Aún no hay copias guardadas en la bóveda local.")}
@@ -430,10 +430,10 @@ function LocalVaultCard({
             {localBackups.map((b) => (
               <div
                 key={b.name}
-                className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-white/5 hover:border-white/10 transition-colors gap-3"
+                className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-onicord-border hover:border-onicord-tint/10 transition-colors gap-3"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-white truncate">{b.name}</p>
+                  <p className="text-xs font-semibold text-onicord-text truncate">{b.name}</p>
                   <div className="flex items-center flex-wrap gap-2 mt-0.5">
                     <span className="text-[10px] text-onicord-muted">{formatDate(b.createdAt)}</span>
                     <span className="text-[10px] font-mono text-onicord-muted">· {formatBytes(b.size)}</span>

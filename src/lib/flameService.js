@@ -277,6 +277,47 @@ export function recordUserInteraction(userProfile = {}, serverId = "") {
   return updatedFlameMap;
 }
 
+export function triggerServerFlameInteraction(profile, serverOrId, onProfileChange = null) {
+  const serverId =
+    typeof serverOrId === "string"
+      ? serverOrId
+      : serverOrId?.roomCode || serverOrId?.id || "";
+
+  if (!profile || !serverId) return null;
+
+  const prevFlame = profile.flame;
+  const updatedFlame = recordUserInteraction(profile, serverId);
+
+  if (!updatedFlame || updatedFlame === prevFlame) {
+    return null;
+  }
+
+  const nextProf = { ...profile, flame: updatedFlame };
+  onProfileChange?.(nextProf);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("onicord:profile-updated", { detail: nextProf })
+    );
+    if (window.electronAPI?.saveProfile) {
+      Promise.resolve(window.electronAPI.saveProfile(nextProf))
+        .then((saved) => {
+          if (saved) {
+            onProfileChange?.(saved);
+            window.dispatchEvent(
+              new CustomEvent("onicord:profile-updated", { detail: saved })
+            );
+          }
+        })
+        .catch((err) => {
+          console.error("[Flame] Error saving profile:", err);
+        });
+    }
+  }
+
+  return updatedFlame;
+}
+
 export function formatDateStr(timestamp) {
   if (!timestamp) return getTodayStr();
   const d = new Date(timestamp);

@@ -404,8 +404,8 @@ export default function ScreenShareModal({
                   className={cn(
                     "h-8 px-3 text-xs font-semibold rounded-lg border transition-all flex items-center gap-2 cursor-pointer select-none box-border",
                     isActive
-                      ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold shadow-sm"
-                      : "bg-onicord-base/40 text-onicord-muted border-white/5 hover:bg-white/10 hover:text-white"
+                      ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold shadow-sm"
+                      : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-onicord-text"
                   )}
                 >
                   <span>{tab.label}</span>
@@ -414,7 +414,7 @@ export default function ScreenShareModal({
                       "text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none",
                       isActive
                         ? "bg-black/20 text-onicord-dark"
-                        : "bg-white/5 text-onicord-muted"
+                        : "bg-onicord-tint/5 text-onicord-muted"
                     )}
                   >
                     {tab.count}
@@ -441,10 +441,10 @@ export default function ScreenShareModal({
                 className={cn(
                   "h-8 px-2.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer select-none box-border",
                   cameraDevices.length === 0
-                    ? "opacity-40 cursor-not-allowed bg-onicord-base/30 text-onicord-muted border-white/5"
+                    ? "opacity-40 cursor-not-allowed bg-onicord-base/30 text-onicord-muted border-onicord-border"
                     : includeWebcam
-                      ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold shadow-sm"
-                      : "bg-onicord-base/40 text-onicord-muted border-white/5 hover:bg-white/10 hover:text-white"
+                      ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold shadow-sm"
+                      : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-onicord-text"
                 )}
               >
                 <MaterialIcon name={includeWebcam ? "videocam" : "videocam_off"} size={16} />
@@ -463,8 +463,8 @@ export default function ScreenShareModal({
               className={cn(
                 "h-8 px-2.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer select-none box-border",
                 includeAudio
-                  ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold shadow-sm"
-                  : "bg-onicord-base/40 text-onicord-muted border-white/5 hover:bg-white/10 hover:text-white"
+                  ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold shadow-sm"
+                  : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-white"
               )}
             >
               <MaterialIcon name={includeAudio ? "volume_up" : "volume_off"} size={16} />
@@ -482,8 +482,8 @@ export default function ScreenShareModal({
               className={cn(
                 "h-8 px-3 text-xs font-semibold rounded-lg border transition-all flex items-center cursor-pointer select-none box-border",
                 isGameMode
-                  ? "bg-onicord-accent text-onicord-dark border-onicord-accent font-bold shadow-sm"
-                  : "bg-onicord-base/40 text-onicord-muted border-white/5 hover:bg-white/10 hover:text-white"
+                  ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold shadow-sm"
+                  : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-white"
               )}
             >
               <span>{t("screenShare.gameMode", "Modo Juegos")}</span>
@@ -508,7 +508,7 @@ export default function ScreenShareModal({
 
         {/* Compact Webcam options strip when Camera tab or Webcam PiP overlay is enabled */}
         {(activeTab === "camera" || (includeWebcam && cameraDevices.length > 0)) && (
-          <div className="px-6 py-2 bg-onicord-base/60 border-t border-b border-white/5 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div className="px-6 py-2 bg-onicord-base/60 border-t border-b border-onicord-border flex flex-wrap items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2 min-w-0 flex-1 max-w-[300px]">
               <MaterialIcon name="videocam" size={16} className="text-onicord-accent shrink-0" />
               <Select
@@ -528,7 +528,7 @@ export default function ScreenShareModal({
 
             <div className="flex items-center gap-2 shrink-0">
               {activeTab !== "camera" && (
-                <div className="flex items-center gap-1 bg-onicord-surface/80 p-1 rounded-lg border border-white/5">
+                <div className="flex items-center gap-1 bg-onicord-surface/80 p-1 rounded-lg border border-onicord-border">
                   <span className="text-[11px] font-medium text-onicord-muted px-1.5">
                     {t("screenShare.webcamPosition", "Posición")}:
                   </span>
@@ -549,8 +549,8 @@ export default function ScreenShareModal({
                         className={cn(
                           "w-6 h-6 rounded-md flex items-center justify-center transition-colors cursor-pointer",
                           isActivePos
-                            ? "bg-onicord-accent text-onicord-dark shadow-sm"
-                            : "text-onicord-muted hover:text-white hover:bg-white/10"
+                            ? "bg-onicord-accent text-onicord-on-accent shadow-sm"
+                            : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/10"
                         )}
                       >
                         <MaterialIcon name={opt.icon} size={14} />
@@ -568,7 +568,7 @@ export default function ScreenShareModal({
                   "h-7 px-2.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer select-none",
                   webcamMirror
                     ? "bg-onicord-accent/20 text-onicord-accent border-onicord-accent/40"
-                    : "bg-onicord-surface/80 text-onicord-muted border-white/5 hover:text-white"
+                    : "bg-onicord-surface/80 text-onicord-muted border-onicord-border hover:text-onicord-text"
                 )}
               >
                 <MaterialIcon name="flip" size={15} />
@@ -583,7 +583,7 @@ export default function ScreenShareModal({
           {activeTab === "camera" ? (
             cameraDevices.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-2 text-onicord-muted py-12 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-onicord-muted mb-1">
+                <div className="w-12 h-12 rounded-2xl bg-onicord-tint/5 border border-onicord-tint/10 flex items-center justify-center text-onicord-muted mb-1">
                   <MaterialIcon name="videocam_off" size={24} />
                 </div>
                 <p className="text-sm font-semibold text-onicord-text">
@@ -620,13 +620,13 @@ export default function ScreenShareModal({
                   />
                   {camPreviewLoading && (
                     <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2 text-onicord-muted">
-                      <div className="w-8 h-8 border-[3px] border-white/10 border-t-onicord-accent rounded-full animate-spin" />
+                      <div className="w-8 h-8 border-[3px] border-onicord-tint/10 border-t-onicord-accent rounded-full animate-spin" />
                       <span className="text-xs font-medium">
                         {t("screenShare.loadingCamera", "Iniciando vista previa...")}
                       </span>
                     </div>
                   )}
-                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/75 border border-white/10 text-[11px] font-semibold text-white flex items-center gap-1.5 backdrop-blur-md">
+                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/75 border border-onicord-tint/10 text-[11px] font-semibold text-white flex items-center gap-1.5 backdrop-blur-md">
                     <span className="w-2 h-2 rounded-full bg-onicord-accent animate-pulse" />
                     <span className="truncate max-w-[260px]">{selectedCameraLabel}</span>
                   </div>
@@ -635,7 +635,7 @@ export default function ScreenShareModal({
             )
           ) : loading ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 text-onicord-muted py-12">
-              <div className="w-9 h-9 border-[3px] border-white/10 border-t-onicord-accent rounded-full animate-spin" />
+              <div className="w-9 h-9 border-[3px] border-onicord-tint/10 border-t-onicord-accent rounded-full animate-spin" />
               <p className="text-xs font-medium">
                 {t("screenShare.loadingSources", "Buscando pantallas y ventanas...")}
               </p>
@@ -678,7 +678,7 @@ export default function ScreenShareModal({
                       "group relative flex flex-col rounded-xl overflow-hidden border transition-all duration-150 cursor-pointer select-none",
                       isSelected
                         ? "bg-onicord-mantle border-onicord-accent shadow-[0_0_16px_rgba(var(--onicord-accent),0.25)] ring-2 ring-onicord-accent/80"
-                        : "bg-onicord-mantle/70 border-white/5 hover:border-onicord-accent/40 hover:bg-onicord-mantle"
+                        : "bg-onicord-mantle/70 border-onicord-border hover:border-onicord-accent/40 hover:bg-onicord-mantle"
                     )}
                   >
                     {/* Preview Thumbnail */}
@@ -690,7 +690,7 @@ export default function ScreenShareModal({
                           className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-200"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-onicord-muted/30 text-xs">
+                        <div className="w-10 h-10 rounded-lg bg-onicord-tint/5 flex items-center justify-center text-onicord-muted/30 text-xs">
                           {src.name.slice(0, 2).toUpperCase()}
                         </div>
                       )}
@@ -709,7 +709,7 @@ export default function ScreenShareModal({
 
                       {/* Selected check badge */}
                       {isSelected && (
-                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-onicord-accent text-onicord-dark flex items-center justify-center shadow-md animate-scale-up">
+                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-onicord-accent text-onicord-on-accent flex items-center justify-center shadow-md animate-scale-up">
                           <svg
                             className="w-3.5 h-3.5"
                             viewBox="0 0 24 24"
@@ -739,7 +739,7 @@ export default function ScreenShareModal({
                         "p-2.5 flex items-center justify-between gap-2 transition-colors",
                         isSelected
                           ? "bg-onicord-accent/10 text-onicord-accent"
-                          : "text-onicord-text group-hover:bg-white/[0.03]"
+                          : "text-onicord-text group-hover:bg-onicord-tint/[0.03]"
                       )}
                     >
                       <span
@@ -759,7 +759,7 @@ export default function ScreenShareModal({
           )}
         </div>
 
-        <footer className="flex items-center justify-between px-6 py-3.5 shrink-0 bg-onicord-surface border-t border-white/5">
+        <footer className="flex items-center justify-between px-6 py-3.5 shrink-0 bg-onicord-surface border-t border-onicord-border">
           <div className="min-w-0 flex-1 pr-4">
             {activeTab === "camera" ? (
               cameraDevices.length > 0 ? (

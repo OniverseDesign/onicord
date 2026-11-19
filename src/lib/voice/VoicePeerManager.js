@@ -26,6 +26,7 @@ export class VoicePeerManager {
     lanPeerIPs = new Map(),
     initialMuted = false,
     initialDeafened = false,
+    onDeviceRebound = null,
   }) {
     this.options = { iceServers };
     this.audioSettings = audioSettings;
@@ -34,6 +35,7 @@ export class VoicePeerManager {
     this.onSignalOut = onSignalOut;
     this.onRemoteStream = onRemoteStream;
     this.onError = onError;
+    this.onDeviceRebound = onDeviceRebound;
     this.inputDeviceId = (inputDeviceId && inputDeviceId !== "default") ? inputDeviceId : "";
     this.outputDeviceId = (outputDeviceId && outputDeviceId !== "default") ? outputDeviceId : "";
     this.inputDeviceLabel = audioSettings?.inputDeviceLabel || "";
@@ -218,32 +220,65 @@ export class VoicePeerManager {
   }
 
   async _resolveValidDeviceId() {
-    if (!this.inputDeviceId || !this.inputDeviceLabel) return;
+    if (!this.inputDeviceId || this.inputDeviceId === "default") return;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const inputs = devices.filter((d) => d.kind === "audioinput");
       const exists = inputs.some((d) => d.deviceId === this.inputDeviceId);
       if (!exists) {
-        const match = inputs.find((d) => d.label && d.label.trim() === this.inputDeviceLabel.trim());
+        const match = this.inputDeviceLabel
+          ? inputs.find((d) => d.label && d.label.trim() === this.inputDeviceLabel.trim())
+          : null;
         if (match) {
           console.log(`[voice] Re-bound inputDeviceId from label "${this.inputDeviceLabel}": ${this.inputDeviceId} -> ${match.deviceId}`);
           this.inputDeviceId = match.deviceId;
+          if (this.audioSettings) {
+            this.audioSettings.inputDeviceId = match.deviceId;
+            this.audioSettings.inputDeviceLabel = match.label || this.inputDeviceLabel;
+          }
+          this.onDeviceRebound?.({
+            inputDeviceId: match.deviceId,
+            inputDeviceLabel: match.label || this.inputDeviceLabel,
+          });
+        } else {
+          console.warn(`[voice] Configured inputDeviceId ${this.inputDeviceId} not found; resetting to default.`);
+          this.inputDeviceId = "";
+          if (this.audioSettings) this.audioSettings.inputDeviceId = "";
+          this.onDeviceRebound?.({ inputDeviceId: "" });
         }
       }
     } catch {}
   }
 
   async _resolveValidOutputDeviceId() {
-    if (!this.outputDeviceId || !this.outputDeviceLabel) return;
+    if (!this.outputDeviceId || this.outputDeviceId === "default") return;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const outputs = devices.filter((d) => d.kind === "audiooutput");
       const exists = outputs.some((d) => d.deviceId === this.outputDeviceId);
       if (!exists) {
-        const match = outputs.find((d) => d.label && d.label.trim() === this.outputDeviceLabel.trim());
+        const match = this.outputDeviceLabel
+          ? outputs.find((d) => d.label && d.label.trim() === this.outputDeviceLabel.trim())
+          : null;
         if (match) {
           console.log(`[voice] Re-bound outputDeviceId from label "${this.outputDeviceLabel}": ${this.outputDeviceId} -> ${match.deviceId}`);
-          this.setOutputDevice(match.deviceId, match.label);
+          this.outputDeviceId = match.deviceId;
+          this.outputDeviceLabel = match.label || this.outputDeviceLabel;
+          if (this.audioSettings) {
+            this.audioSettings.outputDeviceId = match.deviceId;
+            this.audioSettings.outputDeviceLabel = this.outputDeviceLabel;
+          }
+          this.audioEngine.setOutputDevice(match.deviceId);
+          this.onDeviceRebound?.({
+            outputDeviceId: match.deviceId,
+            outputDeviceLabel: this.outputDeviceLabel,
+          });
+        } else {
+          console.warn(`[voice] Configured outputDeviceId ${this.outputDeviceId} not found; resetting to default.`);
+          this.outputDeviceId = "";
+          if (this.audioSettings) this.audioSettings.outputDeviceId = "";
+          this.audioEngine.setOutputDevice("");
+          this.onDeviceRebound?.({ outputDeviceId: "" });
         }
       }
     } catch {}
@@ -494,13 +529,10 @@ export class VoicePeerManager {
 
   async applyDeviceSettings(newSettings) {
     const oldSettings = { ...this.audioSettings };
+    const prevInputDeviceId = this.inputDeviceId;
     this.audioSettings = { ...oldSettings, ...newSettings };
     this.audioEngine.audioSettings = this.audioSettings;
     this.audioEngine.applyAudioSettings?.(this.audioSettings);
-
-    const inputChanged =
-      newSettings.inputDeviceId !== undefined &&
-      newSettings.inputDeviceId !== this.inputDeviceId;
 
     const filtersChanged =
       oldSettings.noiseSuppression !== newSettings.noiseSuppression ||
@@ -508,13 +540,26 @@ export class VoicePeerManager {
       oldSettings.autoGainControl !== newSettings.autoGainControl;
 
     if (newSettings.outputDeviceId !== undefined) {
-      this.setOutputDevice(newSettings.outputDeviceId, newSettings.outputDeviceLabel);
+      this.outputDeviceId = (newSettings.outputDeviceId && newSettings.outputDeviceId !== "default")
+        ? newSettings.outputDeviceId
+        : "";
+      if (newSettings.outputDeviceLabel) {
+        this.outputDeviceLabel = newSettings.outputDeviceLabel;
+      }
     }
     if (newSettings.inputDeviceId !== undefined) {
       this.setInputDevice(newSettings.inputDeviceId, newSettings.inputDeviceLabel);
     }
     await this._resolveValidDeviceId();
     await this._resolveValidOutputDeviceId();
+
+    if (newSettings.outputDeviceId !== undefined) {
+      this.audioEngine.setOutputDevice(this.outputDeviceId);
+    }
+
+    const inputChanged =
+      newSettings.inputDeviceId !== undefined &&
+      this.inputDeviceId !== prevInputDeviceId;
 
     if (oldSettings.outputVolume !== newSettings.outputVolume) {
       for (const peerId of this.audioEngine.peerAudio.keys()) {
@@ -648,12 +693,26 @@ export class VoicePeerManager {
     this._pendingRemoteSignals.clear();
   }
 
+  _isVideoShareStream(ownerId, remoteStream) {
+    if (!remoteStream) return false;
+    if (remoteStream.getVideoTracks().length > 0) return true;
+    const memberInfo = this.voiceMembers?.find((m) => m.peerId === ownerId);
+    if (
+      memberInfo?.videoStreamId &&
+      remoteStream.id === memberInfo.videoStreamId &&
+      remoteStream.id !== memberInfo.audioStreamId
+    ) {
+      return true;
+    }
+    return false;
+  }
+
   _ensureRemoteAudio(ownerId, track, remoteStream) {
     if (track.kind !== "audio") return;
 
     // Do not route screen share audio tracks to the voice chat engine!
     // Screen share audio is played and controlled exclusively by StreamDisplay.
-    if (remoteStream && remoteStream.getVideoTracks().length > 0) {
+    if (this._isVideoShareStream(ownerId, remoteStream)) {
       return;
     }
 
@@ -893,7 +952,7 @@ export class VoicePeerManager {
 
       this._ensureRemoteAudio(ownerId, track, remoteStream);
 
-      if (track.kind === "audio") {
+      if (track.kind === "audio" && !this._isVideoShareStream(ownerId, remoteStream)) {
         const entry = this.audioEngine.peerAudio.get(ownerId);
         if (entry) {
           entry.stream = remoteStream;
@@ -902,6 +961,23 @@ export class VoicePeerManager {
 
       if (track.kind === "video") {
         this._remoteVideoStreams.set(ownerId, remoteStream);
+        const videoAudioTracks = remoteStream?.getAudioTracks?.() || [];
+        const voiceEntry = this.audioEngine.peerAudio.get(ownerId);
+        if (voiceEntry?.stream && videoAudioTracks.length > 0) {
+          const currentVoiceTracks = voiceEntry.stream.getAudioTracks();
+          if (currentVoiceTracks.some((vt) => videoAudioTracks.includes(vt))) {
+            const cleanVoiceTracks = currentVoiceTracks.filter((vt) => !videoAudioTracks.includes(vt));
+            if (cleanVoiceTracks.length > 0) {
+              this.audioEngine.attachRemoteAudio({
+                peerId: ownerId,
+                stream: new MediaStream(cleanVoiceTracks),
+                volumeValue: this.getPeerVolume(ownerId),
+                deafened: this.deafened,
+                peersMap: this.peers,
+              });
+            }
+          }
+        }
         window.dispatchEvent(
           new CustomEvent("peer-video-update", {
             detail: { peerId: ownerId, stream: remoteStream },
@@ -1084,9 +1160,35 @@ export class VoicePeerManager {
     }
     window.electronAPI?.updateVoiceStreamIds?.(audioId, videoId, downlinkSpeed);
 
+    // Prepare AEC-cleaned screen audio track BEFORE syncing tracks across peers
+    // so both video and filtered audio are ready simultaneously without renegotiation races
+    let screenAudioTrack = null;
+    if (rawScreenAudioTrack) {
+      if (this._processedScreenAudio?.rawTrackId === rawScreenAudioTrack.id) {
+        screenAudioTrack = this._processedScreenAudio.track;
+      } else {
+        this._cleanupProcessedScreenAudio();
+        const processed = await this.audioEngine.createCleanScreenAudioTrack(rawScreenAudioTrack);
+        if (this._screenAudioSessionId !== sessionId || this.localVideoStream !== videoStream) {
+          processed?.cleanup?.();
+          return;
+        }
+        if (processed?.track) {
+          this._processedScreenAudio = {
+            rawTrackId: rawScreenAudioTrack.id,
+            track: processed.track,
+            cleanup: processed.cleanup,
+          };
+          screenAudioTrack = processed.track;
+        } else {
+          screenAudioTrack = rawScreenAudioTrack;
+        }
+      }
+    }
+
     const micTrack = this.localStream?.getAudioTracks()[0];
 
-    // Sync video track first without waiting on audio worklet initialization
+    // Sync video track and cleaned screen audio track together across connected peers
     for (const [peerId, peer] of this.peers.entries()) {
       if (!peer || peer.destroyed || !peer._pc) continue;
       peer.isGameMode = isGameMode;
@@ -1132,36 +1234,7 @@ export class VoicePeerManager {
       } catch (err) {
         console.warn(`[voice mesh] Error video sync with ${peerId}:`, err.message);
       }
-    }
 
-    // Prepare AEC-cleaned screen audio track (cancels Onicord voice loopback on Windows)
-    let screenAudioTrack = null;
-    if (rawScreenAudioTrack) {
-      if (this._processedScreenAudio?.rawTrackId === rawScreenAudioTrack.id) {
-        screenAudioTrack = this._processedScreenAudio.track;
-      } else {
-        this._cleanupProcessedScreenAudio();
-        const processed = await this.audioEngine.createCleanScreenAudioTrack(rawScreenAudioTrack);
-        if (this._screenAudioSessionId !== sessionId || this.localVideoStream !== videoStream) {
-          processed?.cleanup?.();
-          return;
-        }
-        if (processed?.track) {
-          this._processedScreenAudio = {
-            rawTrackId: rawScreenAudioTrack.id,
-            track: processed.track,
-            cleanup: processed.cleanup,
-          };
-          screenAudioTrack = processed.track;
-        } else {
-          screenAudioTrack = rawScreenAudioTrack;
-        }
-      }
-    }
-
-    // Sync screen audio track across connected peers
-    for (const [peerId, peer] of this.peers.entries()) {
-      if (!peer || peer.destroyed || !peer._pc) continue;
       try {
         const senders = peer._pc.getSenders() || [];
         const existingScreenAudioSender = senders.find(
@@ -1194,14 +1267,22 @@ export class VoicePeerManager {
         const videoTrack = receivers.map((r) => r.track).find((t) => t && t.kind === "video" && t.readyState === "live" && !t.muted);
         if (videoTrack) {
           videoTrack.enabled = true;
-          const cached = this._remoteVideoStreams.get(peerId);
-          if (cached && cached.getVideoTracks().includes(videoTrack)) {
-            return cached;
-          }
           const voiceTracks = this.audioEngine.peerAudio.get(peerId)?.stream?.getAudioTracks() || [];
           const screenAudioTracks = receivers
             .map((r) => r.track)
             .filter((t) => t && t.kind === "audio" && t.readyState === "live" && !voiceTracks.includes(t));
+
+          const cached = this._remoteVideoStreams.get(peerId);
+          if (cached && cached.getVideoTracks().includes(videoTrack)) {
+            const cachedAudioTracks = cached.getAudioTracks();
+            const audioMatches =
+              cachedAudioTracks.length === screenAudioTracks.length &&
+              screenAudioTracks.every((t) => cachedAudioTracks.includes(t));
+            if (audioMatches) {
+              return cached;
+            }
+          }
+
           const tracks = [videoTrack, ...screenAudioTracks];
           const liveStream = new MediaStream(tracks);
           this._remoteVideoStreams.set(peerId, liveStream);

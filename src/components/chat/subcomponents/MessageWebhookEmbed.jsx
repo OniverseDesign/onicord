@@ -95,7 +95,7 @@ function SingleWebhookEmbed({ embed }) {
         {/* Thumbnail lateral compacto con estilo OpenGraph */}
         {sideThumbnail && (
           <div
-            className="w-[120px] sm:w-[140px] h-[92px] shrink-0 bg-black/20 overflow-hidden rounded-onicord-button border border-white/5 flex items-center justify-center cursor-pointer hover:opacity-95 transition-opacity"
+            className="w-[120px] sm:w-[140px] h-[92px] shrink-0 bg-black/20 overflow-hidden rounded-onicord-button border border-onicord-border flex items-center justify-center cursor-pointer hover:opacity-95 transition-opacity"
             onClick={(e) => {
               e.stopPropagation();
               if (embed.url) {
@@ -134,7 +134,7 @@ function SingleWebhookEmbed({ embed }) {
 
       {/* 4. Large Image Box */}
       {bottomImage && (
-        <div className="w-full relative bg-black/40 overflow-hidden rounded-xl border border-white/5 flex items-center justify-center max-h-[360px] mt-1">
+        <div className="w-full relative bg-black/40 overflow-hidden rounded-xl border border-onicord-border flex items-center justify-center max-h-[360px] mt-1">
           <img
             src={bottomImage}
             alt=""

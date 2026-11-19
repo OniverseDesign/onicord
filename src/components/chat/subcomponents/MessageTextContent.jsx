@@ -108,7 +108,7 @@ export function parseBlocks(text, allUsers, searchQuery, roles = []) {
         return (
           <blockquote
             key={i}
-            className="border-l-4 border-onicord-accent/50 bg-white/5 pl-3 py-1.5 my-1.5 rounded-r-md text-onicord-muted italic text-left select-text leading-relaxed"
+            className="border-l-4 border-onicord-accent/50 bg-onicord-tint/5 pl-3 py-1.5 my-1.5 rounded-r-md text-onicord-muted italic text-left select-text leading-relaxed"
           >
             {parseInlineStyles(block.content, allUsers, searchQuery, roles)}
           </blockquote>
@@ -117,7 +117,7 @@ export function parseBlocks(text, allUsers, searchQuery, roles = []) {
         return (
           <h1
             key={i}
-            className="text-xl font-black text-white mt-4 mb-2 text-left select-text leading-snug border-b border-white/5 pb-1"
+            className="text-xl font-black text-white mt-4 mb-2 text-left select-text leading-snug border-b border-onicord-border pb-1"
           >
             {parseInlineStyles(block.content, allUsers, searchQuery, roles)}
           </h1>

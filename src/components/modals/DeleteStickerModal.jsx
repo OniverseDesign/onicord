@@ -34,7 +34,7 @@ export default function DeleteStickerModal({ sticker, onClose, onConfirm }) {
           </p>
 
           <div className="onicord-modal-preview-box">
-            <div className="w-14 h-14 bg-black/10 rounded-onicord-button p-2 flex items-center justify-center border border-white/[0.02]">
+            <div className="w-14 h-14 bg-black/10 rounded-onicord-button p-2 flex items-center justify-center border border-onicord-tint/[0.02]">
               <img
                 src={sticker.base64}
                 alt=""

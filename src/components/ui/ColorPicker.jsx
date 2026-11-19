@@ -89,8 +89,8 @@ export default function ColorPicker({
             className={cn(
               "w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95",
               isSelected
-                ? "border-white scale-105 ring-2 ring-white/10"
-                : "border-white/10 hover:border-white/30"
+                ? "border-onicord-text scale-105 ring-2 ring-onicord-tint/15"
+                : "border-onicord-tint/15 hover:border-onicord-tint/30"
             )}
             style={{ backgroundColor: bgStyle }}
             title={info.name}
@@ -124,8 +124,8 @@ export default function ColorPicker({
         onClick={handleCustomColorClick}
         className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95 relative overflow-hidden ${
           isCustomColor
-            ? "border-white scale-105 ring-2 ring-white/10"
-            : "border-white/10 hover:border-white/30 color-picker-cycle"
+            ? "border-onicord-text scale-105 ring-2 ring-onicord-tint/15"
+            : "border-onicord-tint/15 hover:border-onicord-tint/30 color-picker-cycle"
         }`}
         style={{
           backgroundColor: isCustomColor ? selectedColor : "#ff0055",

@@ -70,6 +70,8 @@ class NotificationManager {
       unmute: "toggle-on",
       deaf: "lock",
       undeaf: "unlock",
+      stream_start: "start",
+      stream_stop: "stop",
       message: "receive",
       notification: "notification",
     };
@@ -184,6 +186,14 @@ class NotificationManager {
         break;
       case "USER_LEFT_VOICE":
         soundEngine.playCue("disconnect");
+        break;
+      case "LOCAL_START_STREAM":
+      case "USER_START_STREAM":
+        soundEngine.playCue("start");
+        break;
+      case "LOCAL_STOP_STREAM":
+      case "USER_STOP_STREAM":
+        soundEngine.playCue("stop");
         break;
       case "LOCAL_MUTE":
         soundEngine.playCue(data.isMuted ? "toggle-off" : "toggle-on");

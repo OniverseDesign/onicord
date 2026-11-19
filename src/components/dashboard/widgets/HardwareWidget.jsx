@@ -181,7 +181,7 @@ export default function HardwareWidget({
       {/* Self-calibrating CPU history chart */}
       <div
         ref={containerRef}
-        className="h-[40%] w-full flex items-end justify-between gap-[2.5px] mt-1 pt-2 border-t border-white/5 relative overflow-hidden"
+        className="h-[40%] w-full flex items-end justify-between gap-[2.5px] mt-1 pt-2 border-t border-onicord-border relative overflow-hidden"
       >
         {visibleHistory.map((rawCpuValue, idx) => {
           const isLast = idx === visibleHistory.length - 1;
@@ -193,7 +193,7 @@ export default function HardwareWidget({
           return (
             <div
               key={idx}
-              className="flex-1 h-full min-w-[3px] bg-white/[0.01] rounded-full relative"
+              className="flex-1 h-full min-w-[3px] bg-onicord-tint/[0.01] rounded-full relative"
             >
               <div
                 style={{ height: `${heightBar}%` }}

@@ -297,7 +297,7 @@ export default function ServerOverviewTab({
 
               {/* Conditional Options */}
               {welcomeSettings?.enabled && (
-                <div className="mt-4 pt-4 border-t border-white/5 space-y-4 animate-fade-in">
+                <div className="mt-4 pt-4 border-t border-onicord-border space-y-4 animate-fade-in">
                   {/* Channel Selector */}
                   <div>
                     <label className="text-xs font-semibold text-onicord-text block mb-1.5">
@@ -361,7 +361,7 @@ export default function ServerOverviewTab({
                       }
                       placeholder={t("serverSettings.overview.defaultWelcomeTemplate", "¡Bienvenido {user} a {server}! 🎉")}
                       rows={3}
-                      className="w-full bg-onicord-base border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none focus:border-onicord-accent resize-none"
+                      className="w-full bg-onicord-base border border-onicord-tint/10 rounded-xl p-2.5 text-xs text-onicord-text outline-none focus:border-onicord-accent resize-none"
                     />
                     <div className="flex flex-col gap-1 mt-1.5">
                       <p className="text-[10px] text-onicord-muted">
@@ -413,7 +413,7 @@ export default function ServerOverviewTab({
                           <button
                             type="button"
                             onClick={() => bannerInputRef.current?.click()}
-                            className="px-3 py-1.5 rounded-xl bg-onicord-accent hover:bg-onicord-accent/80 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-transform hover:scale-105"
+                            className="px-3 py-1.5 rounded-xl bg-onicord-accent hover:bg-onicord-accent/80 text-onicord-on-accent text-xs font-bold flex items-center gap-1.5 shadow-md transition-transform hover:scale-105"
                             title={t(
                               "serverSettings.overview.changeBanner",
                               "Cambiar Portada",
@@ -430,7 +430,7 @@ export default function ServerOverviewTab({
                           <button
                             type="button"
                             onClick={() => setBanner(null)}
-                            className="px-1.5 py-1.5 rounded-xl bg-onicord-danger hover:bg-onicord-danger/80 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-transform hover:scale-105"
+                            className="px-1.5 py-1.5 rounded-xl bg-onicord-danger hover:bg-onicord-danger/80 text-onicord-on-danger text-xs font-bold flex items-center gap-1.5 shadow-md transition-transform hover:scale-105"
                             title={t(
                               "serverSettings.overview.removeBanner",
                               "Eliminar portada",
@@ -453,7 +453,7 @@ export default function ServerOverviewTab({
                       readOnly={readOnly}
                       removeOnHoverOnly={true}
                       circleClassName="border-[4px] border-onicord-base bg-onicord-surface"
-                      emptyClassName="bg-onicord-surface text-white"
+                      emptyClassName="bg-onicord-surface text-onicord-text"
                       circleStyle={{}}
                       title={!readOnly ? t("serverSettings.overview.changeIcon", "Cambiar Icono") : undefined}
                       removeTitle={t("common.delete", "Eliminar icono")}
@@ -462,7 +462,7 @@ export default function ServerOverviewTab({
                   {/* Server name + Flame on same row */}
                   <div className="flex items-center justify-between px-5 pt-2 pb-3">
                     <span
-                      className="text-[15px] font-semibold text-white truncate max-w-[200px]"
+                      className="text-[15px] font-semibold text-onicord-text truncate max-w-[200px]"
                       title={name}
                     >
                       {name || "Servidor"}
@@ -480,7 +480,7 @@ export default function ServerOverviewTab({
                     <div className="px-2.5 pt-2.5 pb-0">
                       <div
                         onClick={() => bannerInputRef.current?.click()}
-                        className="w-full h-[54px] rounded-xl border border-dashed border-white/15 hover:border-onicord-accent/50 bg-white/[0.02] hover:bg-white/[0.06] transition-all flex items-center justify-center gap-2 text-onicord-muted hover:text-white text-xs font-semibold cursor-pointer group"
+                        className="w-full h-[54px] rounded-xl border border-dashed border-onicord-tint/15 hover:border-onicord-accent/50 bg-onicord-tint/[0.02] hover:bg-onicord-tint/[0.06] transition-all flex items-center justify-center gap-2 text-onicord-muted hover:text-onicord-text text-xs font-semibold cursor-pointer group"
                         title={t(
                           "serverSettings.overview.uploadBanner",
                           "Subir Portada",
@@ -512,15 +512,15 @@ export default function ServerOverviewTab({
                         size="sm"
                         readOnly={readOnly}
                         removeOnHoverOnly={true}
-                        circleClassName="border border-white/10 bg-onicord-surface shadow-sm shrink-0"
-                        emptyClassName="bg-onicord-surface text-white"
+                        circleClassName="border border-onicord-tint/10 bg-onicord-surface shadow-sm shrink-0"
+                        emptyClassName="bg-onicord-surface text-onicord-text"
                         circleStyle={{}}
                         title={!readOnly ? t("serverSettings.overview.changeIcon", "Cambiar Icono") : undefined}
                         removeTitle={t("common.delete", "Eliminar icono")}
                       />
                       {/* Server Name */}
                       <span
-                        className="text-[14px] font-bold text-white truncate ml-2.5 max-w-[130px]"
+                        className="text-[14px] font-bold text-onicord-text truncate ml-2.5 max-w-[130px]"
                         title={name}
                       >
                         {name || "Servidor"}
@@ -547,7 +547,7 @@ export default function ServerOverviewTab({
                     );
                     return (
                       <div key={cat.id} className="space-y-1">
-                        <div className="flex items-center justify-between text-[11px] font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1 cursor-pointer hover:text-white transition-colors duration-150">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1 cursor-pointer hover:text-onicord-text transition-colors duration-150">
                           <span className="truncate">{cat.name}</span>
                           <MaterialIcon
                             name="expand_more"
@@ -565,15 +565,15 @@ export default function ServerOverviewTab({
                                 key={c.id}
                                 className={`flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-xs font-medium cursor-default transition-colors ${
                                   isActive
-                                    ? "bg-white/10 text-white font-semibold shadow-sm border border-white/5"
-                                    : "text-onicord-muted hover:text-white hover:bg-white/5"
+                                    ? "bg-onicord-tint/10 text-onicord-text font-semibold shadow-sm border border-onicord-border"
+                                    : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
                                 }`}
                               >
                                 <MaterialIcon
                                   name={iconName}
                                   size={16}
                                   className={
-                                    isActive ? "text-white/60" : "opacity-80"
+                                    isActive ? "text-onicord-subtext" : "opacity-80"
                                   }
                                 />
                                 <span className="truncate">{c.name}</span>
@@ -596,15 +596,15 @@ export default function ServerOverviewTab({
                           key={c.id}
                           className={`flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-xs font-medium cursor-default transition-colors ${
                             isActive
-                              ? "bg-white/10 text-white font-semibold shadow-sm border border-white/5"
-                              : "text-onicord-muted hover:text-white hover:bg-white/5"
+                              ? "bg-onicord-tint/10 text-onicord-text font-semibold shadow-sm border border-onicord-border"
+                              : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
                           }`}
                         >
                           <MaterialIcon
                             name={iconName}
                             size={16}
                             className={
-                              isActive ? "text-white/60" : "opacity-80"
+                              isActive ? "text-onicord-subtext" : "opacity-80"
                             }
                           />
                           <span className="truncate">{c.name}</span>
@@ -617,7 +617,7 @@ export default function ServerOverviewTab({
                 {categories.length === 0 && orphanChannels.length === 0 && (
                   /* Sample channels if no data */
                   <div>
-                    <div className="flex items-center justify-between text-[11px] font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1.5 cursor-pointer hover:text-white transition-colors duration-150">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1.5 cursor-pointer hover:text-onicord-text transition-colors duration-150">
                       <span>
                         {t("serverSettings.channels.textChannels", "Canales")}
                       </span>
@@ -629,11 +629,11 @@ export default function ServerOverviewTab({
                     </div>
 
                     <div className="space-y-0.5">
-                      <div className="flex items-center gap-2 px-3 py-2 mx-2 rounded-xl bg-white/10 text-white font-semibold text-xs cursor-default shadow-sm border border-white/5">
+                      <div className="flex items-center gap-2 px-3 py-2 mx-2 rounded-xl bg-onicord-tint/10 text-onicord-text font-semibold text-xs cursor-default shadow-sm border border-onicord-border">
                         <MaterialIcon
                           name="tag"
                           size={16}
-                          className="text-white/60"
+                          className="text-onicord-subtext"
                         />
                         <span>
                           {t(
@@ -643,7 +643,7 @@ export default function ServerOverviewTab({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-onicord-muted hover:text-white hover:bg-white/5 text-xs font-medium cursor-default transition-colors duration-100">
+                      <div className="flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 text-xs font-medium cursor-default transition-colors duration-100">
                         <MaterialIcon
                           name="volume_up"
                           size={16}

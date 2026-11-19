@@ -341,7 +341,7 @@ export default function ProfileTab({
                 <button
                   type="button"
                   onClick={() => onResetServerProfile?.(activeScopeKey)}
-                  className="text-[10px] font-bold text-onicord-accent bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                  className="text-[10px] font-bold text-onicord-accent bg-onicord-tint/5 hover:bg-onicord-tint/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                 >
                   {t(
                     "profileTab.resetToServerDefault",

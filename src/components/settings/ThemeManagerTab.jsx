@@ -186,10 +186,10 @@ export default function ThemeManagerTab({ profile }) {
             className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer ${
               themeMode === "dark"
                 ? "border-onicord-accent bg-onicord-surface shadow-md ring-1 ring-onicord-accent/30"
-                : "border-white/5 bg-onicord-base/40 hover:border-white/20"
+                : "border-onicord-border bg-onicord-base/40 hover:border-onicord-tint/20"
             }`}
           >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${themeMode === "dark" ? "bg-onicord-accent text-onicord-dark font-bold" : "bg-white/5 text-onicord-muted"}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${themeMode === "dark" ? "bg-onicord-accent text-onicord-on-accent font-bold" : "bg-onicord-tint/5 text-onicord-muted"}`}>
               <MaterialIcon name="dark_mode" size={18} />
             </div>
             <div className="text-left min-w-0">
@@ -208,10 +208,10 @@ export default function ThemeManagerTab({ profile }) {
             className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer ${
               themeMode === "light"
                 ? "border-onicord-accent bg-onicord-surface shadow-md ring-1 ring-onicord-accent/30"
-                : "border-white/5 bg-onicord-base/40 hover:border-white/20"
+                : "border-onicord-border bg-onicord-base/40 hover:border-onicord-tint/20"
             }`}
           >
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${themeMode === "light" ? "bg-onicord-accent text-onicord-dark font-bold" : "bg-white/5 text-onicord-muted"}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${themeMode === "light" ? "bg-onicord-accent text-onicord-on-accent font-bold" : "bg-onicord-tint/5 text-onicord-muted"}`}>
               <MaterialIcon name="light_mode" size={18} />
             </div>
             <div className="text-left min-w-0">
@@ -244,7 +244,7 @@ export default function ThemeManagerTab({ profile }) {
         </div>
 
         {/* REALISTIC REAL-TIME PREVIEW */}
-        <div className="pt-4 border-t border-white/5 space-y-3.5">
+        <div className="pt-4 border-t border-onicord-border space-y-3.5">
           <div className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted flex items-center gap-2">
             <MaterialIcon name="visibility" size={16} />
             <span>{t("settings.theme.preview", "Vista previa en tiempo real")}</span>
@@ -252,9 +252,9 @@ export default function ThemeManagerTab({ profile }) {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-stretch pt-0.5">
             {/* LEFT COLUMN: CHAT PREVIEW (# general) */}
-            <div className="lg:col-span-7 bg-onicord-base/70 border border-white/5 rounded-2xl overflow-hidden flex flex-col shadow-inner min-h-[250px]">
+            <div className="lg:col-span-7 bg-onicord-base/70 border border-onicord-border rounded-2xl overflow-hidden flex flex-col shadow-inner min-h-[250px]">
               {/* Channel Header */}
-              <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/5 select-none bg-onicord-base/30">
+              <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-onicord-border select-none bg-onicord-base/30">
                 <span className="text-onicord-muted font-bold text-base leading-none">#</span>
                 <span className="text-onicord-text font-bold text-sm tracking-normal">general</span>
               </div>
@@ -267,7 +267,7 @@ export default function ThemeManagerTab({ profile }) {
                     {profile?.avatar ? (
                       <img src={profile.avatar} className="w-full h-full object-cover" alt="" />
                     ) : (
-                      <span className="text-onicord-dark font-bold text-base">
+                      <span className="text-onicord-on-accent font-bold text-base">
                         {(profile?.nickname || "O").charAt(0).toUpperCase()}
                       </span>
                     )}
@@ -303,7 +303,7 @@ export default function ThemeManagerTab({ profile }) {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="font-bold text-sm text-purple-300 leading-tight cursor-default">
+                    <div className="font-bold text-sm text-onicord-mauve leading-tight cursor-default">
                       Alex ({t("settings.theme.previewModerator", "Moderador")})
                     </div>
                     <div
@@ -322,7 +322,7 @@ export default function ThemeManagerTab({ profile }) {
             </div>
 
             {/* Right column: Controls and status */}
-            <div className="lg:col-span-5 bg-onicord-base/70 border border-white/5 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-inner min-h-[250px]">
+            <div className="lg:col-span-5 bg-onicord-base/70 border border-onicord-border rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-inner min-h-[250px]">
               <div className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted text-left">
                 {t("settings.theme.controlsTitle", "Controles y Estado")}
               </div>
@@ -331,7 +331,7 @@ export default function ThemeManagerTab({ profile }) {
               <div className="grid grid-cols-2 gap-2.5 w-full">
                 <button
                   type="button"
-                  className="h-10 px-3 rounded-xl bg-onicord-accent text-onicord-dark font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer truncate"
+                  className="h-10 px-3 rounded-xl bg-onicord-accent text-onicord-on-accent font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer truncate"
                 >
                   <MaterialIcon name="check" size={16} />
                   <span>{t("common.save", "Guardar")}</span>
@@ -346,7 +346,7 @@ export default function ThemeManagerTab({ profile }) {
               </div>
 
               {/* Fila: Interruptor de Estado */}
-              <div className="bg-onicord-surface/40 border border-white/5 rounded-xl px-4 py-3.5 flex items-center justify-between">
+              <div className="bg-onicord-surface/40 border border-onicord-border rounded-xl px-4 py-3.5 flex items-center justify-between">
                 <span className="text-[13px] font-medium text-onicord-text select-none">
                   {t("settings.theme.previewToggle", "Interruptor de Estado")}
                 </span>
@@ -362,7 +362,7 @@ export default function ThemeManagerTab({ profile }) {
               </div>
 
               {/* Fila: Nivel de Desplazamiento */}
-              <div className="bg-onicord-surface/40 border border-white/5 rounded-xl px-4 py-3.5 space-y-2.5">
+              <div className="bg-onicord-surface/40 border border-onicord-border rounded-xl px-4 py-3.5 space-y-2.5">
                 <div className="flex items-center justify-between text-[13px] font-medium select-none">
                   <span className="text-onicord-text">{t("settings.theme.scrollLevel", "Nivel de Desplazamiento")}</span>
                   <span className="font-mono text-xs font-bold text-onicord-muted">{previewSliderVal}%</span>
@@ -391,7 +391,7 @@ export default function ThemeManagerTab({ profile }) {
             <button
               type="button"
               onClick={handleResetBgDefaults}
-              className="text-[10px] font-bold text-onicord-accent bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+              className="text-[10px] font-bold text-onicord-accent bg-onicord-tint/5 hover:bg-onicord-tint/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
             >
               {t("settings.theme.resetThemeDefaults", "Restablecer Fondo")}
             </button>
@@ -452,7 +452,7 @@ export default function ThemeManagerTab({ profile }) {
               type="button"
               onClick={handleInsertTemplate}
               title={t("settings.theme.insertTemplate", "Plantilla de ejemplo")}
-              className="w-8 h-8 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-white/10 text-onicord-text transition active:scale-95 cursor-pointer flex items-center justify-center"
+              className="w-8 h-8 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-onicord-tint/10 text-onicord-text transition active:scale-95 cursor-pointer flex items-center justify-center"
             >
               <MaterialIcon name="code" size={16} />
             </button>
@@ -478,7 +478,7 @@ export default function ThemeManagerTab({ profile }) {
             value={customCSS}
             onChange={handleCSSChange}
             placeholder={t("settings.theme.customCSSPlaceholder", "/* Escribe reglas CSS personalizadas aquí */\n.onicord-chat-input-bar {\n  border-color: var(--onicord-accent) !important;\n}")}
-            className="w-full h-36 bg-onicord-base/80 border border-white/10 rounded-xl p-3.5 text-xs text-onicord-accent placeholder-onicord-muted/30 focus:outline-none focus:border-onicord-accent transition-colors resize-none font-mono leading-relaxed shadow-inner minimal-scrollbar"
+            className="w-full h-36 bg-onicord-base/80 border border-onicord-tint/10 rounded-xl p-3.5 text-xs text-onicord-accent placeholder-onicord-muted/30 focus:outline-none focus:border-onicord-accent transition-colors resize-none font-mono leading-relaxed shadow-inner minimal-scrollbar"
             spellCheck="false"
           />
           <div className="flex justify-between items-center mt-1.5 px-1 text-[10px] text-onicord-muted">

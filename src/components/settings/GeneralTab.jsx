@@ -290,7 +290,7 @@ export default function GeneralTab({ general, setGeneral }) {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-white/5 mt-1">
+            <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
               <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[32px]">
                 80%
               </span>
@@ -323,7 +323,7 @@ export default function GeneralTab({ general, setGeneral }) {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-white/5 mt-1">
+            <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
               <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[32px]">
                 1.2x
               </span>
@@ -499,7 +499,7 @@ export default function GeneralTab({ general, setGeneral }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-1.5 p-1 bg-onicord-base/40 rounded-xl border border-white/5">
+            <div className="grid grid-cols-4 gap-1.5 p-1 bg-onicord-base/40 rounded-xl border border-onicord-border">
               {soundLevels.map((lvl) => {
                 const isActive = lvl.level === sfxLevel;
                 return (
@@ -510,7 +510,7 @@ export default function GeneralTab({ general, setGeneral }) {
                     className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
                       isActive
                         ? "bg-onicord-accent/15 border-onicord-accent/40 text-onicord-accent font-semibold text-xs shadow-sm"
-                        : "border-transparent text-onicord-muted hover:text-onicord-text hover:bg-white/5 font-medium text-xs"
+                        : "border-transparent text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 font-medium text-xs"
                     }`}
                   >
                     <span className="truncate block">{lvl.label}</span>
@@ -565,7 +565,7 @@ export default function GeneralTab({ general, setGeneral }) {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-white/5 mt-1">
+            <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
               <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[32px]">
                 0%
               </span>
@@ -630,7 +630,7 @@ export default function GeneralTab({ general, setGeneral }) {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-white/5 mt-1">
+                <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
                   <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[38px]">
                     {AUTO_DOWNLOAD_SIZE_STEPS[0].label}
                   </span>
@@ -675,7 +675,7 @@ export default function GeneralTab({ general, setGeneral }) {
                   )}
                 </div>
                 <div className="w-full flex items-center gap-2 mt-1">
-                  <div className="flex-1 min-w-0 bg-onicord-base/60 px-3 py-2 rounded-xl border border-white/5 text-xs text-onicord-text font-mono truncate select-all flex items-center gap-2">
+                  <div className="flex-1 min-w-0 bg-onicord-base/60 px-3 py-2 rounded-xl border border-onicord-border text-xs text-onicord-text font-mono truncate select-all flex items-center gap-2">
                     <MaterialIcon name="folder" size={16} className="text-onicord-muted shrink-0" />
                     <span className="truncate" title={general.downloadDirectory || defaultDownloadDir || "Descargas"}>
                       {general.downloadDirectory || defaultDownloadDir || t("settings.general.defaultDownloadsFolder", "Carpeta de Descargas del sistema")}
@@ -684,7 +684,7 @@ export default function GeneralTab({ general, setGeneral }) {
                   <button
                     type="button"
                     onClick={handleSelectDirectory}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-onicord-base/80 hover:bg-white/10 text-onicord-text border border-white/10 hover:border-white/20 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-onicord-base/80 hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 hover:border-onicord-tint/20 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                   >
                     <MaterialIcon name="folder_open" size={16} />
                     <span>{t("settings.general.chooseFolder", "Cambiar")}</span>

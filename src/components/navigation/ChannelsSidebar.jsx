@@ -5,6 +5,7 @@ import FlameBadge from "../ui/FlameBadge";
 import VoiceUserItem from "../voice/VoiceUserItem";
 import MusicIsland from "../ui/MusicIsland";
 import UserPanel from "./UserPanel";
+import Tooltip from "../ui/Tooltip";
 import MaterialIcon from "../icons/MaterialIcon";
 import {
   IconVolumeUp,
@@ -61,11 +62,10 @@ export function ChannelButton({
 }) {
   const hasUnread = unreadCount > 0 && !isMuted;
 
-  return (
+  const buttonEl = (
     <button
       type="button"
       disabled={disabled}
-      title={title || (typeof label === "string" ? label : undefined)}
       onClick={disabled ? undefined : onClick}
       onContextMenu={onContextMenu}
       className={`group onicord-channel-wrapper ${active ? "onicord-channel-active" : ""} ${isMuted ? "opacity-50 hover:opacity-100" : ""} ${className}`}
@@ -108,6 +108,15 @@ export function ChannelButton({
         )}
       </div>
     </button>
+  );
+
+  const tooltipText = title || (typeof label === "string" ? label : undefined);
+  return tooltipText ? (
+    <Tooltip content={tooltipText} side="right">
+      {buttonEl}
+    </Tooltip>
+  ) : (
+    buttonEl
   );
 }
 
@@ -315,29 +324,33 @@ export default function ChannelsSidebar({
             rightContent={
               <div className="flex items-center gap-1.5 ml-auto shrink-0">
                 {streamingMembersInChannel.length > 1 && (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      onOpenMultiStream?.(ch.id);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        onOpenMultiStream?.(ch.id);
-                      }
-                    }}
-                    className="onicord-live-badge-interactive"
-                    title={t("voice.watchAllStreams", {
+                  <Tooltip
+                    content={t("voice.watchAllStreams", {
                       count: streamingMembersInChannel.length,
                       defaultValue: `Ver todas las transmisiones en pantalla dividida (${streamingMembersInChannel.length})`,
                     })}
+                    side="top"
                   >
-                    <IconVideoCam size="base" />
-                  </span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onOpenMultiStream?.(ch.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          onOpenMultiStream?.(ch.id);
+                        }
+                      }}
+                      className="onicord-live-badge-interactive cursor-pointer"
+                    >
+                      <IconVideoCam size="base" />
+                    </span>
+                  </Tooltip>
                 )}
                 <VoiceChannelTimer startTime={voiceStartTime} />
               </div>
@@ -510,18 +523,19 @@ export default function ChannelsSidebar({
 
           /* Clickable server settings trigger */
           return (
-            <button
-              type="button"
-              title={t("roomView.serverSettings")}
-              onClick={() => setShowSettings(true)}
-              className={
-                hasBanner
-                  ? "cursor-pointer w-full text-left"
-                  : "onicord-server-header-btn cursor-pointer transition-colors"
-              }
-            >
-              {inner}
-            </button>
+            <Tooltip content={t("roomView.serverSettings")} side="bottom">
+              <button
+                type="button"
+                onClick={() => setShowSettings(true)}
+                className={
+                  hasBanner
+                    ? "cursor-pointer w-full text-left"
+                    : "onicord-server-header-btn cursor-pointer transition-colors"
+                }
+              >
+                {inner}
+              </button>
+            </Tooltip>
           );
         })()}
 

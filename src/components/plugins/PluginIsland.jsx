@@ -247,10 +247,10 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
         {!isExpanded && (
           <div
             onClick={handleCapsuleClick}
-            className="w-full h-[56px] px-3 py-2 flex items-center gap-2.5 cursor-pointer select-none transition-colors hover:bg-white/[0.04]"
+            className="w-full h-[56px] px-3 py-2 flex items-center gap-2.5 cursor-pointer select-none transition-colors hover:bg-onicord-tint/[0.04]"
           >
             {/* Addon avatar / profile icon */}
-            <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
+            <div className="w-9 h-9 rounded-full bg-onicord-tint/5 border border-onicord-tint/10 shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
               {displayWidget.icon ? (
                 <img
                   src={displayWidget.icon}
@@ -302,7 +302,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
                     className={`rounded-full transition-all duration-200 ${
                       idx === currentIndex
                         ? "bg-onicord-text w-1.5 h-1.5 opacity-90"
-                        : "bg-white/20 w-1 h-1"
+                        : "bg-onicord-tint/20 w-1 h-1"
                     }`}
                   />
                 ))}
@@ -351,7 +351,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
         <div className="flex items-center justify-center gap-2 pb-2.5 pt-0.5 shrink-0 select-none">
           <button
             onClick={handlePrev}
-            className="p-0.5 rounded-full transition-colors flex items-center justify-center text-onicord-muted hover:text-onicord-text hover:bg-white/5 cursor-pointer active:scale-90"
+            className="p-0.5 rounded-full transition-colors flex items-center justify-center text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 cursor-pointer active:scale-90"
             title={t("plugins.prevPlugin", "Anterior complemento")}
           >
             <MaterialIcon name="chevron_left" size={16} />
@@ -368,7 +368,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
                 className={`rounded-full transition-all duration-200 cursor-pointer ${
                   idx === currentIndex
                     ? "bg-onicord-text w-2 h-2 opacity-95"
-                    : "bg-white/25 hover:bg-white/40 w-1.5 h-1.5"
+                    : "bg-onicord-tint/25 hover:bg-onicord-tint/40 w-1.5 h-1.5"
                 }`}
               />
             ))}
@@ -376,7 +376,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
 
           <button
             onClick={handleNext}
-            className="p-0.5 rounded-full transition-colors flex items-center justify-center text-onicord-muted hover:text-onicord-text hover:bg-white/5 cursor-pointer active:scale-90"
+            className="p-0.5 rounded-full transition-colors flex items-center justify-center text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 cursor-pointer active:scale-90"
             title={t("plugins.nextPlugin", "Siguiente complemento")}
           >
             <MaterialIcon name="chevron_right" size={16} />

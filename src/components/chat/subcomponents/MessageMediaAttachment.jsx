@@ -42,7 +42,7 @@ export function getFileTypeIcon(fileName = "") {
   if ([".exe", ".bat", ".cmd", ".ps1", ".vbs", ".msi"].includes(ext)) {
     return { name: "warning", color: "text-amber-400 bg-amber-500/10 border-amber-500/30" };
   }
-  return { name: "insert_drive_file", color: "text-onicord-muted bg-white/5 border-white/10" };
+  return { name: "insert_drive_file", color: "text-onicord-muted bg-onicord-tint/5 border-onicord-tint/10" };
 }
 
 export default function MessageMediaAttachment({
@@ -243,7 +243,7 @@ export default function MessageMediaAttachment({
               }
               handleFileActionClick(e);
             }}
-            className={`relative mt-1 max-w-[550px] rounded-onicord-inner overflow-hidden bg-black/20 border border-white/5 cursor-pointer hover:border-onicord-accent/40 transition-all duration-200 group/media inline-flex items-center justify-center ${
+            className={`relative mt-1 max-w-[550px] rounded-onicord-inner overflow-hidden bg-black/20 border border-onicord-border cursor-pointer hover:border-onicord-accent/40 transition-all duration-200 group/media inline-flex items-center justify-center ${
               isBlurred ? "min-w-[220px] min-h-[140px]" : ""
             }`}
           >
@@ -291,7 +291,7 @@ export default function MessageMediaAttachment({
           </div>
         ) : (
           <div
-            className={`relative mt-1 max-w-[550px] rounded-onicord-inner overflow-hidden bg-black/40 border border-white/10 group/vid inline-flex items-center justify-center cursor-pointer hover:border-onicord-accent/40 transition-all duration-200 ${
+            className={`relative mt-1 max-w-[550px] rounded-onicord-inner overflow-hidden bg-black/40 border border-onicord-tint/10 group/vid inline-flex items-center justify-center cursor-pointer hover:border-onicord-accent/40 transition-all duration-200 ${
               isBlurred ? "min-w-[240px] min-h-[150px]" : ""
             }`}
             onClick={(e) => {
@@ -364,7 +364,7 @@ export default function MessageMediaAttachment({
             }
             handleFileActionClick(e);
           }}
-          className="relative mt-1 max-w-[480px] rounded-onicord-inner overflow-hidden bg-black/40 border border-white/10 cursor-pointer hover:border-onicord-accent/50 transition-all duration-200 group/thumb shadow-lg select-none"
+          className="relative mt-1 max-w-[480px] rounded-onicord-inner overflow-hidden bg-black/40 border border-onicord-tint/10 cursor-pointer hover:border-onicord-accent/50 transition-all duration-200 group/thumb shadow-lg select-none"
         >
           <img
             src={fileData.thumbnail}
@@ -386,7 +386,7 @@ export default function MessageMediaAttachment({
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/20 flex flex-col justify-between p-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-white/90 border border-white/10">
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-white/90 border border-onicord-tint/10">
                     <MaterialIcon name="videocam" size={14} className="text-emerald-400" />
                     {fileData.name?.split(".").pop()?.toUpperCase()}
                   </span>
@@ -396,7 +396,7 @@ export default function MessageMediaAttachment({
                     </span>
                   )}
                 </div>
-                <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-onicord-muted border border-white/10">
+                <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-medium text-onicord-muted border border-onicord-tint/10">
                   {formatBytes(fileData.size)}
                 </span>
               </div>
@@ -423,7 +423,7 @@ export default function MessageMediaAttachment({
             </div>
           )}
           {isDownloading && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-onicord-tint/20">
               <div
                 className="h-full bg-onicord-accent transition-all duration-200"
                 style={{ width: `${status?.progress || 0}%` }}

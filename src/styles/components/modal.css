@@ -7,7 +7,7 @@
     @apply text-sm leading-snug text-onicord-muted mt-4 select-none;
   }
   .onicord-modal-nav-item {
-    @apply w-full h-10 flex items-center rounded-onicord-button px-3 text-left text-sm font-medium select-none cursor-pointer text-onicord-muted hover:bg-white/[0.02] hover:text-onicord-subtext;
+    @apply w-full h-10 flex items-center rounded-onicord-button px-3 text-left text-sm font-medium select-none cursor-pointer text-onicord-muted hover:bg-onicord-tint/[0.04] hover:text-onicord-subtext;
     transition: transform 0.15s ease-out, width 0.15s ease-out, background-color 0.15s ease-out, color 0.15s ease-out;
   }
   .onicord-modal-nav-item:hover {
@@ -51,10 +51,10 @@
     @apply flex w-full items-center justify-between rounded px-2 py-1 text-left transition-colors cursor-pointer;
   }
   .onicord-context-menu-item-default {
-    @apply text-onicord-text hover:bg-onicord-accent hover:text-onicord-surface;
+    @apply text-onicord-text hover:bg-onicord-accent hover:text-onicord-on-accent;
   }
   .onicord-context-menu-item-danger {
-    @apply text-onicord-danger hover:bg-onicord-danger hover:text-onicord-surface font-semibold;
+    @apply text-onicord-danger hover:bg-onicord-danger hover:text-onicord-on-danger font-semibold;
   }
 
   /* MODAL SETTINGS SEARCH & HIGHLIGHT */
@@ -82,6 +82,6 @@
   }
 
   .onicord-modal-subnav-item {
-    @apply w-full text-left px-2.5 py-1.5 text-[11px] rounded-lg text-onicord-muted hover:text-onicord-accent hover:bg-white/[0.04] transition-all flex items-center gap-1.5 select-none;
+    @apply w-full text-left px-2.5 py-1.5 text-[11px] rounded-lg text-onicord-muted hover:text-onicord-accent hover:bg-onicord-tint/[0.05] transition-all flex items-center gap-1.5 select-none;
   }
 }

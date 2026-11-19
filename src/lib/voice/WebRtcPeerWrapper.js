@@ -391,9 +391,6 @@ export function createNativePeer({
       emit("track-ended", track, remoteStream);
     };
 
-    if (track.kind === "video") {
-      notifyVideoUpdate(remoteStream);
-    }
     emit("track", track, remoteStream);
     emit("stream", remoteStream);
   };
@@ -445,6 +442,11 @@ export function createNativePeer({
         sdp: pc.localDescription.sdp,
       };
       emit("signal", localDesc);
+
+      if (skippedNegotiation && negotiationAllowed && !destroyed && pc.signalingState === "stable") {
+        skippedNegotiation = false;
+        queueMicrotask(() => makeOffer());
+      }
     } else if (data.type === "answer") {
       if (pc.signalingState !== "have-local-offer") {
         console.warn(
@@ -462,6 +464,11 @@ export function createNativePeer({
       while (remoteCandidateQueue.length > 0) {
         const cand = remoteCandidateQueue.shift();
         await pc.addIceCandidate(cand).catch(() => {});
+      }
+
+      if (skippedNegotiation && negotiationAllowed && !destroyed && pc.signalingState === "stable") {
+        skippedNegotiation = false;
+        queueMicrotask(() => makeOffer());
       }
     } else if (data.type === "ice-batch" && Array.isArray(data.candidates)) {
       for (const cand of data.candidates) {
@@ -508,13 +515,22 @@ export function createNativePeer({
       skippedNegotiation = true;
       return;
     }
-    if (makingOffer || pc.signalingState !== "stable") return;
+    if (makingOffer || pc.signalingState !== "stable") {
+      skippedNegotiation = true;
+      return;
+    }
     try {
       makingOffer = true;
       const rawOffer = await pc.createOffer();
-      if (pc.signalingState !== "stable") return;
+      if (pc.signalingState !== "stable") {
+        skippedNegotiation = true;
+        return;
+      }
       const offer = wrapper._transformSdp(rawOffer);
-      if (pc.signalingState !== "stable") return;
+      if (pc.signalingState !== "stable") {
+        skippedNegotiation = true;
+        return;
+      }
       await pc.setLocalDescription(offer);
       const localDesc = {
         type: pc.localDescription.type,
@@ -526,6 +542,7 @@ export function createNativePeer({
         err.message?.includes("wrong state") ||
         err.message?.includes("have-remote-offer")
       ) {
+        skippedNegotiation = true;
         console.warn(
           `[WebRTC] Negotiation glare absorbed gracefully for ${remotePeerId}: ${err.message}`,
         );
@@ -538,6 +555,10 @@ export function createNativePeer({
       }
     } finally {
       makingOffer = false;
+      if (skippedNegotiation && negotiationAllowed && !destroyed && pc.signalingState === "stable") {
+        skippedNegotiation = false;
+        queueMicrotask(() => makeOffer());
+      }
     }
   }
 

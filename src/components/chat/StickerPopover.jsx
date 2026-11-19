@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import MaterialIcon from "../icons/MaterialIcon";
+import Tooltip from "../ui/Tooltip";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import { getMediaUrl } from "../../lib/media";
 import { soundEngine } from "../../lib/soundEngine";
@@ -287,7 +288,7 @@ export default function StickerPopover({
           key={`${keyPrefix}-${stk.id}`}
           type="button"
           onClick={() => handleStickerClick(stk)}
-          className="w-full aspect-square flex items-center justify-center p-1.5 hover:bg-white/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-105 cursor-pointer"
+          className="w-full aspect-square flex items-center justify-center p-1.5 hover:bg-onicord-tint/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-105 cursor-pointer"
           title={stk.id}
         >
           <img
@@ -314,20 +315,20 @@ export default function StickerPopover({
       className="onicord-floating-menu w-80 h-96 flex flex-col !p-0 overflow-hidden z-popover"
     >
       {/* Search Header */}
-      <div className="p-2.5 border-b border-white/10 bg-onicord-mantle/50 flex items-center gap-2">
+      <div className="p-2.5 border-b border-onicord-tint/10 bg-onicord-mantle/50 flex items-center gap-2">
         <MaterialIcon name="search" size="lg" className="text-onicord-muted pl-1" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={t("chat.searchStickersPlaceholder", "Buscar stickers...")}
-          className="w-full bg-transparent text-xs text-white placeholder-onicord-muted outline-none"
+          className="w-full bg-transparent text-xs text-onicord-text placeholder-onicord-muted outline-none"
           autoFocus
         />
         {searchTerm && (
           <button
             onClick={() => setSearchTerm("")}
-            className="text-onicord-muted hover:text-white text-xs pr-1 cursor-pointer"
+            className="text-onicord-muted hover:text-onicord-text text-xs pr-1 cursor-pointer"
           >
             ✕
           </button>
@@ -336,64 +337,66 @@ export default function StickerPopover({
 
       {/* Tabs Navigation (only when not searching) */}
       {!searchTerm && (
-        <div className="flex items-center justify-start gap-3 px-2 py-1.5 border-b border-white/5 bg-white/[0.02] shrink-0 overflow-x-auto minimal-scrollbar">
+        <div className="flex items-center justify-start gap-3 px-2 py-1.5 border-b border-onicord-border bg-onicord-tint/[0.02] shrink-0 overflow-x-auto minimal-scrollbar">
           {topStickers.length > 0 && (
-            <button
-              type="button"
-              onClick={() => handleTabClick("top")}
-              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0 cursor-pointer ${
-                activeTab === "top"
-                  ? "bg-onicord-accent text-white scale-110 font-bold"
-                  : "hover:bg-onicord-accent/50 text-onicord-text hover:text-white/80"
-              }`}
-              title={t("chat.emojis.recent", "Frecuentes")}
-            >
-              <MaterialIcon name="schedule" size={16} />
-            </button>
+            <Tooltip content={t("chat.emojis.recent", "Frecuentes")} side="top">
+              <button
+                type="button"
+                onClick={() => handleTabClick("top")}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0 cursor-pointer ${
+                  activeTab === "top"
+                    ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold"
+                    : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent"
+                }`}
+              >
+                <MaterialIcon name="schedule" size={16} />
+              </button>
+            </Tooltip>
           )}
 
           {groupedPacks.map((pack, idx) => {
             const firstStk = pack.stickers?.[0];
             return (
-              <button
-                key={`tab-pack-${idx}`}
-                type="button"
-                onClick={() => handleTabClick(`pack-${idx}`)}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0 cursor-pointer overflow-hidden ${
-                  activeTab === `pack-${idx}`
-                    ? "bg-onicord-accent text-white scale-110 font-bold border-2 border-onicord-accent"
-                    : "hover:bg-onicord-accent/50 text-onicord-text hover:text-white/80 hover:border-2 border-onicord-accent/50"
-                }`}
-                title={pack.title}
-              >
-                {pack.iconName ? (
-                  <MaterialIcon name={pack.iconName} size={16} />
-                ) : firstStk?.localPath ? (
-                  <img
-                    src={getMediaUrl(firstStk.localPath)}
-                    alt=""
-                    className="w-7 h-7 object-contain rounded-md"
-                  />
-                ) : (
-                  <MaterialIcon name="collections" size={16} />
-                )}
-              </button>
+              <Tooltip key={`tab-pack-${idx}`} content={pack.title} side="top">
+                <button
+                  type="button"
+                  onClick={() => handleTabClick(`pack-${idx}`)}
+                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0 cursor-pointer overflow-hidden ${
+                    activeTab === `pack-${idx}`
+                      ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold border-2 border-onicord-accent"
+                      : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent hover:border-2 border-onicord-accent/50"
+                  }`}
+                >
+                  {pack.iconName ? (
+                    <MaterialIcon name={pack.iconName} size={16} />
+                  ) : firstStk?.localPath ? (
+                    <img
+                      src={getMediaUrl(firstStk.localPath)}
+                      alt=""
+                      className="w-7 h-7 object-contain rounded-md"
+                    />
+                  ) : (
+                    <MaterialIcon name="collections" size={16} />
+                  )}
+                </button>
+              </Tooltip>
             );
           })}
 
           {looseStickers.length > 0 && (
-            <button
-              type="button"
-              onClick={() => handleTabClick("loose")}
-              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0 cursor-pointer ${
-                activeTab === "loose"
-                  ? "bg-onicord-accent text-white scale-110 font-bold"
-                  : "hover:bg-onicord-accent/50 text-onicord-text hover:text-white/80"
-              }`}
-              title={t("stickers.looseStickers", "Stickers Sueltos")}
-            >
-              <MaterialIcon name="grid_view" size={16} />
-            </button>
+            <Tooltip content={t("stickers.looseStickers", "Stickers Sueltos")} side="top">
+              <button
+                type="button"
+                onClick={() => handleTabClick("loose")}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0 cursor-pointer ${
+                  activeTab === "loose"
+                    ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold"
+                    : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent"
+                }`}
+              >
+                <MaterialIcon name="grid_view" size={16} />
+              </button>
+            </Tooltip>
           )}
         </div>
       )}
@@ -432,7 +435,7 @@ export default function StickerPopover({
               ref={(el) => (sectionRefs.current["top"] = el)}
               className="space-y-1.5"
             >
-              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1">
+              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
                 Frecuentes
               </h4>
               {renderStickerGrid(topStickers, "top")}
@@ -446,7 +449,7 @@ export default function StickerPopover({
               ref={(el) => (sectionRefs.current[`pack-${idx}`] = el)}
               className="space-y-1.5 animate-fade-in"
             >
-              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1 flex items-center justify-between gap-2">
+              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1 flex items-center justify-between gap-2">
                 <span className="truncate">{pack.title}</span>
                 <button
                   type="button"
@@ -468,7 +471,7 @@ export default function StickerPopover({
               ref={(el) => (sectionRefs.current["loose"] = el)}
               className="space-y-1.5 animate-fade-in"
             >
-              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-white/5 pb-1">
+              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
                 Stickers Sueltos ({looseStickers.length})
               </h4>
               {renderStickerGrid(looseStickers, "loose")}

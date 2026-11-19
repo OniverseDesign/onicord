@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import UserListItem from "../ui/UserListItem";
+import Tooltip from "../ui/Tooltip";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 
@@ -166,22 +167,23 @@ export default function MembersSidebar({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onMessageUser?.(member);
-          }}
-          title={t("sidebar.privateMessage")}
-          className="h-7 w-7 min-w-[28px] flex items-center justify-center relative rounded-onicord-button hover:bg-white/10 text-onicord-text transition-colors duration-150 cursor-pointer shrink-0"
-        >
-          <MaterialIcon name="chat" size={16} />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-onicord-danger text-white text-[9px] font-bold px-1 rounded-full min-w-[12px] h-3.5 flex items-center justify-center animate-scale-up shadow-sm">
-              {unreadCount}
-            </span>
-          )}
-        </button>
+        <Tooltip content={t("sidebar.privateMessage")} side="left">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMessageUser?.(member);
+            }}
+            className="h-7 w-7 min-w-[28px] flex items-center justify-center relative rounded-onicord-button hover:bg-onicord-tint/10 text-onicord-text transition-colors duration-150 cursor-pointer shrink-0"
+          >
+            <MaterialIcon name="chat" size={16} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-onicord-danger text-white text-[9px] font-bold px-1 rounded-full min-w-[12px] h-3.5 flex items-center justify-center animate-scale-up shadow-sm">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </Tooltip>
       </div>
     );
   };

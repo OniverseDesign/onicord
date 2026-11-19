@@ -15,6 +15,7 @@ import { StreamerModeProvider } from "./context/StreamerModeContext";
 import { useAppUpdater } from "./hooks/useAppUpdater";
 import { initGlobalPlaytimeTracker } from "./lib/playtimeTracker";
 import IconOnicord from "./components/icons/Onicord.svg?react";
+import Tooltip from "./components/ui/Tooltip";
 
 // Hook renderer console logs and redirect to OniDiag backend
 if (window.electronAPI?.diagLog) {
@@ -69,7 +70,11 @@ if (window.electronAPI?.diagLog) {
   };
 
   window.addEventListener("error", (e) => {
-    window.electronAPI.diagLog("error", "UI-Crash", `${e.message} at ${e.filename}:${e.lineno}`);
+    const msg = e?.message || "";
+    if (msg.includes("ResizeObserver loop")) {
+      return;
+    }
+    window.electronAPI.diagLog("error", "UI-Crash", `${msg} at ${e.filename}:${e.lineno}`);
   });
 
   window.addEventListener("unhandledrejection", (e) => {
@@ -111,51 +116,54 @@ function TitleBar() {
         <IconOnicord className="w-16 text-onicord-accent" />
       </div>
       <div className="titlebar-nodrag flex h-full mt-3 pr-2 items-center">
-        <button
-          onClick={() => api.minimizeWindow()}
-          className="onicord-titlebar-btn"
-          title={t("common.minimize")}
-        >
-          <svg className="w-3 h-3" viewBox="0 0 10 10">
-            <path
-              d="M1 5H9"
-              stroke="currentColor"
-              strokeWidth="0.6"
-              fill="none"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={() => api.maximizeWindow()}
-          className="onicord-titlebar-btn"
-          title={t("common.maximize")}
-        >
-          <svg className="w-3 h-3" viewBox="0 0 10 10">
-            <rect
-              x="1.5"
-              y="1.5"
-              width="7"
-              height="7"
-              stroke="currentColor"
-              strokeWidth="0.6"
-              fill="none"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={() => api.closeWindow()}
-          className="onicord-titlebar-btn onicord-titlebar-btn-close"
-          title={t("common.close")}
-        >
-          <svg className="w-3 h-3" viewBox="0 0 10 10">
-            <path
-              d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5"
-              stroke="currentColor"
-              strokeWidth="0.6"
-              fill="none"
-            />
-          </svg>
-        </button>
+        <Tooltip content={t("common.minimize")} side="bottom">
+          <button
+            onClick={() => api.minimizeWindow()}
+            className="onicord-titlebar-btn"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 10 10">
+              <path
+                d="M1 5H9"
+                stroke="currentColor"
+                strokeWidth="0.6"
+                fill="none"
+              />
+            </svg>
+          </button>
+        </Tooltip>
+        <Tooltip content={t("common.maximize")} side="bottom">
+          <button
+            onClick={() => api.maximizeWindow()}
+            className="onicord-titlebar-btn"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 10 10">
+              <rect
+                x="1.5"
+                y="1.5"
+                width="7"
+                height="7"
+                stroke="currentColor"
+                strokeWidth="0.6"
+                fill="none"
+              />
+            </svg>
+          </button>
+        </Tooltip>
+        <Tooltip content={t("common.close")} side="bottom">
+          <button
+            onClick={() => api.closeWindow()}
+            className="onicord-titlebar-btn onicord-titlebar-btn-close"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 10 10">
+              <path
+                d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5"
+                stroke="currentColor"
+                strokeWidth="0.6"
+                fill="none"
+              />
+            </svg>
+          </button>
+        </Tooltip>
       </div>
     </div>
   );
@@ -209,6 +217,15 @@ export default function App() {
     window.addEventListener("onicord:refresh-servers", handleRefresh);
     return () => window.removeEventListener("onicord:refresh-servers", handleRefresh);
   }, [refreshServers]);
+
+  useEffect(() => {
+    const handleProfileUpdated = (e) => {
+      if (!e?.detail) return;
+      setProfile((prev) => ({ ...(prev || {}), ...e.detail }));
+    };
+    window.addEventListener("onicord:profile-updated", handleProfileUpdated);
+    return () => window.removeEventListener("onicord:profile-updated", handleProfileUpdated);
+  }, []);
 
   const handleServerUpdated = useCallback((updatedServer) => {
     if (!updatedServer || !updatedServer.id) return;

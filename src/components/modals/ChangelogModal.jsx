@@ -134,7 +134,7 @@ function renderInlineMarkdown(text) {
       );
     } else if (token.startsWith("`") && token.endsWith("`")) {
       parts.push(
-        <code key={match.index} className="px-1.5 py-0.5 rounded bg-white/10 text-onicord-accent font-mono text-xs">
+        <code key={match.index} className="px-1.5 py-0.5 rounded bg-onicord-tint/10 text-onicord-accent font-mono text-xs">
           {token.slice(1, -1)}
         </code>
       );

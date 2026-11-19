@@ -128,7 +128,7 @@ export default function VoiceUserVolumeMenu({
         )}
         role="menu"
       >
-        <div className="flex items-center gap-2 mb-2.5 pb-2 border-b border-white/5">
+        <div className="flex items-center gap-2 mb-2.5 pb-2 border-b border-onicord-border">
           <div className="w-7 h-7 rounded-lg bg-onicord-accent/20 border border-onicord-accent/30 flex items-center justify-center text-onicord-accent shrink-0">
             <MaterialIcon name={volumeIcon} size={18} />
           </div>
@@ -142,7 +142,7 @@ export default function VoiceUserVolumeMenu({
           </div>
         </div>
 
-        <div className="space-y-1.5 mb-3 bg-onicord-base/50 p-2 rounded-lg border border-white/5">
+        <div className="space-y-1.5 mb-3 bg-onicord-base/50 p-2 rounded-lg border border-onicord-border">
           <div className="flex items-center justify-between text-[11px] font-mono text-onicord-subtext">
             <span>0%</span>
             <span className="font-bold text-onicord-accent">{currentVol}%</span>

@@ -122,6 +122,22 @@ class TorrentService {
     if (this.engines.has(cleanHash)) {
       const existing = this.engines.get(cleanHash);
       existing.lastAccessed = Date.now();
+      const extraTrackers = this.normalizeTrackers(customTrackers);
+      if (extraTrackers.length > 0) {
+        if (!existing.trackers) existing.trackers = new Set();
+        for (const tr of extraTrackers) {
+          if (!existing.trackers.has(tr)) {
+            existing.trackers.add(tr);
+            try {
+              if (typeof existing.engine?.announce === "function") {
+                existing.engine.announce(tr);
+              } else if (Array.isArray(existing.engine?.trackers)) {
+                existing.engine.trackers.push(tr);
+              }
+            } catch (_) {}
+          }
+        }
+      }
       await existing.readyPromise;
       return existing;
     }
@@ -154,14 +170,19 @@ class TorrentService {
       activeRequests: 0,
       codecCache: new Map(),
       ffmpegProcesses: new Set(),
+      activeTranscodeProcesses: new Set(),
+      trackers: new Set(trackers),
       storagePath,
       readyPromise: null,
     };
 
     entry.readyPromise = new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        console.warn(`[TorrentService] Timeout esperando metadatos de la red P2P para ${cleanHash} (sin semillas activas).`);
         this.destroyEngine(cleanHash);
-        reject(new Error("Timeout esperando metadatos de la red P2P (sin semillas activas)."));
+        const timeoutErr = new Error("Timeout esperando metadatos de la red P2P (sin semillas activas).");
+        timeoutErr.isP2pTimeout = true;
+        reject(timeoutErr);
       }, 35000);
 
       engine.once("ready", () => {
@@ -742,9 +763,22 @@ class TorrentService {
       return res.end();
     }
 
+    // Ensure at most one active transcoding pipeline per torrent entry to prevent FFmpeg storms
+    if (entry.activeTranscodeProcesses && entry.activeTranscodeProcesses.size > 0) {
+      for (const prevProc of Array.from(entry.activeTranscodeProcesses)) {
+        entry.activeTranscodeProcesses.delete(prevProc);
+        entry.ffmpegProcesses.delete(prevProc);
+        try {
+          prevProc.kill("SIGKILL");
+        } catch (_) {}
+      }
+    }
+
     entry.activeRequests++;
     const ffmpegProc = spawn(ffmpegPath, ffmpegArgs, { windowsHide: true });
     entry.ffmpegProcesses.add(ffmpegProc);
+    if (!entry.activeTranscodeProcesses) entry.activeTranscodeProcesses = new Set();
+    entry.activeTranscodeProcesses.add(ffmpegProc);
 
     let cleaned = false;
     const cleanup = () => {
@@ -753,6 +787,7 @@ class TorrentService {
       entry.activeRequests = Math.max(0, entry.activeRequests - 1);
       entry.lastAccessed = Date.now();
       entry.ffmpegProcesses.delete(ffmpegProc);
+      entry.activeTranscodeProcesses?.delete(ffmpegProc);
       try {
         ffmpegProc.kill("SIGKILL");
       } catch (_) {}
@@ -787,11 +822,12 @@ class TorrentService {
         ? parsedUrl.query.tr
         : [parsedUrl.query.tr]
       : [];
+    const isMetaRequest = secondParam === "meta" || subAction === "meta";
 
     try {
       const entry = await this.getOrCreateEngine(infoHash, queryTrackers);
 
-      if (secondParam === "meta" || subAction === "meta") {
+      if (isMetaRequest) {
         const resolved = this.resolveTargetFile(entry.engine, secondParam === "meta" ? 0 : secondParam);
         const actualIndex = resolved?.index ?? 0;
         try {
@@ -875,9 +911,20 @@ class TorrentService {
 
       return this.serveRawRangeStream(req, res, entry, file);
     } catch (err) {
-      console.error("[TorrentService] Error al servir stream:", err.message);
+      if (isMetaRequest) {
+        if (!res.headersSent) {
+          res.writeHead(err?.isP2pTimeout ? 504 : 500, {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          });
+        }
+        return res.end(JSON.stringify({ error: err.message, retryable: Boolean(err?.isP2pTimeout) }));
+      }
+      if (!err?.isP2pTimeout) {
+        console.error("[TorrentService] Error al servir stream:", err.message);
+      }
       if (!res.headersSent) {
-        res.writeHead(500, {
+        res.writeHead(err?.isP2pTimeout ? 504 : 500, {
           "Content-Type": "text/plain; charset=utf-8",
           "Access-Control-Allow-Origin": "*",
         });
@@ -909,6 +956,7 @@ class TorrentService {
       } catch (_) {}
     }
     entry.ffmpegProcesses.clear();
+    entry.activeTranscodeProcesses?.clear();
 
     try {
       entry.engine.destroy(() => {

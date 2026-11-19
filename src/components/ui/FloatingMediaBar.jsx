@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import MaterialIcon from "../icons/MaterialIcon";
 import { cn } from "../../lib/cn";
+import Tooltip from "./Tooltip";
 
 /**
  * Formats seconds into MM:SS or HH:MM:SS
@@ -77,30 +78,37 @@ FloatingMediaBar.IconButton = function FloatingIconButton({
   type = "button",
   ...props
 }) {
-  let stateClasses = "text-onicord-text hover:text-white";
+  let stateClasses = "text-onicord-text hover:text-onicord-text";
 
   if (primary) {
     stateClasses =
-      "bg-onicord-accent text-onicord-dark font-bold hover:brightness-110 border border-onicord-accent";
+      "bg-onicord-accent text-onicord-on-accent font-bold hover:brightness-110 border border-onicord-accent";
   } else if (danger) {
     stateClasses =
-      "bg-onicord-danger/20 text-onicord-danger border border-onicord-danger/30 hover:bg-onicord-danger hover:text-white";
+      "bg-onicord-danger/20 text-onicord-danger border border-onicord-danger/30 hover:bg-onicord-danger hover:text-onicord-on-danger";
   } else if (active) {
     stateClasses =
       "bg-onicord-accent/20 text-onicord-accent border border-onicord-accent/40 font-semibold";
   }
 
-  return (
+  const buttonEl = (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      title={title}
       className={cn("onicord-icon-btn-round", stateClasses, className)}
       {...props}
     >
       {renderIcon(icon, 18)}
     </button>
+  );
+
+  return title ? (
+    <Tooltip content={title} side="top">
+      {buttonEl}
+    </Tooltip>
+  ) : (
+    buttonEl
   );
 };
 
@@ -128,12 +136,13 @@ FloatingMediaBar.PillButton = function FloatingPillButton({
       "bg-onicord-accent/20 hover:bg-onicord-accent/35 text-onicord-accent border border-onicord-accent/30";
   }
 
-  return (
+  const tooltipText = title || (typeof label === "string" ? label : undefined);
+
+  const buttonEl = (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      title={title || (typeof label === "string" ? label : undefined)}
       className={cn("onicord-media-bar-btn", variantClasses, className)}
       {...props}
     >
@@ -144,6 +153,14 @@ FloatingMediaBar.PillButton = function FloatingPillButton({
         </span>
       )}
     </button>
+  );
+
+  return tooltipText ? (
+    <Tooltip content={tooltipText} side="top">
+      {buttonEl}
+    </Tooltip>
+  ) : (
+    buttonEl
   );
 };
 
@@ -158,16 +175,23 @@ FloatingMediaBar.StopButton = function FloatingStopButton({
   type = "button",
   ...props
 }) {
-  return (
+  const buttonEl = (
     <button
       type={type}
       onClick={onClick}
-      title={title}
       className={cn("onicord-icon-btn-round-stop", className)}
       {...props}
     >
       {renderIcon(icon, 18)}
     </button>
+  );
+
+  return title ? (
+    <Tooltip content={title} side="top">
+      {buttonEl}
+    </Tooltip>
+  ) : (
+    buttonEl
   );
 };
 
@@ -177,7 +201,7 @@ FloatingMediaBar.StopButton = function FloatingStopButton({
 FloatingMediaBar.Divider = function FloatingDivider({ className }) {
   return (
     <div
-      className={cn("w-px h-4 bg-white/5 shrink-0 mx-1 select-none", className)}
+      className={cn("w-px h-4 bg-onicord-tint/5 shrink-0 mx-1 select-none", className)}
     />
   );
 };
@@ -207,9 +231,9 @@ FloatingMediaBar.Volume = function FloatingVolume({
     <div
       className={cn(
         "flex items-center gap-2 px-2 shrink-0",
-        showDividers === true && "border-l border-r border-white/5",
-        showDividers === "left" && "border-l border-white/5",
-        showDividers === "right" && "border-r border-white/5",
+        showDividers === true && "border-l border-r border-onicord-border",
+        showDividers === "left" && "border-l border-onicord-border",
+        showDividers === "right" && "border-r border-onicord-border",
         className
       )}
     >
@@ -219,8 +243,8 @@ FloatingMediaBar.Volume = function FloatingVolume({
         className={cn(
           "onicord-icon-btn-round",
           isZero
-            ? "bg-onicord-danger/20 text-onicord-danger border border-onicord-danger/30 hover:bg-onicord-danger hover:text-white"
-            : "text-onicord-text hover:text-white"
+            ? "bg-onicord-danger/20 text-onicord-danger border border-onicord-danger/30 hover:bg-onicord-danger hover:text-onicord-on-danger"
+            : "text-onicord-text hover:text-onicord-text"
         )}
         title={isZero ? titleUnmute : titleMute}
       >
@@ -320,7 +344,7 @@ FloatingMediaBar.Menu = function FloatingMenu({
           "onicord-party-popup-btn onicord-icon-btn-round",
           active
             ? "bg-onicord-accent/20 text-onicord-accent border border-onicord-accent/40 font-semibold"
-            : "text-onicord-text hover:text-white",
+            : "text-onicord-text hover:text-onicord-text",
           className
         )}
         title={title}
@@ -342,7 +366,7 @@ FloatingMediaBar.Menu = function FloatingMenu({
           )}
         >
           {showTitle && menuTitle && (
-            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-onicord-muted border-b border-white/5 flex items-center justify-between mb-1">
+            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-onicord-muted border-b border-onicord-border flex items-center justify-between mb-1">
               <span>{menuTitle}</span>
               {onClose && (
                 <button

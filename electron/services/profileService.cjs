@@ -113,13 +113,38 @@ class ProfileService {
         };
       });
 
-      // Load serverFolders from servers_list.db
+      // Load serverFolders and serverOrder from servers_list.db
       const folderRows = serversListDb.prepare("SELECT * FROM server_folders ORDER BY position ASC").all();
+      const serverOrderRows = serversListDb
+        .prepare("SELECT room_code, position, folder_id FROM joined_servers ORDER BY position ASC, last_visited_at DESC")
+        .all();
+
+      const folderMembersMap = new Map();
+      for (const sr of serverOrderRows) {
+        if (sr.folder_id) {
+          if (!folderMembersMap.has(sr.folder_id)) {
+            folderMembersMap.set(sr.folder_id, []);
+          }
+          folderMembersMap.get(sr.folder_id).push(sr.room_code);
+        }
+      }
+
       const serverFolders = folderRows.map((f) => ({
         id: f.folder_id,
         name: f.name,
         color: f.color,
+        position: f.position ?? 0,
+        serverIds: folderMembersMap.get(f.folder_id) || [],
       }));
+
+      const serverOrder = [
+        ...folderRows.map((f) => ({ type: "folder", id: f.folder_id, position: f.position ?? 0 })),
+        ...serverOrderRows
+          .filter((sr) => !sr.folder_id)
+          .map((sr) => ({ type: "server", id: sr.room_code, position: sr.position ?? 0 })),
+      ]
+        .sort((a, b) => a.position - b.position)
+        .map(({ type, id }) => ({ type, id }));
 
       // Load local user's flame streaks: prioritize most recently visited servers for instant boot,
       // and load remaining servers non-blockingly
@@ -231,6 +256,7 @@ class ProfileService {
         },
         keybindings: normalizeKeybindings(settingsMap.keybindings || []),
         serverFolders,
+        serverOrder,
         serverProfiles,
         overlay: settingsMap.overlay || {
           enabled: true,
@@ -374,19 +400,60 @@ class ProfileService {
       actTx(profile.customGames);
     }
 
-    // 5. Save serverFolders in servers_list.db
-    if (Array.isArray(profile.serverFolders)) {
-      const foldersTx = serversListDb.transaction((folders) => {
+    // 5. Save serverFolders and serverOrder in servers_list.db
+    if (Array.isArray(profile.serverFolders) || Array.isArray(profile.serverOrder)) {
+      const folders = Array.isArray(profile.serverFolders) ? profile.serverFolders : [];
+      const railOrder = Array.isArray(profile.serverOrder) ? profile.serverOrder : null;
+
+      const foldersTx = serversListDb.transaction(() => {
         serversListDb.prepare("DELETE FROM server_folders").run();
         const insertFolder = serversListDb.prepare(`
           INSERT OR REPLACE INTO server_folders (folder_id, name, color, position) VALUES (?, ?, ?, ?)
         `);
+        const updateServerPlacement = serversListDb.prepare(`
+          UPDATE joined_servers SET folder_id = ?, position = ? WHERE room_code = ?
+        `);
+
+        // Build top-level position lookup if railOrder is provided
+        const topLevelPos = new Map();
+        if (railOrder) {
+          railOrder.forEach((entry, idx) => {
+            if (entry && entry.id && entry.type) {
+              topLevelPos.set(`${entry.type}:${entry.id}`, idx);
+            }
+          });
+        }
+
+        const assignedServers = new Set();
         folders.forEach((f, idx) => {
           if (!f || !f.id) return;
-          insertFolder.run(String(f.id), String(f.name || "Carpeta"), f.color || null, idx);
+          const folderPos = topLevelPos.has(`folder:${f.id}`)
+            ? topLevelPos.get(`folder:${f.id}`)
+            : idx;
+          insertFolder.run(String(f.id), String(f.name || "Carpeta"), f.color || null, folderPos);
+
+          const memberIds = Array.isArray(f.serverIds) ? f.serverIds : [];
+          memberIds.forEach((srvId, innerIdx) => {
+            if (!srvId || assignedServers.has(srvId)) return;
+            assignedServers.add(srvId);
+            updateServerPlacement.run(String(f.id), innerIdx, String(srvId));
+          });
         });
+
+        // Update standalone servers (clear folder_id and set top-level position)
+        const allServers = serversListDb
+          .prepare("SELECT room_code, position FROM joined_servers ORDER BY position ASC, last_visited_at DESC")
+          .all();
+        let fallbackPos = folders.length;
+        for (const row of allServers) {
+          if (assignedServers.has(row.room_code)) continue;
+          const srvPos = topLevelPos.has(`server:${row.room_code}`)
+            ? topLevelPos.get(`server:${row.room_code}`)
+            : fallbackPos++;
+          updateServerPlacement.run(null, srvPos, row.room_code);
+        }
       });
-      foldersTx(profile.serverFolders);
+      foldersTx();
     }
 
     // 6. Save per-server flame streaks in each server's servers/<ROOM_CODE>/flames.db
@@ -522,6 +589,9 @@ class ProfileService {
       serverFolders: Array.isArray(profile.serverFolders)
         ? profile.serverFolders
         : (existing?.serverFolders || []),
+      serverOrder: Array.isArray(profile.serverOrder)
+        ? profile.serverOrder
+        : (existing?.serverOrder || []),
       serverProfiles: (profile.serverProfiles && typeof profile.serverProfiles === "object")
         ? profile.serverProfiles
         : (existing?.serverProfiles || {}),

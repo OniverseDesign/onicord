@@ -87,7 +87,7 @@ export default function ContextMenu({ x, y, title, items, onClose }) {
           <div className="onicord-context-menu-title">
             {title}
           </div>
-          <div className="h-[1px] bg-white/5 my-1 mx-1 opacity-30" />
+          <div className="h-[1px] bg-onicord-tint/5 my-1 mx-1 opacity-30" />
         </>
       )}
 
@@ -97,7 +97,7 @@ export default function ContextMenu({ x, y, title, items, onClose }) {
             return (
               <div
                 key={`sep-${idx}`}
-                className="h-[1px] bg-white/5 my-1 mx-1 opacity-30"
+                className="h-[1px] bg-onicord-tint/5 my-1 mx-1 opacity-30"
               />
             );
           }

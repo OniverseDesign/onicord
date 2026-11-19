@@ -149,7 +149,7 @@ export default function HomeView({
 
   const executeKeybindingAction = useCallback((action) => {
     const now = Date.now();
-    if (lastActionTimeRef.current[action] && now - lastActionTimeRef.current[action] < 120) {
+    if (lastActionTimeRef.current[action] && now - lastActionTimeRef.current[action] < 300) {
       return;
     }
     lastActionTimeRef.current[action] = now;
@@ -218,6 +218,11 @@ export default function HomeView({
 
     const handleGlobalKeybindData = (data) => {
       if (!data?.action) return;
+
+      const lastTime = lastActionTimeRef.current[data.action] || 0;
+      if (Date.now() - lastTime < 300) {
+        return;
+      }
 
       // If user is actively typing in an input, textarea, or chat, suppress single-key shortcuts
       if (isTypingInInput()) {
@@ -707,18 +712,33 @@ export default function HomeView({
     };
   }, [refreshServers, setActiveServer, activeServer]);
 
-  const handleUpdateFolders = async (nextFolders) => {
+  const railSaveQueueRef = useRef(Promise.resolve());
+
+  const handleUpdateRailLayout = ({ serverFolders, serverOrder }) => {
+    const optimisticProfile = {
+      ...profile,
+      serverFolders,
+      serverOrder,
+    };
+    onProfileChange?.(optimisticProfile);
+
     if (window.electronAPI?.saveProfile) {
-      try {
-        const saved = await window.electronAPI.saveProfile({
-          ...profile,
-          serverFolders: nextFolders,
+      railSaveQueueRef.current = railSaveQueueRef.current
+        .then(async () => {
+          const saved = await window.electronAPI.saveProfile(optimisticProfile);
+          if (saved) onProfileChange?.(saved);
+        })
+        .catch((err) => {
+          console.error("Error al actualizar layout de servidores:", err);
         });
-        onProfileChange?.(saved);
-      } catch (err) {
-        console.error("Error al actualizar carpetas de servidores:", err);
-      }
     }
+  };
+
+  const handleUpdateFolders = async (nextFolders) => {
+    handleUpdateRailLayout({
+      serverFolders: nextFolders,
+      serverOrder: profile?.serverOrder || [],
+    });
   };
 
   const isServerActive = activeView === "server" && Boolean(activeServer);
@@ -731,7 +751,9 @@ export default function HomeView({
         <ServerRail
           servers={servers}
           folders={profile?.serverFolders || []}
+          serverOrder={profile?.serverOrder || []}
           onUpdateFolders={handleUpdateFolders}
+          onUpdateRailLayout={handleUpdateRailLayout}
           activeServerId={isServerActive && activeServer ? activeServer.id : null}
           currentVoiceServerId={currentVoiceServerId}
           activeView={activeView}

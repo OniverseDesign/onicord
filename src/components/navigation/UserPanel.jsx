@@ -14,11 +14,13 @@ import ScreenShareModal from "../modals/ScreenShareModal";
 import UserListItem from "../ui/UserListItem";
 import NetworkPopover from "../ui/NetworkPopover";
 import ContextMenu from "../ui/ContextMenu";
+import Tooltip from "../ui/Tooltip";
 import MaterialIcon from "../icons/MaterialIcon";
 import { useStreamerMode } from "../../context/StreamerModeContext";
 import { notificationManager } from "../../lib/notificationManager";
 import {
   WebcamStreamCompositor,
+  DESKTOP_AUDIO_CONSTRAINTS,
   acquireWebcamStream,
   acquireSystemAudioOnlyStream,
 } from "../../lib/voice/webcamCompositor";
@@ -261,11 +263,7 @@ export default function UserPanel({
       try {
         // Attempt desktop capture with audio first (mandatory: chromeMediaSource: "desktop")
         screenStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            mandatory: {
-              chromeMediaSource: "desktop",
-            },
-          },
+          audio: DESKTOP_AUDIO_CONSTRAINTS,
           video: { mandatory: videoConstraints },
         });
       } catch (err) {
@@ -395,30 +393,31 @@ export default function UserPanel({
                   : "w-0 opacity-0 scale-75 pointer-events-none -mr-1.5"
               }`}
             >
-              <button
-                type="button"
-                title={resolvedTooltip}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.electronAPI?.triggerVoiceControlButton?.(btn.pluginId, btn.id, {
-                    language: currentLang,
-                  });
-                }}
-                className="onicord-icon-btn text-onicord-text hover:text-onicord-accent transition-colors flex items-center justify-center relative group shrink-0"
-              >
-                {isImage ? (
-                  <img
-                    src={btn.icon}
-                    alt={resolvedTooltip}
-                    className="w-5 h-5 object-contain"
-                  />
-                ) : (
-                  <MaterialIcon name={btn.icon || "extension"} size="lg" />
-                )}
-                {btn.badge && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-onicord-accent" />
-                )}
-              </button>
+              <Tooltip content={resolvedTooltip} side="top">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.electronAPI?.triggerVoiceControlButton?.(btn.pluginId, btn.id, {
+                      language: currentLang,
+                    });
+                  }}
+                  className="onicord-icon-btn text-onicord-text hover:text-onicord-accent transition-colors flex items-center justify-center relative group shrink-0"
+                >
+                  {isImage ? (
+                    <img
+                      src={btn.icon}
+                      alt={resolvedTooltip}
+                      className="w-5 h-5 object-contain"
+                    />
+                  ) : (
+                    <MaterialIcon name={btn.icon || "extension"} size="lg" />
+                  )}
+                  {btn.badge && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-onicord-accent" />
+                  )}
+                </button>
+              </Tooltip>
             </div>
           );
         })}
@@ -431,50 +430,56 @@ export default function UserPanel({
               : "w-0 opacity-0 scale-75 pointer-events-none -mr-1.5"
           }`}
         >
-          <button
-            type="button"
-            disabled={!canShareVideo}
-            title={
+          <Tooltip
+            content={
               canShareVideo
                 ? t("userPanel.shareScreen")
                 : t("userPanel.noShareVideoPermission", "Sin permisos para transmitir pantalla en este servidor")
             }
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!canShareVideo) return;
-              setIsModalOpen(true);
-            }}
-            className={`onicord-icon-btn shrink-0 ${!canShareVideo ? "opacity-35 !cursor-not-allowed pointer-events-none" : ""}`}
+            side="top"
           >
-            <IconScreenShare size="lg" />
-          </button>
+            <button
+              type="button"
+              disabled={!canShareVideo}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!canShareVideo) return;
+                setIsModalOpen(true);
+              }}
+              className={`onicord-icon-btn shrink-0 ${!canShareVideo ? "opacity-35 !cursor-not-allowed pointer-events-none" : ""}`}
+            >
+              <IconScreenShare size="lg" />
+            </button>
+          </Tooltip>
         </div>
 
         {/* Mute toggle button */}
-        <button
-          type="button"
-          title={muted ? t("userPanel.unmute") : t("userPanel.mute")}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleMute?.();
-          }}
-          className={`onicord-icon-btn shrink-0 ${muted ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
-        >
-          {muted ? <IconMicOff size="lg" /> : <IconMicOn size="lg" />}
-        </button>
+        <Tooltip content={muted ? t("userPanel.unmute") : t("userPanel.mute")} side="top">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleMute?.();
+            }}
+            className={`onicord-icon-btn shrink-0 ${muted ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
+          >
+            {muted ? <IconMicOff size="lg" /> : <IconMicOn size="lg" />}
+          </button>
+        </Tooltip>
 
         {/* Deafen toggle button */}
-        <button
-          type="button"
-          title={deafened ? t("userPanel.undeafen") : t("userPanel.deafen")}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleDeafen?.();
-          }}
-          className={`onicord-icon-btn shrink-0 ${deafened ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
-        >
-          {deafened ? <IconDeafenOff size="lg" /> : <IconDeafenOn size="lg" />}
-        </button>
+        <Tooltip content={deafened ? t("userPanel.undeafen") : t("userPanel.deafen")} side="top">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleDeafen?.();
+            }}
+            className={`onicord-icon-btn shrink-0 ${deafened ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
+          >
+            {deafened ? <IconDeafenOff size="lg" /> : <IconDeafenOn size="lg" />}
+          </button>
+        </Tooltip>
 
         {/* Voice disconnect button */}
         <div
@@ -484,17 +489,18 @@ export default function UserPanel({
               : "w-0 opacity-0 scale-75 pointer-events-none -ml-1.5"
           }`}
         >
-          <button
-            type="button"
-            title={t("userPanel.disconnect")}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDisconnect?.();
-            }}
-            className="onicord-icon-btn onicord-icon-btn-danger shrink-0"
-          >
-            <IconCallEnd size="lg" />
-          </button>
+          <Tooltip content={t("userPanel.disconnect")} side="top">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDisconnect?.();
+              }}
+              className="onicord-icon-btn onicord-icon-btn-danger shrink-0"
+            >
+              <IconCallEnd size="lg" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     );

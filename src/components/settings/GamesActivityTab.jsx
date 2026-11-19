@@ -163,14 +163,14 @@ export default function GamesActivityTab({
 
         {/* CURRENT GAME */}
         {showRichPresence && (
-          <div className="mt-4 pt-4 border-t border-white/5">
+          <div className="mt-4 pt-4 border-t border-onicord-border">
             <span className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted block mb-2.5">
               {t("gamesTab.currentGame", "Juego actual")}
             </span>
 
-            <div className="flex items-center gap-3.5 p-3 rounded-xl bg-onicord-surface/30 border border-white/5">
+            <div className="flex items-center gap-3.5 p-3 rounded-xl bg-onicord-surface/30 border border-onicord-border">
               <div className="relative w-12 h-12 shrink-0">
-                <div className="w-full h-full rounded-lg bg-onicord-base border border-white/10 flex items-center justify-center overflow-hidden">
+                <div className="w-full h-full rounded-lg bg-onicord-base border border-onicord-tint/10 flex items-center justify-center overflow-hidden">
                   {activeGame?.cover ? (
                     <img src={activeGame.cover} alt={activeGame.name} className="w-full h-full object-cover" />
                   ) : (
@@ -225,7 +225,7 @@ export default function GamesActivityTab({
 
       {/* CARD 2: ADD AND MANAGE GAMES / SOFTWARE */}
       <div className="onicord-settings-card">
-        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <div className="flex items-center justify-between border-b border-onicord-border pb-3">
           <div>
             <h3 className="onicord-settings-section-title !m-0">
               <span>{t("gamesTab.customGamesTitle", "Tus Juegos y Software Registrados")}</span>
@@ -242,7 +242,7 @@ export default function GamesActivityTab({
             type="button"
             onClick={handleAddProgram}
             disabled={isBrowsing}
-            className="px-4 py-2 text-xs font-bold rounded-lg bg-onicord-accent text-onicord-dark hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
+            className="px-4 py-2 text-xs font-bold rounded-lg bg-onicord-accent text-onicord-on-accent hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
           >
             <MaterialIcon name="add" size={16} weight={700} />
             <span>{isBrowsing ? t("common.loading", "Procesando...") : t("gamesTab.addProgramBtn", "Agregar juego o software")}</span>
@@ -288,14 +288,14 @@ export default function GamesActivityTab({
             </p>
           </div>
         ) : (
-          <div className="pt-2 divide-y divide-white/5">
+          <div className="pt-2 divide-y divide-onicord-border">
             {customGames.map((game) => {
               const isEditing = editingId === game.id;
               return (
                 <div key={game.id || game.exe} className="flex items-center justify-between py-3 gap-3.5 group">
                   {/* Icon, title and executable */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-10 h-10 rounded-lg bg-onicord-base border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-10 h-10 rounded-lg bg-onicord-base border border-onicord-tint/10 flex items-center justify-center shrink-0 overflow-hidden">
                       {game.cover ? (
                         <img src={game.cover} alt={game.title} className="w-full h-full object-cover" />
                       ) : (
@@ -325,7 +325,7 @@ export default function GamesActivityTab({
                           <button
                             type="button"
                             onClick={() => handleSaveRename(game.id)}
-                            className="p-1 text-onicord-success hover:bg-white/5 rounded cursor-pointer"
+                            className="p-1 text-onicord-success hover:bg-onicord-tint/5 rounded cursor-pointer"
                           >
                             <MaterialIcon name="check" size={16} />
                           </button>
@@ -343,7 +343,7 @@ export default function GamesActivityTab({
                           <button
                             type="button"
                             onClick={() => handleToggleType(game.id)}
-                            className="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-white/5 hover:bg-white/10 text-onicord-subtext hover:text-white border border-white/5 cursor-pointer transition-colors"
+                            className="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-subtext hover:text-onicord-text border border-onicord-border cursor-pointer transition-colors"
                             title={t("gamesTab.clickToToggleType", "Clic para alternar entre Juego y Software")}
                           >
                             {game.type === "app" ? t("gamesTab.badgeApp", "App") : t("gamesTab.badgeGame", "Juego")}
