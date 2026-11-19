@@ -76,12 +76,12 @@ export default function MessageStickerContent({ rawText, timestamp }) {
 
   return (
     <div className="flex flex-col items-start justify-start w-full h-auto my-2 pb-1">
-      <div className="min-w-[120px] max-h-[120px] h-auto w-auto overflow-hidden rounded-onicord-button mt-1 items-center justify-center select-none bg-transparent">
+      <div className="w-[120px] h-[120px] overflow-hidden rounded-onicord-button mt-1 flex items-center justify-center select-none bg-transparent">
         {stickerSrc ? (
           <SmartAnimatedImage
             src={stickerSrc}
             alt={stickerMeta.stickerName}
-            className="max-h-[120px] h-auto w-auto max-w-[150px] object-contain select-none pointer-events-none rounded-onicord-button"
+            className="w-full h-full object-contain select-none pointer-events-none rounded-onicord-button"
             timestamp={timestamp}
           />
         ) : (

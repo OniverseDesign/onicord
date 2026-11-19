@@ -131,6 +131,7 @@ export default function UserListItem({
   showFlame = true,
   isOwner = false,
   serverId = "",
+  prioritizeActivity = false,
 }) {
   const { t } = useTranslation();
   const name = nickname || t("common.user");
@@ -139,7 +140,7 @@ export default function UserListItem({
 
   let subtitle = null;
 
-  if (customStatus) {
+  if (customStatus && !(prioritizeActivity && activity?.name)) {
     subtitle = (
       <span className="text-onicord-text opacity-90 truncate block">
         {customStatus}

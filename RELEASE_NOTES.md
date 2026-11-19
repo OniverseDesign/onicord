@@ -12,6 +12,9 @@
 - **Navigation & Sidebar Responsiveness**: Optimized `ChannelsSidebar` and `MembersSidebar` with adaptive scrollbars, role-grouped participant ordering, and persistent voice connection controls in `UserPanel`.
 - **Automated Theme Class Audit Tooling**: Introduced `scripts/audit-theme-classes.cjs` to scan the codebase for hardcoded color literals and untokenized classes, guaranteeing design system enforcement in continuous development.
 - **Application Lifecycle & IPC Performance Tuning**: Deferred non-essential background service initializations, refined global shortcut registration in `globalKeybindService`, and synchronized server metadata caches across SQLite and Hyperswarm swarms.
+- **Shared Activity Grouping in Members Sidebar**: Added pure grouping engine (`memberActivityGrouping.js`) clustering members sharing Rich Presence activities (games, cinema, music, apps) into dedicated sidebar sections with category icons, live counts, and prioritized status indicators.
+- **Chat Sticker Sizing & Aspect Ratio Stability**: Constrained `MessageStickerContent` within a fixed square container with `object-contain`, preventing sticker distortion and layout stretching across chat bubbles.
+- **Smart Animated Image Canvas Layering**: Fixed canvas and image coordinate alignment in `SmartAnimatedImage`, resolving visual shifts between paused canvas frames and active animated image elements.
 
 # Onicord v0.2.9
 

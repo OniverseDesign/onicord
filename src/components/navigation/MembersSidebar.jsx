@@ -3,6 +3,14 @@ import UserListItem from "../ui/UserListItem";
 import Tooltip from "../ui/Tooltip";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
+import { groupMembersByActivity } from "../../lib/memberActivityGrouping";
+
+const ACTIVITY_TYPE_ICON = {
+  game: "sports_esports",
+  movie: "movie",
+  music: "music_note",
+  app: "apps",
+};
 
 export default function MembersSidebar({
   members,
@@ -20,56 +28,10 @@ export default function MembersSidebar({
   server = null,
 }) {
   const { t } = useTranslation();
-  const { inVoice, online, offline, playingTogetherList, justOnline } = useMemo(() => {
-    const inVoice = (voiceMembers || []).filter((m) => m.channelId);
-    const online = (members || []).filter(
-      (m) => m.isSelf || m.online === true || m.online === undefined,
-    );
-    const offline = (members || []).filter(
-      (m) =>
-        !(m.isSelf || m.online === true || m.online === undefined) && !m.isSelf,
-    );
-
-    const activityCounts = {};
-    const seenUserIds = new Set();
-
-    const isGameActivity = (act) =>
-      Boolean(act?.name && (!act.type || act.type === "game"));
-
-    const registerUserActivity = (m) => {
-      const userId = m.id || m.userId || m.peerId;
-      if (!userId || seenUserIds.has(userId)) return;
-      seenUserIds.add(userId);
-
-      if (isGameActivity(m?.activity)) {
-        const name = m.activity.name.trim().toLowerCase();
-        activityCounts[name] = (activityCounts[name] || 0) + 1;
-      }
-    };
-
-    (voiceMembers || []).forEach(registerUserActivity);
-    (members || []).forEach((m) => {
-      if (m.isSelf || m.online === true || m.online === undefined) {
-        registerUserActivity(m);
-      }
-    });
-
-    const playingTogetherList = [];
-    const justOnline = [];
-
-    online.forEach((m) => {
-      if (isGameActivity(m?.activity)) {
-        const name = m.activity.name.trim().toLowerCase();
-        if (activityCounts[name] > 1) {
-          playingTogetherList.push(m);
-          return;
-        }
-      }
-      justOnline.push(m);
-    });
-
-    return { inVoice, online, offline, playingTogetherList, justOnline };
-  }, [members, voiceMembers]);
+  const { inVoice, offline, activityGroups, justOnline } = useMemo(
+    () => groupMembersByActivity({ members, voiceMembers }),
+    [members, voiceMembers],
+  );
 
   const groupedByRoles = useMemo(() => {
     if (!server?.groupByRoles || !server?.roles || server.roles.length === 0) {
@@ -105,16 +67,17 @@ export default function MembersSidebar({
     };
   }, [justOnline, server?.groupByRoles, server?.roles]);
 
-  const renderUserList = (list, keyPrefix) => {
+  const renderUserList = (list, keyPrefix, { prioritizeActivity = false } = {}) => {
     return list.map((m) => (
       <UserListItem
-        key={`${keyPrefix}-${m.id || m.peerId}`}
+        key={`${keyPrefix}-${m.id || m.userId || m.peerId}`}
         nickname={m.nickname}
         avatar={m.avatar}
         status="online"
         isSelf={m.isSelf}
         activity={m.activity}
         customStatus={m.customStatus}
+        prioritizeActivity={prioritizeActivity}
         avatarSize="md"
         showStatusDot={true}
         onContextMenu={(e) => handleContextMenu(e, m)}
@@ -225,36 +188,24 @@ export default function MembersSidebar({
           </section>
         )}
 
-        {playingTogetherList.length > 0 && (
-          <section className="mb-4 px-2">
-            <h3 className="onicord-sidebar-header text-onicord-accent">
-              {t("sidebar.playingTogether")} — {playingTogetherList.length}
+        {activityGroups.map((group) => (
+          <section key={`activity-${group.key}`} className="mb-4 px-2">
+            <h3 className="onicord-sidebar-header text-onicord-accent flex items-center gap-1.5 min-w-0">
+              <MaterialIcon
+                name={ACTIVITY_TYPE_ICON[group.type] || "sports_esports"}
+                size={13}
+                className="shrink-0"
+              />
+              <span className="truncate">{group.displayName}</span>
+              <span className="shrink-0">— {group.members.length}</span>
             </h3>
             <ul className="space-y-0.5">
-              {playingTogetherList.map((m) => (
-                <UserListItem
-                  key={`together-${m.id || m.peerId}`}
-                  nickname={m.nickname}
-                  avatar={m.avatar}
-                  status="online"
-                  isSelf={m.isSelf}
-                  activity={m.activity}
-                  customStatus={m.customStatus} 
-                  avatarSize="md"
-                  showStatusDot={true}
-                  onContextMenu={(e) => handleContextMenu(e, m)}
-                  onClick={(e) => handleClick(e, m)}
-                  nameColor={m.role?.color}
-                  flame={m.flame}
-                  showFlame={!disableFlameSystem}
-                  rightSlot={renderMessageButton(m)}
-                  isOwner={(m.id || m.userId || m.peerId) === ownerId}
-                  serverId={serverId || roomCode}
-                />
-              ))}
+              {renderUserList(group.members, `activity-${group.key}`, {
+                prioritizeActivity: true,
+              })}
             </ul>
           </section>
-        )}
+        ))}
 
         {groupedByRoles ? (
           <>
@@ -300,7 +251,7 @@ export default function MembersSidebar({
             <ul className="space-y-0.5">
               {offline.map((m) => (
                 <UserListItem
-                  key={`offline-${m.id}`}
+                  key={`offline-${m.id || m.userId || m.peerId}`}
                   nickname={m.nickname}
                   avatar={m.avatar}
                   status="offline"

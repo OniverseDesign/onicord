@@ -196,7 +196,7 @@ export default function SmartAnimatedImage({
       {!enableContinuousAnimations && (
         <canvas
           ref={canvasRef}
-          className={`${cleanClassName} ${fitClass}`}
+          className={`${cleanClassName} absolute inset-0 w-full h-full ${fitClass}`}
           style={{
             ...style,
             display: showCanvas ? "block" : "none",
@@ -212,7 +212,7 @@ export default function SmartAnimatedImage({
         ref={imgRef}
         src={src}
         alt={alt}
-        className={`${cleanClassName} absolute inset-0 w-full h-full ${fitClass}`}
+        className={`${cleanClassName} relative w-full h-full ${fitClass}`}
         style={{
           ...style,
           opacity: shouldAnimate || !showCanvas ? 1 : 0,
