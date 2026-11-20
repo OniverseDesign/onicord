@@ -13,6 +13,14 @@ export const DEFAULT_KEYBINDINGS = [
   { id: "default-open-server-settings", action: "open_server_settings", shortcut: "Ctrl + Shift + S" },
   { id: "default-switch-server-up", action: "switch_server_up", shortcut: "Ctrl + Alt + ArrowUp" },
   { id: "default-switch-server-down", action: "switch_server_down", shortcut: "Ctrl + Alt + ArrowDown" },
+  { id: "default-wb-select", action: "wb_tool_select", shortcut: "V" },
+  { id: "default-wb-hand", action: "wb_tool_hand", shortcut: "H" },
+  { id: "default-wb-pen", action: "wb_tool_pen", shortcut: "P" },
+  { id: "default-wb-eraser", action: "wb_tool_eraser", shortcut: "E" },
+  { id: "default-wb-sticky", action: "wb_tool_sticky", shortcut: "S" },
+  { id: "default-wb-shape", action: "wb_tool_shape", shortcut: "R" },
+  { id: "default-wb-text", action: "wb_tool_text", shortcut: "T" },
+  { id: "default-wb-section", action: "wb_tool_section", shortcut: "F" },
 ];
 
 export const isMac =

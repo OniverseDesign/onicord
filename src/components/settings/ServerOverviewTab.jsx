@@ -105,6 +105,7 @@ export default function ServerOverviewTab({
   const getChannelIconName = (ch) => {
     if (ch.id === effectiveAfkChannelId) return "bedtime";
     if (ch.type === "forum") return "forum";
+    if (ch.type === "whiteboard") return "draw";
     if (ch.type === "voice") return "volume_up";
     return "tag";
   };

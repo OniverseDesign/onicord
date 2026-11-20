@@ -191,7 +191,7 @@ export default function ChannelsSidebar({
   const textChannels =
     server.channels?.filter(
       (c) =>
-        (c.type === "text" || c.type === "forum" || !c.type) &&
+        (c.type === "text" || c.type === "forum" || c.type === "whiteboard" || !c.type) &&
         !isCategoryNode(c) &&
         hasChannelAccess(server, c, profile?.id),
     ) ?? [];
@@ -227,7 +227,7 @@ export default function ChannelsSidebar({
   const renderChannelNode = (ch) => {
     const isChMuted = localStorage.getItem(`channel_notif_mode_${ch.id}`) === "nothing";
 
-    if (ch.type === "text" || ch.type === "forum") {
+    if (ch.type === "text" || ch.type === "forum" || ch.type === "whiteboard") {
       return (
         <ChannelButton
           key={ch.id}
@@ -238,6 +238,8 @@ export default function ChannelsSidebar({
           icon={
             ch.type === "forum" ? (
               <MaterialIcon name="forum" size="lg" />
+            ) : ch.type === "whiteboard" ? (
+              <MaterialIcon name="draw" size="lg" />
             ) : (
               <IconTag size="lg" />
             )

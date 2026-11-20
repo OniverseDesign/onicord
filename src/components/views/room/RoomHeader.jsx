@@ -46,6 +46,8 @@ export default function RoomHeader({
             <>
               {activeTextChannel?.type === "forum" ? (
                 <MaterialIcon name="forum" size={20} className="text-onicord-accent" />
+              ) : activeTextChannel?.type === "whiteboard" ? (
+                <MaterialIcon name="draw" size={20} className="text-onicord-accent" />
               ) : (
                 <IconTag size="lg" className="text-onicord-accent" />
               )}

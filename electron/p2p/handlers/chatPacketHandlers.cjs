@@ -33,6 +33,38 @@ async function handleChatPacket(roomManager, peerId, type, payload) {
     return true;
   }
 
+  if (type === "whiteboard-event" && payload) {
+    roomManager.persistWhiteboardPayload?.(payload, payload.roomCode);
+    if (payload.type === "sync:request" && payload.channelId) {
+      const store = roomManager._getWhiteboardStore?.();
+      if (store) {
+        const snap = store.loadChannel(
+          payload.roomCode || roomManager.roomCode,
+          payload.channelId
+        );
+        if (snap.elements.length > 0 || snap.clearedAt > 0) {
+          roomManager.sendWhiteboardEvent(
+            {
+              type: "sync:state",
+              roomCode: payload.roomCode || roomManager.roomCode,
+              channelId: payload.channelId,
+              userId: payload.userId ? `sqlite-${roomManager.p2pService?._resolveLocalPeerId() || "host"}` : "sqlite-host",
+              targetUserId: payload.userId,
+              elements: snap.elements,
+              clearedAt: snap.clearedAt,
+            },
+            payload.roomCode || roomManager.roomCode
+          );
+        }
+      }
+    }
+    global.mainWindow?.webContents.send("whiteboard:event", {
+      ...payload,
+      fromPeerId: peerId,
+    });
+    return true;
+  }
+
   return false;
 }
 

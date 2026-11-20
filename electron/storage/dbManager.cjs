@@ -397,6 +397,22 @@ const SERVER_SCHEMAS = {
       watched_at INTEGER NOT NULL
     );
   `,
+  whiteboard: `
+    CREATE TABLE IF NOT EXISTS whiteboard_elements (
+      channel_id TEXT NOT NULL,
+      element_id TEXT NOT NULL,
+      data_json TEXT NOT NULL,
+      updated_at INTEGER NOT NULL DEFAULT 0,
+      deleted INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (channel_id, element_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_wb_elements_channel ON whiteboard_elements(channel_id, updated_at ASC);
+
+    CREATE TABLE IF NOT EXISTS whiteboard_meta (
+      channel_id TEXT PRIMARY KEY,
+      cleared_at INTEGER NOT NULL DEFAULT 0
+    );
+  `,
   messages: `
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,

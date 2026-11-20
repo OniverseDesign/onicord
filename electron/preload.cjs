@@ -411,6 +411,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("sketch:draw", handler);
   },
 
+  sendWhiteboardEvent: (payload, roomCode) =>
+    ipcRenderer.invoke("whiteboard:sendEvent", payload, roomCode),
+  loadWhiteboardChannel: (roomCode, channelId) =>
+    ipcRenderer.invoke("whiteboard:loadChannel", roomCode, channelId),
+  onWhiteboardEvent: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("whiteboard:event", handler);
+    return () => ipcRenderer.removeListener("whiteboard:event", handler);
+  },
+
   onDeepLink: (callback) => {
     const handler = (_event, code) => callback(code);
     ipcRenderer.on("onicord:deep-link", handler);

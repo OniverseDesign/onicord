@@ -84,6 +84,14 @@ export default function ServerChannelsTab({
             </button>
             <button
               type="button"
+              onClick={() => addChannel("whiteboard")}
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
+              title={t("serverSettings.channels.addWhiteboardChannel", "Añadir canal de pizarra")}
+            >
+              <MaterialIcon name="draw" size={16} />
+            </button>
+            <button
+              type="button"
               onClick={() => addChannel("afk")}
               className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
               title={t("serverSettings.channels.addAfkBtn", "Añadir canal AFK")}
@@ -297,26 +305,32 @@ function ChannelGroupEditor({
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   className={`flex shrink-0 items-center p-1 rounded-lg transition-colors ${
-                    ch.type !== "voice" ? "hover:bg-onicord-tint/10 cursor-pointer" : "cursor-default opacity-80"
+                    ch.type === "text" || ch.type === "forum"
+                      ? "hover:bg-onicord-tint/10 cursor-pointer"
+                      : "cursor-default opacity-80"
                   }`}
                   title={
                     ch.type === "text"
                       ? t("serverSettings.channels.changeToForum", "Canal de texto (haz clic para cambiar a foro)")
                       : ch.type === "forum"
                         ? t("serverSettings.channels.changeToText", "Canal de foro (haz clic para cambiar a texto)")
-                        : isAfk
-                          ? t("serverSettings.channels.afkBadge", "Canal AFK")
-                          : t("serverSettings.channels.voice", "Canal de voz")
+                        : ch.type === "whiteboard"
+                          ? t("serverSettings.channels.whiteboard", "Canal de pizarra")
+                          : isAfk
+                            ? t("serverSettings.channels.afkBadge", "Canal AFK")
+                            : t("serverSettings.channels.voice", "Canal de voz")
                   }
                 >
                   {ch.type === "text" ? (
                     <IconTag size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
                   ) : ch.type === "forum" ? (
-                    <MaterialIcon name="forum" size={18} className="text-onicord-accent" />
+                    <MaterialIcon name="forum" size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
+                  ) : ch.type === "whiteboard" ? (
+                    <MaterialIcon name="draw" size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
                   ) : isAfk ? (
-                    <MaterialIcon name="bedtime" size="lg" className="text-onicord-muted" />
+                    <MaterialIcon name="bedtime" size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
                   ) : (
-                    <IconVolumeUp size="lg" className="text-onicord-muted" />
+                    <IconVolumeUp size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
                   )}
                 </button>
 

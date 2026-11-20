@@ -98,6 +98,18 @@ function registerChatHandlers() {
     return { success: true };
   });
 
+  ipcMain.handle("whiteboard:sendEvent", async (_event, payload, roomCode) => {
+    if (!global.roomManager) return { success: false };
+    global.roomManager.sendWhiteboardEvent(payload, roomCode);
+    return { success: true };
+  });
+
+  ipcMain.handle("whiteboard:loadChannel", async (_event, roomCode, channelId) => {
+    const store = global.roomManager?._getWhiteboardStore?.();
+    if (!store) return { clearedAt: 0, elements: [] };
+    return store.loadChannel(roomCode, channelId);
+  });
+
   ipcMain.handle("chat:search", async (_event, roomCode, query, options = {}) => {
     const code = roomCode || global.roomManager?.roomCode;
     if (!code || !query || typeof query !== "string") return [];

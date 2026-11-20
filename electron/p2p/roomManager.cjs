@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const { ChatStore } = require("./chatStore.cjs");
+const { WhiteboardStore } = require("./whiteboardStore.cjs");
 const { RoomMetaStore } = require("./roomMetaStore.cjs");
 const { FileIndexStore } = require("./fileIndexStore.cjs");
 const { P2PService, encodeMessage, topicFromRoomCode, safeWriteSocket } = require("../network/p2pService.cjs");
@@ -297,6 +298,51 @@ class RoomManager {
     if (this.p2pService) {
       this.p2pService._broadcast("sketch-draw", payload);
     }
+  }
+
+  _getWhiteboardStore() {
+    if (!this._whiteboardStore && this.userDataPath) {
+      this._whiteboardStore = new WhiteboardStore(this.userDataPath);
+    }
+    return this._whiteboardStore;
+  }
+
+  persistWhiteboardPayload(payload, roomCode = null) {
+    const targetRoom = roomCode || payload?.roomCode || this.roomCode;
+    const channelId = payload?.channelId;
+    const store = this._getWhiteboardStore();
+    if (!store || !targetRoom || !channelId) return;
+
+    if ((payload.type === "op:upsert" || payload.type === "op:delete") && payload.element) {
+      store.applyElements(targetRoom, channelId, [payload.element]);
+    } else if (
+      (payload.type === "op:batch-upsert" || payload.type === "op:batch-delete") &&
+      Array.isArray(payload.elements)
+    ) {
+      store.applyElements(targetRoom, channelId, payload.elements);
+    } else if (payload.type === "op:clear") {
+      store.clearChannel(targetRoom, channelId, payload.clearedAt || Date.now());
+    } else if (payload.type === "sync:state" && Array.isArray(payload.elements)) {
+      if (payload.clearedAt > 0) {
+        store.clearChannel(targetRoom, channelId, payload.clearedAt);
+      }
+      store.applyElements(targetRoom, channelId, payload.elements);
+    }
+  }
+
+  sendWhiteboardEvent(payload, roomCode = null) {
+    const targetRoom = roomCode || payload?.roomCode || this.roomCode;
+    this.persistWhiteboardPayload(payload, targetRoom);
+    if (!this.p2pService || !targetRoom) return;
+    this.p2pService._broadcast(
+      "whiteboard-event",
+      {
+        ...payload,
+        roomCode: targetRoom,
+        senderPeerId: this.p2pService._resolveLocalPeerId(),
+      },
+      targetRoom
+    );
   }
 
   broadcastMusicState(channelId, state, roomCode = null) {

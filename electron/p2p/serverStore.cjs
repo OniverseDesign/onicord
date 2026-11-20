@@ -523,6 +523,8 @@ class ServerStore {
               ? "voice"
               : c.type === "forum"
               ? "forum"
+              : c.type === "whiteboard"
+              ? "whiteboard"
               : "text",
             name: safeSliceUnicode(String(c.name ?? "").trim(), 100),
             parentId: c.parentId ?? null,

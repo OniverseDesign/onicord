@@ -11,7 +11,7 @@ import ThreadSidePanel from "../chat/subcomponents/ThreadSidePanel";
 import ForumTagsBar from "../chat/subcomponents/ForumTagsBar";
 import { notificationManager } from "../../lib/notificationManager";
 import { evaluateServerFlame, triggerServerFlameInteraction } from "../../lib/flameService";
-import { checkPermission, hasChannelAccess } from "../../lib/permissionsHelper";
+import { checkPermission, hasChannelAccess, canSpeakInChannel } from "../../lib/permissionsHelper";
 import { buildPeerLookup, getEffectiveProfile } from "../../lib/profileUtils";
 
 import { useRoomResizers } from "../../hooks/useRoomResizers";
@@ -19,6 +19,8 @@ import ChannelsSidebar from "../navigation/ChannelsSidebar";
 import RoomStreamStage from "../voice/RoomStreamStage";
 import AddonStageHost from "../voice/AddonStageHost";
 import WatchPartyStage from "../voice/WatchPartyStage";
+import WhiteboardStage from "../whiteboard/WhiteboardStage";
+import { useWhiteboardBackgroundSync } from "../whiteboard/useWhiteboardBackgroundSync";
 import { useWatchParty } from "../../context/WatchPartyContext";
 import { soundEngine } from "../../lib/soundEngine";
 import { normalizeChatMessage } from "../../hooks/useChatMessages";
@@ -52,10 +54,16 @@ export default function RoomView({
   const [moderationConfirm, setModerationConfirm] = useState(null);
   const [textChannelId, setTextChannelId] = useState(() => {
     const ch = server.channels?.find(
-      (c) => c.id === server.lastChannelId && (c.type === "text" || c.type === "forum"),
+      (c) =>
+        c.id === server.lastChannelId &&
+        (c.type === "text" || c.type === "forum" || c.type === "whiteboard"),
     );
     return (
-      ch?.id ?? server.channels?.find((c) => c.type === "text" || c.type === "forum")?.id ?? "general"
+      ch?.id ??
+      server.channels?.find(
+        (c) => c.type === "text" || c.type === "forum" || c.type === "whiteboard",
+      )?.id ??
+      "general"
     );
   });
 
@@ -515,7 +523,7 @@ export default function RoomView({
   const textChannels =
     server.channels?.filter(
       (c) =>
-        (c.type === "text" || c.type === "forum" || !c.type) &&
+        (c.type === "text" || c.type === "forum" || c.type === "whiteboard" || !c.type) &&
         !isCategoryNode(c) &&
         hasChannelAccess(server, c, profile?.id),
     ) ?? [];
@@ -523,6 +531,15 @@ export default function RoomView({
   const activeTextChannel =
     textChannels.find((c) => c.id === textChannelId) ?? textChannels[0];
   isForumChannelRef.current = activeTextChannel?.type === "forum";
+
+  useWhiteboardBackgroundSync(
+    server?.roomCode,
+    profile?.id || "self",
+    activeTextChannel?.type === "whiteboard" && !server?.isDm
+      ? activeTextChannel.id
+      : null,
+    server?.channels
+  );
   const globalVoice = useGlobalVoice();
   const isCurrentServerVoice =
     (globalVoice.currentVoiceServerId && globalVoice.currentVoiceServerId === server.id) ||
@@ -1705,31 +1722,40 @@ export default function RoomView({
               }`}
             >
               <PluginBannerNotice serverPlugins={server?.plugins} />
-              <ChatPanel
-                roomCode={server.roomCode}
-                channelId={textChannelId}
-                channelName={
-                  resolvedDmUser
-                    ? resolvedDmUser.nickname
-                    : activeTextChannel?.name === "general"
-                      ? t("serverSettings.channels.defaultTextChannelName", "general")
-                      : activeTextChannel?.name || "general"
-                }
-                profile={profile}
-                peers={sanitizedMembersList}
-                server={server}
-                onProfileChange={onProfileChange}
-                searchQuery={searchQuery}
-                tagFilter={selectedTagFilter}
-                onSelectTag={(tag) => setSelectedTagFilter((prev) => (prev === tag ? null : tag))}
-                onOpenThread={handleOpenThread}
-                onMessagesUpdate={handleMessagesUpdate}
-                onSelectChannel={selectTextChannel}
-                onToggleReactionReady={(fn) => {
-                  toggleReactionRef.current = fn;
-                }}
-                isForum={activeTextChannel?.type === "forum"}
-              />
+              {activeTextChannel?.type === "whiteboard" && !resolvedDmUser ? (
+                <WhiteboardStage
+                  server={server}
+                  channel={activeTextChannel}
+                  profile={profile}
+                  canEdit={canSpeakInChannel(server, activeTextChannel, profile?.id)}
+                />
+              ) : (
+                <ChatPanel
+                  roomCode={server.roomCode}
+                  channelId={textChannelId}
+                  channelName={
+                    resolvedDmUser
+                      ? resolvedDmUser.nickname
+                      : activeTextChannel?.name === "general"
+                        ? t("serverSettings.channels.defaultTextChannelName", "general")
+                        : activeTextChannel?.name || "general"
+                  }
+                  profile={profile}
+                  peers={sanitizedMembersList}
+                  server={server}
+                  onProfileChange={onProfileChange}
+                  searchQuery={searchQuery}
+                  tagFilter={selectedTagFilter}
+                  onSelectTag={(tag) => setSelectedTagFilter((prev) => (prev === tag ? null : tag))}
+                  onOpenThread={handleOpenThread}
+                  onMessagesUpdate={handleMessagesUpdate}
+                  onSelectChannel={selectTextChannel}
+                  onToggleReactionReady={(fn) => {
+                    toggleReactionRef.current = fn;
+                  }}
+                  isForum={activeTextChannel?.type === "forum"}
+                />
+              )}
             </div>
 
             <RoomStreamStage

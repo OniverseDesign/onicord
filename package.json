@@ -1,6 +1,6 @@
 {
   "name": "onicord",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Onicord",
   "main": "electron/main.cjs",
   "type": "module",
@@ -38,6 +38,7 @@
     "better-sqlite3": "^12.11.1",
     "electron-updater": "^6.8.9",
     "hyperswarm": "^4.9.0",
+    "lucide-react": "^1.77.0",
     "torrent-stream": "^1.2.1",
     "uiohook-napi": "^1.5.5"
   },

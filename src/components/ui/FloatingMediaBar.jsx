@@ -35,6 +35,7 @@ export default function FloatingMediaBar({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
       style={{ zIndex: 45, transform: "translate3d(0, 0, 50px)", ...style }}
       className={cn(
         "onicord-media-control-bar-wrapper transition-all duration-300",
@@ -335,22 +336,31 @@ FloatingMediaBar.Menu = function FloatingMenu({
     return () => window.removeEventListener("click", handleOutsideClick);
   }, [isOpen, onClose]);
 
+  const menuBtn = (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        "onicord-party-popup-btn onicord-icon-btn-round",
+        active
+          ? "bg-onicord-accent/20 text-onicord-accent border border-onicord-accent/40 font-semibold"
+          : "text-onicord-text hover:text-onicord-text",
+        className
+      )}
+    >
+      {renderIcon(icon, 18)}
+    </button>
+  );
+
   return (
     <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={onToggle}
-        className={cn(
-          "onicord-party-popup-btn onicord-icon-btn-round",
-          active
-            ? "bg-onicord-accent/20 text-onicord-accent border border-onicord-accent/40 font-semibold"
-            : "text-onicord-text hover:text-onicord-text",
-          className
-        )}
-        title={title}
-      >
-        {renderIcon(icon, 18)}
-      </button>
+      {title ? (
+        <Tooltip content={title} side="top">
+          {menuBtn}
+        </Tooltip>
+      ) : (
+        menuBtn
+      )}
 
       {isOpen && (
         <div

@@ -312,12 +312,22 @@ export default function ServerSettingsModal({
           ? t("serverSettings.channels.defaultTextChannelName", "general")
           : type === "forum"
             ? t("serverSettings.channels.defaultForumChannelName", "foro")
-            : isAfkType
-              ? t("serverSettings.channels.defaultAfkChannelName", "AFK")
-              : t("serverSettings.channels.defaultVoiceChannelName", "Voice Lounge");
+            : type === "whiteboard"
+              ? t("serverSettings.channels.defaultWhiteboardChannelName", "pizarra")
+              : isAfkType
+                ? t("serverSettings.channels.defaultAfkChannelName", "AFK")
+                : t("serverSettings.channels.defaultVoiceChannelName", "Voice Lounge");
 
     const newId = slugId(
-      type === "category" ? "cat" : type === "text" ? "ch" : type === "forum" ? "forum" : "voice",
+      type === "category"
+        ? "cat"
+        : type === "text"
+          ? "ch"
+          : type === "forum"
+            ? "forum"
+            : type === "whiteboard"
+              ? "board"
+              : "voice",
       defaultName,
     );
 
@@ -585,7 +595,15 @@ export default function ServerSettingsModal({
             type: isCat ? "category" : c.type,
             name:
               c.name.trim() ||
-              (isCat ? "Category" : c.type === "text" ? "general" : c.type === "forum" ? "foro" : "voice"),
+              (isCat
+                ? "Category"
+                : c.type === "text"
+                  ? "general"
+                  : c.type === "forum"
+                    ? "foro"
+                    : c.type === "whiteboard"
+                      ? "pizarra"
+                      : "voice"),
             parentId: c.parentId || null,
             isPrivate: Boolean(c.isPrivate),
             allowedRoles: Array.isArray(c.allowedRoles) ? c.allowedRoles : [],

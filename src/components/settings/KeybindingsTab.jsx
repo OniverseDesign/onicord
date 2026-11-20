@@ -23,6 +23,14 @@ export default function KeybindingsTab({
     { value: "open_server_settings", label: t("keybindings.actions.openServerSettings", "Configuración del Servidor") },
     { value: "switch_server_up", label: t("keybindings.actions.switchServerUp", "Servidor Anterior") },
     { value: "switch_server_down", label: t("keybindings.actions.switchServerDown", "Servidor Siguiente") },
+    { value: "wb_tool_select", label: t("keybindings.actions.wbSelect", "Pizarra: Seleccionar") },
+    { value: "wb_tool_hand", label: t("keybindings.actions.wbHand", "Pizarra: Mover lienzo (Mano)") },
+    { value: "wb_tool_pen", label: t("keybindings.actions.wbPen", "Pizarra: Lápiz / Marcador") },
+    { value: "wb_tool_eraser", label: t("keybindings.actions.wbEraser", "Pizarra: Borrador") },
+    { value: "wb_tool_sticky", label: t("keybindings.actions.wbSticky", "Pizarra: Nota adhesiva") },
+    { value: "wb_tool_shape", label: t("keybindings.actions.wbShape", "Pizarra: Figuras") },
+    { value: "wb_tool_text", label: t("keybindings.actions.wbText", "Pizarra: Texto") },
+    { value: "wb_tool_section", label: t("keybindings.actions.wbSection", "Pizarra: Sección / Marco") },
   ];
 
   useEffect(() => {

@@ -383,7 +383,7 @@ class ServerService {
         for (const bc of beforeChs) {
           if (!newChannels.has(bc.id)) {
             const isCat = bc.type === "category" || String(bc.id).startsWith("cat-");
-            const chTypeLabel = isCat ? "category" : bc.type === "voice" ? "voice channel" : bc.type === "forum" ? "forum channel" : "text channel";
+            const chTypeLabel = isCat ? "category" : bc.type === "voice" ? "voice channel" : bc.type === "forum" ? "forum channel" : bc.type === "whiteboard" ? "whiteboard channel" : "text channel";
             log("delete_channel", bc.name, `Deleted ${chTypeLabel} "${bc.name}"`);
           }
         }
@@ -391,7 +391,7 @@ class ServerService {
         for (const nc of newChs) {
           const bc = oldChannels.get(nc.id);
           const isCat = nc.type === "category" || String(nc.id).startsWith("cat-");
-          const chTypeLabel = isCat ? "category" : nc.type === "voice" ? "voice channel" : nc.type === "forum" ? "forum channel" : "text channel";
+          const chTypeLabel = isCat ? "category" : nc.type === "voice" ? "voice channel" : nc.type === "forum" ? "forum channel" : nc.type === "whiteboard" ? "whiteboard channel" : "text channel";
 
           if (!bc) {
             log("create_channel", nc.name, `Created ${chTypeLabel} "${nc.name}"`);
