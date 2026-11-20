@@ -1728,6 +1728,9 @@ export default function RoomView({
                   channel={activeTextChannel}
                   profile={profile}
                   canEdit={canSpeakInChannel(server, activeTextChannel, profile?.id)}
+                  onFlameInteraction={() =>
+                    triggerServerFlameInteraction(profile, server, onProfileChange)
+                  }
                 />
               ) : (
                 <ChatPanel

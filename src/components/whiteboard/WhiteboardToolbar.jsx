@@ -119,16 +119,16 @@ export default function WhiteboardToolbar({
                   }}
                   style={{ backgroundColor: c }}
                   className={cn(
-                    "w-5 h-5 rounded-full border border-white/25 cursor-pointer transition-transform hover:scale-110",
+                    "w-5 h-5 rounded-full border border-onicord-border cursor-pointer transition-transform hover:scale-110",
                     penColor === c && "ring-2 ring-sky-400 scale-110"
                   )}
                 />
               ))}
             </div>
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px] text-white/70">
+              <div className="flex items-center justify-between text-[11px] text-onicord-muted">
                 <span>Grosor</span>
-                <span className="font-mono font-semibold text-sky-300">{penWidth}px</span>
+                <span className="font-mono font-semibold text-onicord-accent">{penWidth}px</span>
               </div>
               <input
                 type="range"
@@ -151,8 +151,8 @@ export default function WhiteboardToolbar({
               className={cn(
                 "w-full py-1 px-2 rounded-lg text-[11px] font-medium cursor-pointer transition-colors flex items-center justify-between",
                 isHighlighter
-                  ? "bg-sky-500/25 text-sky-300 border border-sky-400/30"
-                  : "bg-white/5 hover:bg-white/10 text-white/80"
+                  ? "bg-onicord-accent/20 text-onicord-accent border border-onicord-accent/30"
+                  : "bg-onicord-tint/10 hover:bg-onicord-tint/20 text-onicord-text"
               )}
             >
               <span>Modo resaltador</span>
@@ -231,7 +231,7 @@ export default function WhiteboardToolbar({
           widthClass="w-64"
         >
           <div className="p-1.5 space-y-2">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-white/50 px-1">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted px-1">
               Figuras
             </div>
             <div className="grid grid-cols-6 gap-1">
@@ -245,10 +245,10 @@ export default function WhiteboardToolbar({
                     setOpenMenu(null);
                   }}
                   className={cn(
-                    "p-1.5 rounded-lg hover:bg-white/10 flex items-center justify-center cursor-pointer",
+                    "p-1.5 rounded-lg hover:bg-onicord-tint/15 text-onicord-text flex items-center justify-center cursor-pointer",
                     activeTool === "shape" &&
                       activeShapeKind === sh.kind &&
-                      "bg-sky-500/25 text-sky-300"
+                      "bg-onicord-accent/20 text-onicord-accent"
                   )}
                   title={sh.label}
                 >
@@ -256,7 +256,7 @@ export default function WhiteboardToolbar({
                 </button>
               ))}
             </div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-white/50 px-1 pt-1">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted px-1 pt-1">
               Conectores
             </div>
             <div className="grid grid-cols-3 gap-1">
@@ -270,10 +270,10 @@ export default function WhiteboardToolbar({
                     setOpenMenu(null);
                   }}
                   className={cn(
-                    "p-1.5 rounded-lg hover:bg-white/10 flex items-center justify-center gap-1 text-xs cursor-pointer",
+                    "p-1.5 rounded-lg hover:bg-onicord-tint/15 text-onicord-text flex items-center justify-center gap-1 text-xs cursor-pointer",
                     activeTool === "connector" &&
                       activeConnectorKind === cnItem.kind &&
-                      "bg-sky-500/25 text-sky-300"
+                      "bg-onicord-accent/20 text-onicord-accent"
                   )}
                   title={cnItem.label}
                 >

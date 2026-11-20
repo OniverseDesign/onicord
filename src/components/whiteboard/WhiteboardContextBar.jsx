@@ -70,10 +70,10 @@ export default function WhiteboardContextBar({
         left: Math.max(120, Math.min(canvasWidth - 120, contextBarPos.x)),
         top: Math.max(56, contextBarPos.y - 16),
       }}
-      className="absolute -translate-x-1/2 -translate-y-full z-40 flex items-center gap-1 px-2 py-1.5 rounded-2xl bg-[#1E1F22] border border-white/15 shadow-2xl text-white"
+      className="absolute -translate-x-1/2 -translate-y-full z-40 flex items-center gap-1 px-2 py-1.5 rounded-2xl bg-onicord-surface/95 backdrop-blur-2xl border border-onicord-island shadow-2xl text-onicord-text"
     >
       {commonProps.count > 1 && (
-        <span className="px-1.5 py-0.5 rounded-lg bg-sky-500/20 text-sky-300 text-[11px] font-bold mr-0.5">
+        <span className="px-1.5 py-0.5 rounded-lg bg-onicord-accent/20 text-onicord-accent text-[11px] font-bold mr-0.5">
           {commonProps.count}
         </span>
       )}
@@ -89,14 +89,14 @@ export default function WhiteboardContextBar({
                 setContextColorOpen(false);
                 setContextAlignOpen(false);
               }}
-              className="flex items-center gap-1 px-2 py-1 rounded-xl hover:bg-white/10 text-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 rounded-xl hover:bg-onicord-tint/10 text-xs transition-colors cursor-pointer"
             >
               {renderShapeIcon(selectedElements[0]?.style?.shapeKind, 16)}
               <ChevronDown size={14} />
             </button>
           </Tooltip>
           {contextShapeOpen && (
-            <div className="absolute bottom-full left-0 mb-2 p-1.5 rounded-xl bg-[#1E1F22] border border-white/15 shadow-xl flex gap-1">
+            <div className="absolute bottom-full left-0 mb-2 p-1.5 rounded-xl bg-onicord-surface/95 backdrop-blur-2xl border border-onicord-island shadow-xl flex gap-1">
               {WB_SHAPES.map((sh) => (
                 <Tooltip key={sh.kind} content={sh.label} side="top">
                   <button
@@ -111,9 +111,9 @@ export default function WhiteboardContextBar({
                       setContextShapeOpen(false);
                     }}
                     className={cn(
-                      "p-1.5 rounded-lg hover:bg-white/10 cursor-pointer",
+                      "p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer",
                       selectedElements[0]?.style?.shapeKind === sh.kind &&
-                        "bg-white/15 text-sky-400"
+                        "bg-onicord-tint/15 text-onicord-accent"
                     )}
                   >
                     {renderShapeIcon(sh.kind, 16)}
@@ -136,14 +136,14 @@ export default function WhiteboardContextBar({
                 setContextColorOpen(false);
                 setContextAlignOpen(false);
               }}
-              className="flex items-center gap-1 px-2 py-1 rounded-xl hover:bg-white/10 text-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 rounded-xl hover:bg-onicord-tint/10 text-xs transition-colors cursor-pointer"
             >
               {renderConnectorIcon(selectedElements[0]?.style?.connectorKind, 16)}
               <ChevronDown size={14} />
             </button>
           </Tooltip>
           {contextShapeOpen && (
-            <div className="absolute bottom-full left-0 mb-2 p-1.5 rounded-xl bg-[#1E1F22] border border-white/15 shadow-xl flex gap-1">
+            <div className="absolute bottom-full left-0 mb-2 p-1.5 rounded-xl bg-onicord-surface/95 backdrop-blur-2xl border border-onicord-island shadow-xl flex gap-1">
               {WB_CONNECTORS.map((cnItem) => (
                 <Tooltip key={cnItem.kind} content={cnItem.label} side="top">
                   <button
@@ -158,9 +158,9 @@ export default function WhiteboardContextBar({
                       setContextShapeOpen(false);
                     }}
                     className={cn(
-                      "p-1.5 rounded-lg hover:bg-white/10 cursor-pointer",
+                      "p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer",
                       (selectedElements[0]?.style?.connectorKind || "arrow") ===
-                        cnItem.kind && "bg-white/15 text-sky-400"
+                        cnItem.kind && "bg-onicord-tint/15 text-onicord-accent"
                     )}
                   >
                     {renderConnectorIcon(cnItem.kind, 16)}
@@ -183,7 +183,7 @@ export default function WhiteboardContextBar({
                 setContextShapeOpen(false);
                 setContextAlignOpen(false);
               }}
-              className="p-1 rounded-xl hover:bg-white/10 transition-colors cursor-pointer flex items-center"
+              className="p-1 rounded-xl hover:bg-onicord-tint/10 transition-colors cursor-pointer flex items-center"
             >
               <span
                 style={{
@@ -195,12 +195,12 @@ export default function WhiteboardContextBar({
                         ? selectedElements[0]?.style?.color || "#F4F4F5"
                         : selectedElements[0]?.style?.fill || "#D8B4FE",
                 }}
-                className="w-4 h-4 rounded-full border border-white/30"
+                className="w-4 h-4 rounded-full border border-onicord-border"
               />
             </button>
           </Tooltip>
           {contextColorOpen && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-1.5 rounded-xl bg-[#1E1F22] border border-white/15 shadow-xl flex gap-1.5">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-1.5 rounded-xl bg-onicord-surface/95 backdrop-blur-2xl border border-onicord-island shadow-xl flex gap-1.5">
               {commonProps.allConnectors || commonProps.allStrokes
                 ? WB_PEN_COLORS.map((c) => (
                     <button
@@ -216,7 +216,7 @@ export default function WhiteboardContextBar({
                         setContextColorOpen(false);
                       }}
                       style={{ backgroundColor: c }}
-                      className="w-5 h-5 rounded-full border border-white/30 hover:scale-110 transition-transform cursor-pointer"
+                      className="w-5 h-5 rounded-full border border-onicord-border hover:scale-110 transition-transform cursor-pointer"
                     />
                   ))
                 : WB_COLORS.map((c) => (
@@ -241,7 +241,7 @@ export default function WhiteboardContextBar({
                           setContextColorOpen(false);
                         }}
                         style={{ backgroundColor: c.fill }}
-                        className="w-5 h-5 rounded-full border border-white/30 hover:scale-110 transition-transform cursor-pointer"
+                        className="w-5 h-5 rounded-full border border-onicord-border hover:scale-110 transition-transform cursor-pointer"
                       />
                     </Tooltip>
                   ))}
@@ -265,7 +265,7 @@ export default function WhiteboardContextBar({
                 }))
               );
             }}
-            className="p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl hover:bg-onicord-tint/10 transition-colors cursor-pointer"
           >
             <SquareDashed size={16} />
           </button>
@@ -283,55 +283,55 @@ export default function WhiteboardContextBar({
                 setContextColorOpen(false);
                 setContextShapeOpen(false);
               }}
-              className="flex items-center gap-0.5 p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+              className="flex items-center gap-0.5 p-1.5 rounded-xl hover:bg-onicord-tint/10 transition-colors cursor-pointer"
             >
               <AlignCenterVertical size={16} />
               <ChevronDown size={13} />
             </button>
           </Tooltip>
           {contextAlignOpen && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-1.5 rounded-xl bg-[#1E1F22] border border-white/15 shadow-xl flex items-center gap-0.5 w-max">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-1.5 rounded-xl bg-onicord-surface/95 backdrop-blur-2xl border border-onicord-island shadow-xl flex items-center gap-0.5 w-max">
               <Tooltip content="Alinear a la izquierda" side="top">
-                <button type="button" onClick={() => onAlign("left")} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <button type="button" onClick={() => onAlign("left")} className="p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer">
                   <AlignStartVertical size={15} />
                 </button>
               </Tooltip>
               <Tooltip content="Centrar horizontalmente" side="top">
-                <button type="button" onClick={() => onAlign("centerH")} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <button type="button" onClick={() => onAlign("centerH")} className="p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer">
                   <AlignCenterVertical size={15} />
                 </button>
               </Tooltip>
               <Tooltip content="Alinear a la derecha" side="top">
-                <button type="button" onClick={() => onAlign("right")} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <button type="button" onClick={() => onAlign("right")} className="p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer">
                   <AlignEndVertical size={15} />
                 </button>
               </Tooltip>
-              <div className="w-px h-4 bg-white/15 mx-0.5" />
+              <div className="w-px h-4 bg-onicord-tint/15 mx-0.5" />
               <Tooltip content="Alinear arriba" side="top">
-                <button type="button" onClick={() => onAlign("top")} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <button type="button" onClick={() => onAlign("top")} className="p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer">
                   <AlignStartHorizontal size={15} />
                 </button>
               </Tooltip>
               <Tooltip content="Centrar verticalmente" side="top">
-                <button type="button" onClick={() => onAlign("centerV")} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <button type="button" onClick={() => onAlign("centerV")} className="p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer">
                   <AlignCenterHorizontal size={15} />
                 </button>
               </Tooltip>
               <Tooltip content="Alinear abajo" side="top">
-                <button type="button" onClick={() => onAlign("bottom")} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                <button type="button" onClick={() => onAlign("bottom")} className="p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer">
                   <AlignEndHorizontal size={15} />
                 </button>
               </Tooltip>
               {commonProps.alignableCount >= 3 && (
                 <>
-                  <div className="w-px h-4 bg-white/15 mx-0.5" />
+                  <div className="w-px h-4 bg-onicord-tint/15 mx-0.5" />
                   <Tooltip content="Distribuir horizontalmente" side="top">
-                    <button type="button" onClick={() => onDistribute("horizontal")} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                    <button type="button" onClick={() => onDistribute("horizontal")} className="p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer">
                       <AlignHorizontalSpaceAround size={15} />
                     </button>
                   </Tooltip>
                   <Tooltip content="Distribuir verticalmente" side="top">
-                    <button type="button" onClick={() => onDistribute("vertical")} className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                    <button type="button" onClick={() => onDistribute("vertical")} className="p-1.5 rounded-lg hover:bg-onicord-tint/10 cursor-pointer">
                       <AlignVerticalSpaceAround size={15} />
                     </button>
                   </Tooltip>
@@ -346,26 +346,26 @@ export default function WhiteboardContextBar({
       {selectedElement?.type === "table" && !selectedElement.locked && (
         <>
           <Tooltip content="Añadir fila" side="top">
-            <button type="button" onClick={() => onModifyTable(selectedElement, "addRow")} className="px-1.5 py-1 rounded-lg hover:bg-white/10 text-[11px] font-semibold cursor-pointer">
+            <button type="button" onClick={() => onModifyTable(selectedElement, "addRow")} className="px-1.5 py-1 rounded-lg hover:bg-onicord-tint/10 text-[11px] font-semibold cursor-pointer">
               +Fila
             </button>
           </Tooltip>
           <Tooltip content="Quitar última fila" side="top">
-            <button type="button" onClick={() => onModifyTable(selectedElement, "removeRow")} className="px-1.5 py-1 rounded-lg hover:bg-white/10 text-[11px] font-semibold cursor-pointer">
+            <button type="button" onClick={() => onModifyTable(selectedElement, "removeRow")} className="px-1.5 py-1 rounded-lg hover:bg-onicord-tint/10 text-[11px] font-semibold cursor-pointer">
               -Fila
             </button>
           </Tooltip>
           <Tooltip content="Añadir columna" side="top">
-            <button type="button" onClick={() => onModifyTable(selectedElement, "addCol")} className="px-1.5 py-1 rounded-lg hover:bg-white/10 text-[11px] font-semibold cursor-pointer">
+            <button type="button" onClick={() => onModifyTable(selectedElement, "addCol")} className="px-1.5 py-1 rounded-lg hover:bg-onicord-tint/10 text-[11px] font-semibold cursor-pointer">
               +Col
             </button>
           </Tooltip>
           <Tooltip content="Quitar última columna" side="top">
-            <button type="button" onClick={() => onModifyTable(selectedElement, "removeCol")} className="px-1.5 py-1 rounded-lg hover:bg-white/10 text-[11px] font-semibold cursor-pointer">
+            <button type="button" onClick={() => onModifyTable(selectedElement, "removeCol")} className="px-1.5 py-1 rounded-lg hover:bg-onicord-tint/10 text-[11px] font-semibold cursor-pointer">
               -Col
             </button>
           </Tooltip>
-          <div className="w-px h-4 bg-white/15 mx-0.5" />
+          <div className="w-px h-4 bg-onicord-tint/15 mx-0.5" />
         </>
       )}
 
@@ -373,12 +373,12 @@ export default function WhiteboardContextBar({
       {commonProps.hasLayerable && (
         <>
           <Tooltip content="Traer al frente (])" side="top">
-            <button type="button" onClick={onBringToFront} className="p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer">
+            <button type="button" onClick={onBringToFront} className="p-1.5 rounded-xl hover:bg-onicord-tint/10 transition-colors cursor-pointer">
               <BringToFront size={15} />
             </button>
           </Tooltip>
           <Tooltip content="Enviar atrás ([)" side="top">
-            <button type="button" onClick={onSendToBack} className="p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer">
+            <button type="button" onClick={onSendToBack} className="p-1.5 rounded-xl hover:bg-onicord-tint/10 transition-colors cursor-pointer">
               <SendToBack size={15} />
             </button>
           </Tooltip>
@@ -393,7 +393,7 @@ export default function WhiteboardContextBar({
                 "p-1.5 rounded-xl transition-colors cursor-pointer",
                 commonProps.anyLocked
                   ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
-                  : "hover:bg-white/10"
+                  : "hover:bg-onicord-tint/10"
               )}
             >
               {commonProps.allLocked ? <Unlock size={15} /> : <Lock size={15} />}
@@ -402,19 +402,19 @@ export default function WhiteboardContextBar({
         </>
       )}
 
-      <div className="w-px h-4 bg-white/15 mx-0.5" />
+      <div className="w-px h-4 bg-onicord-tint/15 mx-0.5" />
 
       {/* Group / Ungroup */}
       {commonProps.count >= 2 && (
         <Tooltip content="Agrupar (Ctrl+G)" side="top">
-          <button type="button" onClick={onGroup} className="p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer">
+          <button type="button" onClick={onGroup} className="p-1.5 rounded-xl hover:bg-onicord-tint/10 transition-colors cursor-pointer">
             <Group size={15} />
           </button>
         </Tooltip>
       )}
       {commonProps.hasGroup && (
         <Tooltip content="Desagrupar (Ctrl+Shift+G)" side="top">
-          <button type="button" onClick={onUngroup} className="p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer">
+          <button type="button" onClick={onUngroup} className="p-1.5 rounded-xl hover:bg-onicord-tint/10 transition-colors cursor-pointer">
             <Ungroup size={15} />
           </button>
         </Tooltip>
@@ -426,7 +426,7 @@ export default function WhiteboardContextBar({
           <button
             type="button"
             onClick={() => onExportSection(selectedElement)}
-            className="p-1.5 rounded-xl hover:bg-white/10 text-sky-300 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl hover:bg-onicord-tint/10 text-onicord-accent transition-colors cursor-pointer"
           >
             <Download size={15} />
           </button>
@@ -437,7 +437,7 @@ export default function WhiteboardContextBar({
           <button
             type="button"
             onClick={onExportSelection}
-            className="p-1.5 rounded-xl hover:bg-white/10 text-sky-300 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl hover:bg-onicord-tint/10 text-onicord-accent transition-colors cursor-pointer"
           >
             <Download size={15} />
           </button>
@@ -463,7 +463,7 @@ export default function WhiteboardContextBar({
                 setSelectedIds(dups.map((d) => d.id));
               }
             }}
-            className="p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl hover:bg-onicord-tint/10 transition-colors cursor-pointer"
           >
             <Copy size={15} />
           </button>

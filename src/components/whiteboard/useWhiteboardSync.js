@@ -7,6 +7,7 @@ export function useWhiteboardSync({
   myId,
   myName,
   onBoardResetUi,
+  onFlameInteraction,
 }) {
   const storageKey = `onicord_wb_${roomCode}_${channelId}`;
 
@@ -23,6 +24,16 @@ export function useWhiteboardSync({
 
   const saveTimerRef = useRef(null);
   const pendingSaveRef = useRef(null);
+  const lastFlameAtRef = useRef(0);
+
+  const notifyFlame = useCallback(() => {
+    if (!onFlameInteraction) return;
+    const now = Date.now();
+    if (now - lastFlameAtRef.current > 3000) {
+      lastFlameAtRef.current = now;
+      onFlameInteraction();
+    }
+  }, [onFlameInteraction]);
 
   const flushSaveToStorage = useCallback(() => {
     if (!pendingSaveRef.current) return;
@@ -173,10 +184,11 @@ export function useWhiteboardSync({
       });
       if (broadcast) {
         emitWbEvent({ type: "op:upsert", element: nextEl });
+        notifyFlame();
       }
       return nextEl;
     },
-    [myId, saveToStorage, emitWbEvent]
+    [myId, saveToStorage, emitWbEvent, notifyFlame]
   );
 
   // Batch upsert elements in one P2P message + one undo entry
@@ -209,10 +221,11 @@ export function useWhiteboardSync({
         } else {
           emitWbEvent({ type: "op:batch-upsert", elements: nextItems });
         }
+        notifyFlame();
       }
       return nextItems;
     },
-    [myId, saveToStorage, emitWbEvent]
+    [myId, saveToStorage, emitWbEvent, notifyFlame]
   );
 
   // Delete element (with cascade to attached connectors)
@@ -258,9 +271,10 @@ export function useWhiteboardSync({
         } else {
           emitWbEvent({ type: "op:batch-delete", elements: tombs });
         }
+        notifyFlame();
       }
     },
-    [myId, saveToStorage, emitWbEvent]
+    [myId, saveToStorage, emitWbEvent, notifyFlame]
   );
 
   const handleUndo = useCallback(() => {
@@ -341,7 +355,8 @@ export function useWhiteboardSync({
     setElementsMap(new Map());
     saveToStorage(new Map(), clearTs, true);
     emitWbEvent({ type: "op:clear", clearedAt: clearTs });
-  }, [saveToStorage, emitWbEvent]);
+    notifyFlame();
+  }, [saveToStorage, emitWbEvent, notifyFlame]);
 
   // Listen to incoming P2P events
   useEffect(() => {

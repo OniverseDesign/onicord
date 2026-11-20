@@ -25,6 +25,7 @@ export default function WhiteboardStage({
   channel,
   profile,
   canEdit = true,
+  onFlameInteraction,
 }) {
   const roomCode = server?.roomCode || server?.id || "local";
   const channelId = channel?.id || "default-board";
@@ -105,6 +106,7 @@ export default function WhiteboardStage({
     myId,
     myName,
     onBoardResetUi: resetBoardUi,
+    onFlameInteraction,
   });
 
   // Broadcast active editing indicator so peers avoid editing the same box
@@ -938,7 +940,7 @@ export default function WhiteboardStage({
         h: isTooSmall ? (isSection ? 240 : isText ? 48 : 150) : Math.max(36, ds.h),
         text: isSection ? "Sección" : "",
         style: isText
-          ? { color: "#F4F4F5", fontSize: 18 }
+          ? { fontSize: 18 }
           : {
               fill: activeColor.fill,
               stroke: activeColor.stroke,
@@ -1489,7 +1491,7 @@ export default function WhiteboardStage({
       onPointerMove={handleStagePointerMove}
       onPointerUp={handleStagePointerUp}
       style={{
-        backgroundImage: `radial-gradient(circle, rgba(255,255,255,0.14) 1px, transparent 1px)`,
+        backgroundImage: `radial-gradient(circle, color-mix(in srgb, var(--onicord-text) 20%, transparent) 1px, transparent 1px)`,
         backgroundSize: `${dotSpacing}px ${dotSpacing}px`,
         backgroundPosition: `${pan.x - dotSpacing / 2}px ${pan.y - dotSpacing / 2}px`,
       }}

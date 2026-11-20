@@ -355,7 +355,7 @@ export default function WhiteboardElement({
   const isDarkFill = el.style?.fill === "#27272A";
   const textColor =
     el.type === "text" || el.type === "section"
-      ? el.style?.color || "#F4F4F5"
+      ? el.style?.color || "var(--onicord-text)"
       : isDarkFill
         ? "#F4F4F5"
         : "#18181B";
@@ -602,7 +602,7 @@ export default function WhiteboardElement({
 
       {/* TABLE */}
       {el.type === "table" && (
-        <div className="w-full h-full rounded-xl overflow-hidden bg-[#1E1F22] border border-white/20 shadow-xl flex flex-col">
+        <div className="w-full h-full rounded-xl overflow-hidden bg-onicord-surface border border-onicord-border shadow-xl flex flex-col">
           <div
             style={{
               gridTemplateColumns: `repeat(${Math.max(1, el.cols || el.cells?.[0]?.length || 3)}, minmax(0, 1fr))`,
@@ -615,8 +615,8 @@ export default function WhiteboardElement({
                 <div
                   key={`${rIdx}-${cIdx}`}
                   className={cn(
-                    "border-r border-b border-white/10 last:border-r-0 flex items-center px-2 py-1 min-w-0 min-h-0",
-                    rIdx === 0 ? "bg-white/10 font-semibold" : "bg-transparent"
+                    "border-r border-b border-onicord-border last:border-r-0 flex items-center px-2 py-1 min-w-0 min-h-0",
+                    rIdx === 0 ? "bg-onicord-tint/10 font-semibold" : "bg-transparent"
                   )}
                 >
                   <input
@@ -630,7 +630,7 @@ export default function WhiteboardElement({
                       onTableCellChange?.(el.id, rIdx, cIdx, e.target.value)
                     }
                     placeholder={rIdx === 0 ? `Col ${cIdx + 1}` : ""}
-                    className="w-full h-full bg-transparent outline-none text-xs text-white placeholder:text-white/30 truncate disabled:cursor-default"
+                    className="w-full h-full bg-transparent outline-none text-xs text-onicord-text placeholder:text-onicord-muted truncate disabled:cursor-default"
                   />
                 </div>
               ))
