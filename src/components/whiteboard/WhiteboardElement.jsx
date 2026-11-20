@@ -346,9 +346,11 @@ export default function WhiteboardElement({
     }
   }, [isEditing]);
 
-  if (el.type === "stroke" || el.type === "connector" || el.deleted) {
+  if (el.type === "connector" || el.deleted) {
     return null;
   }
+
+  const isStroke = el.type === "stroke";
 
   const isDarkFill = el.style?.fill === "#27272A";
   const textColor =
@@ -363,7 +365,7 @@ export default function WhiteboardElement({
   return (
     <div
       data-wb-id={el.id}
-      onPointerDown={(e) => onPointerDown(e, el)}
+      onPointerDown={isStroke && !isSelected ? undefined : (e) => onPointerDown(e, el)}
       onDoubleClick={(e) => onDoubleClick(e, el)}
       style={{
         position: "absolute",
@@ -377,6 +379,7 @@ export default function WhiteboardElement({
       }}
       className={cn(
         "group select-none",
+        isStroke && !isSelected && "pointer-events-none",
         !canEdit || el.locked ? "cursor-default" : "cursor-move",
         isSelected &&
           (el.locked
@@ -550,6 +553,49 @@ export default function WhiteboardElement({
 
       {/* STICKER */}
       {el.type === "sticker" && <WhiteboardSticker el={el} />}
+
+      {/* FREEHAND STROKE (selectable, movable, resizable, rotatable, groupable) */}
+      {el.type === "stroke" && (() => {
+        const pts = el.points || [];
+        const w = Math.max(1, el.w || 1);
+        const h = Math.max(1, el.h || 1);
+        const d = pts
+          .map((p, i) => {
+            const px = p.rx !== undefined ? p.rx * w : p.x - (el.x || 0);
+            const py = p.ry !== undefined ? p.ry * h : p.y - (el.y || 0);
+            return `${i === 0 ? "M" : "L"} ${px} ${py}`;
+          })
+          .join(" ");
+        const sw = el.style?.strokeWidth || 4;
+        return (
+          <svg
+            width={w}
+            height={h}
+            viewBox={`0 0 ${w} ${h}`}
+            className="w-full h-full overflow-visible pointer-events-none select-none"
+          >
+            <path
+              d={d}
+              fill="none"
+              stroke={el.style?.stroke || "#FFFFFF"}
+              strokeWidth={sw}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={el.style?.isHighlighter ? 0.35 : 1}
+            />
+            <path
+              d={d}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={Math.max(16, sw + 12)}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="pointer-events-auto cursor-move"
+              onPointerDown={(e) => onPointerDown(e, el)}
+            />
+          </svg>
+        );
+      })()}
 
       {/* IMAGE */}
       {el.type === "image" && <WhiteboardImage el={el} autoDownload={autoDownload} />}

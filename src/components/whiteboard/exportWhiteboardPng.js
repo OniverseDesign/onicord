@@ -93,7 +93,7 @@ function getBounds(elements, getAnchorPos, allElementsMap) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const el of elements) {
     if (!el || el.deleted) continue;
-    if (el.type === "stroke") {
+    if (el.type === "stroke" && el.w === undefined) {
       for (const p of el.points || []) {
         minX = Math.min(minX, p.x);
         minY = Math.min(minY, p.y);
@@ -184,14 +184,25 @@ export async function exportElementsToPng({
     const pts = st.points || [];
     if (pts.length === 0) continue;
     ctx.save();
+    const w = st.w || 1;
+    const h = st.h || 1;
+    if (st.rotation && st.w !== undefined) {
+      ctx.translate((st.x || 0) + w / 2, (st.y || 0) + h / 2);
+      ctx.rotate((st.rotation * Math.PI) / 180);
+      ctx.translate(-((st.x || 0) + w / 2), -((st.y || 0) + h / 2));
+    }
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = st.style?.stroke || "#FFFFFF";
     ctx.lineWidth = st.style?.strokeWidth || 4;
     if (st.style?.isHighlighter) ctx.globalAlpha = 0.35;
     ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    pts.forEach((p, idx) => {
+      const px = p.rx !== undefined ? (st.x || 0) + p.rx * w : p.x;
+      const py = p.ry !== undefined ? (st.y || 0) + p.ry * h : p.y;
+      if (idx === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
     ctx.stroke();
     ctx.restore();
   }

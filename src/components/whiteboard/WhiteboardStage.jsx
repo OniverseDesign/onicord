@@ -298,9 +298,11 @@ export default function WhiteboardStage({
     ctx.translate(pan.x, pan.y);
     ctx.scale(zoom, zoom);
 
-    const renderStroke = (st) => {
+    const renderInProgressStroke = (st) => {
       const pts = st.points || [];
       if (pts.length === 0) return;
+      const w = st.w || 1;
+      const h = st.h || 1;
       ctx.save();
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -308,16 +310,25 @@ export default function WhiteboardStage({
       ctx.lineWidth = st.style?.strokeWidth || 4;
       if (st.style?.isHighlighter) ctx.globalAlpha = 0.35;
       ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-      if (pts.length === 1) ctx.lineTo(pts[0].x + 0.1, pts[0].y + 0.1);
+      pts.forEach((pt, idx) => {
+        const px = pt.rx !== undefined ? (st.x || 0) + pt.rx * w : pt.x;
+        const py = pt.ry !== undefined ? (st.y || 0) + pt.ry * h : pt.y;
+        if (idx === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      if (pts.length === 1) {
+        const px = pts[0].rx !== undefined ? (st.x || 0) + pts[0].rx * w : pts[0].x;
+        const py = pts[0].ry !== undefined ? (st.y || 0) + pts[0].ry * h : pts[0].y;
+        ctx.lineTo(px + 0.1, py + 0.1);
+      }
       ctx.stroke();
       ctx.restore();
     };
 
-    strokes.forEach(renderStroke);
-    if (currentStrokeRef.current) renderStroke(currentStrokeRef.current);
-    remoteInProgressStrokes.current.forEach(renderStroke);
+    // Legacy strokes without bounding box fallback; new strokes are rendered as interactive WhiteboardElement SVGs
+    strokes.filter((st) => st.w === undefined).forEach(renderInProgressStroke);
+    if (currentStrokeRef.current) renderInProgressStroke(currentStrokeRef.current);
+    remoteInProgressStrokes.current.forEach(renderInProgressStroke);
     ctx.restore();
   }, [canvasSize, pan, zoom, strokes, remoteInProgressStrokes]);
 
@@ -391,7 +402,12 @@ export default function WhiteboardStage({
   const eraseAtPoint = (wx, wy) => {
     const threshold = 14 / zoom;
     for (const st of strokes) {
-      const pts = st.points || [];
+      const w = st.w || 1;
+      const h = st.h || 1;
+      const pts = (st.points || []).map((p) => ({
+        x: p.rx !== undefined ? (st.x || 0) + p.rx * w : p.x,
+        y: p.ry !== undefined ? (st.y || 0) + p.ry * h : p.y,
+      }));
       for (let i = 0; i < pts.length - 1; i++) {
         if (distToSegment(wx, wy, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y) <= threshold) {
           deleteElementsByIds([st.id]);
@@ -843,7 +859,8 @@ export default function WhiteboardStage({
       if (mb && (mb.w >= 4 || mb.h >= 4)) {
         const hitIds = new Set(inter.initialIds || []);
         elementsMapRef.current.forEach((el) => {
-          if (!el || el.deleted || el.type === "stroke") return;
+          if (!el || el.deleted) return;
+          if (el.type === "stroke" && el.w === undefined) return;
           let ex1, ey1, ex2, ey2;
           if (el.type === "connector") {
             const fromEl = el.fromId ? elementsMapRef.current.get(el.fromId) : null;
@@ -874,7 +891,30 @@ export default function WhiteboardStage({
     if (inter.mode === "draw" && currentStrokeRef.current) {
       const finished = currentStrokeRef.current;
       currentStrokeRef.current = null;
-      upsertElement(finished);
+      const pts = finished.points || [];
+      if (pts.length > 0) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const p of pts) {
+          minX = Math.min(minX, p.x);
+          minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x);
+          maxY = Math.max(maxY, p.y);
+        }
+        const w = Math.max(16, maxX - minX);
+        const h = Math.max(16, maxY - minY);
+        const normPts = pts.map((p) => ({
+          rx: (p.x - minX) / w,
+          ry: (p.y - minY) / h,
+        }));
+        upsertElement({
+          ...finished,
+          x: minX,
+          y: minY,
+          w,
+          h,
+          points: normPts,
+        });
+      }
     } else if (inter.mode === "drag") {
       const finalItems = (inter.origItems || [])
         .map((it) => elementsMapRef.current.get(it.id))
@@ -1263,7 +1303,7 @@ export default function WhiteboardStage({
     let minX = Infinity, minY = Infinity, maxX = -Infinity;
     let hasBox = false;
     for (const el of selectedElements) {
-      if (el.type === "stroke") continue;
+      if (el.type === "stroke" && el.w === undefined) continue;
       hasBox = true;
       if (el.type === "connector") {
         const fromEl = el.fromId ? elementsMap.get(el.fromId) : null;
@@ -1287,12 +1327,18 @@ export default function WhiteboardStage({
     return {
       allShapes: selectedElements.every((el) => el.type === "shape"),
       allConnectors: selectedElements.every((el) => el.type === "connector"),
+      allStrokes: selectedElements.every((el) => el.type === "stroke"),
       allColorable: selectedElements.every(
-        (el) => el.type === "shape" || el.type === "sticky" || el.type === "connector" || el.type === "text"
+        (el) =>
+          el.type === "shape" ||
+          el.type === "sticky" ||
+          el.type === "connector" ||
+          el.type === "text" ||
+          el.type === "stroke"
       ),
       hasDuplicatable: selectedElements.some((el) => el.type !== "connector"),
       alignableCount: selectedElements.filter(
-        (el) => el.type !== "connector" && el.type !== "stroke" && !el.locked
+        (el) => el.type !== "connector" && !el.locked
       ).length,
       hasGroup: selectedElements.some((el) => Boolean(el.groupId)),
       hasLayerable: selectedElements.some((el) => el.type !== "connector"),
@@ -1304,7 +1350,7 @@ export default function WhiteboardStage({
 
   const handleAlignSelected = (mode) => {
     const items = selectedElements.filter(
-      (el) => el.type !== "connector" && el.type !== "stroke" && !el.locked
+      (el) => el.type !== "connector" && !el.locked
     );
     if (items.length < 2) return;
     const minX = Math.min(...items.map((el) => el.x || 0));
@@ -1333,7 +1379,7 @@ export default function WhiteboardStage({
 
   const handleDistributeSelected = (axis) => {
     const items = selectedElements.filter(
-      (el) => el.type !== "connector" && el.type !== "stroke" && !el.locked
+      (el) => el.type !== "connector" && !el.locked
     );
     if (items.length < 3) return;
     if (axis === "horizontal") {
@@ -1558,7 +1604,7 @@ export default function WhiteboardStage({
       {/* World-Transformed HTML Layer */}
       <div
         style={{
-          transform: `translate(${pan.x}px, ${pan.y}) scale(${zoom})`,
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: "0 0",
         }}
         className="absolute top-0 left-0 z-20 pointer-events-none"

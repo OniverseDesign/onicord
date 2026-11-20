@@ -188,7 +188,8 @@ export default function WhiteboardContextBar({
               <span
                 style={{
                   backgroundColor:
-                    selectedElements[0]?.type === "connector"
+                    selectedElements[0]?.type === "connector" ||
+                    selectedElements[0]?.type === "stroke"
                       ? selectedElements[0]?.style?.stroke || "#A1A1AA"
                       : selectedElements[0]?.type === "text"
                         ? selectedElements[0]?.style?.color || "#F4F4F5"
@@ -200,7 +201,7 @@ export default function WhiteboardContextBar({
           </Tooltip>
           {contextColorOpen && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-1.5 rounded-xl bg-[#1E1F22] border border-white/15 shadow-xl flex gap-1.5">
-              {commonProps.allConnectors
+              {commonProps.allConnectors || commonProps.allStrokes
                 ? WB_PEN_COLORS.map((c) => (
                     <button
                       key={c}
@@ -225,7 +226,7 @@ export default function WhiteboardContextBar({
                         onClick={() => {
                           upsertBatch(
                             selectedElements.map((el) => {
-                              if (el.type === "connector") {
+                              if (el.type === "connector" || el.type === "stroke") {
                                 return { ...el, style: { ...el.style, stroke: c.fill } };
                               }
                               if (el.type === "text") {
