@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
-import { IconClose } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import Heading from "./Heading";
 import Text from "./Text";
@@ -303,7 +302,7 @@ export default function ModalShell({
               className="onicord-icon-btn"
               aria-label="Close"
             >
-              <IconClose size="base" />
+              <MaterialIcon name="close" size="base" />
             </button>
           </header>
 

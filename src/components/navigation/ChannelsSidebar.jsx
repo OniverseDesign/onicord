@@ -7,11 +7,6 @@ import MusicIsland from "../ui/MusicIsland";
 import UserPanel from "./UserPanel";
 import Tooltip from "../ui/Tooltip";
 import MaterialIcon from "../icons/MaterialIcon";
-import {
-  IconVolumeUp,
-  IconTag,
-  IconVideoCam,
-} from "../icons/StreamIcons";
 import { hasChannelAccess, checkPermission } from "../../lib/permissionsHelper";
 import { getEffectiveProfile } from "../../lib/profileUtils";
 
@@ -241,7 +236,7 @@ export default function ChannelsSidebar({
             ) : ch.type === "whiteboard" ? (
               <MaterialIcon name="draw" size="lg" />
             ) : (
-              <IconTag size="lg" />
+              <MaterialIcon name="tag" size="lg" />
             )
           }
           label={getLocalizedChannelName(ch)}
@@ -252,9 +247,29 @@ export default function ChannelsSidebar({
     if (ch.type === "voice") {
       const usersInChannel = voiceMembersDisplay.filter((m) => m.channelId === ch.id);
       const streamingMembersInChannel = usersInChannel.filter((m) => m.isStreaming);
+      const isConnectedToThisChannel = globalVoice.currentVoiceChannelId === ch.id;
+      const channelMusic = usersInChannel.length > 0 ? musicState?.activeMusicByChannel?.[ch.id] : null;
+      const activeChannelTrack =
+        (isConnectedToThisChannel ? musicState?.currentTrack : null) || channelMusic?.currentTrack || null;
+      const hasActiveMusicInChannel = Boolean(activeChannelTrack);
+      const hasJoinedChannelMusic = isConnectedToThisChannel && musicState?.hasJoinedMusic === true;
       const voiceStartTime = voiceStartTimesRef?.current?.[ch.id];
       const canConnectVoice = checkPermission(server, profile?.id, "connect_voice");
       const isAfkChannel = server?.afkSettings?.channelId === ch.id;
+
+      const handleMusicBadgeActivate = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (isConnectedToThisChannel) {
+          if (!hasJoinedChannelMusic) {
+            musicState?.joinMusic?.();
+          }
+          return;
+        }
+        if (!canConnectVoice) return;
+        musicState?.requestAutoJoinChannel?.(ch.id);
+        globalVoice.joinVoiceChannel?.(server, ch.id);
+      };
 
       return (
         <div
@@ -319,12 +334,43 @@ export default function ChannelsSidebar({
               ) : isAfkChannel ? (
                 <MaterialIcon name="bedtime" size="lg" className="shrink-0" />
               ) : (
-                <IconVolumeUp size="lg" />
+                <MaterialIcon name="volume_up" size="lg" />
               )
             }
             label={getLocalizedChannelName(ch)}
             rightContent={
               <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                {hasActiveMusicInChannel && (
+                  <Tooltip
+                    content={
+                      hasJoinedChannelMusic
+                        ? t("music.listeningInChannel", {
+                            title: activeChannelTrack?.title || "",
+                            defaultValue: `Escuchando: ${activeChannelTrack?.title || "Música"}`,
+                          })
+                        : t("music.joinIndicatorTooltip", "Unirse a la reproducción de música")
+                    }
+                    side="top"
+                  >
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={handleMusicBadgeActivate}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          handleMusicBadgeActivate(e);
+                        }
+                      }}
+                      className={
+                        hasJoinedChannelMusic
+                          ? "onicord-badge bg-onicord-accent/20 text-onicord-accent"
+                          : "onicord-live-badge-interactive cursor-pointer"
+                      }
+                    >
+                      <MaterialIcon name="music_note" size="base" />
+                    </span>
+                  </Tooltip>
+                )}
                 {streamingMembersInChannel.length > 1 && (
                   <Tooltip
                     content={t("voice.watchAllStreams", {
@@ -350,7 +396,7 @@ export default function ChannelsSidebar({
                       }}
                       className="onicord-live-badge-interactive cursor-pointer"
                     >
-                      <IconVideoCam size="base" />
+                      <MaterialIcon name="videocam" size="base" />
                     </span>
                   </Tooltip>
                 )}

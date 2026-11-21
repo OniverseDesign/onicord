@@ -250,6 +250,8 @@ export default function MessageMediaAttachment({
             <img
               src={resolvedMediaSrc}
               alt={fileData.name}
+              loading="lazy"
+              decoding="async"
               className={`w-auto h-auto max-w-full max-h-[400px] object-contain rounded-onicord-inner block animate-fade-in transition-all duration-200 ${
                 isBlurred ? "blur-2xl scale-110 brightness-50 select-none pointer-events-none" : ""
               }`}
@@ -369,6 +371,8 @@ export default function MessageMediaAttachment({
           <img
             src={fileData.thumbnail}
             alt={fileData.name}
+            loading="lazy"
+            decoding="async"
             className={`w-full max-h-[280px] object-cover rounded-onicord-inner block transition-all ${
               isBlurred
                 ? "blur-2xl scale-110 brightness-50"

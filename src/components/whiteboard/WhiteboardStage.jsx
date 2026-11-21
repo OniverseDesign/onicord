@@ -14,7 +14,6 @@ import {
 } from "./whiteboardConstants";
 import { ANCHOR_SIDES, getAnchorPos } from "./whiteboardGeometry";
 import { buildSmartConnectorPath } from "./connectorRouting";
-import { exportElementsToPng } from "./exportWhiteboardPng";
 import { useWhiteboardSync } from "./useWhiteboardSync";
 import { useWhiteboardShortcuts } from "./useWhiteboardShortcuts";
 import { normalizeKeybindings } from "../../lib/defaultKeybindings";
@@ -1415,7 +1414,8 @@ export default function WhiteboardStage({
   };
 
   // Export handlers (Board, Section, Group/Selection)
-  const handleExportBoard = () => {
+  const handleExportBoard = async () => {
+    const { exportElementsToPng } = await import("./exportWhiteboardPng");
     exportElementsToPng({
       elements: visibleElements,
       allElementsMap: elementsMap,
@@ -1424,7 +1424,7 @@ export default function WhiteboardStage({
     });
   };
 
-  const handleExportSection = (sectionEl) => {
+  const handleExportSection = async (sectionEl) => {
     if (!sectionEl) return;
     const sx1 = sectionEl.x || 0;
     const sy1 = sectionEl.y || 0;
@@ -1453,6 +1453,7 @@ export default function WhiteboardStage({
     for (const c of connectors) {
       if (containedIds.has(c.fromId) || containedIds.has(c.toId)) items.push(c);
     }
+    const { exportElementsToPng } = await import("./exportWhiteboardPng");
     exportElementsToPng({
       elements: items,
       allElementsMap: elementsMap,
@@ -1461,7 +1462,7 @@ export default function WhiteboardStage({
     });
   };
 
-  const handleExportSelection = () => {
+  const handleExportSelection = async () => {
     if (selectedElements.length === 0) return;
     const selIdSet = new Set(selectedElements.map((e) => e.id));
     const items = [...selectedElements];
@@ -1470,6 +1471,7 @@ export default function WhiteboardStage({
         items.push(c);
       }
     }
+    const { exportElementsToPng } = await import("./exportWhiteboardPng");
     exportElementsToPng({
       elements: items,
       allElementsMap: elementsMap,

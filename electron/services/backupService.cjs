@@ -2,7 +2,7 @@ const { app } = require("electron");
 const fs = require("fs");
 const fsPromises = require("fs/promises");
 const path = require("path");
-const AdmZip = require("adm-zip");
+const { runOneShotWorker } = require("../workers/workerRunner.cjs");
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function getUserDataPath() {
@@ -108,28 +108,6 @@ async function estimateBackupSize(categories = ["profile", "servers", "addons", 
   return total;
 }
 
-// ─── ZIP BUILDER ──────────────────────────────────────────────────────────────
-function addDirToZip(zip, srcDir, destPrefix) {
-  if (!fs.existsSync(srcDir)) return;
-  const entries = fs.readdirSync(srcDir, { withFileTypes: true });
-  for (const e of entries) {
-    // Skip SQLite transient journal/WAL files; clean snapshots are provided by db.backup()
-    if (e.name.endsWith("-wal") || e.name.endsWith("-shm") || e.name.endsWith("-journal")) {
-      continue;
-    }
-    const fullSrc = path.join(srcDir, e.name);
-    const fullDest = `${destPrefix}/${e.name}`;
-    if (e.isDirectory()) {
-      addDirToZip(zip, fullSrc, fullDest);
-    } else {
-      try {
-        const buf = fs.readFileSync(fullSrc);
-        zip.addFile(fullDest, buf);
-      } catch {}
-    }
-  }
-}
-
 function getProfileSummary() {
   const ud = getUserDataPath();
   try {
@@ -183,7 +161,7 @@ function getQuickStats() {
   return { serversCount, pluginsCount, stickersCount };
 }
 
-async function buildZip(categories) {
+async function buildAndWriteBackupZip(categories, targetFilePath) {
   const ud = getUserDataPath();
   const stagingDir = path.join(ud, `_backup_staging_${Date.now()}`);
   const { DbManager } = require("../storage/dbManager.cjs");
@@ -193,7 +171,6 @@ async function buildZip(categories) {
     sendProgress("Generando snapshot atómico de bases de datos...", 5);
     await dbMgr.prepareDatabasesForBackup(stagingDir, categories);
 
-    const zip = new AdmZip();
     const cpaths = getCategoryPaths(categories, stagingDir);
     const profileSummary = getProfileSummary();
     const stats = getQuickStats();
@@ -208,27 +185,19 @@ async function buildZip(categories) {
       stats,
     };
 
-    zip.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2), "utf8"));
+    const res = await runOneShotWorker(
+      "zipWorker.cjs",
+      {
+        op: "buildZipFile",
+        manifest,
+        cpaths,
+        targetFilePath,
+        skipSqliteJournals: true,
+      },
+      { onProgress: sendProgress }
+    );
 
-    const totalEntries = cpaths.length;
-    let currentEntry = 0;
-
-    for (const entry of cpaths) {
-      currentEntry++;
-      const progressPercent = Math.min(85, Math.round(15 + (currentEntry / Math.max(totalEntries, 1)) * 60));
-      sendProgress(`Empaquetando ${entry.dest}...`, progressPercent);
-
-      if (entry.isDir) {
-        addDirToZip(zip, entry.src, entry.dest);
-      } else {
-        try {
-          const buf = fs.readFileSync(entry.src);
-          zip.addFile(entry.dest, buf);
-        } catch {}
-      }
-    }
-
-    return { zip, manifest };
+    return { filePath: res.filePath, size: res.size, manifest };
   } finally {
     if (fs.existsSync(stagingDir)) {
       try {
@@ -324,8 +293,6 @@ function saveBackupSettings(newSettings) {
 async function createBackupFile(categories = ["profile", "servers", "addons", "stickers"], targetFilePath = null) {
   sendProgress("Preparando datos y estructura...", 10);
 
-  const { zip, manifest } = await buildZip(categories);
-
   let finalPath = targetFilePath;
   if (!finalPath) {
     const date = new Date();
@@ -335,83 +302,29 @@ async function createBackupFile(categories = ["profile", "servers", "addons", "s
     finalPath = path.join(getBackupsDirPath(), filename);
   }
 
-  sendProgress("Generando archivo .onipkg...", 90);
-  await fsPromises.mkdir(path.dirname(finalPath), { recursive: true });
-  zip.writeZip(finalPath);
-
-  const fileStats = await fsPromises.stat(finalPath);
+  const { filePath, size, manifest } = await buildAndWriteBackupZip(categories, finalPath);
   sendProgress("Copia de seguridad completada", 100);
 
   return {
     success: true,
-    filePath: finalPath,
-    fileName: path.basename(finalPath),
-    size: fileStats.size,
+    filePath,
+    fileName: path.basename(filePath),
+    size,
     manifest,
   };
 }
 
-// ─── RESOLVE AVATAR FROM BACKUP ZIP ──────────────────────────────────────────
-function resolveAvatarFromBackupZip(zip, avatarRef, ud = null) {
+// ─── RESOLVE AVATAR FROM LOCAL CAS ───────────────────────────────────────────
+function resolveLocalAvatarFallback(avatarRef, ud = null) {
   if (!avatarRef || typeof avatarRef !== "string") return null;
-  const trimmed = avatarRef.trim();
-  if (trimmed.startsWith("data:image/") || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    return trimmed;
-  }
-
-  const { EXT_TO_MIME, CasStore } = require("../storage/casStore.cjs");
-
-  // Attempt to extract from zip if it is a CAS reference
-  let target = trimmed;
-  if (target.startsWith("onicord-media://cas/")) {
-    target = target.slice("onicord-media://cas/".length).split("?")[0];
-  }
-  target = path.basename(target);
-
-  let hash = target;
-  let ext = "png";
-  const dotIdx = target.indexOf(".");
-  if (dotIdx !== -1) {
-    hash = target.slice(0, dotIdx);
-    ext = target.slice(dotIdx + 1);
-  }
-  hash = hash.toLowerCase().replace(/[^a-f0-9]/g, "");
-
-  if (hash.length === 64) {
-    const prefix = hash.slice(0, 2);
-    const cleanExt = ext.replace(/[^a-z0-9]/g, "") || "png";
-    let entry = zip.getEntry(`cas/${prefix}/${hash}.${cleanExt}`);
-    if (!entry) {
-      entry = zip.getEntry(`cas/${hash}.${cleanExt}`);
-    }
-    if (!entry) {
-      const allEntries = zip.getEntries();
-      entry = allEntries.find((e) => !e.isDirectory && e.entryName.toLowerCase().includes(hash));
-    }
-
-    if (entry) {
-      try {
-        const buf = entry.getData();
-        if (buf && buf.length > 0) {
-          const entryExt = path.extname(entry.entryName).slice(1).toLowerCase() || cleanExt;
-          const mime = EXT_TO_MIME[entryExt] || "image/png";
-          return `data:${mime};base64,${buf.toString("base64")}`;
-        }
-      } catch (err) {
-        console.warn("[BackupService] Error reading avatar entry from zip:", err.message);
-      }
-    }
-  }
-
-  // Fallback: check local CasStore
   try {
+    const { CasStore } = require("../storage/casStore.cjs");
     const cas = CasStore.getInstance(ud || getUserDataPath());
     const dataUri = cas.toDataUri(avatarRef);
     if (dataUri && (dataUri.startsWith("data:image/") || dataUri.startsWith("data:"))) {
       return dataUri;
     }
   } catch {}
-
   return null;
 }
 
@@ -422,20 +335,15 @@ async function inspectBackup(filePath) {
   }
 
   try {
-    const zip = new AdmZip(filePath);
-    const manifestEntry = zip.getEntry("manifest.json");
-    if (!manifestEntry) {
-      throw new Error("El archivo no es una copia de seguridad válida de Onicord (falta manifest.json).");
-    }
-
-    const raw = manifestEntry.getData().toString("utf8");
-    const manifest = JSON.parse(raw);
-
-    const fileStats = fs.statSync(filePath);
+    const res = await runOneShotWorker("zipWorker.cjs", {
+      op: "inspectZip",
+      filePath,
+    });
+    const manifest = res.manifest;
 
     let profile = manifest.profile || null;
     if (profile && profile.avatar) {
-      const resolvedAvatar = resolveAvatarFromBackupZip(zip, profile.avatar, getUserDataPath());
+      const resolvedAvatar = res.avatarFromZip || resolveLocalAvatarFallback(profile.avatar, getUserDataPath());
       if (resolvedAvatar) {
         profile = { ...profile, avatar: resolvedAvatar };
       }
@@ -445,12 +353,12 @@ async function inspectBackup(filePath) {
       valid: true,
       filePath,
       fileName: path.basename(filePath),
-      fileSize: fileStats.size,
+      fileSize: res.fileSize,
       manifest,
       type: manifest.type || "backup",
       profile,
       categories: manifest.categories || ["profile", "servers"],
-      createdAt: manifest.createdAt || fileStats.mtimeMs,
+      createdAt: manifest.createdAt || res.mtimeMs,
       appVersion: manifest.appVersion || "Desconocida",
       stats: manifest.stats || {},
     };
@@ -467,21 +375,6 @@ async function restoreBackup(filePath, categoriesToRestore = null) {
   }
 
   sendProgress("Leyendo paquete .onipkg...", 15);
-  const zip = new AdmZip(filePath);
-  const entries = zip.getEntries();
-
-  const manifestEntry = entries.find((e) => e.entryName === "manifest.json");
-  let manifest = {};
-  if (manifestEntry) {
-    try {
-      manifest = JSON.parse(manifestEntry.getData().toString("utf8"));
-    } catch {}
-  }
-
-  const rawCats = categoriesToRestore || manifest.categories || ["profile", "servers", "addons", "stickers"];
-  const cats = Array.isArray(rawCats)
-    ? rawCats
-    : Object.keys(rawCats).filter((k) => Boolean(rawCats[k]));
   const ud = getUserDataPath();
 
   try {
@@ -491,78 +384,20 @@ async function restoreBackup(filePath, categoriesToRestore = null) {
     console.warn("[BackupService] Error closing DB handles before restore:", closeErr.message);
   }
 
-  const prefixMap = {
-    profile: "profile/",
-    servers: "servers/",
-    addons: "addons/",
-    stickers: "stickers/",
-  };
-
-  const rootWithSep = path.resolve(ud) + path.sep;
-  const totalEntries = entries.length;
-  let processed = 0;
-
-  for (const entry of entries) {
-    processed++;
-    if (entry.entryName === "manifest.json" || entry.isDirectory) continue;
-
-    const normalizedEntry = entry.entryName.replace(/\\/g, "/");
-    let matchedCat = null;
-    let relPath = null;
-
-    if (
-      cats.includes("profile") &&
-      (normalizedEntry.startsWith("db/") ||
-        normalizedEntry.startsWith("cas/") ||
-        normalizedEntry.startsWith("profile/"))
-    ) {
-      matchedCat = "profile";
-      relPath = normalizedEntry.startsWith("profile/")
-        ? normalizedEntry.slice("profile/".length)
-        : normalizedEntry;
-    } else {
-      matchedCat = cats.find((c) => c !== "profile" && normalizedEntry.startsWith(prefixMap[c] || `${c}/`));
-      if (matchedCat) {
-        const prefix = prefixMap[matchedCat] || `${matchedCat}/`;
-        if (matchedCat === "servers" && !normalizedEntry.startsWith("servers/servers/")) {
-          relPath = normalizedEntry;
-        } else {
-          relPath = normalizedEntry.slice(prefix.length);
-        }
-      }
-    }
-
-    if (!matchedCat || !relPath) continue;
-
-    try {
-      // Prevenir vulnerabilidad Zip Slip / Path Traversal
-      const safeRelPath = path.normalize(relPath).replace(/^(\.\.[\/\\])+/, "");
-      const destPath = path.join(ud, safeRelPath);
-      const resolvedDest = path.resolve(destPath);
-
-      if (!resolvedDest.startsWith(rootWithSep)) {
-        console.warn(`[BackupService] Bloqueada ruta insegura en backup: ${entry.entryName}`);
-        continue;
-      }
-
-      await fsPromises.mkdir(path.dirname(resolvedDest), { recursive: true });
-      if (resolvedDest.endsWith(".db")) {
-        try {
-          if (fs.existsSync(`${resolvedDest}-wal`)) await fsPromises.unlink(`${resolvedDest}-wal`);
-          if (fs.existsSync(`${resolvedDest}-shm`)) await fsPromises.unlink(`${resolvedDest}-shm`);
-        } catch {}
-      }
-      await fsPromises.writeFile(resolvedDest, entry.getData());
-
-      const percent = Math.min(95, Math.round(20 + (processed / Math.max(totalEntries, 1)) * 75));
-      sendProgress(`Restaurando ${path.basename(resolvedDest)}...`, percent);
-    } catch (err) {
-      console.error(`[BackupService] Error al restaurar ${entry.entryName}:`, err.message);
-    }
-  }
+  const res = await runOneShotWorker(
+    "zipWorker.cjs",
+    {
+      op: "restoreZip",
+      filePath,
+      categoriesToRestore,
+      userDataPath: ud,
+      mode: "backup",
+    },
+    { onProgress: sendProgress }
+  );
 
   sendProgress("Restauración completada con éxito", 100);
-  return { restored: true, categories: cats, manifest };
+  return res;
 }
 
 // ─── PUBLIC: LOCAL VAULT (COPIAS EN DISCO LOCAL) ──────────────────────────────
@@ -571,34 +406,31 @@ async function listLocalBackups() {
   if (!fs.existsSync(dir)) return [];
 
   const files = await fsPromises.readdir(dir);
-  const backups = [];
+  const filePaths = files
+    .filter((f) => f.endsWith(".onipkg"))
+    .map((f) => path.join(dir, f));
 
-  for (const file of files) {
-    if (!file.endsWith(".onipkg")) continue;
-    const fullPath = path.join(dir, file);
-    try {
-      const stat = await fsPromises.stat(fullPath);
-      let manifest = null;
-      try {
-        const zip = new AdmZip(fullPath);
-        const mEntry = zip.getEntry("manifest.json");
-        if (mEntry) {
-          manifest = JSON.parse(mEntry.getData().toString("utf8"));
-        }
-      } catch {}
+  if (filePaths.length === 0) return [];
 
-      backups.push({
-        id: file,
-        name: file,
-        filePath: fullPath,
-        size: stat.size,
-        createdAt: manifest?.createdAt ? new Date(manifest.createdAt).toISOString() : stat.mtime.toISOString(),
-        categories: manifest?.categories || ["profile", "servers"],
-        profile: manifest?.profile || null,
-        stats: manifest?.stats || {},
-      });
-    } catch {}
-  }
+  const entries = await runOneShotWorker("zipWorker.cjs", {
+    op: "readManifests",
+    filePaths,
+  });
+
+  const backups = (entries || []).map((item) => {
+    const file = path.basename(item.filePath);
+    const manifest = item.manifest;
+    return {
+      id: file,
+      name: file,
+      filePath: item.filePath,
+      size: item.size,
+      createdAt: manifest?.createdAt ? new Date(manifest.createdAt).toISOString() : item.mtimeIso,
+      categories: manifest?.categories || ["profile", "servers"],
+      profile: manifest?.profile || null,
+      stats: manifest?.stats || {},
+    };
+  });
 
   // Sort descending by creation date (newest first)
   backups.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -670,7 +502,8 @@ module.exports = {
   getUserDataPath,
   getBackupsDirPath,
   estimateBackupSize,
-  buildZip,
+  buildZip: buildAndWriteBackupZip,
+  buildAndWriteBackupZip,
   createBackupFile,
   inspectBackup,
   restoreBackup,

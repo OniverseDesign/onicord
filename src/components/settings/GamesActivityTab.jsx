@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
-import { IconJoystick, Delete, IconAdd } from "../icons/StreamIcons";
 
 export default function GamesActivityTab({
   showRichPresence,
@@ -372,7 +371,7 @@ export default function GamesActivityTab({
                       className="p-1.5 text-onicord-muted hover:text-onicord-danger transition-colors cursor-pointer rounded-lg hover:bg-onicord-danger/10"
                       title={t("common.delete", "Eliminar")}
                     >
-                      <Delete size="sm" />
+                      <MaterialIcon name="delete" size="sm" />
                     </button>
                   </div>
                 </div>

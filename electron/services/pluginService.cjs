@@ -3,6 +3,10 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const zlib = require("zlib");
+const util = require("util");
+
+const gunzipAsync = util.promisify(zlib.gunzip);
+const gzipAsync = util.promisify(zlib.gzip);
 
 function isNewerVersion(latest, current) {
   if (!latest || !current) return false;
@@ -315,7 +319,7 @@ class PluginService {
     const compressed = fs.readFileSync(archiveFilePath);
     let decompressed;
     try {
-      decompressed = zlib.gunzipSync(compressed, { maxOutputLength: 50 * 1024 * 1024 }).toString("utf-8");
+      decompressed = (await gunzipAsync(compressed, { maxOutputLength: 50 * 1024 * 1024 })).toString("utf-8");
     } catch {
       decompressed = compressed.toString("utf-8");
     }
@@ -443,7 +447,7 @@ class PluginService {
     try {
       let decompressed;
       try {
-        decompressed = zlib.gunzipSync(buffer, { maxOutputLength: 50 * 1024 * 1024 }).toString("utf-8");
+        decompressed = (await gunzipAsync(buffer, { maxOutputLength: 50 * 1024 * 1024 })).toString("utf-8");
       } catch {
         decompressed = buffer.toString("utf-8");
       }
@@ -574,7 +578,7 @@ class PluginService {
     };
 
     const jsonString = JSON.stringify(packageData);
-    const compressed = zlib.gzipSync(Buffer.from(jsonString, "utf-8"));
+    const compressed = await gzipAsync(Buffer.from(jsonString, "utf-8"));
 
     const finalOutput = outputPath || path.join(folderPath, `${manifest.id}.onipkg`);
     fs.writeFileSync(finalOutput, compressed);

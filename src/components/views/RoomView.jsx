@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import ChatPanel from "../chat/ChatPanel";
 import RoomHeader from "./room/RoomHeader";
@@ -7,7 +7,7 @@ import RoomOverlays from "./room/RoomOverlays";
 import { useGlobalVoice } from "../../context/VoiceContext";
 import PluginBannerNotice from "../plugins/PluginBannerNotice";
 import MaterialIcon from "../icons/MaterialIcon";
-import ThreadSidePanel from "../chat/subcomponents/ThreadSidePanel";
+const ThreadSidePanel = lazy(() => import("../chat/subcomponents/ThreadSidePanel"));
 import ForumTagsBar from "../chat/subcomponents/ForumTagsBar";
 import { notificationManager } from "../../lib/notificationManager";
 import { evaluateServerFlame, triggerServerFlameInteraction } from "../../lib/flameService";
@@ -19,7 +19,7 @@ import ChannelsSidebar from "../navigation/ChannelsSidebar";
 import RoomStreamStage from "../voice/RoomStreamStage";
 import AddonStageHost from "../voice/AddonStageHost";
 import WatchPartyStage from "../voice/WatchPartyStage";
-import WhiteboardStage from "../whiteboard/WhiteboardStage";
+const WhiteboardStage = lazy(() => import("../whiteboard/WhiteboardStage"));
 import { useWhiteboardBackgroundSync } from "../whiteboard/useWhiteboardBackgroundSync";
 import { useWatchParty } from "../../context/WatchPartyContext";
 import { soundEngine } from "../../lib/soundEngine";
@@ -1723,15 +1723,23 @@ export default function RoomView({
             >
               <PluginBannerNotice serverPlugins={server?.plugins} />
               {activeTextChannel?.type === "whiteboard" && !resolvedDmUser ? (
-                <WhiteboardStage
-                  server={server}
-                  channel={activeTextChannel}
-                  profile={profile}
-                  canEdit={canSpeakInChannel(server, activeTextChannel, profile?.id)}
-                  onFlameInteraction={() =>
-                    triggerServerFlameInteraction(profile, server, onProfileChange)
+                <Suspense
+                  fallback={
+                    <div className="flex-1 flex items-center justify-center text-onicord-muted text-sm">
+                      {t("common.loading", "Cargando...")}
+                    </div>
                   }
-                />
+                >
+                  <WhiteboardStage
+                    server={server}
+                    channel={activeTextChannel}
+                    profile={profile}
+                    canEdit={canSpeakInChannel(server, activeTextChannel, profile?.id)}
+                    onFlameInteraction={() =>
+                      triggerServerFlameInteraction(profile, server, onProfileChange)
+                    }
+                  />
+                </Suspense>
               ) : (
                 <ChatPanel
                   roomCode={server.roomCode}
@@ -1949,8 +1957,9 @@ export default function RoomView({
                 isThreadClosing ? "onicord-animate-thread-out" : "onicord-animate-thread-in"
               )}
             >
-              <ThreadSidePanel
-                parentMessage={displayedThreadMsg}
+              <Suspense fallback={null}>
+                <ThreadSidePanel
+                  parentMessage={displayedThreadMsg}
                 messages={threadMessages}
                 currentUserId={profile?.id}
                 profile={profile}
@@ -1966,7 +1975,8 @@ export default function RoomView({
                 onToggleReaction={(msgId, emoji) =>
                   handleToggleReactionFromAnywhere(msgId, emoji, displayedThreadMsg?.channelId || textChannelId)
                 }
-              />
+                />
+              </Suspense>
             </div>
           )}
         </div>

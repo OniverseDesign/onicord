@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
-import { Delete } from "../icons/StreamIcons";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import {
   getPluginLocalizedMeta,

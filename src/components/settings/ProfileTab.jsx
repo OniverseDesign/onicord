@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import UserProfilePopout from "../ui/UserProfilePopout";
 import Select from "../ui/Select";
 import RichPresenceCard from "../ui/RichPresenceCard";
-import { IconLink } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import ColorPicker from "../ui/ColorPicker";
 import { APP_COLORS } from "../../lib/colors";

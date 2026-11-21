@@ -1,24 +1,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import DeleteMessageModal from "../modals/DeleteMessageModal";
-import PinnedMessagesModal from "../modals/PinnedMessagesModal";
+const DeleteMessageModal = lazy(() => import("../modals/DeleteMessageModal"));
+const PinnedMessagesModal = lazy(() => import("../modals/PinnedMessagesModal"));
 import MaterialIcon from "../icons/MaterialIcon";
 import ContextMenu from "../ui/ContextMenu";
-import {
-  IconCopyFile,
-  IconPasteFile,
-  Delete,
-  IconReply,
-  IconSave,
-  IconPlay,
-  IconPlaylist,
-} from "../icons/StreamIcons";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import { ONICORD_COMMANDS } from "../../lib/commands";
 import { getSelectionCharacterOffsets, setSelectionOffsets, renderHTMLForInput, applyMarkdownFormat } from "../../lib/inputFormatter";
 import { checkPermission, canSpeakInChannel } from "../../lib/permissionsHelper";
 import { copyTextToClipboard, readTextFromClipboard } from "../../lib/clipboard";
-import ForwardMessageModal from "../modals/ForwardMessageModal";
+const ForwardMessageModal = lazy(() => import("../modals/ForwardMessageModal"));
 
 const MediaPreviewModal = lazy(() => import("../modals/MediaPreviewModal"));
 import { notificationManager } from "../../lib/notificationManager";
@@ -1277,49 +1268,55 @@ export default function ChatPanel({
       />
 
       {showPinnedModal && (
-        <PinnedMessagesModal
-          isOpen={showPinnedModal}
-          onClose={() => setShowPinnedModal(false)}
-          pinnedMessages={messages.filter((m) => pinnedMsgIds.includes(m.id))}
-          onUnpinMessage={handleTogglePinMessage}
-          profile={profile}
-          peers={peers}
-          server={server}
-        />
+        <Suspense fallback={null}>
+          <PinnedMessagesModal
+            isOpen={showPinnedModal}
+            onClose={() => setShowPinnedModal(false)}
+            pinnedMessages={messages.filter((m) => pinnedMsgIds.includes(m.id))}
+            onUnpinMessage={handleTogglePinMessage}
+            profile={profile}
+            peers={peers}
+            server={server}
+          />
+        </Suspense>
       )}
 
       {messageToDelete && (
-        <DeleteMessageModal
-          message={messageToDelete.msg}
-          authorName={messageToDelete.nickname}
-          authorAvatar={messageToDelete.avatar}
-          onClose={() => setMessageToDelete(null)}
-          onConfirm={async () => {
-            try {
-              await window.electronAPI?.deleteChatMessage?.(
-                roomCode,
-                channelId,
-                messageToDelete.msg.id,
-              );
-              setMessages((prev) =>
-                prev.filter((m) => m.id !== messageToDelete.msg.id),
-              );
-              setMessageToDelete(null);
-            } catch (err) {
-              console.error(err);
-            }
-          }}
-        />
+        <Suspense fallback={null}>
+          <DeleteMessageModal
+            message={messageToDelete.msg}
+            authorName={messageToDelete.nickname}
+            authorAvatar={messageToDelete.avatar}
+            onClose={() => setMessageToDelete(null)}
+            onConfirm={async () => {
+              try {
+                await window.electronAPI?.deleteChatMessage?.(
+                  roomCode,
+                  channelId,
+                  messageToDelete.msg.id,
+                );
+                setMessages((prev) =>
+                  prev.filter((m) => m.id !== messageToDelete.msg.id),
+                );
+                setMessageToDelete(null);
+              } catch (err) {
+                console.error(err);
+              }
+            }}
+          />
+        </Suspense>
       )}
 
       {forwardModalMsg && (
-        <ForwardMessageModal
-          message={forwardModalMsg}
-          server={server}
-          currentChannelId={channelId}
-          onForward={handleForwardMessageConfirm}
-          onClose={() => setForwardModalMsg(null)}
-        />
+        <Suspense fallback={null}>
+          <ForwardMessageModal
+            message={forwardModalMsg}
+            server={server}
+            currentChannelId={channelId}
+            onForward={handleForwardMessageConfirm}
+            onClose={() => setForwardModalMsg(null)}
+          />
+        </Suspense>
       )}
 
       {editingMsg && (
@@ -1388,7 +1385,7 @@ export default function ChatPanel({
                 }
                 menuItems.push({
                   label: "Save Sticker",
-                  icon: <IconSave size="base" />,
+                  icon: <MaterialIcon name="bookmark" size="base" />,
                   onClick: async () => {
                     const yaExiste = await window.electronAPI.getStickerPath(
                       parsedStk.stickerId,
@@ -1439,7 +1436,7 @@ export default function ChatPanel({
               if (isPlayable) {
                 menuItems.push({
                   label: t("contextMenu.playInRoom"),
-                  icon: <IconPlay size="lg" />,
+                  icon: <MaterialIcon name="play_arrow" size="lg" />,
                   onClick: () => {
                     window.dispatchEvent(
                       new CustomEvent("onicord:broadcast-music", {
@@ -1465,7 +1462,7 @@ export default function ChatPanel({
 
                 menuItems.push({
                   label: t("contextMenu.addToQueue"),
-                  icon: <IconPlaylist size="lg" />,
+                  icon: <MaterialIcon name="playlist_add" size="lg" />,
                   onClick: () => {
                     window.dispatchEvent(
                       new CustomEvent("onicord:broadcast-music", {
@@ -1479,7 +1476,7 @@ export default function ChatPanel({
 
               menuItems.push({
                 label: "Copiar enlace",
-                icon: <IconCopyFile size="base" />,
+                icon: <MaterialIcon name="file_copy" size="base" />,
                 onClick: async () => {
                   await copyTextToClipboard(clickedUrl);
                 },
@@ -1489,7 +1486,7 @@ export default function ChatPanel({
 
             menuItems.push({
               label: t("chat.reply", "Responder"),
-              icon: <IconReply size="lg" />,
+              icon: <MaterialIcon name="reply" size="lg" />,
               onClick: () => {
                 soundEngine.playCue("press");
                 const textParaCita = esUnSticker
@@ -1539,7 +1536,7 @@ export default function ChatPanel({
             if (!esUnSticker) {
               menuItems.push({
                 label: "Copiar texto",
-                icon: <IconCopyFile size="base" />,
+                icon: <MaterialIcon name="file_copy" size="base" />,
                 onClick: async () => {
                   const selText = window.getSelection()?.toString();
                   if (selText && selText.trim().length > 0) {
@@ -1571,7 +1568,7 @@ export default function ChatPanel({
 
                 menuItems.push({
                   label: t("contextMenu.deleteMessage"),
-                  icon: <Delete size="lg" />,
+                  icon: <MaterialIcon name="delete" size="lg" />,
                   variant: "danger",
                   onClick: () => {
                     setMessageToDelete({ msg, nickname, avatar });
@@ -1584,7 +1581,7 @@ export default function ChatPanel({
           if (contextMenu.type === "input") {
             menuItems.push({
               label: "Pegar texto",
-              icon: <IconPasteFile size="base" />,
+              icon: <MaterialIcon name="content_paste" size="base" />,
               onClick: async () => {
                 const text = await readTextFromClipboard();
                 if (text) setInput((prev) => prev + text);

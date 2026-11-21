@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
-import { IconClose } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import Heading from "../ui/Heading";
 import Text from "../ui/Text";
@@ -211,7 +210,7 @@ export default function ChangelogModal({
           className="onicord-icon-btn absolute right-5 top-5"
           aria-label={t("common.close", "Cerrar")}
         >
-          <IconClose size="base" />
+          <MaterialIcon name="close" size="base" />
         </button>
 
         {/* Modal Header without lines or redundant badges */}

@@ -1,6 +1,5 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Delete, IconReply, IconAddReaction } from "../../icons/StreamIcons";
 import MaterialIcon from "../../icons/MaterialIcon";
 import Tooltip from "../../ui/Tooltip";
 
@@ -43,7 +42,7 @@ export default function MessageActionsHoverBar({
           }}
           className="onicord-message-toolbar-btn onicord-message-toolbar-btn-divider"
         >
-          <IconAddReaction size="base" />
+          <MaterialIcon name="add_reaction" size="base" />
         </button>
       </Tooltip>
 
@@ -65,7 +64,7 @@ export default function MessageActionsHoverBar({
           }
           className="onicord-message-toolbar-btn onicord-message-toolbar-btn-divider"
         >
-          <IconReply size="base" />
+          <MaterialIcon name="reply" size="base" />
         </button>
       </Tooltip>
 
@@ -100,7 +99,7 @@ export default function MessageActionsHoverBar({
             onClick={(e) => onOpenDeleteModal(e, msg, nickname, avatar)}
             className="onicord-message-toolbar-btn onicord-message-toolbar-btn-danger"
           >
-            <Delete size="base" />
+            <MaterialIcon name="delete" size="base" />
           </button>
         </Tooltip>
       )}

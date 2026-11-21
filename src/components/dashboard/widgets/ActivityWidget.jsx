@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { IconJoystick } from "../../icons/StreamIcons";
 import MaterialIcon from "../../icons/MaterialIcon";
 import {
   getPlaytimeData,
@@ -136,7 +135,7 @@ function GameCardItem({ game, isActive, activeStartTime }) {
             ) : isMovie ? (
               <MaterialIcon name="movie" size="lg" className="text-onicord-accent" />
             ) : (
-              <IconJoystick size="lg" />
+              <MaterialIcon name="sports_esports" size="lg" />
             )}
             <span className="text-[12px] font-mono font-bold tracking-tight">
               {displayTime}
@@ -230,7 +229,7 @@ export default function ActivityWidget({ activeGame = null }) {
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto minimal-scrollbar space-y-2.5 pt-3 pr-0.5">
         {gamesList.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-4 text-onicord-muted">
-            <IconJoystick size="lg" className="opacity-40 mb-2 w-8 h-8" />
+            <MaterialIcon name="sports_esports" size="lg" className="opacity-40 mb-2 w-8 h-8" />
             <p className="text-xs font-medium text-onicord-text">
               {t("widgets.gaming.empty", "No hay actividades registradas aún")}
             </p>

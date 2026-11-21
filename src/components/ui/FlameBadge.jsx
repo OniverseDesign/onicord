@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { getFlameTier } from "../../lib/flameService";
 import FlamePopover from "./FlamePopover";
-import { IconFlame } from "../icons/StreamIcons";
+import MaterialIcon from "../icons/MaterialIcon";
 import { cn } from "../../lib/cn";
 
 export default function FlameBadge({
@@ -49,7 +49,7 @@ export default function FlameBadge({
           className
         )}
       >
-        <IconFlame
+        <MaterialIcon name="mode_heat"
           size={iconPresetSizes[size] || "xs"}
           fill={true}
           className="shrink-0 self-center pb-[2px]"

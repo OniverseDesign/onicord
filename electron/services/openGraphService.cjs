@@ -1,4 +1,7 @@
 const path = require("path");
+const { IdleWorkerPool } = require("../workers/workerRunner.cjs");
+
+const parserPool = new IdleWorkerPool("contentParserWorker.cjs", { idleTimeoutMs: 60_000 });
 
 class OpenGraphService {
   constructor() {
@@ -265,6 +268,32 @@ class OpenGraphService {
       audio: rawAudio ? this.decodeHtmlEntities(rawAudio) : null,
       siteName: rawSiteName ? this.decodeHtmlEntities(rawSiteName) : null,
     };
+  }
+
+  async parseOpenGraphMetaAsync(html, urlObj) {
+    try {
+      const res = await parserPool.run({
+        op: "parseOpenGraph",
+        html,
+        hostname: urlObj.hostname,
+      });
+      const metaMap = new Map(res.metaEntries || []);
+      const getMeta = (prop) => {
+        const p = prop.toLowerCase();
+        return metaMap.get(`og:${p}`) || metaMap.get(`twitter:${p}`) || metaMap.get(p) || null;
+      };
+      return {
+        getMeta,
+        title: res.title,
+        description: res.description,
+        image: res.image,
+        video: res.video,
+        audio: res.audio,
+        siteName: res.siteName,
+      };
+    } catch {
+      return this.parseOpenGraphMeta(html, urlObj);
+    }
   }
 
   async fetchOpenGraph(targetUrl) {
@@ -551,7 +580,7 @@ class OpenGraphService {
             });
             if (vxResult.ok && vxResult.html) {
               const { title: rTitle, description: rDesc, image: rImg, video: rVid, siteName: rSite } =
-                this.parseOpenGraphMeta(vxResult.html, urlObj);
+                await this.parseOpenGraphMetaAsync(vxResult.html, urlObj);
               if (rTitle && rTitle !== "Reddit" && rTitle !== "vxReddit") {
                 const payloadResult = {
                   title: rTitle,
@@ -614,7 +643,7 @@ class OpenGraphService {
             });
             if (commResult.ok && commResult.html) {
               const { title: cTitle, description: cDesc, image: cImg } =
-                this.parseOpenGraphMeta(commResult.html, urlObj);
+                await this.parseOpenGraphMetaAsync(commResult.html, urlObj);
 
               let finalTitle = cTitle;
               if (!finalTitle || finalTitle === "Reddit" || finalTitle === urlObj.hostname) {
@@ -694,7 +723,7 @@ class OpenGraphService {
               }
             }
 
-            const { description: pinDesc } = this.parseOpenGraphMeta(pinResult.html, urlObj);
+            const { description: pinDesc } = await this.parseOpenGraphMetaAsync(pinResult.html, urlObj);
 
             const payloadResult = {
               title: this.decodeHtmlEntities(title),
@@ -794,7 +823,7 @@ class OpenGraphService {
       }
 
       let { getMeta, title, description, image: rawParsedImage, video, audio, siteName: parsedSiteName } =
-        this.parseOpenGraphMeta(fetchResult.html, urlObj);
+        await this.parseOpenGraphMetaAsync(fetchResult.html, urlObj);
 
       let image = rawParsedImage;
 

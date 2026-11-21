@@ -5,17 +5,10 @@ import ChatMessageItem from "../ChatMessageItem";
 import ForumPostCard from "./ForumPostCard";
 import { ThreadLoadingSkeleton } from "./ChatLoadingSkeleton";
 import { useAnimatedMount } from "../../../hooks/useAnimatedMount";
-import {
-  IconSave,
-  IconCopyFile,
-  IconPasteFile,
-  IconReply,
-  Delete,
-} from "../../icons/StreamIcons";
 import ChatInputArea from "./ChatInputArea";
 import ContextMenu from "../../ui/ContextMenu";
-import DeleteMessageModal from "../../modals/DeleteMessageModal";
-import ForwardMessageModal from "../../modals/ForwardMessageModal";
+const DeleteMessageModal = lazy(() => import("../../modals/DeleteMessageModal"));
+const ForwardMessageModal = lazy(() => import("../../modals/ForwardMessageModal"));
 import ConfirmDialogModal from "../../modals/ConfirmDialogModal";
 import { formatBytes } from "./MessageMediaAttachment";
 
@@ -676,6 +669,11 @@ export default function ThreadSidePanel({
     });
   }, [suggestions, isInputFocused, input]);
 
+  const handleReplyClick = useCallback((target) => {
+    setReplyTarget(target);
+    tyrannyInputRef.current?.focus();
+  }, []);
+
   const getNameColor = useCallback(
     (authorId) => {
       if (!server || !server.roles || !server.userRoles) return null;
@@ -826,10 +824,7 @@ export default function ThreadSidePanel({
                       onToggleReaction={handleToggleReaction}
                       onJumpToMessage={handleJumpToMessage}
                       onOpenPreview={handleOpenPreview}
-                      onReplyClick={(target) => {
-                        setReplyTarget(target);
-                        tyrannyInputRef.current?.focus();
-                      }}
+                      onReplyClick={handleReplyClick}
                     />
                   </>
                 )}
@@ -863,10 +858,7 @@ export default function ThreadSidePanel({
                   onToggleReaction={handleToggleReaction}
                   onJumpToMessage={handleJumpToMessage}
                   onOpenPreview={handleOpenPreview}
-                  onReplyClick={(target) => {
-                    setReplyTarget(target);
-                    tyrannyInputRef.current?.focus();
-                  }}
+                  onReplyClick={handleReplyClick}
                 />
               ))}
 
@@ -944,7 +936,7 @@ export default function ThreadSidePanel({
                 }
                 menuItems.push({
                   label: "Save Sticker",
-                  icon: <IconSave size="base" />,
+                  icon: <MaterialIcon name="bookmark" size="base" />,
                   onClick: async () => {
                     const yaExiste = await window.electronAPI.getStickerPath(parsedStk.stickerId);
                     if (yaExiste) {
@@ -985,7 +977,7 @@ export default function ThreadSidePanel({
             if (clickedUrl && !esUnSticker) {
               menuItems.push({
                 label: "Copiar enlace",
-                icon: <IconCopyFile size="base" />,
+                icon: <MaterialIcon name="file_copy" size="base" />,
                 onClick: async () => {
                   await copyTextToClipboard(clickedUrl);
                 },
@@ -995,7 +987,7 @@ export default function ThreadSidePanel({
 
             menuItems.push({
               label: t("chat.reply", "Responder"),
-              icon: <IconReply size="lg" />,
+              icon: <MaterialIcon name="reply" size="lg" />,
               onClick: () => {
                 setReplyTarget({
                   id: msg.id,
@@ -1038,7 +1030,7 @@ export default function ThreadSidePanel({
             if (!esUnSticker) {
               menuItems.push({
                 label: "Copiar texto",
-                icon: <IconCopyFile size="base" />,
+                icon: <MaterialIcon name="file_copy" size="base" />,
                 onClick: async () => {
                   const selectionText = window.getSelection()?.toString();
                   if (selectionText && selectionText.trim().length > 0) {
@@ -1073,7 +1065,7 @@ export default function ThreadSidePanel({
 
               menuItems.push({
                 label: t("chat.deleteMessage"),
-                icon: <Delete size="lg" />,
+                icon: <MaterialIcon name="delete" size="lg" />,
                 variant: "danger",
                 onClick: () => {
                   setMessageToDelete({ msg, nickname, avatar });
@@ -1085,7 +1077,7 @@ export default function ThreadSidePanel({
           if (contextMenu.type === "input") {
             menuItems.push({
               label: t("contextMenu.pasteText", "Pegar texto"),
-              icon: <IconPasteFile size="base" />,
+              icon: <MaterialIcon name="content_paste" size="base" />,
               onClick: async () => {
                 const text = await readTextFromClipboard();
                 if (text) setInput((prev) => prev + text);
@@ -1107,23 +1099,27 @@ export default function ThreadSidePanel({
 
       {/* Modals for Message Actions */}
       {messageToDelete && (
-        <DeleteMessageModal
-          message={messageToDelete.msg}
-          authorName={messageToDelete.nickname}
-          authorAvatar={messageToDelete.avatar}
-          onClose={() => setMessageToDelete(null)}
-          onConfirm={handleDeleteConfirm}
-        />
+        <Suspense fallback={null}>
+          <DeleteMessageModal
+            message={messageToDelete.msg}
+            authorName={messageToDelete.nickname}
+            authorAvatar={messageToDelete.avatar}
+            onClose={() => setMessageToDelete(null)}
+            onConfirm={handleDeleteConfirm}
+          />
+        </Suspense>
       )}
 
       {forwardModalMsg && (
-        <ForwardMessageModal
-          message={forwardModalMsg}
-          server={server}
-          currentChannelId={parentMessage.channelId || "general"}
-          onForward={handleForwardMessageConfirm}
-          onClose={() => setForwardModalMsg(null)}
-        />
+        <Suspense fallback={null}>
+          <ForwardMessageModal
+            message={forwardModalMsg}
+            server={server}
+            currentChannelId={parentMessage.channelId || "general"}
+            onForward={handleForwardMessageConfirm}
+            onClose={() => setForwardModalMsg(null)}
+          />
+        </Suspense>
       )}
 
       {editingMsg && (

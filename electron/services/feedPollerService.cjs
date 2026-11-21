@@ -1,6 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+const { IdleWorkerPool } = require("../workers/workerRunner.cjs");
+
+const feedParserPool = new IdleWorkerPool("contentParserWorker.cjs", { idleTimeoutMs: 60_000 });
 
 class FeedPollerService {
   constructor() {
@@ -104,6 +107,7 @@ class FeedPollerService {
       clearInterval(this._intervalTimer);
       this._intervalTimer = null;
     }
+    feedParserPool.destroy();
   }
 
   /**
@@ -376,10 +380,18 @@ class FeedPollerService {
     const text = await res.text();
 
     if (contentType.includes("json") || targetUrl.endsWith(".json")) {
-      return this.parseJsonFeed(text);
+      try {
+        return await feedParserPool.run({ op: "parseJsonFeed", jsonStr: text });
+      } catch {
+        return this.parseJsonFeed(text);
+      }
     }
 
-    return this.parseXmlFeed(text);
+    try {
+      return await feedParserPool.run({ op: "parseXmlFeed", xmlStr: text });
+    } catch {
+      return this.parseXmlFeed(text);
+    }
   }
 
   parseJsonFeed(jsonStr) {

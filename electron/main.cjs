@@ -17,8 +17,7 @@ const diagService = require("./services/diagService.cjs");
 // Configure Chromium and V8 flags for DXGI capture, WebAssembly JSPI, Wasm EH, SharedArrayBuffer, Gamepads/HID, and cross-origin isolation
 app.commandLine.appendSwitch("disable-features", "WgcScreenCapturer,WgcScreenCapturerWin,WgcScreenCapturerForWindow,WgcScreenCapturerForCursor");
 app.commandLine.appendSwitch("enable-features", "DxgiScreenCapturer,SharedArrayBuffer,WebAssemblyExperimentalJSPI,WebAssemblyJSPromiseIntegration,CrossOriginOpenerPolicyReporting,CrossOriginEmbedderPolicyCredentialless,GamepadTriggerRumble,GamepadMultitouch");
-app.commandLine.appendSwitch("disable-background-timer-throttling");
-app.commandLine.appendSwitch("disable-renderer-backgrounding");
+app.commandLine.appendSwitch("disk-cache-size", String(100 * 1024 * 1024));
 app.commandLine.appendSwitch("disable-hid-blocklist");
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.commandLine.appendSwitch("js-flags", "--expose-gc --experimental-wasm-jspi --experimental-wasm-legacy-eh --experimental-wasm-exnref");
@@ -241,8 +240,54 @@ function getCloseBehavior() {
   return settings?.minimizeToTray === false ? "quit" : "tray";
 }
 
+const rendererActivityState = {
+  isVisible: true,
+  inVoice: false,
+  isStreaming: false,
+  watchPartyActive: false,
+  musicPlaying: false,
+};
+
+function updateRendererThrottling() {
+  if (!global.mainWindow || global.mainWindow.isDestroyed()) return;
+  const hasActiveMedia = Boolean(
+    rendererActivityState.inVoice ||
+    rendererActivityState.isStreaming ||
+    rendererActivityState.watchPartyActive ||
+    rendererActivityState.musicPlaying ||
+    overlayService.getHasVoiceData?.()
+  );
+  const shouldThrottle = !rendererActivityState.isVisible && !hasActiveMedia;
+  try {
+    global.mainWindow.webContents.setBackgroundThrottling(shouldThrottle);
+  } catch (_) {}
+}
+
+global.setRendererMediaActivity = (partialState) => {
+  if (!partialState || typeof partialState !== "object") return;
+  const keys = ["inVoice", "isStreaming", "watchPartyActive", "musicPlaying"];
+  let changed = false;
+  for (const key of keys) {
+    if (key in partialState) {
+      const next = Boolean(partialState[key]);
+      if (rendererActivityState[key] !== next) {
+        rendererActivityState[key] = next;
+        changed = true;
+      }
+    }
+  }
+  if (changed) {
+    updateRendererThrottling();
+  }
+};
+
 function enterHeadlessNodeMode() {
   global.isHeadlessMode = true;
+  rendererActivityState.isVisible = false;
+  rendererActivityState.inVoice = false;
+  rendererActivityState.isStreaming = false;
+  rendererActivityState.watchPartyActive = false;
+  rendererActivityState.musicPlaying = false;
   try {
     overlayService.destroyOverlay?.();
   } catch (_) {}
@@ -256,6 +301,9 @@ function enterHeadlessNodeMode() {
   } catch (_) {}
   try {
     rpcServerService.stopRpcServer?.();
+  } catch (_) {}
+  try {
+    torrentService.destroyAll?.();
   } catch (_) {}
   if (tray) {
     tray.setToolTip("Onicord (Modo Nodo)");
@@ -348,7 +396,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
-      backgroundThrottling: false,
+      backgroundThrottling: true,
       plugins: true,
       pdfViewerEnabled: true,
       webSecurity: false,
@@ -358,6 +406,8 @@ function createWindow() {
   });
 
   global.mainWindow.on("focus", () => {
+    rendererActivityState.isVisible = true;
+    updateRendererThrottling();
     overlayService.setAppFocused(true);
     globalKeybindService.setAppFocused(true);
   });
@@ -368,6 +418,8 @@ function createWindow() {
   });
 
   global.mainWindow.on("minimize", () => {
+    rendererActivityState.isVisible = false;
+    updateRendererThrottling();
     globalKeybindService.setAppFocused(false);
     if (!overlayService.getHasVoiceData()) {
       setBackgroundMode(true);
@@ -375,11 +427,15 @@ function createWindow() {
   });
 
   global.mainWindow.on("restore", () => {
+    rendererActivityState.isVisible = true;
+    updateRendererThrottling();
     globalKeybindService.setAppFocused(true);
     setBackgroundMode(false);
   });
 
   global.mainWindow.on("hide", () => {
+    rendererActivityState.isVisible = false;
+    updateRendererThrottling();
     globalKeybindService.setAppFocused(false);
     if (!overlayService.getHasVoiceData()) {
       setBackgroundMode(true);
@@ -387,6 +443,8 @@ function createWindow() {
   });
 
   global.mainWindow.on("show", () => {
+    rendererActivityState.isVisible = true;
+    updateRendererThrottling();
     globalKeybindService.setAppFocused(true);
     setBackgroundMode(false);
   });
@@ -760,8 +818,12 @@ function createWindow() {
     const startMinimized =
       profileService.activeProfile?.general?.startMinimized;
     if (isHidden || (startMinimized && process.argv.includes("--hidden"))) {
+      rendererActivityState.isVisible = false;
+      updateRendererThrottling();
       console.log("[Onicord Core] Invocación en segundo plano (minimizado).");
     } else {
+      rendererActivityState.isVisible = true;
+      updateRendererThrottling();
       global.mainWindow.maximize();
       global.mainWindow.show();
     }
@@ -1062,6 +1124,22 @@ app.whenReady().then(async () => {
     console.warn("[yt-dlp] Fallo al buscar actualización en segundo plano:", err?.message || err);
   });
 
+  // Deferred background cache maintenance (60s after ready, non-blocking)
+  setTimeout(async () => {
+    if (global.isQuitting) return;
+    try {
+      const { CasStore } = require("./storage/casStore.cjs");
+      const cacheService = require("./services/cacheService.cjs");
+      await CasStore.getInstance(app.getPath("userData")).pruneCache({
+        maxTotalBytes: 1024 * 1024 * 1024,
+        maxAgeDays: 30,
+      });
+      await cacheService.pruneOrphanDownloads();
+    } catch (e) {
+      console.warn("[Cache Maintenance] Error en poda diferida:", e?.message || e);
+    }
+  }, 60_000).unref();
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) restoreOrCreateWindow();
   });
@@ -1126,6 +1204,10 @@ app.on("before-quit", () => {
   rpcServerService.stopRpcServer();
   overlayService.destroyOverlay();
   torrentService.destroyAll();
+  try {
+    const pluginSandboxService = require("./services/pluginSandboxService.cjs");
+    pluginSandboxService.destroy?.();
+  } catch (_) {}
   try {
     mcpBridgeService.stop?.();
   } catch (_) {}

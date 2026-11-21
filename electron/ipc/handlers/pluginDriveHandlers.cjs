@@ -229,7 +229,7 @@ function registerPluginDriveHandlers() {
     }
 
     if (stageDef?.pluginId) {
-      stageDef = pluginSandboxService.resolveStage(stageDef.pluginId, stageDef);
+      stageDef = await pluginSandboxService.resolveStage(stageDef.pluginId, stageDef);
     }
     global.activeStageDef = stageDef;
     const fallbackNick = profileService.activeProfile?.nickname || profileService.activeProfile?.username || "Oniverse";

@@ -1,5 +1,5 @@
-import React from "react";
-import AddonStageDisplay from "./AddonStageDisplay";
+import React, { lazy, Suspense } from "react";
+const AddonStageDisplay = lazy(() => import("./AddonStageDisplay"));
 
 export default function AddonStageHost({
   activeStage,
@@ -47,14 +47,16 @@ export default function AddonStageHost({
   };
 
   return (
-    <AddonStageDisplay
-      stageData={activeStage}
-      onClose={handleClose}
-      isMini={isMini}
-      isFullscreen={isFullscreen}
-      onToggleFullscreen={handleToggleFullscreen}
-      onToggleSize={handleToggleSize}
-      onShareToChat={onShareToChat}
-    />
+    <Suspense fallback={null}>
+      <AddonStageDisplay
+        stageData={activeStage}
+        onClose={handleClose}
+        isMini={isMini}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={handleToggleFullscreen}
+        onToggleSize={handleToggleSize}
+        onShareToChat={onShareToChat}
+      />
+    </Suspense>
   );
 }

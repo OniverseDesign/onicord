@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ModalInput } from "../ui/ModalShell";
-import { Delete, IconAdd } from "../icons/StreamIcons";
 import { checkPermission } from "../../lib/permissionsHelper";
 import MaterialIcon from "../icons/MaterialIcon";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
@@ -246,7 +245,7 @@ export default function ServerMembersTab({
                         {/* Trash icon on hover */}
                         {isAllowedToEditRoles && (
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-onicord-text">
-                            <Delete size="sm" />
+                            <MaterialIcon name="delete" size="sm" />
                           </div>
                         )}
                       </div>
@@ -264,7 +263,7 @@ export default function ServerMembersTab({
                           className="w-7 h-7 flex items-center justify-center rounded-lg bg-onicord-surface hover:bg-onicord-accent hover:text-onicord-on-accent text-onicord-muted transition-colors cursor-pointer"
                           title={t("serverSettings.roles.title", "Asignar rol")}
                         >
-                          <IconAdd size="sm" />
+                          <MaterialIcon name="add" size="sm" />
                         </button>
 
                         {/* Desplegable de Roles */}

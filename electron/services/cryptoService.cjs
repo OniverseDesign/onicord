@@ -2,21 +2,48 @@ const crypto = require("crypto");
 
 const SALT = Buffer.from("Onicord::E2EE::Salt::2026");
 const keyCache = new Map();
+const pendingDerivations = new Map();
 const MAX_KEY_CACHE_SIZE = 256;
 
 class CryptoService {
+  _cacheKey(raw, derived) {
+    if (keyCache.size >= MAX_KEY_CACHE_SIZE) {
+      const oldestKey = keyCache.keys().next().value;
+      keyCache.delete(oldestKey);
+    }
+    keyCache.set(raw, derived);
+  }
+
   _deriveKey(roomCode) {
     const raw = String(roomCode).trim().toUpperCase();
     if (keyCache.has(raw)) {
       return keyCache.get(raw);
     }
     const derived = crypto.pbkdf2Sync(raw, SALT, 10000, 32, "sha256");
-    if (keyCache.size >= MAX_KEY_CACHE_SIZE) {
-      const oldestKey = keyCache.keys().next().value;
-      keyCache.delete(oldestKey);
-    }
-    keyCache.set(raw, derived);
+    this._cacheKey(raw, derived);
     return derived;
+  }
+
+  prewarmKey(roomCode) {
+    if (!roomCode) return Promise.resolve(null);
+    const raw = String(roomCode).trim().toUpperCase();
+    if (!raw) return Promise.resolve(null);
+    if (keyCache.has(raw)) {
+      return Promise.resolve(keyCache.get(raw));
+    }
+    if (pendingDerivations.has(raw)) {
+      return pendingDerivations.get(raw);
+    }
+    const promise = new Promise((resolve, reject) => {
+      crypto.pbkdf2(raw, SALT, 10000, 32, "sha256", (err, derived) => {
+        pendingDerivations.delete(raw);
+        if (err) return reject(err);
+        this._cacheKey(raw, derived);
+        resolve(derived);
+      });
+    });
+    pendingDerivations.set(raw, promise);
+    return promise;
   }
 
   _deriveLegacyKey(roomCode) {

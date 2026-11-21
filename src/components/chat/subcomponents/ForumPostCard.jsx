@@ -1,7 +1,6 @@
 import React, { memo, useMemo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
-import { Delete } from "../../icons/StreamIcons";
 import MessageAvatar from "./MessageAvatar";
 import MessageTextContent from "./MessageTextContent";
 import MessageMediaAttachment from "./MessageMediaAttachment";
@@ -233,7 +232,7 @@ const ForumPostCard = memo(
                 className="onicord-message-toolbar-btn onicord-message-toolbar-btn-danger"
                 title={t("chat.deleteMessage", "Eliminar mensaje")}
               >
-                <Delete size="base" />
+                <MaterialIcon name="delete" size="base" />
               </button>
             </div>
           )}

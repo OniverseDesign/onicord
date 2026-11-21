@@ -209,8 +209,10 @@ export function VoiceProvider({ profile, children }) {
       joinVoiceChannel,
       leaveVoiceChannel,
       inVoice: Boolean(voice.inVoice),
+      deafened: Boolean(voice.deafened),
+      members: voice.members || [],
     }),
-    [currentVoiceServer, currentVoiceChannelId, joinVoiceChannel, leaveVoiceChannel, voice.inVoice]
+    [currentVoiceServer, currentVoiceChannelId, joinVoiceChannel, leaveVoiceChannel, voice.inVoice, voice.deafened, voice.members]
   );
 
   const value = useMemo(

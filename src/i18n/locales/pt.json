@@ -1056,7 +1056,12 @@
       "downloadDirectoryDesc": "Local no seu computador onde as imagens e arquivos baixados serão salvos.",
       "resetDownloadDir": "Restaurar padrão",
       "chooseFolder": "Alterar",
-      "defaultDownloadsFolder": "Pasta de Downloads do sistema"
+      "defaultDownloadsFolder": "Pasta de Downloads do sistema",
+      "webCacheTitle": "Cache web do Chromium",
+      "webCacheDesc": "Arquivos temporários de imagens remotas, avatares e visualizações incorporadas (limite de 100 MB em disco).",
+      "clearWebCache": "Limpar cache web",
+      "clearingWebCache": "Limpando...",
+      "webCacheCleared": "Cache web limpo"
     },
     "voiceVideo": {
       "inputDevice": "Dispositivo de entrada (Microfone)",

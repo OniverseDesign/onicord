@@ -212,6 +212,8 @@ export default function SmartAnimatedImage({
         ref={imgRef}
         src={src}
         alt={alt}
+        loading="lazy"
+        decoding="async"
         className={`${cleanClassName} relative w-full h-full ${fitClass}`}
         style={{
           ...style,

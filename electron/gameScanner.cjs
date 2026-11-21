@@ -60,18 +60,20 @@ let currentSessionId = 0;
 let onActivityChangeCallback = null;
 let globalMainWindow = null;
 
-const SCAN_INTERVAL = 5000;
+const SCAN_INTERVAL = 9000;
 const LOCK_PRIORITY = 100;
 const EXE_REGEX = /^"([^"]+)"/;
 
 function getActiveProcesses() {
   const isWindows = process.platform === "win32";
-  const cmd = isWindows ? "tasklist /FO CSV /NH" : "ps -e -o comm=";
+  const bin = isWindows ? "tasklist" : "ps";
+  const args = isWindows ? ["/FO", "CSV", "/NH"] : ["-e", "-o", "comm="];
 
   return new Promise((resolve) => {
-    exec(
-      cmd,
-      { maxBuffer: 1024 * 1024 * 5 },
+    execFile(
+      bin,
+      args,
+      { maxBuffer: 1024 * 1024 * 5, windowsHide: true },
       (err, stdout) => {
         if (err) return resolve(new Set());
         const set = new Set();

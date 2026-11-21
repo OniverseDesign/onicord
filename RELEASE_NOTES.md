@@ -1,3 +1,15 @@
+# Onicord v0.3.3
+
+## Changes
+
+- **Isolated Electron Utility Processes for Plugins & Torrents**: Offloaded `PluginSandboxService` (`pluginHostProcess.cjs`) and `TorrentService` (`torrentProcess.cjs`) into dedicated Electron `utilityProcess` workers with on-demand spawning and automatic idle shutdown, isolating heavy workloads from the main process and unpacking `electron/workers/**` in `asarUnpack`.
+- **Off-Thread Worker Pools for Archives & Content Parsing**: Moved `.onipkg` backup/Drive ZIP packaging (`zipWorker.cjs`) and OpenGraph/RSS HTML/XML parsing (`contentParserWorker.cjs`) to Node.js `worker_threads` via `workerRunner.cjs`, eliminating main-thread UI stalls.
+- **Adaptive Background Throttling & Chromium Web Cache Controls**: Replaced static background-throttling disable flags with dynamic `updateRendererThrottling` driven by live voice/media activity (`app:set-media-activity`), capped Chromium's disk cache at 100 MB, and added web cache inspection and clearing controls in `GeneralTab` across English, Spanish, and Portuguese locales.
+- **CAS Cache Pruning, Orphan Cleanup & Async Key Prewarming**: Added LRU access tracking and automatic disk pruning (`pruneCache`) in `CasStore`, orphan download pruning (`pruneOrphanDownloads`) and non-blocking cover extraction in `CacheService`, and asynchronous PBKDF2 room key prewarming (`cryptoService.prewarmKey`).
+- **Frontend Code-Splitting & Lazy Media Loading**: Lazy-loaded heavy stages, views, modals (`WhiteboardStage`, `exportWhiteboardPng`, `AddonStageDisplay`, `ThreadSidePanel`, `ProfileSetup`, `ScreenShareModal`, `ChangelogModal`, and chat modals) plus on-demand `hls.js` imports, cutting the main Vite bundle by ~21% (1,112 kB to 874 kB), and added `loading="lazy"` / `decoding="async"` across chat media, avatars, and stickers.
+- **Atomic Music Playback Store & Voice Channel Music Indicators**: Isolated `timeupdate` ticks into Zustand (`useMusicPlaybackStore`) and `MusicProgressBar` to prevent `MusicIsland`/`MusicPlayerWidget` re-renders, honored deafened mute state in `MusicProvider`, and added interactive live music badges with one-click auto-join on voice channels in `ChannelsSidebar`.
+- **Icon Consolidation, Game Scanner Tuning & Diag Log Sanitization**: Removed the redundant `StreamIcons.jsx` wrapper in favor of direct `MaterialIcon` usage, switched `gameScanner.cjs` to `execFile` with `windowsHide` on a 9s interval, and added depth/length/circular sanitization to renderer `OniDiag` forwarding in `App.jsx`.
+
 # Onicord v0.3.2
 
 ## Changes

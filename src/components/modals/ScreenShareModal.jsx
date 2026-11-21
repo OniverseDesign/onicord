@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { IconClose } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import { soundEngine } from "../../lib/soundEngine";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
@@ -383,7 +382,7 @@ export default function ScreenShareModal({
             className="onicord-icon-btn shrink-0"
             title={t("common.close", "Cerrar")}
           >
-            <IconClose size="base" />
+            <MaterialIcon name="close" size="base" />
           </button>
         </header>
 

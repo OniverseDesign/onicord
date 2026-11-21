@@ -26,6 +26,9 @@ export const AUTO_DOWNLOAD_SIZE_STEPS = [
 export default function GeneralTab({ general, setGeneral }) {
   const { t, i18n } = useTranslation();
   const [cacheStats, setCacheStats] = useState({ count: 0, sizeFormatted: "0 B" });
+  const [webCacheBytes, setWebCacheBytes] = useState(0);
+  const [clearingWebCache, setClearingWebCache] = useState(false);
+  const [webCacheClearedMsg, setWebCacheClearedMsg] = useState(false);
   const [chatLineHeight, setChatLineHeight] = useState("1.5");
   const [defaultDownloadDir, setDefaultDownloadDir] = useState("");
 
@@ -121,6 +124,9 @@ export default function GeneralTab({ general, setGeneral }) {
 
   useEffect(() => {
     window.electronAPI?.getTotalCacheStats?.().then(setCacheStats);
+    window.electronAPI?.getWebCacheSize?.().then((bytes) => {
+      if (typeof bytes === "number") setWebCacheBytes(bytes);
+    });
     const savedLineHeight = localStorage.getItem(STORAGE_LINE_HEIGHT_KEY) || "1.5";
     setChatLineHeight(savedLineHeight);
     if (window.electronAPI?.getDefaultDownloadDirectory) {
@@ -129,6 +135,27 @@ export default function GeneralTab({ general, setGeneral }) {
       });
     }
   }, []);
+
+  const formatWebCacheBytes = (bytes) => {
+    const n = Number(bytes) || 0;
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleClearWebCache = async () => {
+    if (clearingWebCache || !window.electronAPI?.clearWebCache) return;
+    setClearingWebCache(true);
+    try {
+      await window.electronAPI.clearWebCache();
+      const updated = await window.electronAPI.getWebCacheSize?.();
+      setWebCacheBytes(typeof updated === "number" ? updated : 0);
+      setWebCacheClearedMsg(true);
+      setTimeout(() => setWebCacheClearedMsg(false), 2500);
+    } finally {
+      setClearingWebCache(false);
+    }
+  };
 
   const currentDownloadSizeIndex = useMemo(() => {
     const currentVal = general?.autoDownloadMaxSizeMB;
@@ -693,6 +720,39 @@ export default function GeneralTab({ general, setGeneral }) {
               </div>
             </>
           )}
+
+          {/* Chromium Web Cache */}
+          <div className="onicord-settings-row">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t("settings.general.webCacheTitle", "Caché web de Chromium")}{" "}
+                <span className="text-[11px] font-mono text-onicord-accent ml-1">
+                  ({formatWebCacheBytes(webCacheBytes)})
+                </span>
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t(
+                  "settings.general.webCacheDesc",
+                  "Archivos temporales de imágenes remotas, avatares y vistas embebidas (límite máximo de 100 MB en disco)."
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearWebCache}
+              disabled={clearingWebCache}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-onicord-base/80 hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 hover:border-onicord-tint/20 transition-all cursor-pointer flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+            >
+              <MaterialIcon name={clearingWebCache ? "sync" : webCacheClearedMsg ? "check_circle" : "cleaning_services"} size={15} className={clearingWebCache ? "animate-spin" : ""} />
+              <span>
+                {clearingWebCache
+                  ? t("settings.general.clearingWebCache", "Limpiando...")
+                  : webCacheClearedMsg
+                    ? t("settings.general.webCacheCleared", "Caché web limpiado")
+                    : t("settings.general.clearWebCache", "Limpiar caché web")}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 

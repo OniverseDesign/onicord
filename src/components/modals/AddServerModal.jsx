@@ -5,7 +5,7 @@ import { ModalInput } from "../ui/ModalShell";
 import Heading from "../ui/Heading";
 import Text from "../ui/Text";
 import AvatarPicker from "../ui/AvatarPicker";
-import { IconClose } from "../icons/StreamIcons";
+import MaterialIcon from "../icons/MaterialIcon";
 import { cn } from "../../lib/cn";
 import { parseInviteUrl } from "../../lib/inviteUtils";
 import { soundEngine } from "../../lib/soundEngine";
@@ -145,7 +145,7 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
           className="onicord-icon-btn absolute right-4 top-4 z-10"
           aria-label={t("common.close", "Cerrar")}
         >
-          <IconClose size="base" />
+          <MaterialIcon name="close" size="base" />
         </button>
 
         {/* Centered Header */}

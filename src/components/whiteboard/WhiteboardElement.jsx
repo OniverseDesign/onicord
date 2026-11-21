@@ -242,6 +242,8 @@ function WhiteboardImage({ el, autoDownload = true }) {
           src={src}
           alt={el.fileName || "Imagen"}
           draggable={false}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-contain pointer-events-none select-none"
         />
       ) : (

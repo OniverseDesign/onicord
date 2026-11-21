@@ -1,7 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { IconClose } from "../icons/StreamIcons";
+import MaterialIcon from "../icons/MaterialIcon";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
 import Heading from "../ui/Heading";
 import Text from "../ui/Text";
@@ -55,7 +55,7 @@ export default function DeleteMessageModal({
           className="onicord-icon-btn absolute right-5 top-5"
           aria-label={t("common.close", "Cerrar")}
         >
-          <IconClose size="base" />
+          <MaterialIcon name="close" size="base" />
         </button>
 
         <div className="pb-3 shrink-0">

@@ -1,10 +1,4 @@
 import { useState, useEffect } from "react";
-import {
-  IconToastSuccess,
-  IconToastError,
-  IconToastWarning,
-  IconToastInfo,
-} from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import SmartAnimatedImage from "./SmartAnimatedImage";
 import { soundEngine } from "../../lib/soundEngine";
@@ -193,12 +187,12 @@ export default function ToastContainer() {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${styles.iconBg}`}
                 >
-                  {toast.type === "success" && <IconToastSuccess size="base" />}
+                  {toast.type === "success" && <MaterialIcon name="verified" fill size="base" />}
                   {(toast.type === "danger" || toast.type === "error") && (
-                    <IconToastError size="base" />
+                    <MaterialIcon name="warning" fill size="base" />
                   )}
-                  {toast.type === "warning" && <IconToastWarning size="base" />}
-                  {toast.type === "info" && <IconToastInfo size="base" />}
+                  {toast.type === "warning" && <MaterialIcon name="report_problem" fill size="base" />}
+                  {toast.type === "info" && <MaterialIcon name="info" fill size="base" />}
                 </div>
               )}
 

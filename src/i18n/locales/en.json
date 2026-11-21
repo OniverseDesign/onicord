@@ -1056,7 +1056,12 @@
       "downloadDirectoryDesc": "Location on your computer where downloaded images and files will be saved.",
       "resetDownloadDir": "Reset to default",
       "chooseFolder": "Change",
-      "defaultDownloadsFolder": "System Downloads folder"
+      "defaultDownloadsFolder": "System Downloads folder",
+      "webCacheTitle": "Chromium Web Cache",
+      "webCacheDesc": "Temporary files for remote images, avatars, and embedded views (capped at 100 MB on disk).",
+      "clearWebCache": "Clear web cache",
+      "clearingWebCache": "Clearing...",
+      "webCacheCleared": "Web cache cleared"
     },
     "voiceVideo": {
       "inputDevice": "Input Device (Microphone)",

@@ -1,4 +1,5 @@
 const fs = require("fs");
+const fsPromises = require("fs/promises");
 const path = require("path");
 const crypto = require("crypto");
 
@@ -74,6 +75,7 @@ class CasStore {
     this._worker = undefined;
     this._workerReqId = 1;
     this._pendingWorkerRequests = new Map();
+    this._lastTouchMap = new Map();
   }
 
   _ensureWorker() {
@@ -320,17 +322,109 @@ class CasStore {
     if (ext) {
       const cleanExt = this._sanitizeExt(ext);
       const candidate = path.join(subDir, `${hash}.${cleanExt}`);
-      if (fs.existsSync(candidate)) return candidate;
+      if (fs.existsSync(candidate)) {
+        this._touchAccess(hash);
+        return candidate;
+      }
     }
 
     // Fallback scan inside the 2-char prefix folder
     try {
       const entries = fs.readdirSync(subDir);
       const match = entries.find((f) => f.startsWith(`${hash}.`));
-      if (match) return path.join(subDir, match);
+      if (match) {
+        this._touchAccess(hash);
+        return path.join(subDir, match);
+      }
     } catch {}
 
     return null;
+  }
+
+  _touchAccess(hash) {
+    if (!hash) return;
+    const now = Date.now();
+    const last = this._lastTouchMap.get(hash) || 0;
+    // Throttle SQLite touch to once every 6 hours per hash
+    if (now - last < 6 * 60 * 60 * 1000) return;
+    this._lastTouchMap.set(hash, now);
+    if (this._lastTouchMap.size > 4096) {
+      const oldest = this._lastTouchMap.keys().next().value;
+      this._lastTouchMap.delete(oldest);
+    }
+    try {
+      const { DbManager } = require("./dbManager.cjs");
+      const dbMgr = DbManager._instances?.get(this.userDataPath.toLowerCase());
+      if (dbMgr) {
+        const discoverDb = dbMgr.getGlobalDb("discover");
+        discoverDb
+          .prepare("UPDATE cas_index SET last_accessed_at = ? WHERE hash = ?")
+          .run(now, hash);
+      }
+    } catch {}
+  }
+
+  /**
+   * Prunes unused CAS blobs inside `this.casDir` when total size exceeds `maxTotalBytes`
+   * AND entries have not been accessed within `maxAgeDays`.
+   * Strictly enforces path containment inside `this.casDir`.
+   */
+  async pruneCache({ maxTotalBytes = 1024 * 1024 * 1024, maxAgeDays = 30 } = {}) {
+    let deletedCount = 0;
+    let freedBytes = 0;
+    try {
+      const { DbManager } = require("./dbManager.cjs");
+      const dbMgr = DbManager.getInstance(this.userDataPath);
+      const discoverDb = dbMgr.getGlobalDb("discover");
+      const statsRow = discoverDb
+        .prepare("SELECT COALESCE(SUM(size_bytes), 0) AS totalBytes FROM cas_index")
+        .get();
+      let totalBytes = Number(statsRow?.totalBytes || 0);
+      if (totalBytes <= maxTotalBytes) {
+        return { deletedCount: 0, freedBytes: 0 };
+      }
+
+      const cutoffTs = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+      const candidates = discoverDb
+        .prepare(
+          "SELECT hash, ext, size_bytes, last_accessed_at FROM cas_index WHERE last_accessed_at < ? ORDER BY last_accessed_at ASC LIMIT 500"
+        )
+        .all(cutoffTs);
+
+      const managedRoot = path.resolve(this.casDir) + path.sep;
+      const deleteStmt = discoverDb.prepare("DELETE FROM cas_index WHERE hash = ?");
+      const deletedHashes = [];
+
+      for (const row of candidates) {
+        if (totalBytes <= maxTotalBytes) break;
+        const hash = String(row.hash || "").toLowerCase().replace(/[^a-f0-9]/g, "");
+        if (hash.length !== 64) continue;
+        const cleanExt = this._sanitizeExt(row.ext);
+        const filePath = path.resolve(this.casDir, hash.slice(0, 2), `${hash}.${cleanExt}`);
+        if (!filePath.startsWith(managedRoot)) continue;
+
+        try {
+          if (fs.existsSync(filePath)) {
+            await fsPromises.unlink(filePath);
+          }
+          const size = Number(row.size_bytes || 0);
+          totalBytes = Math.max(0, totalBytes - size);
+          freedBytes += size;
+          deletedCount += 1;
+          deletedHashes.push(row.hash);
+        } catch {}
+      }
+
+      if (deletedHashes.length > 0) {
+        const tx = discoverDb.transaction((hashes) => {
+          for (const h of hashes) deleteStmt.run(h);
+        });
+        tx(deletedHashes);
+      }
+    } catch (err) {
+      console.warn("[CasStore] Error pruning CAS cache:", err.message);
+    }
+    return { deletedCount, freedBytes };
   }
 
   /**

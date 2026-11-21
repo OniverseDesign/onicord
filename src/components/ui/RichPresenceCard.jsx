@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { IconJoystick } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 
 export default function RichPresenceCard({
@@ -167,7 +166,7 @@ export default function RichPresenceCard({
               ) : isMovie ? (
                 <MaterialIcon name="movie" size="lg" className="text-onicord-accent" />
               ) : (
-                <IconJoystick size="lg" />
+                <MaterialIcon name="sports_esports" size="lg" />
               )}
               <span className="text-[12px] font-mono font-bold tracking-tight">
                 {elapsedTime}

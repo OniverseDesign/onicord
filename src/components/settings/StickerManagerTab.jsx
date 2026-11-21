@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ModalInput, ModalButton } from "../ui/ModalShell";
-import { Delete } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
-import DeleteStickerModal from "../modals/DeleteStickerModal";
+const DeleteStickerModal = lazy(() => import("../modals/DeleteStickerModal"));
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import { getMediaUrl } from "../../lib/media";
 
@@ -367,6 +366,8 @@ export default function StickerManagerTab() {
                         <img
                           src={getMediaUrl(firstStk.localPath)}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover rounded-xl"
                         />
                       ) : (
@@ -422,7 +423,7 @@ export default function StickerManagerTab() {
                         className="w-7 h-7 flex items-center justify-center rounded-xl hover:bg-onicord-danger/20 text-onicord-muted hover:text-onicord-danger transition-colors cursor-pointer"
                         title={t("stickers.unpackGroupTitle", "Desarmar paquete")}
                       >
-                        <Delete size="sm" />
+                        <MaterialIcon name="delete" size="sm" />
                       </button>
                     </div>
                   </div>
@@ -438,6 +439,7 @@ export default function StickerManagerTab() {
                           src={getMediaUrl(stk.localPath)}
                           alt=""
                           loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-contain"
                         />
                       </div>
@@ -491,6 +493,8 @@ export default function StickerManagerTab() {
                       <img
                         src={pack.icon}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover rounded-xl"
                         onError={() =>
                           setFailedIcons((prev) => ({
@@ -691,7 +695,7 @@ export default function StickerManagerTab() {
                             className="absolute top-1.5 right-1.5 h-6 w-6 flex items-center justify-center rounded-lg bg-onicord-base text-onicord-muted border border-onicord-tint/10 hover:text-onicord-text hover:bg-onicord-danger hover:border-onicord-danger/20 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-30"
                             title={t("common.delete", "Eliminar sticker")}
                           >
-                            <Delete size="sm" />
+                            <MaterialIcon name="delete" size="sm" />
                           </button>
 
                           <div className="w-full h-full flex items-center justify-center pointer-events-none">
@@ -699,6 +703,7 @@ export default function StickerManagerTab() {
                               src={getMediaUrl(stk.localPath)}
                               alt=""
                               loading="lazy"
+                              decoding="async"
                               className="max-w-full max-h-full object-contain"
                             />
                           </div>
@@ -749,11 +754,13 @@ export default function StickerManagerTab() {
       />
 
       {stickerToDelete && (
-        <DeleteStickerModal
-          sticker={stickerToDelete}
-          onClose={() => setStickerToDelete(null)}
-          onConfirm={handleConfirmDelete}
-        />
+        <Suspense fallback={null}>
+          <DeleteStickerModal
+            sticker={stickerToDelete}
+            onClose={() => setStickerToDelete(null)}
+            onConfirm={handleConfirmDelete}
+          />
+        </Suspense>
       )}
 
       <ConfirmDialogModal

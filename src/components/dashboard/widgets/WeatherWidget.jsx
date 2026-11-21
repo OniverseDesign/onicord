@@ -1,17 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  IconSunny,
-  IconCloudy,
-  IconRainy,
-  IconThunderstorm,
-  IconFoggy,
-  IconSnowing,
-  IconSearch,
-  IconAir,
-  IconHumidity,
-} from "../../icons/StreamIcons";
+import MaterialIcon from "../../icons/MaterialIcon";
 
 const weatherDescriptions = {
   0: { icon: "sunny", text: "Despejado" },
@@ -51,22 +41,22 @@ export default function WeatherWidget() {
 
   const debounceRef = useRef();
 
-  const getWeatherIcon = (type) => {
+  const getWeatherIconName = (type) => {
     switch (type) {
       case "sunny":
-        return IconSunny;
+        return "wb_sunny";
       case "cloudy":
-        return IconCloudy;
+        return "cloud";
       case "rainy":
-        return IconRainy;
+        return "rainy";
       case "storm":
-        return IconThunderstorm;
+        return "thunderstorm";
       case "foggy":
-        return IconFoggy;
+        return "foggy";
       case "snow":
-        return IconSnowing;
+        return "ac_unit";
       default:
-        return IconCloudy;
+        return "cloud";
     }
   };
 
@@ -161,7 +151,7 @@ export default function WeatherWidget() {
     text: "No data",
   };
 
-  const WeatherIcon = getWeatherIcon(weatherInfo.icon);
+  const weatherIconName = getWeatherIconName(weatherInfo.icon);
 
   return (
     <div
@@ -239,7 +229,8 @@ export default function WeatherWidget() {
           <div className="flex-1 min-h-0 flex flex-col @md:flex-row justify-center items-center @md:justify-evenly overflow-hidden my-auto w-full gap-y-2 @md:gap-x-4 py-2">
             {}
             <div className="flex items-center justify-center shrink-0 transition-all duration-500 ease-out">
-              <WeatherIcon
+              <MaterialIcon
+                name={weatherIconName}
                 weight={200}
                 className="text-onicord-dark animate-pulse"
                 style={{
@@ -298,7 +289,7 @@ export default function WeatherWidget() {
                 }}
                 className="flex items-center gap-1 text-onicord-dark-muted hover:text-onicord-dark transition"
               >
-                <IconSearch size="sm" />
+                <MaterialIcon name="search" size="sm" />
               </button>
             </div>
 
@@ -307,12 +298,12 @@ export default function WeatherWidget() {
               className="flex justify-between font-mono text-onicord-dark-muted"
             >
               <span className="flex items-center gap-1">
-                <IconHumidity size="sm" />
+                <MaterialIcon name="humidity_percentage" size="sm" />
                 {weather?.humidity ?? "--"}%
               </span>
 
               <span className="flex items-center gap-1">
-                <IconAir size="sm" />
+                <MaterialIcon name="air" size="sm" />
                 {weather?.wind ?? "--"} km/h
               </span>
             </div>

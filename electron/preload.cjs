@@ -45,6 +45,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteServerFile: (roomCode, fileName) => ipcRenderer.invoke("storage:deleteFile", roomCode, fileName),
   clearServerCache: (roomCode) => ipcRenderer.invoke("storage:clearServerCache", roomCode),
   getTotalCacheStats: () => ipcRenderer.invoke("storage:getTotalCacheStats"),
+  getWebCacheSize: () => ipcRenderer.invoke("storage:getWebCacheSize"),
+  clearWebCache: () => ipcRenderer.invoke("storage:clearWebCache"),
 
   searchWeatherCity: (name) => ipcRenderer.invoke("weather:search", name),
   searchCities: (currentName) =>
@@ -625,4 +627,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("update:status", handler);
     return () => ipcRenderer.removeListener("update:status", handler);
   },
+  setMediaActivity: (state) => ipcRenderer.send("app:set-media-activity", state),
 });

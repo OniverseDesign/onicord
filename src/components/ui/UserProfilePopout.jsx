@@ -2,7 +2,6 @@ import { useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import RichPresenceCard from "./RichPresenceCard";
-import { IconLink } from "../icons/StreamIcons";
 import FlameBadge from "./FlameBadge";
 import AvatarPicker from "./AvatarPicker";
 import { evaluateUserFlame } from "../../lib/flameService";
@@ -292,7 +291,7 @@ export default function UserProfilePopout({
             onClick={handleLinkClick}
             className={`flex items-center justify-center gap-1.5 px-3 py-1.5 mb-2 rounded-onicord-button text-[11px] font-semibold transition-colors w-full cursor-pointer ${linkBgClass}`}
           >
-            <IconLink size="base" />
+            <MaterialIcon name="link" size="base" />
             <div className="mt-0.5">
               <span className="truncate">
                 {member.customLink.replace(/^https?:\/\//, "")}

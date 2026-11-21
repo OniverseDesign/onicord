@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
-import { Delete, IconAdd } from "../icons/StreamIcons";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import {
   getPluginLocalizedMeta,
@@ -563,7 +562,7 @@ export default function PluginsTab({ profile, onSaved }) {
                         className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-danger/20 text-onicord-muted hover:text-onicord-danger transition-colors shrink-0 cursor-pointer"
                         title={t("settings.plugins.uninstallApp", "Eliminar complemento del equipo")}
                       >
-                        <Delete size="base" />
+                        <MaterialIcon name="delete" size="base" />
                       </button>
                     ) : (
                       <button
@@ -721,7 +720,7 @@ export default function PluginsTab({ profile, onSaved }) {
           disabled={isImporting}
           className="onicord-btn-secondary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 rounded-2xl border border-onicord-tint/10 hover:bg-onicord-surface transition cursor-pointer"
         >
-          <IconAdd size="sm" />
+          <MaterialIcon name="add" size="sm" />
           <span>
             {isImporting
               ? t("settings.plugins.loadingPackage", "Cargando paquete...")

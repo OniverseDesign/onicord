@@ -1,16 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  IconPlay,
-  IconStop,
-  IconPause,
-  IconVolumeUp,
-  IconSkip,
-  IconClose,
-  IconRepeat,
-  IconRepeatOne,
-  IconAdd,
-} from "../../icons/StreamIcons";
+import MaterialIcon from "../../icons/MaterialIcon";
+import MusicProgressBar from "../../ui/MusicProgressBar";
 
 export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
   const { t } = useTranslation();
@@ -41,8 +32,6 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
   // Dynamic text class depending on active playback state
   const textColor = isPlaying ? "text-white" : "text-onicord-text";
 
-  const [currentTime, setCurrentTime] = useState("0:00");
-  const [progressPercent, setProgressPercent] = useState(0);
   const [activeTab, setActiveTab] = useState("queue");
 
   const [draggedIdx, setDraggedIdx] = useState(null);
@@ -53,27 +42,6 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
       setCustomBackground?.({ type: "image", value: currentTrack.thumbnail });
     else setCustomBackground?.(null);
   }, [musicState, currentTrack?.thumbnail, setCustomBackground]);
-
-  useEffect(() => {
-    setCurrentTime("0:00");
-    setProgressPercent(0);
-
-    const audioNode = audioRef?.current;
-    if (!audioNode || !currentTrack) return;
-    const syncProgress = () => {
-      if (!audioNode.duration) return;
-      const current = audioNode.currentTime;
-      const duration = audioNode.duration;
-      setCurrentTime(
-        `${Math.floor(current / 60)}:${Math.floor(current % 60)
-          .toString()
-          .padStart(2, "0")}`,
-      );
-      setProgressPercent((current / duration) * 100);
-    };
-    audioNode.addEventListener("timeupdate", syncProgress);
-    return () => audioNode.removeEventListener("timeupdate", syncProgress);
-  }, [currentTrack, audioRef]);
 
   if (!musicState) {
     return (
@@ -178,7 +146,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
             <div
               className={`w-12 h-12 rounded-xl bg-onicord-tint/[0.05] border border-onicord-border flex items-center justify-center transition-colors ${textColor}`}
             >
-              <IconPlay size="lg" />
+              <MaterialIcon name="play_arrow" size="lg" />
             </div>
             <p
               className={`text-[11px] font-medium max-w-[200px] leading-relaxed transition-colors ${textColor}`}
@@ -207,20 +175,11 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                     {currentTrack.author}
                   </p>
                 </div>
-                <div className="mt-2.5">
-                  <div
-                    className={`flex items-center justify-between text-[10px] font-mono mb-1 px-0.5 transition-colors ${textColor}`}
-                  >
-                    <span>{currentTime}</span>
-                    <span>{currentTrack.duration}</span>
-                  </div>
-                  <div className="h-2 bg-onicord-tint/10 rounded-full overflow-hidden w-full relative transition-all">
-                    <div
-                      className="h-full bg-onicord-accent transition-all duration-150 rounded-full"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                </div>
+                <MusicProgressBar
+                  durationLabel={currentTrack.duration || "0:00"}
+                  timeTextClassName={textColor}
+                  wrapperClassName="mt-2.5"
+                />
               </div>
             </div>
 
@@ -236,7 +195,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                   } ${textColor}`}
                   title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : undefined}
                 >
-                  {isPlaying ? <IconPause size="lg" /> : <IconPlay size="lg" />}
+                  {isPlaying ? <MaterialIcon name="pause" size="lg" /> : <MaterialIcon name="play_arrow" size="lg" />}
                 </button>
                 <button
                   onClick={handleSkip}
@@ -248,7 +207,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                   } ${textColor}`}
                   title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : undefined}
                 >
-                  <IconSkip size="lg" />
+                  <MaterialIcon name="skip_next" size="lg" />
                 </button>
                 <button
                   onClick={forceStop}
@@ -260,7 +219,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                   } ${textColor}`}
                   title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : undefined}
                 >
-                  <IconStop size="lg" />
+                  <MaterialIcon name="stop" size="lg" />
                 </button>
                 <button
                   onClick={toggleRepeat}
@@ -277,9 +236,9 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                   title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : t("widgets.music.repeatMode")}
                 >
                   {repeatMode === 2 ? (
-                    <IconRepeatOne size="lg" />
+                    <MaterialIcon name="repeat_one" size="lg" />
                   ) : (
-                    <IconRepeat size="lg" />
+                    <MaterialIcon name="repeat" size="lg" />
                   )}
                 </button>
               </div>
@@ -287,7 +246,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                 <div
                   className={`flex items-center justify-center shrink-0 transition-colors ${textColor}`}
                 >
-                  <IconVolumeUp size="lg" />
+                  <MaterialIcon name="volume_up" size="lg" />
                 </div>
                 <input
                   type="range"
@@ -387,7 +346,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                     alt=""
                   />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/item:opacity-100 flex items-center justify-center transition-opacity">
-                    <IconPlay size="sm" className="text-white" />
+                    <MaterialIcon name="play_arrow" size="sm" className="text-white" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -403,7 +362,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                     className="flex items-center opacity-0 group-hover/item:opacity-100 p-1 rounded text-onicord-muted hover:text-onicord-danger transition-all"
                     title={t("widgets.music.removeFromQueue")}
                   >
-                    <IconClose size="lg" />
+                    <MaterialIcon name="close" size="lg" />
                   </button>
                 )}
                 {activeTab === "history" && (
@@ -412,7 +371,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                     className="flex items-center opacity-0 group-hover/item:opacity-100 p-1 rounded text-onicord-muted hover:text-onicord-success transition-all"
                     title={t("widgets.music.addToQueue")}
                   >
-                    <IconAdd size="lg" />
+                    <MaterialIcon name="add" size="lg" />
                   </button>
                 )}
               </div>

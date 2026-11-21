@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ModalInput } from "../ui/ModalShell";
-import { IconTag, IconVolumeUp, Delete, IconAdd } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 
 function hexToRgba(hex, alpha = 0.25) {
@@ -64,7 +63,7 @@ export default function ServerChannelsTab({
               className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
               title={t("serverSettings.channels.addChannel", "Añadir canal de texto")}
             >
-              <IconTag size="sm" />
+              <MaterialIcon name="tag" size="sm" />
             </button>
             <button
               type="button"
@@ -72,7 +71,7 @@ export default function ServerChannelsTab({
               className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
               title={t("serverSettings.channels.addVoiceChannel", "Añadir canal de voz")}
             >
-              <IconVolumeUp size="sm" />
+              <MaterialIcon name="volume_up" size="sm" />
             </button>
             <button
               type="button"
@@ -151,7 +150,7 @@ export default function ServerChannelsTab({
                 className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-danger/20 text-onicord-muted hover:text-onicord-danger transition-colors shrink-0 cursor-pointer"
                 title={t("serverSettings.channels.deleteCategory", "Eliminar categoría")}
               >
-                <Delete size="base" />
+                <MaterialIcon name="delete" size="base" />
               </button>
             </div>
 
@@ -322,7 +321,7 @@ function ChannelGroupEditor({
                   }
                 >
                   {ch.type === "text" ? (
-                    <IconTag size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
+                    <MaterialIcon name="tag" size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
                   ) : ch.type === "forum" ? (
                     <MaterialIcon name="forum" size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
                   ) : ch.type === "whiteboard" ? (
@@ -330,7 +329,7 @@ function ChannelGroupEditor({
                   ) : isAfk ? (
                     <MaterialIcon name="bedtime" size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
                   ) : (
-                    <IconVolumeUp size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
+                    <MaterialIcon name="volume_up" size="lg" className="text-onicord-muted hover:text-onicord-accent transition-colors" />
                   )}
                 </button>
 
@@ -431,7 +430,7 @@ function ChannelGroupEditor({
                   className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-danger/20 text-onicord-muted hover:text-onicord-danger transition-colors shrink-0 cursor-pointer"
                   title={t("common.delete", "Eliminar canal")}
                 >
-                  <Delete size="base" />
+                  <MaterialIcon name="delete" size="base" />
                 </button>
               </div>
 
@@ -553,7 +552,7 @@ function ChannelGroupEditor({
                           </div>
 
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-onicord-text">
-                            <Delete size="sm" />
+                            <MaterialIcon name="delete" size="sm" />
                           </div>
                         </div>
                       );
@@ -571,7 +570,7 @@ function ChannelGroupEditor({
                           className="w-7 h-7 flex items-center justify-center rounded-lg bg-onicord-surface hover:bg-onicord-accent hover:text-onicord-on-accent text-onicord-muted transition-colors cursor-pointer"
                           title={t("serverSettings.roles.title", "Asignar rol")}
                         >
-                          <IconAdd size="sm" />
+                          <MaterialIcon name="add" size="sm" />
                         </button>
 
                         {/* Desplegable de Roles */}
@@ -678,7 +677,7 @@ function ChannelGroupEditor({
                               </span>
                             </div>
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-onicord-text">
-                              <Delete size="sm" />
+                              <MaterialIcon name="delete" size="sm" />
                             </div>
                           </div>
                         );
@@ -710,7 +709,7 @@ function ChannelGroupEditor({
                           </div>
 
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-onicord-text">
-                            <Delete size="sm" />
+                            <MaterialIcon name="delete" size="sm" />
                           </div>
                         </div>
                       );
@@ -727,7 +726,7 @@ function ChannelGroupEditor({
                         className="w-7 h-7 flex items-center justify-center rounded-lg bg-onicord-surface hover:bg-onicord-accent hover:text-onicord-on-accent text-onicord-muted transition-colors cursor-pointer"
                         title={t("serverSettings.channels.addSpeakRestriction", "Destildar / Restringir rol")}
                       >
-                        <IconAdd size="sm" />
+                        <MaterialIcon name="add" size="sm" />
                       </button>
 
                       {/* Role restriction dropdown menu */}

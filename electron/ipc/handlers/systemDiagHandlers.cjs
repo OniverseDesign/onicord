@@ -56,6 +56,10 @@ function registerSystemDiagHandlers() {
     }
   });
 
+  ipcMain.on("app:set-media-activity", (_event, partialState) => {
+    global.setRendererMediaActivity?.(partialState);
+  });
+
   ipcMain.on("app:update-icon", (_event, dataUrl) => {
     try {
       if (!dataUrl || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) return;

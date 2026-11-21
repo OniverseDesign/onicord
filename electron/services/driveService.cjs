@@ -2,8 +2,8 @@ const { app } = require("electron");
 const fs = require("fs");
 const fsPromises = require("fs/promises");
 const path = require("path");
-const AdmZip = require("adm-zip");
 const driveAuthService = require("./driveAuthService.cjs");
+const { runOneShotWorker } = require("../workers/workerRunner.cjs");
 
 const DRIVE_API = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3";
@@ -129,49 +129,25 @@ async function estimateBackupSize(categories) {
   return total;
 }
 
-// ─── ZIP BUILDER ──────────────────────────────────────────────────────────────
-function addDirToZip(zip, srcDir, destPrefix) {
-  if (!fs.existsSync(srcDir)) return;
-  const entries = fs.readdirSync(srcDir, { withFileTypes: true });
-  for (const e of entries) {
-    const fullSrc = path.join(srcDir, e.name);
-    const fullDest = `${destPrefix}/${e.name}`;
-    if (e.isDirectory()) {
-      addDirToZip(zip, fullSrc, fullDest);
-    } else {
-      try {
-        const buf = fs.readFileSync(fullSrc);
-        zip.addFile(fullDest, buf);
-      } catch {}
-    }
-  }
-}
-
+// ─── ZIP BUILDER (WORKER) ────────────────────────────────────────────────────
 async function buildZip(categories) {
-  const zip = new AdmZip();
   const cpaths = getCategoryPaths(categories);
-
-  // Write manifest
   const manifest = {
     version: 1,
     createdAt: Date.now(),
     categories,
     appVersion: app.getVersion(),
   };
-  zip.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2), "utf8"));
 
-  for (const entry of cpaths) {
-    if (entry.isDir) {
-      addDirToZip(zip, entry.src, entry.dest);
-    } else {
-      try {
-        const buf = fs.readFileSync(entry.src);
-        zip.addFile(entry.dest, buf);
-      } catch {}
-    }
-  }
+  const res = await runOneShotWorker("zipWorker.cjs", {
+    op: "buildZipFile",
+    manifest,
+    cpaths,
+    returnBuffer: true,
+    skipSqliteJournals: false,
+  });
 
-  return zip.toBuffer();
+  return Buffer.from(res.buffer);
 }
 
 // ─── UPLOAD TO DRIVE ──────────────────────────────────────────────────────────
@@ -355,48 +331,17 @@ async function downloadBackup(fileId, categoriesToRestore = null) {
 
   sendProgress("Extrayendo archivos...", 50);
 
-  const zip = new AdmZip(zipBuffer);
-  const entries = zip.getEntries();
-
-  // Read manifest
-  let manifest = {};
-  const manifestEntry = entries.find((e) => e.entryName === "manifest.json");
-  if (manifestEntry) {
-    try { manifest = JSON.parse(manifestEntry.getData().toString("utf8")); } catch {}
-  }
-
-  const cats = categoriesToRestore || manifest.categories || ["profile", "servers", "addons", "stickers"];
   const ud = getUserDataPath();
-
-  // Restore by prefix
-  const prefixMap = {
-    profile: "profile/",
-    servers: "servers/",
-    addons: "addons/",
-    stickers: "stickers/",
-  };
-
-  for (const entry of entries) {
-    if (entry.entryName === "manifest.json") continue;
-    if (entry.isDirectory) continue;
-
-    const matchedCat = cats.find((c) => entry.entryName.startsWith(prefixMap[c] || `${c}/`));
-    if (!matchedCat) continue;
-
-    try {
-      // Strip the category prefix to get the actual relative path
-      const prefix = prefixMap[matchedCat];
-      const relPath = entry.entryName.slice(prefix.length);
-      const destPath = path.join(ud, relPath);
-      await fsPromises.mkdir(path.dirname(destPath), { recursive: true });
-      await fsPromises.writeFile(destPath, entry.getData());
-    } catch (err) {
-      console.error(`[DriveService] Failed to restore entry ${entry.entryName}:`, err.message);
-    }
-  }
+  const resZip = await runOneShotWorker("zipWorker.cjs", {
+    op: "restoreZip",
+    zipBuffer,
+    categoriesToRestore,
+    userDataPath: ud,
+    mode: "drive",
+  });
 
   sendProgress("Completado...", 100);
-  return { restored: true, categories: cats, manifest };
+  return resZip;
 }
 
 // ─── AUTO BACKUP SCHEDULER ───────────────────────────────────────────────────

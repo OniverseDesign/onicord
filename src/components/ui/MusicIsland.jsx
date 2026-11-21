@@ -1,18 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  IconPlay,
-  IconStop,
-  IconPause,
-  IconVolumeUp,
-  IconSkip,
-  IconDropdown,
-  IconDropup,
-  IconClose,
-  IconRepeat,
-  IconRepeatOne,
-  IconAdd,
-} from "../icons/StreamIcons";
+import MaterialIcon from "../icons/MaterialIcon";
+import MusicProgressBar from "./MusicProgressBar";
 
 export default function MusicIsland({ musicState }) {
   const { t } = useTranslation();
@@ -30,6 +19,7 @@ export default function MusicIsland({ musicState }) {
     setPlaylist,
     hasJoinedMusic,
     setHasJoinedMusic,
+    ignoreMusic,
     canManageMusic = true,
     removeFromQueue,
     reorderQueue,
@@ -45,8 +35,6 @@ export default function MusicIsland({ musicState }) {
 
   const [showQueue, setShowQueue] = useState(false);
   const [activeTab, setActiveTab] = useState("queue");
-  const [currentTime, setCurrentTime] = useState("0:00");
-  const [progressPercent, setProgressPercent] = useState(0);
 
   const [draggedIdx, setDraggedIdx] = useState(null);
 
@@ -62,27 +50,6 @@ export default function MusicIsland({ musicState }) {
   useEffect(() => {
     if (playlist.length === 0 && playHistory.length === 0) setShowQueue(false);
   }, [playlist.length, playHistory.length]);
-
-  useEffect(() => {
-    setCurrentTime("0:00");
-    setProgressPercent(0);
-
-    const audioNode = audioRef?.current;
-    if (!audioNode) return;
-    const syncProgress = () => {
-      if (!audioNode.duration) return;
-      const current = audioNode.currentTime;
-      const duration = audioNode.duration;
-      setCurrentTime(
-        `${Math.floor(current / 60)}:${Math.floor(current % 60)
-          .toString()
-          .padStart(2, "0")}`,
-      );
-      setProgressPercent((current / duration) * 100);
-    };
-    audioNode.addEventListener("timeupdate", syncProgress);
-    return () => audioNode.removeEventListener("timeupdate", syncProgress);
-  }, [currentTrack, audioRef]);
 
   const isVisible = Boolean(currentTrack && hasJoinedMusic !== "ignored");
   const [cachedTrack, setCachedTrack] = useState(currentTrack);
@@ -241,35 +208,24 @@ export default function MusicIsland({ musicState }) {
                   </p>
                 </div>
 
-                <div className="w-full">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-onicord-text mb-1 px-0.5">
-                    <span>{currentTime}</span>
-                    <span>{displayTrack?.duration}</span>
-                  </div>
-              <div className="h-2 bg-onicord-tint/10 rounded-full overflow-hidden w-full relative transition-all">
-                <div
-                  className="h-full bg-onicord-accent transition-all duration-150 rounded-full"
-                  style={{ width: `${progressPercent}%` }}
-                />
+                <MusicProgressBar durationLabel={displayTrack?.duration || "0:00"} />
               </div>
-            </div>
-          </div>
         </div>
 
         {/* Bottom section: Playback controls on left, volume slider on right */}
         <div className="flex items-center justify-between w-full gap-2">
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={togglePlayPause}
               disabled={!canManageMusic}
-              className={`w-10 h-10 rounded-full bg-onicord-tint/[0.05] hover:bg-onicord-accent text-onicord-text hover:text-onicord-on-accent flex items-center justify-center font-bold shadow-md transition-all border border-onicord-border text-xs active:scale-95 ${
+              className={`w-10 h-10 rounded-full bg-onicord-tint/[0.05] hover:bg-onicord-accent text-onicord-text hover:text-onicord-on-accent flex items-center justify-center font-bold transition-all border border-onicord-border text-xs active:scale-95 ${
                 !canManageMusic
                   ? "opacity-40 cursor-not-allowed hover:bg-onicord-tint/[0.05] hover:text-onicord-text"
                   : "cursor-pointer"
               }`}
               title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : undefined}
             >
-              {isPlaying ? <IconPause size="lg" /> : <IconPlay size="lg" />}
+              {isPlaying ? <MaterialIcon name="pause" size="lg" /> : <MaterialIcon name="play_arrow" size="lg" />}
             </button>
             <button
               onClick={handleSkipTrack}
@@ -281,7 +237,7 @@ export default function MusicIsland({ musicState }) {
               }`}
               title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : undefined}
             >
-              <IconSkip size="lg" />
+              <MaterialIcon name="skip_next" size="lg" />
             </button>
             <button
               onClick={forceStopMedia}
@@ -291,15 +247,32 @@ export default function MusicIsland({ musicState }) {
                   ? "opacity-40 cursor-not-allowed hover:bg-onicord-tint/[0.05]"
                   : "cursor-pointer"
               }`}
-              title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : undefined}
+              title={
+                !canManageMusic
+                  ? t("music.noPermission", "No tienes permisos para controlar la música")
+                  : t("music.stopForAll", "Detener música para todos")
+              }
             >
-              <IconStop size="lg" />
+              <MaterialIcon name="stop" size="lg" />
+            </button>
+            <button
+              onClick={() => {
+                if (ignoreMusic) {
+                  ignoreMusic();
+                } else {
+                  setHasJoinedMusic?.("ignored");
+                }
+              }}
+              className="w-8 h-8 rounded-full bg-onicord-tint/[0.05] hover:bg-onicord-overlay text-onicord-text flex items-center justify-center text-xs transition-all border border-onicord-border active:scale-95"
+              title={t("music.leaveListening", "Dejar de escuchar")}
+            >
+              <MaterialIcon name="music_off" size="base" weight={400} />
             </button>
           </div>
 
           <div className="flex-1 max-w-[150px] flex rounded-full bg-onicord-tint/[0.05] items-center px-2.5 gap-1.5 min-w-0 h-8 border border-onicord-border transition-all">
             <div className="flex items-center justify-center text-onicord-text shrink-0">
-              <IconVolumeUp size="lg" />
+              <MaterialIcon name="volume_up" size="lg" />
             </div>
             <input
               type="range"
@@ -349,9 +322,9 @@ export default function MusicIsland({ musicState }) {
             title={!canManageMusic ? t("music.noPermission", "No tienes permisos para controlar la música") : t("widgets.music.repeatMode")}
           >
             {repeatMode === 2 ? (
-              <IconRepeatOne size="lg" />
+              <MaterialIcon name="repeat_one" size="lg" />
             ) : (
-              <IconRepeat size="lg" />
+              <MaterialIcon name="repeat" size="lg" />
             )}
           </button>
         </div>
@@ -413,7 +386,7 @@ export default function MusicIsland({ musicState }) {
                       />
                       {}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <IconPlay size="sm" className="text-white" />
+                        <MaterialIcon name="play_arrow" size="sm" className="text-white" />
                       </div>
                     </div>
                     <div className="min-w-0 flex-1">
@@ -438,7 +411,7 @@ export default function MusicIsland({ musicState }) {
                         className="opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 p-1.5 rounded-md text-onicord-muted hover:text-onicord-danger bg-onicord-tint/[0.04] hover:bg-onicord-danger/10 border border-onicord-border flex items-center justify-center absolute"
                         title={t("widgets.music.removeFromQueue")}
                       >
-                        <IconClose size="base" />
+                        <MaterialIcon name="close" size="base" />
                       </button>
                     )}
 
@@ -449,7 +422,7 @@ export default function MusicIsland({ musicState }) {
                         className="opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 p-1.5 rounded-md text-onicord-muted hover:text-onicord-success bg-onicord-tint/[0.04] hover:bg-onicord-success/10 border border-onicord-border flex items-center justify-center absolute"
                         title={t("widgets.music.addToQueue")}
                       >
-                        <IconAdd size="base" />
+                        <MaterialIcon name="add" size="base" />
                       </button>
                     )}
                   </div>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ModalInput, ModalButton } from "../ui/ModalShell";
-import { Delete } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import Select from "../ui/Select";
 
@@ -164,7 +163,7 @@ export default function ServerRolesTab({
                   className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-danger/20 text-onicord-muted hover:text-onicord-danger transition-colors shrink-0 cursor-pointer"
                   title={t("common.delete", "Eliminar rol")}
                 >
-                  <Delete size="base" />
+                  <MaterialIcon name="delete" size="base" />
                 </button>
               </div>
 

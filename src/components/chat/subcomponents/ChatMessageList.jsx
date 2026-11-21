@@ -10,6 +10,8 @@ import ChatLoadingSkeleton, { TopHistoryLoadingSkeleton } from "./ChatLoadingSke
 import { buildPeerLookup, resolveAuthorDisplay } from "../../../lib/profileUtils";
 import { useAnimatedMount } from "../../../hooks/useAnimatedMount";
 
+const EMPTY_PARTICIPANTS = [];
+
 export function isSameDay(ts1, ts2) {
   if (!ts1 || !ts2) return false;
   const d1 = new Date(ts1);
@@ -344,7 +346,7 @@ export default function ChatMessageList({
                             messages={mainStreamMessages}
                             allMessages={messages}
                             threadRepliesCount={threadRepliesCountMap.get(msg.id) || 0}
-                            precomputedThreadParticipants={threadParticipantsMap.get(msg.id) || []}
+                            precomputedThreadParticipants={threadParticipantsMap.get(msg.id) || EMPTY_PARTICIPANTS}
                             peersLookup={peersLookup}
                             showDivider={showDivider}
                             profile={profile}

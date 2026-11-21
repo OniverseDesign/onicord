@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import OnicordLogo from "../icons/Onicord.svg?react";
 import MaterialIcon from "../icons/MaterialIcon";
 import { copyTextToClipboard } from "../../lib/clipboard";
-import ChangelogModal from "../modals/ChangelogModal";
+const ChangelogModal = lazy(() => import("../modals/ChangelogModal"));
 
 export default function AboutTab() {
   const { t } = useTranslation();
@@ -735,15 +735,19 @@ export default function AboutTab() {
         </div>
       </div>
 
-      <ChangelogModal
-        isOpen={changelogModal.isOpen}
-        onClose={() => setChangelogModal((prev) => ({ ...prev, isOpen: false }))}
-        version={changelogModal.version}
-        notes={changelogModal.notes}
-        loading={changelogModal.loading}
-        error={changelogModal.error}
-        isNewVersion={changelogModal.isNewVersion}
-      />
+      {changelogModal.isOpen && (
+        <Suspense fallback={null}>
+          <ChangelogModal
+            isOpen={changelogModal.isOpen}
+            onClose={() => setChangelogModal((prev) => ({ ...prev, isOpen: false }))}
+            version={changelogModal.version}
+            notes={changelogModal.notes}
+            loading={changelogModal.loading}
+            error={changelogModal.error}
+            isNewVersion={changelogModal.isNewVersion}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

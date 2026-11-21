@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import UserListItem from "../ui/UserListItem";
-import { IconMicOff, IconDeafenOn, IconVideoCam } from "../icons/StreamIcons";
+import MaterialIcon from "../icons/MaterialIcon";
 
 export default function VoiceUserItem({
   userId,
@@ -43,17 +43,17 @@ export default function VoiceUserItem({
             isSelf ? t("voice.liveStream") : t("common.understood")
           }
         >
-          <IconVideoCam size="base" />
+          <MaterialIcon name="videocam" size="base" />
         </button>
       )}
       {muted && (
         <div className="flex items-center text-onicord-danger shrink-0">
-          <IconMicOff size="base" />
+          <MaterialIcon name="mic_off" size="base" />
         </div>
       )}
       {deafened && (
         <div className="flex items-center text-onicord-danger shrink-0">
-          <IconDeafenOn size="base" />
+          <MaterialIcon name="headset_mic" size="base" />
         </div>
       )}
     </div>

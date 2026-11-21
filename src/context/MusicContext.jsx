@@ -10,6 +10,7 @@ import React, {
 import { useVoiceChannelInfo } from "./VoiceContext";
 import { checkPermission } from "../lib/permissionsHelper";
 import { triggerServerFlameInteraction } from "../lib/flameService";
+import { useMusicPlaybackStore } from "../stores/useMusicPlaybackStore";
 
 const MusicContext = createContext(null);
 
@@ -20,6 +21,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     currentVoiceChannelId,
     currentVoiceRoomCode,
     inVoice,
+    deafened = false,
     members: voiceMembers = [],
   } = globalVoice || {};
 
@@ -35,6 +37,10 @@ export function MusicProvider({ profile, activeServer, children }) {
 
   // Opt-in gate: user must accept before audio plays in their local client
   const [hasJoinedMusic, setHasJoinedMusic] = useState(false);
+
+  // Server-wide active music sessions per voice channel (visible even before joining voice)
+  const [activeMusicByChannel, setActiveMusicByChannel] = useState({});
+  const pendingAutoJoinChannelRef = useRef(null);
 
   // Volume: persisted locally per user
   const [volume, setVolumeState] = useState(() => {
@@ -59,7 +65,7 @@ export function MusicProvider({ profile, activeServer, children }) {
 
   // History (persisted on disk per server, max 100 songs)
   const [playHistory, setPlayHistory] = useState([]);
-  const activeServerId = activeServer?.id || currentVoiceServer?.id || null;
+  const activeServerId = currentVoiceServer?.id || activeServer?.id || null;
 
   // Track local audio stream source
   const [localAudioUrl, setLocalAudioUrl] = useState(null);
@@ -83,7 +89,7 @@ export function MusicProvider({ profile, activeServer, children }) {
 
   const canManageMusic = Boolean(
     isDJ ||
-    checkPermission(activeServer || currentVoiceServer, profile?.id, "manage_music")
+    checkPermission(currentVoiceServer || activeServer, profile?.id, "manage_music")
   );
 
   // Helper: Expected playback time calculation with clamp
@@ -165,6 +171,24 @@ export function MusicProvider({ profile, activeServer, children }) {
     };
 
     channelStateRef.current = statePayload;
+    setActiveMusicByChannel((prev) => {
+      if (!statePayload.currentTrack) {
+        if (!prev[currentVoiceChannelId]) return prev;
+        const next = { ...prev };
+        delete next[currentVoiceChannelId];
+        return next;
+      }
+      return {
+        ...prev,
+        [currentVoiceChannelId]: {
+          currentTrack: statePayload.currentTrack,
+          isPlaying: Boolean(statePayload.isPlaying),
+          djUserId: statePayload.djUserId || null,
+          updatedAt: now,
+          rawState: statePayload,
+        },
+      };
+    });
     window.electronAPI.broadcastMusicState(
       currentVoiceChannelId,
       statePayload,
@@ -188,9 +212,44 @@ export function MusicProvider({ profile, activeServer, children }) {
     return () => clearInterval(heartbeat);
   }, [isDJ, isPlaying, currentTrack, currentVoiceChannelId, broadcastCurrentState]);
 
-  // 4. Session cleanup when user leaves voice channel
+  // 3b. Instant DJ state broadcast when a new member joins the voice channel
+  const knownMemberIdsRef = useRef(new Set());
   useEffect(() => {
     if (!inVoice || !currentVoiceChannelId) {
+      knownMemberIdsRef.current = new Set();
+      return;
+    }
+
+    const currentIds = new Set(
+      (voiceMembers || []).map((m) => m.userId || m.id || m.peerId).filter(Boolean)
+    );
+
+    let hasNewRemoteMember = false;
+    for (const id of currentIds) {
+      if (!knownMemberIdsRef.current.has(id) && id !== profile?.id) {
+        hasNewRemoteMember = true;
+        break;
+      }
+    }
+
+    knownMemberIdsRef.current = currentIds;
+
+    if (hasNewRemoteMember && isDJ && currentTrack) {
+      broadcastCurrentState();
+    }
+  }, [inVoice, currentVoiceChannelId, voiceMembers, isDJ, currentTrack, profile?.id, broadcastCurrentState]);
+
+  const prevVoiceChannelIdRef = useRef(currentVoiceChannelId);
+
+  // 4. Session cleanup when user leaves or switches voice channel
+  useEffect(() => {
+    const channelChanged = prevVoiceChannelIdRef.current !== currentVoiceChannelId;
+    prevVoiceChannelIdRef.current = currentVoiceChannelId;
+
+    if (!inVoice || !currentVoiceChannelId || channelChanged) {
+      if (pendingAutoJoinChannelRef.current !== currentVoiceChannelId) {
+        pendingAutoJoinChannelRef.current = null;
+      }
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.removeAttribute("src");
@@ -201,10 +260,43 @@ export function MusicProvider({ profile, activeServer, children }) {
       setIsPlaying(false);
       setHasJoinedMusic(false);
       setLocalAudioUrl(null);
+      localAudioUrlRef.current = null;
       setDjUserId(null);
       setDjPeerId(null);
+      channelStateRef.current = {
+        currentTrack: null,
+        playlist: [],
+        isPlaying: false,
+        repeatMode: 0,
+        currentTime: 0,
+        updatedAt: 0,
+        djUserId: null,
+        djPeerId: null,
+      };
     }
   }, [inVoice, currentVoiceChannelId]);
+
+  // 4b. Auto-join music when user clicks a channel's music indicator from outside voice
+  useEffect(() => {
+    if (!inVoice || !currentVoiceChannelId) return;
+    if (pendingAutoJoinChannelRef.current !== currentVoiceChannelId) return;
+
+    pendingAutoJoinChannelRef.current = null;
+    setHasJoinedMusic(true);
+
+    if (!currentTrack) {
+      const cached = activeMusicByChannel[currentVoiceChannelId]?.rawState;
+      if (cached?.currentTrack) {
+        channelStateRef.current = cached;
+        setDjUserId(cached.djUserId || null);
+        setDjPeerId(cached.djPeerId || null);
+        setCurrentTrack(cached.currentTrack);
+        setPlaylist(Array.isArray(cached.playlist) ? cached.playlist : []);
+        setIsPlaying(Boolean(cached.isPlaying));
+        setRepeatMode(cached.repeatMode || 0);
+      }
+    }
+  }, [inVoice, currentVoiceChannelId, currentTrack, activeMusicByChannel]);
 
   // 5. Audio track localization (resolves local file URL or secure proxy)
   useEffect(() => {
@@ -242,12 +334,13 @@ export function MusicProvider({ profile, activeServer, children }) {
     };
   }, [currentTrack?.trackId]);
 
-  // 6. Manage <audio> playback state according to hasJoinedMusic and isPlaying
+  // 6. Manage <audio> playback state according to hasJoinedMusic, isPlaying, and deafened
   useEffect(() => {
     const audioNode = audioRef.current;
     if (!audioNode) return;
 
     audioNode.volume = volume;
+    audioNode.muted = Boolean(deafened);
 
     if (isPlaying && localAudioUrl && hasJoinedMusic === true) {
       if (audioNode.src !== localAudioUrl) {
@@ -269,7 +362,7 @@ export function MusicProvider({ profile, activeServer, children }) {
     } else {
       audioNode.pause();
     }
-  }, [isPlaying, localAudioUrl, hasJoinedMusic, volume, getExpectedPlaybackTime]);
+  }, [isPlaying, localAudioUrl, hasJoinedMusic, volume, deafened, getExpectedPlaybackTime]);
 
   // 7. Drift correction for remote listeners
   useEffect(() => {
@@ -569,10 +662,32 @@ export function MusicProvider({ profile, activeServer, children }) {
     if (!window.electronAPI) return;
 
     const unsubState = window.electronAPI.onMusicChannelState?.((data) => {
-      if (!data || data.channelId !== currentVoiceChannelId) return;
+      if (!data || !data.channelId) return;
 
       const incoming = data.state;
       if (!incoming) return;
+
+      // Track active music across all voice channels in the room
+      setActiveMusicByChannel((prev) => {
+        if (!incoming.currentTrack) {
+          if (!prev[data.channelId]) return prev;
+          const next = { ...prev };
+          delete next[data.channelId];
+          return next;
+        }
+        return {
+          ...prev,
+          [data.channelId]: {
+            currentTrack: incoming.currentTrack,
+            isPlaying: Boolean(incoming.isPlaying),
+            djUserId: incoming.djUserId || null,
+            updatedAt: Date.now(),
+            rawState: incoming,
+          },
+        };
+      });
+
+      if (data.channelId !== currentVoiceChannelId) return;
 
       // Ignore own echo if local user is broadcasting DJ
       if (isDJ && incoming.djUserId === profile?.id) return;
@@ -744,6 +859,10 @@ export function MusicProvider({ profile, activeServer, children }) {
     triggerServerFlameInteraction(profile, currentVoiceRoomCode || currentVoiceServer || activeServer);
   }, [profile, currentVoiceRoomCode, currentVoiceServer, activeServer]);
 
+  const requestAutoJoinChannel = useCallback((channelId) => {
+    pendingAutoJoinChannelRef.current = channelId || null;
+  }, []);
+
   const value = useMemo(
     () => ({
       currentTrack,
@@ -761,6 +880,8 @@ export function MusicProvider({ profile, activeServer, children }) {
       hasJoinedMusic,
       setHasJoinedMusic,
       joinMusic,
+      requestAutoJoinChannel,
+      activeMusicByChannel,
       ignoreMusic: () => setHasJoinedMusic("ignored"),
       audioRef,
       canManageMusic,
@@ -785,6 +906,8 @@ export function MusicProvider({ profile, activeServer, children }) {
       repeatMode,
       hasJoinedMusic,
       joinMusic,
+      requestAutoJoinChannel,
+      activeMusicByChannel,
       canManageMusic,
       isDJ,
       playTrackNow,
@@ -799,6 +922,10 @@ export function MusicProvider({ profile, activeServer, children }) {
     ]
   );
 
+  useEffect(() => {
+    useMusicPlaybackStore.getState().resetPlayback();
+  }, [currentTrack]);
+
   return (
     <MusicContext.Provider value={value}>
       {children}
@@ -806,7 +933,15 @@ export function MusicProvider({ profile, activeServer, children }) {
       <audio
         id="onicord-music-audio"
         ref={audioRef}
-        onEnded={handleTrackEnded}
+        onTimeUpdate={(e) =>
+          useMusicPlaybackStore
+            .getState()
+            .setPlaybackProgress(e.currentTarget.currentTime, e.currentTarget.duration)
+        }
+        onEnded={() => {
+          useMusicPlaybackStore.getState().resetPlayback();
+          handleTrackEnded();
+        }}
         onError={(e) => {
           console.warn("[MusicSession Audio Error]:", e.target?.error?.message || e);
         }}

@@ -147,6 +147,31 @@ class CacheService {
     return { totalSize, totalFiles };
   }
 
+  async pruneOrphanDownloads() {
+    let pruned = 0;
+    try {
+      const appConfigDb = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
+      const rows = appConfigDb.prepare("SELECT download_id, file_path FROM downloads").all();
+      const deleteStmt = appConfigDb.prepare("DELETE FROM downloads WHERE download_id = ?");
+      const missingIds = [];
+      for (const r of rows) {
+        if (!r?.file_path || !fs.existsSync(r.file_path)) {
+          missingIds.push(r.download_id);
+        }
+      }
+      if (missingIds.length > 0) {
+        const tx = appConfigDb.transaction((ids) => {
+          for (const id of ids) deleteStmt.run(id);
+        });
+        tx(missingIds);
+        pruned = missingIds.length;
+      }
+    } catch (err) {
+      console.warn("[CacheService] Error pruning orphan downloads:", err.message);
+    }
+    return pruned;
+  }
+
   async getFilePath(roomCode, fileId) {
     if (!fileId) return null;
     try {
@@ -174,13 +199,28 @@ class CacheService {
 
   async getAudioCover(filePath) {
     if (!filePath || !fs.existsSync(filePath)) return null;
+    let fh = null;
     try {
-      const fd = fs.openSync(filePath, "r");
-      const stat = fs.statSync(filePath);
+      fh = await fsPromises.open(filePath, "r");
+      const stat = await fh.stat();
       const readSize = Math.min(stat.size, 3 * 1024 * 1024);
-      const buf = Buffer.alloc(readSize);
-      fs.readSync(fd, buf, 0, readSize, 0);
-      fs.closeSync(fd);
+      const buf = Buffer.allocUnsafe(readSize);
+      const { bytesRead } = await fh.read(buf, 0, readSize, 0);
+      await fh.close();
+      fh = null;
+      const view = bytesRead < readSize ? buf.subarray(0, bytesRead) : buf;
+      return this._parseAudioCoverBuffer(view);
+    } catch (e) {
+      if (fh) {
+        try { await fh.close(); } catch {}
+      }
+      console.error("[CacheService] Error extracting audio cover:", e.message);
+      return null;
+    }
+  }
+
+  _parseAudioCoverBuffer(buf) {
+    try {
 
       // 1. MP3 ID3v2 APIC tag
       if (buf.length > 10 && buf.toString("ascii", 0, 3) === "ID3") {

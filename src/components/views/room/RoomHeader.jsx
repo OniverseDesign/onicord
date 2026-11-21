@@ -1,7 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
-import { IconTag, IconSearch, IconClose } from "../../icons/StreamIcons";
 import Tooltip from "../../ui/Tooltip";
 
 export default function RoomHeader({
@@ -49,7 +48,7 @@ export default function RoomHeader({
               ) : activeTextChannel?.type === "whiteboard" ? (
                 <MaterialIcon name="draw" size={20} className="text-onicord-accent" />
               ) : (
-                <IconTag size="lg" className="text-onicord-accent" />
+                <MaterialIcon name="tag" size="lg" className="text-onicord-accent" />
               )}
               <Tooltip
                 content={
@@ -71,7 +70,7 @@ export default function RoomHeader({
       </header>
 
       <div className="h-12 flex-1 min-w-0 flex items-center gap-4 px-4 bg-onicord-base rounded-full border border-onicord-island relative">
-        <IconSearch size="lg" />
+        <MaterialIcon name="search" size="lg" />
         <input
           ref={searchInputRef}
           type="text"
@@ -102,7 +101,7 @@ export default function RoomHeader({
             }}
             className="flex items-center justify-center text-onicord-muted hover:text-onicord-text transition-colors cursor-pointer"
           >
-            <IconClose size="lg" />
+            <MaterialIcon name="close" size="lg" />
           </button>
         )}
 

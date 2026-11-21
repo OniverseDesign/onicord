@@ -1,17 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import Hls from "hls.js";
 import MaterialIcon from "../icons/MaterialIcon";
-import {
-  IconClose,
-  IconExpand,
-  IconCollapse,
-  IconVolumeUp,
-  IconVolumeOff,
-  IconStopStream,
-  IconFullscreen,
-  IconFullscreenExit,
-} from "../icons/StreamIcons";
 import { soundEngine } from "../../lib/soundEngine";
 import { notificationManager } from "../../lib/notificationManager";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
@@ -108,6 +97,7 @@ export default function AddonStageDisplay({
   const iframeRef = useRef(null);
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
+  const streamLoadTokenRef = useRef(0);
   const [volume, setVolume] = useState(100);
   const [isMuted, setIsMuted] = useState(false);
   const [hasGamepad, setHasGamepad] = useState(false);
@@ -713,6 +703,8 @@ export default function AddonStageDisplay({
     const video = videoRef.current;
     if (!video || !targetUrl) return;
 
+    const loadToken = ++streamLoadTokenRef.current;
+
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
@@ -733,36 +725,52 @@ export default function AddonStageDisplay({
 
     const isHls = targetUrl.includes(".m3u8") || targetUrl.includes("/hls.m3u8");
 
-    if (isHls && Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 60,
-      });
-      hlsRef.current = hls;
-      hls.loadSource(targetUrl);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(() => {});
-      });
-      hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_event, data) => {
-        if (Array.isArray(data.audioTracks) && data.audioTracks.length > 0) {
-          setAudioTracks(
-            data.audioTracks.map((t, idx) => ({
-              id: idx,
-              label: t.name || (t.lang ? `Audio ${formatLanguageName(t.lang, true)}` : `Pista de Audio ${idx + 1}`),
-              lang: t.lang || "",
-            }))
-          );
-        }
-      });
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          console.warn("[AddonStageDisplay] HLS Error fatal:", data);
+    if (isHls) {
+      import("hls.js")
+        .then(({ default: Hls }) => {
+          if (streamLoadTokenRef.current !== loadToken || !videoRef.current) return;
+          if (Hls.isSupported()) {
+            const hls = new Hls({
+              enableWorker: true,
+              lowLatencyMode: false,
+              backBufferLength: 60,
+            });
+            hlsRef.current = hls;
+            hls.loadSource(targetUrl);
+            hls.attachMedia(videoRef.current);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+              videoRef.current?.play().catch(() => {});
+            });
+            hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_event, data) => {
+              if (Array.isArray(data.audioTracks) && data.audioTracks.length > 0) {
+                setAudioTracks(
+                  data.audioTracks.map((t, idx) => ({
+                    id: idx,
+                    label: t.name || (t.lang ? `Audio ${formatLanguageName(t.lang, true)}` : `Pista de Audio ${idx + 1}`),
+                    lang: t.lang || "",
+                  }))
+                );
+              }
+            });
+            hls.on(Hls.Events.ERROR, (_event, data) => {
+              if (data.fatal) {
+                console.warn("[AddonStageDisplay] HLS Error fatal:", data);
+                setMediaLoading(false);
+                setMediaError(t("stage.playbackErrorCodec"));
+              }
+            });
+          } else if (videoRef.current) {
+            videoRef.current.src = targetUrl;
+            videoRef.current.load();
+            videoRef.current.play().catch(() => {});
+          }
+        })
+        .catch((err) => {
+          if (streamLoadTokenRef.current !== loadToken) return;
+          console.warn("[AddonStageDisplay] Error cargando hls.js:", err);
           setMediaLoading(false);
           setMediaError(t("stage.playbackErrorCodec"));
-        }
-      });
+        });
     } else {
       video.src = targetUrl;
       video.load();
@@ -873,6 +881,7 @@ export default function AddonStageDisplay({
     }
     return () => {
       cancelled = true;
+      streamLoadTokenRef.current += 1;
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -2426,7 +2435,7 @@ export default function AddonStageDisplay({
                     className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 shadow-md cursor-pointer border border-white/10"
                     title={t("stage.expandToStage")}
                   >
-                    <IconFullscreen size="lg" />
+                    <MaterialIcon name="fullscreen" size="lg" />
                   </button>
                 )}
               </div>
@@ -2443,7 +2452,7 @@ export default function AddonStageDisplay({
                 className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-onicord-text hover:bg-red-500/80 hover:text-white transition duration-150 shadow-md cursor-pointer border border-white/10"
                 title={isCurrentMedia ? t("stage.closePlayback") : t("stage.closeGame")}
               >
-                <IconClose size={16} />
+                <MaterialIcon name="close" size={16} />
               </button>
             </div>
           </div>
@@ -2518,7 +2527,7 @@ export default function AddonStageDisplay({
               className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 hover:bg-black/90 border border-white/10 text-white/80 hover:text-white transition-all shadow-lg backdrop-blur-md cursor-pointer"
               title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
             >
-              {isFullscreen ? <IconFullscreenExit size="sm" /> : <IconFullscreen size="sm" />}
+              {isFullscreen ? <MaterialIcon name="fullscreen_exit" size="sm" /> : <MaterialIcon name="fullscreen" size="sm" />}
             </button>
           )}
           <button
@@ -2527,7 +2536,7 @@ export default function AddonStageDisplay({
             className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 hover:bg-red-500/80 border border-white/10 text-white/80 hover:text-white transition-all shadow-lg backdrop-blur-md cursor-pointer"
             title={t("stage.closeCatalog")}
           >
-            <IconClose size={16} />
+            <MaterialIcon name="close" size={16} />
           </button>
         </div>
       )}
@@ -2627,8 +2636,8 @@ export default function AddonStageDisplay({
             }}
             titleMute={t("stage.mute")}
             titleUnmute={t("stage.unmute")}
-            customMuteIcon={<IconVolumeOff size="base" />}
-            customUnmuteIcon={<IconVolumeUp size="base" />}
+            customMuteIcon={<MaterialIcon name="volume_off" size="base" />}
+            customUnmuteIcon={<MaterialIcon name="volume_up" size="base" />}
             showDividers={Boolean(isCurrentMedia || activeGame?.hasTimeline)}
           />
 
@@ -2829,7 +2838,7 @@ export default function AddonStageDisplay({
           {/* 7. PiP Mode toggle button (shared across all content) */}
           {onToggleSize && (
             <FloatingMediaBar.PillButton
-              icon={<IconFullscreenExit size="base" />}
+              icon={<MaterialIcon name="fullscreen_exit" size="base" />}
               label={t("stage.pipMode")}
               title={t("stage.pipModeTitle")}
               onClick={onToggleSize}
@@ -2839,7 +2848,7 @@ export default function AddonStageDisplay({
           {/* 8. Fullscreen toggle button (shared across all content) */}
           {onToggleFullscreen && (
             <FloatingMediaBar.IconButton
-              icon={isFullscreen ? <IconFullscreenExit size="base" /> : <IconFullscreen size="base" />}
+              icon={isFullscreen ? <MaterialIcon name="fullscreen_exit" size="base" /> : <MaterialIcon name="fullscreen" size="base" />}
               title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
               active={isFullscreen}
               onClick={onToggleFullscreen}
@@ -2848,7 +2857,7 @@ export default function AddonStageDisplay({
 
           {/* 9. Stop / Close Stage button (shared across all content) */}
           <FloatingMediaBar.StopButton
-            icon={<IconStopStream size="base" />}
+            icon={<MaterialIcon name="cancel_presentation" size="base" />}
             title={t("stage.closeStage")}
             onClick={handleTerminate}
           />

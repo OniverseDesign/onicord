@@ -1,4 +1,4 @@
-const { app, ipcMain } = require("electron");
+const { app, ipcMain, session } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const fsPromises = require("fs/promises");
@@ -94,6 +94,23 @@ function registerProfileStorageHandlers() {
 
   ipcMain.handle("storage:getTotalCacheStats", async () => {
     return cacheService.getTotalCacheStats();
+  });
+
+  ipcMain.handle("storage:getWebCacheSize", async () => {
+    try {
+      return await session.defaultSession.getCacheSize();
+    } catch {
+      return 0;
+    }
+  });
+
+  ipcMain.handle("storage:clearWebCache", async () => {
+    try {
+      await session.defaultSession.clearCache();
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   ipcMain.handle("storage:fetchUploadedLocalPath", async (_event, roomCode, fileId) => {

@@ -2,15 +2,14 @@ import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } fro
 import { useTranslation } from "react-i18next";
 import ServerRail from "../navigation/ServerRail";
 import RoomView from "./RoomView";
-import AddServerModal from "../modals/AddServerModal";
+const AddServerModal = lazy(() => import("../modals/AddServerModal"));
 import ContextMenu from "../ui/ContextMenu";
-import DeleteServerModal from "../modals/DeleteServerModal";
+const DeleteServerModal = lazy(() => import("../modals/DeleteServerModal"));
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 const ServerSettingsModal = lazy(() => import("../modals/ServerSettingsModal"));
 const HomeDashboard = lazy(() => import("../dashboard/HomeDashboard"));
 const AppSettingsModal = lazy(() => import("../modals/AppSettingsModal"));
 const DiscoverView = lazy(() => import("../discover/DiscoverView"));
-import { IconSettings, Delete } from "../icons/StreamIcons";
 import MaterialIcon from "../icons/MaterialIcon";
 import { CONFIG_ISLAS, STORAGE_KEY, getCombinedConfigs } from "../dashboard/dashboardConfig";
 import { useUnreadTracker } from "../../hooks/useUnreadTracker";
@@ -551,7 +550,6 @@ export default function HomeView({
     }
 
     if (target) {
-      sharedMusicState?.setHasJoinedMusic?.(false);
       await enterServerProcess(target, profile);
       setCurrentConnectedServerId(target.id);
       setActiveView("server");
@@ -668,7 +666,6 @@ export default function HomeView({
     try {
       await window.electronAPI.leaveRoom();
     } catch (err) {}
-    sharedMusicState?.setHasJoinedMusic?.(false);
     setCurrentConnectedServerId(null);
     setActiveServer(null);
     setActiveView("home");
@@ -861,17 +858,19 @@ export default function HomeView({
       )}
 
       {showAddModal && (
-        <AddServerModal
-          profile={profile}
-          onClose={() => setShowAddModal(false)}
-          onCreated={async (newServer) => {
-            setShowAddModal(false);
-            await refreshServers();
-            await enterServerProcess(newServer, profile);
-            setCurrentConnectedServerId(newServer.id);
-            setActiveView("server");
-          }}
-        />
+        <Suspense fallback={null}>
+          <AddServerModal
+            profile={profile}
+            onClose={() => setShowAddModal(false)}
+            onCreated={async (newServer) => {
+              setShowAddModal(false);
+              await refreshServers();
+              await enterServerProcess(newServer, profile);
+              setCurrentConnectedServerId(newServer.id);
+              setActiveView("server");
+            }}
+          />
+        </Suspense>
       )}
       {showSettings && settingsServer && (
         <Suspense fallback={null}>
@@ -925,7 +924,7 @@ export default function HomeView({
 
           menuItems.push({
             label: t("contextMenu.serverSettings"),
-            icon: <IconSettings size="base" />,
+            icon: <MaterialIcon name="settings" size="base" />,
             onClick: () => {
               setSettingsServer(server);
               setShowSettings(true);
@@ -946,7 +945,7 @@ export default function HomeView({
 
           menuItems.push({
             label: server.isOwner ? t("contextMenu.deleteServer") : t("contextMenu.leaveServer"),
-            icon: <Delete size="base" />,
+            icon: <MaterialIcon name="delete" size="base" />,
             variant: "danger",
             onClick: () => {
               setServerToDelete(server);
@@ -965,37 +964,39 @@ export default function HomeView({
         })()}
 
       {serverToDelete && (
-        <DeleteServerModal
-          server={serverToDelete}
-          onClose={() => setServerToDelete(null)}
-          onConfirm={async () => {
-            const targetId = serverToDelete.id;
-            setServerToDelete(null);
+        <Suspense fallback={null}>
+          <DeleteServerModal
+            server={serverToDelete}
+            onClose={() => setServerToDelete(null)}
+            onConfirm={async () => {
+              const targetId = serverToDelete.id;
+              setServerToDelete(null);
 
-            if (
-              document.activeElement &&
-              typeof document.activeElement.blur === "function"
-            ) {
-              document.activeElement.blur();
-            }
+              if (
+                document.activeElement &&
+                typeof document.activeElement.blur === "function"
+              ) {
+                document.activeElement.blur();
+              }
 
-            const activeConnUpper = String(currentConnectedServerId || "").trim().toUpperCase();
-            const targetUpper = String(targetId || "").trim().toUpperCase();
+              const activeConnUpper = String(currentConnectedServerId || "").trim().toUpperCase();
+              const targetUpper = String(targetId || "").trim().toUpperCase();
 
-            if (activeConnUpper && targetUpper && activeConnUpper === targetUpper) {
-              setCurrentConnectedServerId(null);
-              setActiveServer(null);
-              await new Promise((resolve) => requestAnimationFrame(resolve));
-            }
+              if (activeConnUpper && targetUpper && activeConnUpper === targetUpper) {
+                setCurrentConnectedServerId(null);
+                setActiveServer(null);
+                await new Promise((resolve) => requestAnimationFrame(resolve));
+              }
 
-            try {
-              await window.electronAPI.removeServer(targetId);
-              await refreshServers();
-            } catch (err) {
-              console.error("Error al remover servidor del disco:", err);
-            }
-          }}
-        />
+              try {
+                await window.electronAPI.removeServer(targetId);
+                await refreshServers();
+              } catch (err) {
+                console.error("Error al remover servidor del disco:", err);
+              }
+            }}
+          />
+        </Suspense>
       )}
 
       {evictionModal && (

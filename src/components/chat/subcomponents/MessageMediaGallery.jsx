@@ -200,6 +200,7 @@ export default function MessageMediaGallery({
           src={url}
           alt={img.name || "Photo"}
           loading="lazy"
+          decoding="async"
           className={`w-full h-full object-cover transition-all duration-200 ${
             isBlurred
               ? "blur-2xl scale-110 brightness-50 select-none pointer-events-none"
@@ -287,6 +288,8 @@ export default function MessageMediaGallery({
         <img
           src={url}
           alt={singleImg.name || "Photo"}
+          loading="lazy"
+          decoding="async"
           className={`w-auto h-auto max-w-full max-h-[380px] object-contain rounded-xl block animate-fade-in transition-all duration-200 ${
             isBlurred ? "blur-2xl scale-110 brightness-50 select-none pointer-events-none" : ""
           }`}

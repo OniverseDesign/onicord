@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { IconAdd, IconSettings } from "../icons/StreamIcons";
 import IconEstrella from "../icons/Estrella.svg?react";
 import MaterialIcon from "../icons/MaterialIcon";
 import SmartAnimatedImage from "../ui/SmartAnimatedImage";
@@ -658,7 +657,7 @@ export default function ServerRail({
             className="group relative flex w-full justify-center outline-none focus:outline-none"
           >
             <span className="onicord-rail-btn onicord-rail-btn-accent">
-              <IconAdd size="xl" />
+              <MaterialIcon name="add" size="xl" />
             </span>
           </button>
         </Tooltip>
@@ -670,7 +669,7 @@ export default function ServerRail({
             className="group relative flex w-full justify-center outline-none focus:outline-none"
           >
             <span className="onicord-rail-btn onicord-rail-btn-accent">
-              <IconSettings className="transition-transform duration-300 ease-in-out group-hover:rotate-180" />
+              <MaterialIcon name="settings" className="transition-transform duration-300 ease-in-out group-hover:rotate-180" />
             </span>
           </button>
         </Tooltip>

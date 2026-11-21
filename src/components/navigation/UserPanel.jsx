@@ -1,16 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  IconMicOn,
-  IconMicOff,
-  IconDeafenOn,
-  IconDeafenOff,
-  IconCallEnd,
-  IconScreenShare,
-  IconPodcast,
-} from "../icons/StreamIcons";
 
-import ScreenShareModal from "../modals/ScreenShareModal";
+const ScreenShareModal = lazy(() => import("../modals/ScreenShareModal"));
 import UserListItem from "../ui/UserListItem";
 import NetworkPopover from "../ui/NetworkPopover";
 import ContextMenu from "../ui/ContextMenu";
@@ -448,7 +439,7 @@ export default function UserPanel({
               }}
               className={`onicord-icon-btn shrink-0 ${!canShareVideo ? "opacity-35 !cursor-not-allowed pointer-events-none" : ""}`}
             >
-              <IconScreenShare size="lg" />
+              <MaterialIcon name="screen_share" size="lg" />
             </button>
           </Tooltip>
         </div>
@@ -463,7 +454,7 @@ export default function UserPanel({
             }}
             className={`onicord-icon-btn shrink-0 ${muted ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
           >
-            {muted ? <IconMicOff size="lg" /> : <IconMicOn size="lg" />}
+            {muted ? <MaterialIcon name="mic_off" size="lg" /> : <MaterialIcon name="mic" size="lg" />}
           </button>
         </Tooltip>
 
@@ -477,7 +468,7 @@ export default function UserPanel({
             }}
             className={`onicord-icon-btn shrink-0 ${deafened ? "onicord-icon-btn-active text-onicord-danger" : ""}`}
           >
-            {deafened ? <IconDeafenOff size="lg" /> : <IconDeafenOn size="lg" />}
+            {deafened ? <MaterialIcon name="headset_off" size="lg" /> : <MaterialIcon name="headset_mic" size="lg" />}
           </button>
         </Tooltip>
 
@@ -498,7 +489,7 @@ export default function UserPanel({
               }}
               className="onicord-icon-btn onicord-icon-btn-danger shrink-0"
             >
-              <IconCallEnd size="lg" />
+              <MaterialIcon name="call_end" size="lg" />
             </button>
           </Tooltip>
         </div>
@@ -521,7 +512,7 @@ export default function UserPanel({
             onMouseLeave={handleMouseLeave}
             className="onicord-btn-success cursor-help"
           >
-            <IconPodcast size="xl" />
+            <MaterialIcon name="podcasts" size="xl" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-onicord-success">
@@ -558,12 +549,16 @@ export default function UserPanel({
         {renderVoiceControls()}
       </div>
 
-      <ScreenShareModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSelectSource={handleSelectSource}
-        preferredWebcamId={profile?.audio?.videoDeviceId || ""}
-      />
+      {isModalOpen && (
+        <Suspense fallback={null}>
+          <ScreenShareModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSelectSource={handleSelectSource}
+            preferredWebcamId={profile?.audio?.videoDeviceId || ""}
+          />
+        </Suspense>
+      )}
 
       {targetRect && (
         <NetworkPopover

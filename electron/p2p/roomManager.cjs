@@ -553,6 +553,11 @@ class RoomManager {
 
     const isBackground = Boolean(options?.isBackground);
 
+    // Prewarm PBKDF2 room key asynchronously on libuv threadpool so first encrypt/decrypt never stalls main
+    try {
+      require("../services/cryptoService.cjs").prewarmKey(normalized).catch(() => {});
+    } catch {}
+
     console.log(
       `\n============ [ROOM CORE CONNECT] STARTING ROOM: ${normalized} (bg=${isBackground}, preview=${this.isPreview}) ============`
     );

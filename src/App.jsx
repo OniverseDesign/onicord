@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import ProfileSetup from "./components/views/ProfileSetup";
+const ProfileSetup = lazy(() => import("./components/views/ProfileSetup"));
 import HomeView from "./components/views/HomeView";
 import LoadingScreen from "./components/views/LoadingScreen";
 import ToastContainer from "./components/ui/ToastContainer";
@@ -8,9 +8,9 @@ const InviteModal = lazy(() => import("./components/modals/InviteModal"));
 import { notificationManager } from "./lib/notificationManager";
 import { soundEngine } from "./lib/soundEngine";
 import { ACCENT_PALETTE, applyDynamicTheme } from "./lib/colors";
-import { VoiceProvider } from "./context/VoiceContext";
-import { MusicProvider } from "./context/MusicContext";
-import { WatchPartyProvider } from "./context/WatchPartyContext";
+import { VoiceProvider, useGlobalVoice } from "./context/VoiceContext";
+import { MusicProvider, useMusicSession } from "./context/MusicContext";
+import { WatchPartyProvider, useWatchParty } from "./context/WatchPartyContext";
 import { StreamerModeProvider } from "./context/StreamerModeContext";
 import { useAppUpdater } from "./hooks/useAppUpdater";
 import { initGlobalPlaytimeTracker } from "./lib/playtimeTracker";
@@ -19,38 +19,100 @@ import Tooltip from "./components/ui/Tooltip";
 
 // Hook renderer console logs and redirect to OniDiag backend
 if (window.electronAPI?.diagLog) {
+  const MAX_DIAG_DEPTH = 3;
+  const MAX_DIAG_ARRAY_ITEMS = 25;
+  const MAX_DIAG_CHARS = 4096;
+
+  const sanitizeForDiag = (val, depth, seen) => {
+    if (val === null || val === undefined) return val;
+    if (typeof val !== "object") {
+      return typeof val === "string" && val.length > MAX_DIAG_CHARS
+        ? `${val.slice(0, MAX_DIAG_CHARS)}…`
+        : val;
+    }
+    if (val instanceof Error) {
+      return `${val.name}: ${val.message}\nStack: ${val.stack || ""}`.slice(0, MAX_DIAG_CHARS);
+    }
+    if (typeof HTMLElement !== "undefined" && val instanceof HTMLElement) {
+      return `[HTMLElement:${val.tagName}]`;
+    }
+    if (typeof Event !== "undefined" && val instanceof Event) {
+      return `[Event:${val.type}]`;
+    }
+    if (typeof MediaStream !== "undefined" && val instanceof MediaStream) {
+      return `[MediaStream:${val.id}]`;
+    }
+    if (typeof RTCPeerConnection !== "undefined" && val instanceof RTCPeerConnection) {
+      return `[RTCPeerConnection:${val.connectionState}]`;
+    }
+    if (val instanceof ArrayBuffer || ArrayBuffer.isView(val)) {
+      return `[Binary:${val.byteLength}B]`;
+    }
+    if (seen.has(val)) return "[Circular]";
+    if (depth >= MAX_DIAG_DEPTH) {
+      return Array.isArray(val) ? `[Array(${val.length})]` : "[Object]";
+    }
+    seen.add(val);
+    if (Array.isArray(val)) {
+      const limit = Math.min(val.length, MAX_DIAG_ARRAY_ITEMS);
+      const out = new Array(limit);
+      for (let i = 0; i < limit; i++) {
+        out[i] = sanitizeForDiag(val[i], depth + 1, seen);
+      }
+      if (val.length > limit) out.push(`… (+${val.length - limit} items)`);
+      return out;
+    }
+    const out = {};
+    const keys = Object.keys(val);
+    const keyLimit = Math.min(keys.length, 30);
+    for (let i = 0; i < keyLimit; i++) {
+      const k = keys[i];
+      out[k] = sanitizeForDiag(val[k], depth + 1, seen);
+    }
+    if (keys.length > keyLimit) out.__truncatedKeys = keys.length - keyLimit;
+    return out;
+  };
+
   const safeSerialize = (val) => {
     if (val === null) return "null";
     if (val === undefined) return "undefined";
     if (val instanceof Error) {
-      return `${val.name}: ${val.message}\nStack: ${val.stack}`;
+      const text = `${val.name}: ${val.message}\nStack: ${val.stack || ""}`;
+      return text.length > MAX_DIAG_CHARS ? `${text.slice(0, MAX_DIAG_CHARS)}… [truncated]` : text;
     }
     if (typeof val === "object") {
       try {
-        const seen = new WeakSet();
-        return JSON.stringify(val, (key, value) => {
-          if (typeof value === "object" && value !== null) {
-            if (seen.has(value)) {
-              return "[Circular]";
-            }
-            seen.add(value);
-          }
-          return value;
-        });
+        const sanitized = sanitizeForDiag(val, 0, new WeakSet());
+        if (typeof sanitized === "string") return sanitized;
+        const json = JSON.stringify(sanitized);
+        return json.length > MAX_DIAG_CHARS ? `${json.slice(0, MAX_DIAG_CHARS)}… [truncated]` : json;
       } catch (e) {
         return `[Serialization Error: ${e.message}]`;
       }
     }
-    return String(val);
+    const str = String(val);
+    return str.length > MAX_DIAG_CHARS ? `${str.slice(0, MAX_DIAG_CHARS)}… [truncated]` : str;
   };
 
   const originalLog = console.log;
   const originalWarn = console.warn;
   const originalError = console.error;
+  let lastDiagKey = "";
+  let lastDiagAt = 0;
 
   const sendDiagLog = (level, args) => {
     if (!import.meta.env.DEV && level === "info") return;
-    const msg = args.map(safeSerialize).join(" ");
+    let msg = args.map(safeSerialize).join(" ");
+    if (msg.length > MAX_DIAG_CHARS) {
+      msg = `${msg.slice(0, MAX_DIAG_CHARS)}… [truncated]`;
+    }
+    const now = Date.now();
+    const key = `${level}:${msg}`;
+    if (key === lastDiagKey && now - lastDiagAt < 1000) {
+      return;
+    }
+    lastDiagKey = key;
+    lastDiagAt = now;
     window.electronAPI.diagLog(level, "UI-Console", msg);
   };
 
@@ -167,6 +229,23 @@ function TitleBar() {
       </div>
     </div>
   );
+}
+
+function MediaActivityThrottlingSync() {
+  const { inVoice, isStreaming } = useGlobalVoice();
+  const { isPlaying: musicPlaying } = useMusicSession();
+  const { session: watchPartySession, hasJoined: watchPartyJoined } = useWatchParty();
+
+  useEffect(() => {
+    window.electronAPI?.setMediaActivity?.({
+      inVoice: Boolean(inVoice),
+      isStreaming: Boolean(isStreaming),
+      musicPlaying: Boolean(musicPlaying),
+      watchPartyActive: Boolean(watchPartySession && watchPartyJoined),
+    });
+  }, [inVoice, isStreaming, musicPlaying, watchPartySession, watchPartyJoined]);
+
+  return null;
 }
 
 export default function App() {
@@ -633,15 +712,18 @@ export default function App() {
       <VoiceProvider profile={profile}>
         <MusicProvider profile={profile} activeServer={activeServer}>
           <WatchPartyProvider profile={profile} activeServer={activeServer}>
+            <MediaActivityThrottlingSync />
             <div className="flex h-full w-full flex-col overflow-hidden bg-onicord-base text-onicord-text relative">
               <TitleBar />
               <div className="flex-1 min-h-0 w-full relative">
                 {screen === "profile" ? (
-                  <ProfileSetup
-                    initialProfile={profile}
-                    onComplete={handleProfileComplete}
-                    onRestoreComplete={handleRestoreComplete}
-                  />
+                  <Suspense fallback={<LoadingScreen />}>
+                    <ProfileSetup
+                      initialProfile={profile}
+                      onComplete={handleProfileComplete}
+                      onRestoreComplete={handleRestoreComplete}
+                    />
+                  </Suspense>
                 ) : (
                   readyToMountApp && (
                     <HomeView

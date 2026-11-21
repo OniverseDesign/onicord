@@ -4,14 +4,6 @@ import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import FloatingMediaBar from "../ui/FloatingMediaBar";
 
-import {
-  IconClose,
-  IconFullscreen,
-  IconFullscreenExit,
-  IconVolumeUp,
-  IconVolumeOff,
-  IconStopStream,
-} from "../icons/StreamIcons";
 
 function useVoiceDucking() {
   const [duckMultiplier, setDuckMultiplier] = useState(1.0);
@@ -416,7 +408,7 @@ export default function StreamDisplay({
                   className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-white/5 text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 cursor-pointer"
                   title={t("voice.fullScreen")}
                 >
-                  <IconFullscreen size="lg" />
+                  <MaterialIcon name="fullscreen" size="lg" />
                 </button>
               )}
             </div>
@@ -469,9 +461,9 @@ export default function StreamDisplay({
               title={isLocal ? t("voice.stopStream") : t("voice.closePiP", "Cerrar PiP")}
             >
               {isLocal ? (
-                <IconStopStream size="lg" />
+                <MaterialIcon name="cancel_presentation" size="lg" />
               ) : (
-                <IconClose size={16} />
+                <MaterialIcon name="close" size={16} />
               )}
             </button>
           </div>
@@ -510,8 +502,8 @@ export default function StreamDisplay({
               }}
               titleMute={t("voice.muteAudio")}
               titleUnmute={t("voice.unmuteAudio")}
-              customMuteIcon={<IconVolumeOff size="base" />}
-              customUnmuteIcon={<IconVolumeUp size="base" />}
+              customMuteIcon={<MaterialIcon name="volume_off" size="base" />}
+              customUnmuteIcon={<MaterialIcon name="volume_up" size="base" />}
               showDividers={false}
               sliderClassName="w-18"
             />
@@ -612,7 +604,7 @@ export default function StreamDisplay({
             {/* Switch to Floating PiP view button */}
             {onToggleSize && (
               <FloatingMediaBar.PillButton
-                icon={<IconFullscreenExit size="base" />}
+                icon={<MaterialIcon name="fullscreen_exit" size="base" />}
                 label={t("voice.viewChat")}
                 title={t("voice.viewChat")}
                 onClick={onToggleSize}
@@ -622,7 +614,7 @@ export default function StreamDisplay({
             {/* Toggle Fullscreen button */}
             {onToggleFullscreen && (
               <FloatingMediaBar.IconButton
-                icon={isFullscreen ? <IconFullscreenExit size="base" /> : <IconFullscreen size="base" />}
+                icon={isFullscreen ? <MaterialIcon name="fullscreen_exit" size="base" /> : <MaterialIcon name="fullscreen" size="base" />}
                 title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
                 active={isFullscreen}
                 onClick={onToggleFullscreen}
@@ -631,7 +623,7 @@ export default function StreamDisplay({
 
             {/* Stop Stream / Close View button */}
             <FloatingMediaBar.StopButton
-              icon={<IconStopStream size="base" />}
+              icon={<MaterialIcon name="cancel_presentation" size="base" />}
               title={t("voice.stopStream")}
               onClick={onStopStream}
             />
@@ -727,16 +719,16 @@ function MultiStreamTile({
           <div className="absolute top-3 right-3 z-20 pointer-events-none select-none">
             {entry.isLocal ? (
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium bg-black/80 border border-white/10 text-onicord-muted backdrop-blur-md">
-                <IconVolumeOff size="sm" />
+                <MaterialIcon name="volume_off" size="sm" />
               </span>
             ) : isSelectedAudio && !isAudioMuted ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-onicord-accent/30 border border-onicord-accent/60 text-white backdrop-blur-md shadow">
-                <IconVolumeUp size="sm" />
+                <MaterialIcon name="volume_up" size="sm" />
                 <span>{t("voice.listeningStream", "Escuchando")}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium bg-black/80 border border-white/10 text-onicord-muted backdrop-blur-md opacity-85 group-hover/tile:opacity-100">
-                <IconVolumeOff size="sm" />
+                <MaterialIcon name="volume_off" size="sm" />
                 <span className="hidden sm:inline">{t("voice.mutedStream", "Silenciada")}</span>
               </span>
             )}
@@ -845,7 +837,7 @@ export function MultiStreamDisplay({
                   className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-white/5 text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 cursor-pointer"
                   title={t("voice.fullScreen")}
                 >
-                  <IconFullscreen size="lg" />
+                  <MaterialIcon name="fullscreen" size="lg" />
                 </button>
               )}
             </div>
@@ -862,7 +854,7 @@ export function MultiStreamDisplay({
               className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-onicord-danger/30 text-onicord-danger hover:bg-onicord-danger hover:text-white transition duration-150 cursor-pointer"
               title={t("voice.closePiP", "Cerrar PiP")}
             >
-              <IconClose size={16} />
+              <MaterialIcon name="close" size={16} />
             </button>
           </div>
         </div>
@@ -901,15 +893,15 @@ export function MultiStreamDisplay({
               }}
               titleMute={t("voice.muteAudio")}
               titleUnmute={t("voice.unmuteAudio")}
-              customMuteIcon={<IconVolumeOff size="base" />}
-              customUnmuteIcon={<IconVolumeUp size="base" />}
+              customMuteIcon={<MaterialIcon name="volume_off" size="base" />}
+              customUnmuteIcon={<MaterialIcon name="volume_up" size="base" />}
               showDividers={false}
               sliderClassName="w-18"
             />
 
             {onToggleSize && (
               <FloatingMediaBar.PillButton
-                icon={<IconFullscreenExit size="base" />}
+                icon={<MaterialIcon name="fullscreen_exit" size="base" />}
                 label={t("voice.viewChat")}
                 title={t("voice.viewChat")}
                 onClick={onToggleSize}
@@ -918,7 +910,7 @@ export function MultiStreamDisplay({
 
             {onToggleFullscreen && (
               <FloatingMediaBar.IconButton
-                icon={isFullscreen ? <IconFullscreenExit size="base" /> : <IconFullscreen size="base" />}
+                icon={isFullscreen ? <MaterialIcon name="fullscreen_exit" size="base" /> : <MaterialIcon name="fullscreen" size="base" />}
                 title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
                 active={isFullscreen}
                 onClick={onToggleFullscreen}
@@ -926,7 +918,7 @@ export function MultiStreamDisplay({
             )}
 
             <FloatingMediaBar.StopButton
-              icon={<IconStopStream size="base" />}
+              icon={<MaterialIcon name="cancel_presentation" size="base" />}
               title={t("common.close", "Cerrar")}
               onClick={onStopWatching}
             />

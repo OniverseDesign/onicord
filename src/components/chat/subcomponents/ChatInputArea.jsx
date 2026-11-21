@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
-import { IconAttach, IconSticker } from "../../icons/StreamIcons";
 import IconEstrella from "../../icons/Estrella.svg?react";
 import { resolveAuthorDisplay } from "../../../lib/profileUtils";
 import QuickSuggestions from "../QuickSuggestions";
@@ -370,7 +369,7 @@ export default function ChatInputArea({
                           />
                         )
                       ) : (
-                        <IconAttach size="sm" className="text-onicord-accent" />
+                        <MaterialIcon name="attach_file" size="sm" className="text-onicord-accent" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -446,7 +445,7 @@ export default function ChatInputArea({
                         />
                       )
                     ) : (
-                      <IconAttach size="lg" className="text-onicord-accent" />
+                      <MaterialIcon name="attach_file" size="lg" className="text-onicord-accent" />
                     )}
                   </div>
 
@@ -524,7 +523,7 @@ export default function ChatInputArea({
               className={`onicord-chat-toolbar-btn group ${!hasSendMessages ? "opacity-35 cursor-not-allowed pointer-events-none" : ""}`}
               disabled={!hasSendMessages}
             >
-              <IconAttach size="xl" />
+              <MaterialIcon name="attach_file" size="xl" />
             </button>
           </Tooltip>
 
@@ -682,7 +681,7 @@ export default function ChatInputArea({
                 className={`onicord-chat-toolbar-btn group ${!hasSendMessages ? "opacity-35 cursor-not-allowed pointer-events-none" : ""}`}
                 disabled={!hasSendMessages}
               >
-                <IconSticker size="xl" />
+                <MaterialIcon name="sticker" size="xl" />
               </button>
             </Tooltip>
           )}
