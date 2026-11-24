@@ -73,6 +73,7 @@ export default function AppSettingsModal({
         features: [
           { id: "nickname", label: t("settings.profile.nickname", "Nombre de usuario y apodo"), keywords: ["apodo", "nombre", "nickname", "usuario", "identidad"] },
           { id: "avatar", label: t("settings.profile.avatar", "Foto de perfil / Avatar"), keywords: ["avatar", "foto", "imagen", "icono", "perfil"] },
+          { id: "banner", label: t("settings.profile.banner", "Portada de perfil"), keywords: ["portada", "banner", "cabecera", "fondo", "cover", "imagen"] },
           { id: "customStatus", label: t("settings.profile.customStatus", "Mensaje de estado personalizado"), keywords: ["estado", "status", "frase", "custom status"] },
           { id: "profileColor", label: t("settings.profile.profileColor", "Color de acento del perfil"), keywords: ["color", "tarjeta", "banner", "perfil", "acento"] },
           { id: "customLink", label: t("settings.profile.customLink", "Red social o enlace personalizado"), keywords: ["link", "web", "twitter", "enlace", "redes"] },
@@ -238,6 +239,7 @@ export default function AppSettingsModal({
 
   const [nickname, setNickname] = useState(profile?.nickname ?? "");
   const [avatar, setAvatar] = useState(profile?.avatar ?? null);
+  const [banner, setBanner] = useState(profile?.banner ?? null);
   const [audio, setAudio] = useState(() => normalizeAudioSettings(profile?.audio));
   const [healedAudioBaseline, setHealedAudioBaseline] = useState({});
   const handleAutoHealAudio = useCallback((patch) => {
@@ -472,6 +474,7 @@ export default function AppSettingsModal({
   const hasUnsavedChanges = useMemo(() => {
     const origNickname = (profile?.nickname ?? "").trim();
     const origAvatar = profile?.avatar ?? null;
+    const origBanner = profile?.banner ?? null;
     const origCustomLink = (profile?.customLink ?? "").trim();
     const origProfileColor = profile?.profileColor ?? "";
     const origShowRichPresence = profile?.showRichPresence ?? true;
@@ -479,6 +482,7 @@ export default function AppSettingsModal({
 
     if (nickname.trim() !== origNickname) return true;
     if (avatar !== origAvatar) return true;
+    if (banner !== origBanner) return true;
     if (customLink.trim() !== origCustomLink) return true;
     if (profileColor !== origProfileColor) return true;
     if (showRichPresence !== origShowRichPresence) return true;
@@ -578,6 +582,7 @@ export default function AppSettingsModal({
     profile,
     nickname,
     avatar,
+    banner,
     customLink,
     profileColor,
     showRichPresence,
@@ -631,6 +636,7 @@ export default function AppSettingsModal({
         id: userId,
         nickname: nickname.trim(),
         avatar,
+        banner,
         audio: normalizeAudioSettings(audio),
         general: normalizeGeneralSettings(general),
         customLink: customLink.trim(),
@@ -726,6 +732,8 @@ export default function AppSettingsModal({
           setNickname={setNickname}
           avatar={avatar}
           setAvatar={setAvatar}
+          banner={banner}
+          setBanner={setBanner}
           customLink={customLink}
           setCustomLink={setCustomLink}
           profileColor={profileColor}

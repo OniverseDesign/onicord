@@ -169,7 +169,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       "plugins:dashboard-widgets-updated", "drive:progress", "update:status",
       "plugins:rail-actions-updated", "plugins:server-settings-tabs-updated", "plugins:custom-views-updated",
       "plugins:discover-servers-updated", "discover:knock-status-changed",
-      "plugins:package-dropped", "backup:package-dropped",
+      "plugins:package-dropped", "backup:package-dropped", "backup:local-updated",
       "game-activity-changed", "profile:updated", "onicord:mcp-trigger-action",
       "onicord:global-keybind",
       "voice:join-channel", "voice:leave-channel", "voice:toggle-media"
@@ -588,6 +588,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const h = (_event, data) => cb(data);
     ipcRenderer.on("backup:progress", h);
     return () => ipcRenderer.removeListener("backup:progress", h);
+  },
+  onBackupLocalUpdated: (cb) => {
+    const h = (_event, data) => cb(data);
+    ipcRenderer.on("backup:local-updated", h);
+    return () => ipcRenderer.removeListener("backup:local-updated", h);
   },
   onBackupPackageDropped: (cb) => {
     const h = (_event, filePath) => cb(filePath);

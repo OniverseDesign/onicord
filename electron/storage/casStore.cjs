@@ -5,6 +5,7 @@ const crypto = require("crypto");
 
 const MIME_TO_EXT = {
   "image/webp": "webp",
+  "image/avif": "avif",
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/jpg": "jpg",
@@ -23,6 +24,7 @@ const MIME_TO_EXT = {
 
 const EXT_TO_MIME = {
   webp: "image/webp",
+  avif: "image/avif",
   png: "image/png",
   jpg: "image/jpeg",
   jpeg: "image/jpeg",

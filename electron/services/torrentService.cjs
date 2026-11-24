@@ -1,7 +1,7 @@
 const { app, utilityProcess } = require("electron");
 const http = require("http");
 const path = require("path");
-const { resolveWorkerPath } = require("../workers/workerRunner.cjs");
+const { resolveWorkerPath, buildWorkerEnv } = require("../workers/workerRunner.cjs");
 
 /**
  * Lightweight main-process facade for TorrentService.
@@ -42,10 +42,10 @@ class TorrentServiceFacade {
       const proc = utilityProcess.fork(scriptPath, [], {
         serviceName: "Onicord Torrent Worker",
         stdio: "pipe",
-        env: {
+        env: buildWorkerEnv({
           ...process.env,
           ONICORD_TORRENT_TEMP: this._getTempDir(),
-        },
+        }),
       });
 
       this._proc = proc;

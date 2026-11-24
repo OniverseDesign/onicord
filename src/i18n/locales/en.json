@@ -713,6 +713,11 @@
     "nickname": "Username (Nickname)",
     "avatar": "Profile Picture (Avatar)",
     "changeAvatar": "Change Avatar",
+    "uploadBanner": "Upload Banner",
+    "changeBanner": "Change Banner",
+    "removeBanner": "Remove banner",
+    "bannerTypeError": "Unsupported format. Use JPG, PNG, GIF, or WebP.",
+    "bannerSizeError": "Banner image must not exceed 8 MB.",
     "customStatus": "Custom Status",
     "statusPlaceholder": "What are you up to today?",
     "accentColor": "Profile Accent Color",
@@ -1407,7 +1412,7 @@
       "exporting": "Packing...",
       "exportBtn": "Export Backup (.onipkg)",
       "importTitle": "Restore from File (.onipkg)",
-      "importDesc": "Restore your profile, servers, plugins, or stickers from a previously saved .onipkg file.",
+      "importDesc": "Restore your profile, servers, plugins, stickers, or emojis from a previously saved .onipkg file.",
       "pickFileHint": "Select a backup file on your computer",
       "browseBtn": "Browse .onipkg file",
       "restoreWarning": "Restoring will overwrite existing local data for the selected categories.",
@@ -1457,7 +1462,9 @@
         "addons": "Plugins & Addons",
         "addonsDesc": "Installed .onipkg plugins and their settings.",
         "stickers": "Stickers",
-        "stickersDesc": "Installed sticker packs. May be large in size."
+        "stickersDesc": "Installed sticker packs. May be large in size.",
+        "emojis": "Custom Emojis",
+        "emojisDesc": "Installed custom emojis and emoji packs."
       },
       "toasts": {
         "connectSuccess": "Google Drive connected successfully!",
@@ -1667,6 +1674,7 @@
     "catServers": "Servers + Messages",
     "catAddons": "Addons",
     "catStickers": "Stickers",
+    "catEmojis": "Emojis",
     "selectAnotherFile": "Select another file",
     "restoreBackupBtn": "Restore Backup",
     "restoringTitle": "Restoring your data",
@@ -1847,5 +1855,12 @@
     "toastKnockMsg": "{{applicant}} requested to join {{server}}",
     "descPlaceholder": "Describe what your server is about...",
     "tagsPlaceholder": "Type a tag and press Enter or comma..."
+  },
+  "colorPicker": {
+    "eyedropper": "Eyedropper",
+    "hexLabel": "HEX code",
+    "saturationArea": "Saturation and brightness",
+    "hueSlider": "Hue",
+    "presets": "Quick colors"
   }
 }

@@ -17,6 +17,53 @@ function resolveWorkerPath(workerFileName) {
 }
 
 /**
+ * Builds an environment object with `NODE_PATH` populated for packaged ASAR/unpacked worker threads
+ * and utility processes so external dependencies inside `app.asar` or `app.asar.unpacked` resolve reliably.
+ */
+function buildWorkerEnv(baseEnv = process.env) {
+  const candidatePaths = [];
+  const addCandidate = (p) => {
+    if (p && !candidatePaths.includes(p)) {
+      candidatePaths.push(p);
+    }
+  };
+
+  if (__dirname.includes("app.asar.unpacked")) {
+    const base = __dirname.slice(0, __dirname.indexOf("app.asar.unpacked"));
+    addCandidate(path.join(base, "app.asar.unpacked", "node_modules"));
+    addCandidate(path.join(base, "app.asar", "node_modules"));
+  } else if (__dirname.includes("app.asar")) {
+    const base = __dirname.slice(0, __dirname.indexOf("app.asar"));
+    addCandidate(path.join(base, "app.asar", "node_modules"));
+    addCandidate(path.join(base, "app.asar.unpacked", "node_modules"));
+  }
+
+  if (process.resourcesPath) {
+    addCandidate(path.join(process.resourcesPath, "app.asar.unpacked", "node_modules"));
+    addCandidate(path.join(process.resourcesPath, "app.asar", "node_modules"));
+  }
+
+  if (candidatePaths.length === 0) {
+    return baseEnv;
+  }
+
+  const existing = baseEnv?.NODE_PATH
+    ? String(baseEnv.NODE_PATH).split(path.delimiter).filter(Boolean)
+    : [];
+  const merged = [];
+  for (const p of [...candidatePaths, ...existing]) {
+    if (p && !merged.includes(p)) {
+      merged.push(p);
+    }
+  }
+
+  return {
+    ...baseEnv,
+    NODE_PATH: merged.join(path.delimiter),
+  };
+}
+
+/**
  * Spawns a one-shot Worker thread, executes a single task, and terminates it immediately in `finally`.
  * Supports optional progress messages (`{ id, progress: { step, percent } }`).
  */
@@ -27,7 +74,7 @@ function runOneShotWorker(workerFileName, payload, { timeoutMs = 180_000, onProg
   }
 
   return new Promise((resolve, reject) => {
-    const worker = new Worker(workerPath);
+    const worker = new Worker(workerPath, { env: buildWorkerEnv() });
     let settled = false;
     let timer = null;
 
@@ -132,7 +179,7 @@ class IdleWorkerPool {
     const workerPath = resolveWorkerPath(this.workerFileName);
     if (!fs.existsSync(workerPath)) return null;
 
-    const worker = new Worker(workerPath);
+    const worker = new Worker(workerPath, { env: buildWorkerEnv() });
     if (typeof worker.unref === "function") worker.unref();
 
     worker.on("message", (msg) => {
@@ -217,6 +264,7 @@ class IdleWorkerPool {
 
 module.exports = {
   resolveWorkerPath,
+  buildWorkerEnv,
   runOneShotWorker,
   IdleWorkerPool,
 };

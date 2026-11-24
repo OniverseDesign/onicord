@@ -450,6 +450,7 @@ class RoomManager {
             id: effective.id,
             nickname: effective.nickname,
             avatar: effective.avatar,
+            banner: effective.banner || null,
             customLink: effective.customLink || "",
             profileColor: effective.profileColor || "",
             customStatus: effective.customStatus || "",
@@ -471,6 +472,7 @@ class RoomManager {
           id: effective.id,
           nickname: effective.nickname,
           avatar: effective.avatar,
+          banner: effective.banner || null,
           customLink: effective.customLink || "",
           profileColor: effective.profileColor || "",
           customStatus: effective.customStatus || "",
@@ -695,6 +697,7 @@ class RoomManager {
           id: profile.id,
           nickname: effective.nickname,
           avatar: effective.avatar,
+          banner: effective.banner || null,
           customLink: effective.customLink || "",
           profileColor: effective.profileColor || "",
           customStatus: effective.customStatus || "",
@@ -723,6 +726,7 @@ class RoomManager {
               id: effective.id,
               nickname: effective.nickname,
               avatar: effective.avatar,
+              banner: effective.banner || null,
               customLink: effective.customLink || "",
               profileColor: effective.profileColor || "",
               customStatus: effective.customStatus || "",
@@ -911,6 +915,7 @@ class RoomManager {
         peerId: p.id,
         nickname: p.nickname,
         avatar: p.avatar,
+        banner: p.banner || null,
         status: p.status || "online",
         online: p.status !== "invisible",
         activity: p.activity || null,
@@ -932,6 +937,7 @@ class RoomManager {
             peerId: null,
             nickname: m.nickname,
             avatar: m.avatar,
+            banner: m.banner || null,
             online: false,
           }));
         }
@@ -990,6 +996,7 @@ class RoomManager {
 
     let effectiveNickname = peer.nickname;
     let effectiveAvatar = peer.avatar;
+    let effectiveBanner = peer.banner || null;
     let effectiveCustomLink = peer.customLink;
     let effectiveProfileColor = peer.profileColor;
     let effectiveCustomStatus = peer.customStatus;
@@ -1002,6 +1009,7 @@ class RoomManager {
       if (savedMember) {
         effectiveNickname = savedMember.nickname || effectiveNickname;
         if (savedMember.avatar !== undefined) effectiveAvatar = savedMember.avatar;
+        if (savedMember.banner !== undefined) effectiveBanner = savedMember.banner;
         if (savedMember.customLink !== undefined) effectiveCustomLink = savedMember.customLink;
         if (savedMember.profileColor) effectiveProfileColor = savedMember.profileColor;
         if (savedMember.customStatus !== undefined) effectiveCustomStatus = savedMember.customStatus;
@@ -1016,6 +1024,9 @@ class RoomManager {
         if (override.avatar !== undefined && override.avatar !== null && override.avatar !== "") {
           effectiveAvatar = override.avatar;
         }
+        if (override.banner !== undefined && override.banner !== null && override.banner !== "") {
+          effectiveBanner = override.banner;
+        }
         if (override.customLink !== undefined) effectiveCustomLink = override.customLink;
         if (override.profileColor) effectiveProfileColor = override.profileColor;
         if (override.customStatus !== undefined) effectiveCustomStatus = override.customStatus;
@@ -1028,6 +1039,7 @@ class RoomManager {
       userId: peer.userId,
       nickname: effectiveNickname,
       avatar: effectiveAvatar,
+      banner: effectiveBanner,
       globalNickname: effectiveGlobalNick,
       serverProfiles: peer.serverProfiles || null,
       flame: peer.flame,
@@ -1172,6 +1184,7 @@ class RoomManager {
 
               let targetNickname = payload.nickname;
               let targetAvatar = payload.avatar;
+              let targetBanner = payload.banner || null;
               let targetCustomLink = payload.customLink || "";
               let targetProfileColor = payload.profileColor || "";
               let targetCustomStatus = payload.customStatus || "";
@@ -1180,6 +1193,7 @@ class RoomManager {
               if (peerEffective && peerEffective.isServerProfile) {
                 targetNickname = peerEffective.nickname;
                 targetAvatar = peerEffective.avatar;
+                targetBanner = peerEffective.banner || null;
                 targetCustomLink = peerEffective.customLink || "";
                 targetProfileColor = peerEffective.profileColor || "";
                 targetCustomStatus = peerEffective.customStatus || "";
@@ -1187,6 +1201,7 @@ class RoomManager {
               } else if (hasExistingServerProfile) {
                 targetNickname = antiguo.nickname;
                 targetAvatar = antiguo.avatar;
+                targetBanner = antiguo.banner || null;
                 targetCustomLink = antiguo.customLink || "";
                 targetProfileColor = antiguo.profileColor || "";
                 targetCustomStatus = antiguo.customStatus || "";
@@ -1199,6 +1214,7 @@ class RoomManager {
                 !antiguo.joinedAt ||
                 antiguo.nickname !== targetNickname ||
                 antiguo.avatar !== targetAvatar ||
+                antiguo.banner !== targetBanner ||
                 antiguo.customLink !== targetCustomLink ||
                 antiguo.profileColor !== targetProfileColor ||
                 antiguo.customStatus !== targetCustomStatus ||
@@ -1210,6 +1226,7 @@ class RoomManager {
                   id: payload.id,
                   nickname: targetNickname,
                   avatar: targetAvatar,
+                  banner: targetBanner,
                   customLink: targetCustomLink,
                   profileColor: targetProfileColor,
                   customStatus: targetCustomStatus,
@@ -1380,6 +1397,7 @@ class RoomManager {
         if (this._callbacks.onPeerUpdated) {
           let effectiveNickname = peer.nickname;
           let effectiveAvatar = peer.avatar;
+          let effectiveBanner = peer.banner || null;
           let effectiveCustomLink = peer.customLink;
           let effectiveProfileColor = peer.profileColor;
           let effectiveCustomStatus = peer.customStatus;
@@ -1391,6 +1409,7 @@ class RoomManager {
             if (savedMember) {
               effectiveNickname = savedMember.nickname || effectiveNickname;
               effectiveAvatar = savedMember.avatar !== undefined ? savedMember.avatar : effectiveAvatar;
+              effectiveBanner = savedMember.banner !== undefined ? savedMember.banner : effectiveBanner;
               effectiveCustomLink = savedMember.customLink !== undefined ? savedMember.customLink : effectiveCustomLink;
               effectiveProfileColor = savedMember.profileColor || effectiveProfileColor;
               effectiveCustomStatus = savedMember.customStatus !== undefined ? savedMember.customStatus : effectiveCustomStatus;
@@ -1405,6 +1424,9 @@ class RoomManager {
               if (override.avatar !== undefined && override.avatar !== null && override.avatar !== "") {
                 effectiveAvatar = override.avatar;
               }
+              if (override.banner !== undefined && override.banner !== null && override.banner !== "") {
+                effectiveBanner = override.banner;
+              }
               if (override.customLink !== undefined) effectiveCustomLink = override.customLink;
               if (override.profileColor) effectiveProfileColor = override.profileColor;
               if (override.customStatus !== undefined) effectiveCustomStatus = override.customStatus;
@@ -1416,6 +1438,7 @@ class RoomManager {
             peerId: peer.id,
             nickname: effectiveNickname,
             avatar: effectiveAvatar,
+            banner: effectiveBanner,
             online: true,
             activity: peer.activity || null,
             customLink: effectiveCustomLink,

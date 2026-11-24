@@ -129,6 +129,7 @@ async function handleVoicePacket(roomManager, peerId, type, payload) {
     if (shouldEmitPingUpdate && pObj && !pObj.isPreview && roomManager.isPeerInRoom(peerId, roomManager.roomCode) && roomManager._callbacks.onPeerUpdated) {
       let effectiveNickname = pObj.nickname;
       let effectiveAvatar = pObj.avatar;
+      let effectiveBanner = pObj.banner || null;
       let effectiveCustomLink = pObj.customLink;
       let effectiveProfileColor = pObj.profileColor;
       let effectiveCustomStatus = pObj.customStatus;
@@ -141,6 +142,7 @@ async function handleVoicePacket(roomManager, peerId, type, payload) {
         if (savedMember) {
           effectiveNickname = savedMember.nickname || effectiveNickname;
           effectiveAvatar = savedMember.avatar !== undefined ? savedMember.avatar : effectiveAvatar;
+          effectiveBanner = savedMember.banner !== undefined ? savedMember.banner : effectiveBanner;
           effectiveCustomLink = savedMember.customLink !== undefined ? savedMember.customLink : effectiveCustomLink;
           effectiveProfileColor = savedMember.profileColor || effectiveProfileColor;
           effectiveCustomStatus = savedMember.customStatus !== undefined ? savedMember.customStatus : effectiveCustomStatus;
@@ -155,6 +157,9 @@ async function handleVoicePacket(roomManager, peerId, type, payload) {
           if (override.avatar !== undefined && override.avatar !== null && override.avatar !== "") {
             effectiveAvatar = override.avatar;
           }
+          if (override.banner !== undefined && override.banner !== null && override.banner !== "") {
+            effectiveBanner = override.banner;
+          }
           if (override.customLink !== undefined) effectiveCustomLink = override.customLink;
           if (override.profileColor) effectiveProfileColor = override.profileColor;
           if (override.customStatus !== undefined) effectiveCustomStatus = override.customStatus;
@@ -166,6 +171,7 @@ async function handleVoicePacket(roomManager, peerId, type, payload) {
         peerId: pObj.id,
         nickname: effectiveNickname,
         avatar: effectiveAvatar,
+        banner: effectiveBanner,
         online: true,
         activity: pObj.activity || null,
         customLink: effectiveCustomLink,

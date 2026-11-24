@@ -2,7 +2,30 @@ const { parentPort } = require("worker_threads");
 const fs = require("fs");
 const fsPromises = require("fs/promises");
 const path = require("path");
-const AdmZip = require("adm-zip");
+
+function loadAdmZip() {
+  try {
+    return require("adm-zip");
+  } catch (origErr) {
+    if (origErr && origErr.code !== "MODULE_NOT_FOUND") {
+      throw origErr;
+    }
+    const candidates = [
+      path.resolve(__dirname, "../../node_modules/adm-zip"),
+      process.resourcesPath && path.join(process.resourcesPath, "app.asar.unpacked", "node_modules", "adm-zip"),
+      process.resourcesPath && path.join(process.resourcesPath, "app.asar", "node_modules", "adm-zip"),
+    ].filter(Boolean);
+
+    for (const candidate of candidates) {
+      try {
+        return require(candidate);
+      } catch (_) {}
+    }
+    throw origErr;
+  }
+}
+
+const AdmZip = loadAdmZip();
 
 const EXT_TO_MIME = {
   webp: "image/webp",
@@ -20,7 +43,7 @@ function emitProgress(step, percent) {
   }
 }
 
-function addDirToZip(zip, srcDir, destPrefix, skipSqliteJournals = true) {
+function addDirToZip(zip, srcDir, destPrefix, skipSqliteJournals = true, excludeSet = null, relPrefix = "") {
   if (!fs.existsSync(srcDir)) return;
   const entries = fs.readdirSync(srcDir, { withFileTypes: true });
   for (const e of entries) {
@@ -32,9 +55,13 @@ function addDirToZip(zip, srcDir, destPrefix, skipSqliteJournals = true) {
     }
     const fullSrc = path.join(srcDir, e.name);
     const fullDest = `${destPrefix}/${e.name}`;
+    const relPath = relPrefix ? `${relPrefix}/${e.name}` : e.name;
     if (e.isDirectory()) {
-      addDirToZip(zip, fullSrc, fullDest, skipSqliteJournals);
+      addDirToZip(zip, fullSrc, fullDest, skipSqliteJournals, excludeSet, relPath);
     } else {
+      if (excludeSet && excludeSet.has(relPath.toLowerCase())) {
+        continue;
+      }
       try {
         const buf = fs.readFileSync(fullSrc);
         zip.addFile(fullDest, buf);
@@ -53,10 +80,24 @@ async function handleBuildZipFile({ manifest, cpaths = [], targetFilePath = null
   for (const entry of cpaths) {
     currentEntry++;
     const progressPercent = Math.min(85, Math.round(15 + (currentEntry / Math.max(totalEntries, 1)) * 60));
-    emitProgress(`Empaquetando ${entry.dest}...`, progressPercent);
+    emitProgress(`Empaquetando ${entry.label || entry.dest}...`, progressPercent);
 
-    if (entry.isDir) {
-      addDirToZip(zip, entry.src, entry.dest, skipSqliteJournals);
+    if (Array.isArray(entry.files)) {
+      for (const f of entry.files) {
+        if (!f?.src || !f?.dest) continue;
+        try {
+          if (fs.existsSync(f.src)) {
+            const buf = fs.readFileSync(f.src);
+            zip.addFile(f.dest, buf);
+          }
+        } catch {}
+      }
+    } else if (entry.isDir) {
+      const excludeSet =
+        Array.isArray(entry.excludeRelPaths) && entry.excludeRelPaths.length > 0
+          ? new Set(entry.excludeRelPaths.map((p) => String(p).replace(/\\/g, "/").toLowerCase()))
+          : null;
+      addDirToZip(zip, entry.src, entry.dest, skipSqliteJournals, excludeSet, "");
     } else {
       try {
         const buf = fs.readFileSync(entry.src);
@@ -182,7 +223,7 @@ async function handleRestoreZip({ filePath = null, zipBuffer = null, categoriesT
     } catch {}
   }
 
-  const rawCats = categoriesToRestore || manifest.categories || ["profile", "servers", "addons", "stickers"];
+  const rawCats = categoriesToRestore || manifest.categories || ["profile", "servers", "addons", "stickers", "emojis"];
   const cats = Array.isArray(rawCats)
     ? rawCats
     : Object.keys(rawCats).filter((k) => Boolean(rawCats[k]));
@@ -192,6 +233,7 @@ async function handleRestoreZip({ filePath = null, zipBuffer = null, categoriesT
     servers: "servers/",
     addons: "addons/",
     stickers: "stickers/",
+    emojis: "emojis/",
   };
 
   const rootWithSep = path.resolve(userDataPath) + path.sep;

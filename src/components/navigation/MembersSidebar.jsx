@@ -73,6 +73,7 @@ export default function MembersSidebar({
         key={`${keyPrefix}-${m.id || m.userId || m.peerId}`}
         nickname={m.nickname}
         avatar={m.avatar}
+        banner={m.banner}
         status={m.status || "online"}
         isSelf={m.isSelf}
         activity={m.activity}
@@ -80,6 +81,7 @@ export default function MembersSidebar({
         prioritizeActivity={prioritizeActivity}
         avatarSize="md"
         showStatusDot={true}
+        className="py-2 min-h-[48px]"
         onContextMenu={(e) => handleContextMenu(e, m)}
         onClick={(e) => handleClick(e, m)}
         nameColor={m.role?.color}
@@ -120,6 +122,10 @@ export default function MembersSidebar({
     const unreadCount = getChannelUnreadCount?.(roomCode, dmChannelId) || 0;
 
     const isAlwaysVisible = unreadCount > 0;
+    const hasVisibleBanner =
+      Boolean(member.banner) &&
+      member.online !== false &&
+      member.status !== "offline";
 
     return (
       <div
@@ -137,7 +143,11 @@ export default function MembersSidebar({
               e.stopPropagation();
               onMessageUser?.(member);
             }}
-            className="h-7 w-7 min-w-[28px] flex items-center justify-center relative rounded-onicord-button hover:bg-onicord-tint/10 text-onicord-text transition-colors duration-150 cursor-pointer shrink-0"
+            className={`h-7 w-7 min-w-[28px] flex items-center justify-center relative rounded-onicord-button text-onicord-text transition-colors duration-150 cursor-pointer shrink-0 ${
+              hasVisibleBanner
+                ? "bg-onicord-base/75 hover:bg-onicord-base/95 backdrop-blur-sm"
+                : "hover:bg-onicord-tint/10"
+            }`}
           >
             <MaterialIcon name="chat" size={16} />
             {unreadCount > 0 && (
@@ -160,12 +170,13 @@ export default function MembersSidebar({
             <h3 className="onicord-sidebar-header text-onicord-accent">
               {t("sidebar.voiceChannel")} — {inVoice.length}
             </h3>
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {inVoice.map((m) => (
                 <UserListItem
                   key={`voice-${m.peerId}`}
                   nickname={m.nickname}
                   avatar={m.avatar}
+                  banner={m.banner}
                   status="voice"
                   isSelf={m.isSelf}
                   isSpeaking={m.isSpeaking}
@@ -174,6 +185,7 @@ export default function MembersSidebar({
                   voiceChannelName={m.channelName}
                   avatarSize="md"
                   showStatusDot={true}
+                  className="py-2 min-h-[48px]"
                   onContextMenu={(e) => handleContextMenu(e, m)}
                   onClick={(e) => handleClick(e, m)}
                   nameColor={m.role?.color}
@@ -199,7 +211,7 @@ export default function MembersSidebar({
               <span className="truncate">{group.displayName}</span>
               <span className="shrink-0">— {group.members.length}</span>
             </h3>
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {renderUserList(group.members, `activity-${group.key}`, {
                 prioritizeActivity: true,
               })}
@@ -214,7 +226,7 @@ export default function MembersSidebar({
                 <h3 className="onicord-sidebar-header font-bold" style={{ color: g.role.color }}>
                   {g.role.name} — {g.members.length}
                 </h3>
-                <ul className="space-y-0.5">
+                <ul className="space-y-1">
                   {renderUserList(g.members, `online-role-${g.role.id}`)}
                 </ul>
               </section>
@@ -225,7 +237,7 @@ export default function MembersSidebar({
                 <h3 className="onicord-sidebar-header text-onicord-muted">
                   {t("sidebar.available")} — {groupedByRoles.remainingOnline.length}
                 </h3>
-                <ul className="space-y-0.5">
+                <ul className="space-y-1">
                   {renderUserList(groupedByRoles.remainingOnline, "online-norole")}
                 </ul>
               </section>
@@ -236,7 +248,7 @@ export default function MembersSidebar({
             <h3 className="onicord-sidebar-header text-onicord-muted">
               {t("sidebar.available")} — {justOnline.length}
             </h3>
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {renderUserList(justOnline, "online")}
             </ul>
           </section>
@@ -248,7 +260,7 @@ export default function MembersSidebar({
             <h3 className="onicord-sidebar-header text-onicord-faded">
               {t("sidebar.offline")} — {offline.length}
             </h3>
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {offline.map((m) => (
                 <UserListItem
                   key={`offline-${m.id || m.userId || m.peerId}`}
@@ -259,6 +271,7 @@ export default function MembersSidebar({
                   customStatus={m.customStatus} 
                   avatarSize="md"
                   showStatusDot={true}
+                  className="py-2 min-h-[48px]"
                   onContextMenu={(e) => handleContextMenu(e, m)}
                   onClick={(e) => handleClick(e, m)}
                   nameColor={m.role?.color}

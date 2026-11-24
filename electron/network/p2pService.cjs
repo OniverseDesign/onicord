@@ -290,6 +290,7 @@ class P2PService {
       userId: null,
       nickname: "Conectando…",
       avatar: null,
+      banner: null,
       socket,
       decoder: new StringDecoder("utf8"),
       isDirectTCP: Boolean(peerInfo?.isDirectTCP),
@@ -372,6 +373,7 @@ class P2PService {
         peer.userId = payload.id || peer.userId;
         peer.nickname = payload.nickname || "Anonymous";
         peer.avatar = payload.avatar || null;
+        peer.banner = payload.banner || null;
         peer.filePort = payload.filePort || null;
         peer.localIPs = payload.localIPs || [];
         peer.customLink = payload.customLink || "";

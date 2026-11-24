@@ -713,6 +713,11 @@
     "nickname": "Nome de Usuário (Apelido)",
     "avatar": "Foto de Perfil (Avatar)",
     "changeAvatar": "Alterar Avatar",
+    "uploadBanner": "Enviar Capa",
+    "changeBanner": "Alterar Capa",
+    "removeBanner": "Remover capa",
+    "bannerTypeError": "Formato não suportado. Use JPG, PNG, GIF ou WebP.",
+    "bannerSizeError": "A imagem da capa não pode exceder 8 MB.",
     "customStatus": "Status Personalizado",
     "statusPlaceholder": "O que você está fazendo hoje?",
     "accentColor": "Cor de Destaque do Perfil",
@@ -1401,7 +1406,7 @@
       "exporting": "Compactando...",
       "exportBtn": "Exportar Cópia de Segurança (.onipkg)",
       "importTitle": "Restaurar do Arquivo (.onipkg)",
-      "importDesc": "Restaure seu perfil, servidores, complementos ou figurinhas de um arquivo .onipkg salvo anteriormente.",
+      "importDesc": "Restaure seu perfil, servidores, complementos, figurinhas ou emojis de um arquivo .onipkg salvo anteriormente.",
       "pickFileHint": "Selecione uma cópia de segurança em seu computador",
       "browseBtn": "Procurar arquivo .onipkg",
       "restoreWarning": "A restauração substituirá os dados locais correspondentes às categorias selecionadas.",
@@ -1451,7 +1456,9 @@
         "addons": "Complementos",
         "addonsDesc": "Complementos .onipkg instalados e suas configurações.",
         "stickers": "Figurinhas",
-        "stickersDesc": "Pacotes de figurinhas instalados. Podem ser pesados."
+        "stickersDesc": "Pacotes de figurinhas instalados. Podem ser pesados.",
+        "emojis": "Emojis Personalizados",
+        "emojisDesc": "Emojis personalizados e pacotes instalados."
       },
       "toasts": {
         "connectSuccess": "Google Drive conectado com sucesso!",
@@ -1661,6 +1668,7 @@
     "catServers": "Servidores + Mensagens",
     "catAddons": "Complementos",
     "catStickers": "Stickers",
+    "catEmojis": "Emojis",
     "selectAnotherFile": "Selecionar outro arquivo",
     "restoreBackupBtn": "Restaurar Backup",
     "restoringTitle": "Restaurando seus dados",
@@ -1799,5 +1807,12 @@
     "knockPlaceholder": "Olá, gostaria de entrar porque...",
     "descPlaceholder": "Descreva sobre o que é seu servidor...",
     "tagsPlaceholder": "Digite uma tag e pressione Enter ou vírgula..."
+  },
+  "colorPicker": {
+    "eyedropper": "Conta-gotas",
+    "hexLabel": "Código HEX",
+    "saturationArea": "Saturação e brilho",
+    "hueSlider": "Matiz",
+    "presets": "Cores rápidas"
   }
 }

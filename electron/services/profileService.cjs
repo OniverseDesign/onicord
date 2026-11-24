@@ -515,6 +515,7 @@ class ProfileService {
       id: profile.id || existing?.id || crypto.randomUUID(),
       nickname: profile.nickname.trim(),
       avatar: profile.avatar || null,
+      banner: profile.banner !== undefined ? (profile.banner || null) : (existing?.banner ?? null),
       customLink: profile.customLink ?? existing?.customLink ?? "",
       profileColor: profile.profileColor ?? existing?.profileColor ?? "",
       showRichPresence: profile.showRichPresence ?? existing?.showRichPresence ?? true,
@@ -674,6 +675,7 @@ class ProfileService {
       ...profile,
       nickname: (override.nickname && override.nickname.trim()) || profile.nickname,
       avatar: override.avatar !== undefined && override.avatar !== null && override.avatar !== "" ? override.avatar : profile.avatar,
+      banner: override.banner !== undefined && override.banner !== null && override.banner !== "" ? override.banner : (profile.banner || null),
       customLink: override.customLink !== undefined ? override.customLink : "",
       profileColor: override.profileColor !== undefined && override.profileColor !== "" ? override.profileColor : profile.profileColor,
       customStatus: override.customStatus !== undefined ? override.customStatus : "",
@@ -709,6 +711,7 @@ class ProfileService {
       ...existing,
       nickname: data.nickname !== undefined ? (data.nickname ? data.nickname.trim() : null) : (existing.nickname || null),
       avatar: data.avatar !== undefined ? cas.storeDataUri(data.avatar) : (existing.avatar || null),
+      banner: data.banner !== undefined ? cas.storeDataUri(data.banner) : (existing.banner || null),
       customLink: data.customLink !== undefined ? data.customLink : (existing.customLink || ""),
       profileColor: data.profileColor !== undefined ? data.profileColor : (existing.profileColor || ""),
       customStatus: data.customStatus !== undefined ? data.customStatus : (existing.customStatus || ""),
@@ -716,7 +719,7 @@ class ProfileService {
     };
 
     const entry = current.serverProfiles[safeKey];
-    if (!entry.nickname && !entry.avatar && !entry.customLink && !entry.profileColor && !entry.customStatus) {
+    if (!entry.nickname && !entry.avatar && !entry.banner && !entry.customLink && !entry.profileColor && !entry.customStatus) {
       delete current.serverProfiles[safeKey];
     }
 

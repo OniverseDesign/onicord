@@ -8,6 +8,7 @@ const CATEGORY_KEYS = {
   servers: "profileSetup.catServers",
   addons: "profileSetup.catAddons",
   stickers: "profileSetup.catStickers",
+  emojis: "profileSetup.catEmojis",
 };
 
 const CATEGORY_FALLBACKS = {
@@ -15,7 +16,28 @@ const CATEGORY_FALLBACKS = {
   servers: "Servidores + Mensajes",
   addons: "Complementos",
   stickers: "Stickers",
+  emojis: "Emojis",
 };
+
+function applyRestoredPacks(restoreResult) {
+  const targets = [
+    ["onicord_emoji_packs", restoreResult?.restoredEmojiPacks],
+    ["onicord_stickers_packs", restoreResult?.restoredStickerPacks],
+  ];
+  for (const [storageKey, incoming] of targets) {
+    if (!incoming || Object.keys(incoming).length === 0) continue;
+    try {
+      const existing = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      const merged = { ...existing };
+      for (const [packName, ids] of Object.entries(incoming)) {
+        if (!Array.isArray(ids) || ids.length === 0) continue;
+        const prevIds = Array.isArray(merged[packName]) ? merged[packName] : [];
+        merged[packName] = Array.from(new Set([...prevIds, ...ids]));
+      }
+      localStorage.setItem(storageKey, JSON.stringify(merged));
+    } catch {}
+  }
+}
 
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return "0 B";
@@ -95,7 +117,8 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
     }
 
     try {
-      await api.backupRestore(inspectedBackup.filePath, selectedCats);
+      const res = await api.backupRestore(inspectedBackup.filePath, selectedCats);
+      applyRestoredPacks(res);
       setStep("done");
     } catch (err) {
       setError(

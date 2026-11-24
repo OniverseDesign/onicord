@@ -111,6 +111,7 @@ export function UserAvatarWithStatus({
 export default function UserListItem({
   nickname,
   avatar,
+  banner = null,
   status = "online", // 'online' | 'offline' | 'voice' | 'muted' | 'deafened' | 'streamer'
   isSpeaking = false,
   isSelf = false,
@@ -134,8 +135,10 @@ export default function UserListItem({
   prioritizeActivity = false,
 }) {
   const { t } = useTranslation();
+  const [isRowHovered, setIsRowHovered] = useState(false);
   const name = nickname || t("common.user");
   const isOffline = status === "offline" || status === "invisible";
+  const showBanner = Boolean(banner && !isOffline);
   const evaluatedFlame = evaluateUserFlame(flame || {}, serverId);
 
   let subtitle = null;
@@ -213,14 +216,37 @@ export default function UserListItem({
       data-user-popout-trigger={onClick ? "true" : undefined}
       className={cn(
         "onicord-list-row-interactive group flex items-center py-1",
+        showBanner && "relative overflow-hidden",
         isOffline && "opacity-40 hover:opacity-100",
         className
       )}
+      onMouseEnter={showBanner ? () => setIsRowHovered(true) : undefined}
+      onMouseLeave={showBanner ? () => setIsRowHovered(false) : undefined}
       onContextMenu={onContextMenu}
       onClick={onClick}
       title={title}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-[10px]">
+      {showBanner && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none z-0 opacity-80 group-hover:opacity-100 transition-opacity duration-200"
+          style={{
+            maskImage:
+              "linear-gradient(to left, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 24%, rgba(0,0,0,0.16) 44%, rgba(0,0,0,0) 60%)",
+            WebkitMaskImage:
+              "linear-gradient(to left, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 24%, rgba(0,0,0,0.16) 44%, rgba(0,0,0,0) 60%)",
+          }}
+        >
+          <SmartAnimatedImage
+            src={banner}
+            alt=""
+            className="w-full h-full object-cover"
+            animateOnHoverOnly={true}
+            externalHovered={isRowHovered}
+          />
+        </div>
+      )}
+      <div className="relative z-10 flex min-w-0 flex-1 items-center gap-[10px]">
         {}
         <div
           className={`relative flex shrink-0 items-center justify-center ${avatarSize === "sm" ? "h-6 w-6" : "h-8 w-8"}`}
@@ -280,7 +306,7 @@ export default function UserListItem({
           )}
         </div>
       </div>
-      {rightSlot}
+      {rightSlot ? <div className="relative z-10 flex items-center shrink-0">{rightSlot}</div> : null}
     </Component>
   );
 }

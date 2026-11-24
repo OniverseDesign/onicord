@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import RichPresenceCard from "./RichPresenceCard";
 import FlameBadge from "./FlameBadge";
 import AvatarPicker from "./AvatarPicker";
+import SmartAnimatedImage from "./SmartAnimatedImage";
 import { evaluateUserFlame } from "../../lib/flameService";
 import MaterialIcon from "../icons/MaterialIcon";
 import { APP_COLORS } from "../../lib/colors";
@@ -91,6 +92,8 @@ export default function UserProfilePopout({
   isInlinePreview = false,
   onAvatarClick = null,
   onRemoveAvatar = null,
+  onBannerClick = null,
+  onRemoveBanner = null,
   onEditProfile = null,
 }) {
   const { t } = useTranslation();
@@ -134,6 +137,9 @@ export default function UserProfilePopout({
     };
   }, [triggerClose, isInlinePreview, onClose]);
 
+  const hasBanner = Boolean(member.banner);
+  const showBannerUploadSlot = !hasBanner && isInlinePreview && Boolean(onBannerClick);
+
   const isRightSide = x > window.innerWidth / 2;
   const style = isInlinePreview
     ? {
@@ -143,7 +149,7 @@ export default function UserProfilePopout({
         maxWidth: "280px",
       }
     : {
-        top: Math.max(10, Math.min(y, window.innerHeight - 440)),
+        top: Math.max(10, Math.min(y, window.innerHeight - (hasBanner ? 520 : 440))),
         left: isRightSide ? Math.max(10, x - 300) : Math.min(window.innerWidth - 300, x + 20),
         transformOrigin: isRightSide ? "top right" : "top left",
         backgroundColor: member.profileColor || undefined,
@@ -221,7 +227,8 @@ export default function UserProfilePopout({
       ref={popoutRef}
       style={style}
       className={cn(
-        "onicord-popover-card w-[280px] p-3.5 flex flex-col overflow-hidden relative",
+        "onicord-popover-card w-[280px] flex flex-col overflow-hidden relative",
+        !hasBanner && !showBannerUploadSlot && "p-3.5",
         !isInlinePreview && (isClosing ? "onicord-animate-popup-out" : "onicord-animate-popup-in"),
         !member.profileColor ? "bg-onicord-mantle" : ""
       )}
@@ -234,13 +241,88 @@ export default function UserProfilePopout({
             onClose?.();
             onEditProfile();
           }}
-          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center shrink-0 p-0 bg-black/35 hover:bg-black/55 text-onicord-text transition-all z-20 cursor-pointer group"
+          className={cn(
+            "absolute w-7 h-7 rounded-full flex items-center justify-center shrink-0 p-0 transition-all z-20 cursor-pointer group",
+            hasBanner
+              ? "top-4 right-4 bg-black/45 hover:bg-black/65 backdrop-blur-sm text-white"
+              : "top-2.5 right-2.5 bg-black/35 hover:bg-black/55 text-onicord-text"
+          )}
           title={t("profileTab.editServerProfile", "Editar perfil del servidor")}
         >
           <MaterialIcon name="edit" size={14} className="transition-transform flex items-center justify-center" />
         </button>
       )}
-      <div className="flex flex-col items-center w-full">
+      {hasBanner ? (
+        <div className="px-2.5 pt-2.5 pb-0 w-full">
+          <div className="w-full h-[96px] rounded-xl overflow-hidden relative group">
+            <SmartAnimatedImage
+              src={member.banner}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+            {onBannerClick && (
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBannerClick();
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-onicord-accent hover:bg-onicord-accent/80 text-onicord-on-accent text-xs font-bold flex items-center gap-1.5 shadow-md transition-transform hover:scale-105 cursor-pointer"
+                  title={t("profileTab.changeBanner", "Cambiar Portada")}
+                >
+                  <MaterialIcon name="photo_camera" size={15} />
+                  <span>{t("profileTab.changeBanner", "Cambiar Portada")}</span>
+                </button>
+                {onRemoveBanner && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveBanner();
+                    }}
+                    className="px-1.5 py-1.5 rounded-xl bg-onicord-danger hover:bg-onicord-danger/80 text-onicord-on-danger text-xs font-bold flex items-center gap-1.5 shadow-md transition-transform hover:scale-105 cursor-pointer"
+                    title={t("profileTab.removeBanner", "Eliminar portada")}
+                  >
+                    <MaterialIcon name="delete" size={16} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : showBannerUploadSlot ? (
+        <div className="px-2.5 pt-2.5 pb-0 w-full">
+          <button
+            type="button"
+            onClick={onBannerClick}
+            className={cn(
+              "w-full h-[54px] rounded-xl border border-dashed transition-all flex items-center justify-center gap-2 text-xs font-semibold cursor-pointer group",
+              isLightBg
+                ? "border-black/15 hover:border-black/40 bg-black/[0.04] hover:bg-black/[0.08] text-onicord-dark-muted hover:text-onicord-dark"
+                : "border-onicord-tint/15 hover:border-onicord-accent/50 bg-onicord-tint/[0.02] hover:bg-onicord-tint/[0.06] text-onicord-muted hover:text-onicord-text"
+            )}
+            title={t("profileTab.uploadBanner", "Subir Portada")}
+          >
+            <MaterialIcon
+              name="wallpaper"
+              size={16}
+              className={cn(
+                "group-hover:scale-110 transition-transform",
+                isLightBg ? "text-onicord-dark" : "text-onicord-accent"
+              )}
+            />
+            <span>{t("profileTab.uploadBanner", "Subir Portada")}</span>
+          </button>
+        </div>
+      ) : null}
+      <div
+        className={cn(
+          "flex flex-col items-center w-full",
+          hasBanner ? "px-3.5 pb-3.5" : showBannerUploadSlot ? "px-3.5 pt-3 pb-3.5" : ""
+        )}
+      >
         <AvatarPicker
           src={member.avatar}
           onClick={onAvatarClick || undefined}
@@ -249,7 +331,7 @@ export default function UserProfilePopout({
           size="lg"
           readOnly={!onAvatarClick}
           removeOnHoverOnly={true}
-          className="mb-2"
+          className={hasBanner ? "-mt-10 mb-2 relative z-10" : "mb-2"}
           emptyClassName="bg-onicord-accent text-onicord-text-dark"
           circleClassName="shadow-sm"
           circleStyle={{

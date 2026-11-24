@@ -1,3 +1,14 @@
+# Onicord v0.3.5
+
+## Changes
+
+- **Profile Banner Customization & P2P Mesh Propagation**: Added profile banner support across global user profiles and per-server profile overrides (`profileService.cjs`, `dbManager.cjs`, `profileUtils.js`). Propagated banners across P2P handshakes (`p2pService.cjs`), presence packets (`metaPacketHandlers.cjs`, `voicePacketHandlers.cjs`), and room member tracking (`roomManager.cjs`). Enhanced `ProfileTab`, `AppSettingsModal`, `UserProfilePopout`, `MembersSidebar`, and `UserListItem` with banner upload (up to 8 MB), removal, previews, and hover animations with gradient masking.
+- **Portal-Based ColorPicker Popout & UI Modernization**: Implemented `ColorPickerPopout.jsx` featuring a portal-rendered HSV 2D saturation/value canvas, hue slider, formatted HEX input, native EyeDropper API integration, customizable preset palettes, and collision-aware viewport placement. Replaced native browser color inputs in `ColorPicker.jsx` and `ServerRolesTab.jsx` (`ROLE_COLOR_PRESETS`) with themed color triggers and interactive popouts.
+- **Emoji Backups, CAS Isolation & Atomic SQLite Backups**: Extended `.onipkg` backup archives and cloud sync (`backupService.cjs`, `BackupTab.jsx`, `ProfileSetup.jsx`) with a dedicated `emojis` category and automatic pack restoration (`applyRestoredPacks`). Isolated sticker and emoji CAS blobs (`collectCategoryCasFiles`) so profile backups stay lightweight, refactored global and server SQLite database archiving in `dbManager.cjs` to use SQLite online atomic backups across open and closed connections (including `dms/*.db`), and set the default export path to the user's Documents folder (`pluginDriveHandlers.cjs`).
+- **Off-Thread Worker Node Resolution & Asar Unpack Hardening**: Built `buildWorkerEnv()` in `workerRunner.cjs` to construct `NODE_PATH` resolving `node_modules` inside `app.asar` and `app.asar.unpacked`, applied it to `runOneShotWorker`, `IdleWorkerPool`, and `TorrentService` (`torrentService.cjs`). Added a resilient `loadAdmZip()` fallback loader in `zipWorker.cjs` with granular file list packaging (`entry.files`) and path exclusions (`entry.excludeRelPaths`), and added `adm-zip` to `asarUnpack` in `package.json`.
+- **Smart Animated Image Optimization & AVIF Support**: Added `animateOnHoverOnly` and `externalHovered` props to `SmartAnimatedImage.jsx` to suppress continuous canvas redraws and frame animations until explicitly hovered in user lists and member sidebars, and added `image/avif` MIME and `.avif` extension mapping in `CasStore` (`casStore.cjs`).
+- **Internationalization & Locale Synchronization**: Added translations for profile banner management, color picker controls, and emoji backup categories across English, Spanish, and Portuguese locales (`en.json`, `es.json`, `pt.json`).
+
 # Onicord v0.3.4
 
 ## Changes

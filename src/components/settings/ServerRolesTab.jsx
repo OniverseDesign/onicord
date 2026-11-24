@@ -3,6 +3,16 @@ import { useTranslation } from "react-i18next";
 import { ModalInput, ModalButton } from "../ui/ModalShell";
 import MaterialIcon from "../icons/MaterialIcon";
 import Select from "../ui/Select";
+import Tooltip from "../ui/Tooltip";
+import ColorPickerPopout, { rgbStringToHex } from "../ui/ColorPickerPopout";
+import { APP_COLORS } from "../../lib/colors";
+
+const ROLE_COLOR_PRESETS = Object.values(APP_COLORS)
+  .filter((c) => !c.isStructure)
+  .map((c) => ({
+    hex: rgbStringToHex(c.rawRgb),
+    name: c.name,
+  }));
 
 export default function ServerRolesTab({
   nuevoRoleName,
@@ -110,19 +120,32 @@ export default function ServerRolesTab({
                   <div className="w-1 h-1 bg-current rounded-full" />
                 </div>
 
-                <input
-                  type="color"
-                  value={role.color}
-                  onChange={(e) =>
-                    handleUpdateRole(role.id, "color", e.target.value)
-                  }
-                  onMouseDown={(e) => e.stopPropagation()}
-                  className="w-7 h-7 rounded-full bg-transparent border-none cursor-pointer shrink-0 p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-full"
-                  title={t(
-                    "serverSettings.roles.roleColorTitle",
-                    "Color del rol",
-                  )}
-                />
+                <ColorPickerPopout
+                  value={role.color || "#cba6f7"}
+                  onChange={(hex) => handleUpdateRole(role.id, "color", hex)}
+                  presets={ROLE_COLOR_PRESETS}
+                  side="bottom"
+                  align="start"
+                  stopDragPropagation
+                >
+                  <Tooltip
+                    content={t(
+                      "serverSettings.roles.roleColorTitle",
+                      "Color del rol",
+                    )}
+                    side="top"
+                  >
+                    <button
+                      type="button"
+                      className="w-7 h-7 rounded-full border border-onicord-tint/20 hover:border-onicord-tint/45 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 shadow-sm"
+                      style={{ backgroundColor: role.color || "#cba6f7" }}
+                      aria-label={t(
+                        "serverSettings.roles.roleColorTitle",
+                        "Color del rol",
+                      )}
+                    />
+                  </Tooltip>
+                </ColorPickerPopout>
 
                 <ModalInput
                   value={role.name}

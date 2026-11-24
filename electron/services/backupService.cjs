@@ -53,16 +53,141 @@ function getDirSizeSync(dirPath) {
   return size;
 }
 
+function getFileSizeSync(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return 0;
+  try {
+    return fs.statSync(filePath).size || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function emitSyncComplete(payload) {
+  try {
+    if (global.mainWindow && !global.mainWindow.isDestroyed()) {
+      global.mainWindow.webContents.send("sync:complete", payload);
+    }
+  } catch {}
+}
+
+function collectCategoryCasFiles(ud) {
+  const casDir = path.join(ud, "cas");
+  const empty = {
+    stickerFiles: [],
+    emojiFiles: [],
+    excludedFromProfileCas: [],
+    excludedFromProfileBytes: 0,
+  };
+  if (!fs.existsSync(casDir)) return empty;
+
+  let dbMgr;
+  let cas;
+  try {
+    const { DbManager } = require("../storage/dbManager.cjs");
+    const { CasStore } = require("../storage/casStore.cjs");
+    dbMgr = DbManager.getInstance(ud);
+    cas = CasStore.getInstance(ud);
+  } catch {
+    return empty;
+  }
+
+  const resolveRelCas = (hashOrUri, ext = null) => {
+    const absPath = cas.resolveFilePath(hashOrUri, ext);
+    if (!absPath || !fs.existsSync(absPath)) return null;
+    const relPath = path.relative(casDir, absPath).replace(/\\/g, "/");
+    if (!relPath || relPath.startsWith("..")) return null;
+    return { absPath, relPath, lowerKey: relPath.toLowerCase() };
+  };
+
+  const collectCasRows = (dbName, tableName) => {
+    const files = [];
+    const seen = new Set();
+    if (!fs.existsSync(path.join(ud, "db", `${dbName}.db`))) return files;
+    try {
+      const db = dbMgr.getGlobalDb(dbName);
+      const rows = db.prepare(`SELECT DISTINCT cas_hash, ext FROM ${tableName}`).all();
+      for (const row of rows) {
+        if (!row?.cas_hash) continue;
+        const resolved = resolveRelCas(row.cas_hash, row.ext);
+        if (!resolved || seen.has(resolved.lowerKey)) continue;
+        seen.add(resolved.lowerKey);
+        files.push({
+          absPath: resolved.absPath,
+          relPath: resolved.relPath,
+          lowerKey: resolved.lowerKey,
+          size: getFileSizeSync(resolved.absPath),
+        });
+      }
+    } catch {}
+    return files;
+  };
+
+  const stickerFiles = collectCasRows("stickers", "stickers");
+  const emojiFiles = collectCasRows("emojis", "emojis");
+
+  const profileRefSet = new Set();
+  if (fs.existsSync(path.join(ud, "db", "profile.db"))) {
+    try {
+      const profileDb = dbMgr.getGlobalDb("profile");
+      const addProfileRef = (ref) => {
+        if (typeof ref === "string" && ref.startsWith("onicord-media://cas/")) {
+          const resolved = resolveRelCas(ref);
+          if (resolved) profileRefSet.add(resolved.lowerKey);
+        }
+      };
+      const mainRows = profileDb.prepare("SELECT avatar_ref, banner_ref FROM main_profile").all();
+      for (const r of mainRows) {
+        addProfileRef(r.avatar_ref);
+        addProfileRef(r.banner_ref);
+      }
+      const overrideRows = profileDb.prepare("SELECT avatar_ref, banner_ref FROM server_profile_overrides").all();
+      for (const r of overrideRows) {
+        addProfileRef(r.avatar_ref);
+        addProfileRef(r.banner_ref);
+      }
+    } catch {}
+  }
+
+  const excludedMap = new Map();
+  for (const item of [...stickerFiles, ...emojiFiles]) {
+    if (!profileRefSet.has(item.lowerKey) && !excludedMap.has(item.lowerKey)) {
+      excludedMap.set(item.lowerKey, item);
+    }
+  }
+
+  const excludedFromProfileCas = [];
+  let excludedFromProfileBytes = 0;
+  for (const item of excludedMap.values()) {
+    excludedFromProfileCas.push(item.relPath);
+    excludedFromProfileBytes += item.size;
+  }
+
+  return {
+    stickerFiles,
+    emojiFiles,
+    excludedFromProfileCas,
+    excludedFromProfileBytes,
+  };
+}
+
 // ─── CATEGORY → FILES MAPPING ────────────────────────────────────────────────
 function getCategoryPaths(categories, stagingDir = null) {
   const ud = getUserDataPath();
   const paths = [];
+  const casInfo = collectCategoryCasFiles(ud);
 
   if (categories.includes("profile")) {
     const dbDir = stagingDir ? path.join(stagingDir, "db") : path.join(ud, "db");
     if (fs.existsSync(dbDir)) paths.push({ src: dbDir, dest: "db", isDir: true });
     const casDir = path.join(ud, "cas");
-    if (fs.existsSync(casDir)) paths.push({ src: casDir, dest: "cas", isDir: true });
+    if (fs.existsSync(casDir)) {
+      paths.push({
+        src: casDir,
+        dest: "cas",
+        isDir: true,
+        excludeRelPaths: casInfo.excludedFromProfileCas,
+      });
+    }
   }
 
   if (categories.includes("servers")) {
@@ -73,6 +198,12 @@ function getCategoryPaths(categories, stagingDir = null) {
   if (categories.includes("addons")) {
     const pl = path.join(ud, "plugins");
     if (fs.existsSync(pl)) paths.push({ src: pl, dest: "addons/plugins", isDir: true });
+    const addonsDb = stagingDir
+      ? path.join(stagingDir, "addons", "db", "addons.db")
+      : path.join(ud, "db", "addons.db");
+    if (fs.existsSync(addonsDb)) {
+      paths.push({ src: addonsDb, dest: "addons/db/addons.db", isDir: false });
+    }
   }
 
   if (categories.includes("stickers")) {
@@ -80,32 +211,82 @@ function getCategoryPaths(categories, stagingDir = null) {
     if (fs.existsSync(st)) paths.push({ src: st, dest: "stickers/stickers", isDir: true });
     const sp = path.join(ud, "sticker_packs");
     if (fs.existsSync(sp)) paths.push({ src: sp, dest: "stickers/sticker_packs", isDir: true });
+    const stickersDb = stagingDir
+      ? path.join(stagingDir, "stickers", "db", "stickers.db")
+      : path.join(ud, "db", "stickers.db");
+    if (fs.existsSync(stickersDb)) {
+      paths.push({ src: stickersDb, dest: "stickers/db/stickers.db", isDir: false });
+    }
+    if (casInfo.stickerFiles.length > 0) {
+      paths.push({
+        label: "stickers/cas",
+        dest: "stickers/cas",
+        files: casInfo.stickerFiles.map((f) => ({
+          src: f.absPath,
+          dest: `stickers/cas/${f.relPath}`,
+        })),
+      });
+    }
+  }
+
+  if (categories.includes("emojis")) {
     const ep = path.join(ud, "emoji_packs");
-    if (fs.existsSync(ep)) paths.push({ src: ep, dest: "stickers/emoji_packs", isDir: true });
+    if (fs.existsSync(ep)) paths.push({ src: ep, dest: "emojis/emoji_packs", isDir: true });
+    const emojisDb = stagingDir
+      ? path.join(stagingDir, "emojis", "db", "emojis.db")
+      : path.join(ud, "db", "emojis.db");
+    if (fs.existsSync(emojisDb)) {
+      paths.push({ src: emojisDb, dest: "emojis/db/emojis.db", isDir: false });
+    }
+    if (casInfo.emojiFiles.length > 0) {
+      paths.push({
+        label: "emojis/cas",
+        dest: "emojis/cas",
+        files: casInfo.emojiFiles.map((f) => ({
+          src: f.absPath,
+          dest: `emojis/cas/${f.relPath}`,
+        })),
+      });
+    }
   }
 
   return paths;
 }
 
 // ─── ESTIMATE SIZE ────────────────────────────────────────────────────────────
-async function estimateBackupSize(categories = ["profile", "servers", "addons", "stickers"]) {
+async function estimateBackupSize(categories = ["profile", "servers", "addons", "stickers", "emojis"]) {
   const ud = getUserDataPath();
+  const { PROFILE_GLOBAL_DBS } = require("../storage/dbManager.cjs");
+  const casInfo = collectCategoryCasFiles(ud);
   let total = 0;
 
   if (categories.includes("profile")) {
-    total += getDirSizeSync(path.join(ud, "db"));
-    total += getDirSizeSync(path.join(ud, "cas"));
+    for (const dbName of PROFILE_GLOBAL_DBS) {
+      total += getFileSizeSync(path.join(ud, "db", `${dbName}.db`));
+    }
+    total += Math.max(0, getDirSizeSync(path.join(ud, "cas")) - casInfo.excludedFromProfileBytes);
   }
   if (categories.includes("servers")) {
     total += getDirSizeSync(path.join(ud, "servers"));
   }
   if (categories.includes("addons")) {
     total += getDirSizeSync(path.join(ud, "plugins"));
+    total += getFileSizeSync(path.join(ud, "db", "addons.db"));
   }
   if (categories.includes("stickers")) {
     total += getDirSizeSync(path.join(ud, "stickers"));
     total += getDirSizeSync(path.join(ud, "sticker_packs"));
+    total += getFileSizeSync(path.join(ud, "db", "stickers.db"));
+    for (const f of casInfo.stickerFiles) {
+      total += f.size;
+    }
+  }
+  if (categories.includes("emojis")) {
     total += getDirSizeSync(path.join(ud, "emoji_packs"));
+    total += getFileSizeSync(path.join(ud, "db", "emojis.db"));
+    for (const f of casInfo.emojiFiles) {
+      total += f.size;
+    }
   }
 
   return total;
@@ -144,14 +325,29 @@ function getQuickStats() {
   let serversCount = 0;
   let pluginsCount = 0;
   let stickersCount = 0;
+  let emojisCount = 0;
 
   try {
     const { DbManager } = require("../storage/dbManager.cjs");
     const dbMgr = DbManager.getInstance(ud);
-    const srvRow = dbMgr.getGlobalDb("servers_list").prepare("SELECT COUNT(*) AS cnt FROM joined_servers").get();
-    serversCount = srvRow?.cnt || 0;
-    const stkRow = dbMgr.getGlobalDb("stickers").prepare("SELECT COUNT(*) AS cnt FROM stickers").get();
-    stickersCount = stkRow?.cnt || 0;
+    if (fs.existsSync(path.join(ud, "db", "servers_list.db"))) {
+      try {
+        const srvRow = dbMgr.getGlobalDb("servers_list").prepare("SELECT COUNT(*) AS cnt FROM joined_servers").get();
+        serversCount = srvRow?.cnt || 0;
+      } catch {}
+    }
+    if (fs.existsSync(path.join(ud, "db", "stickers.db"))) {
+      try {
+        const stkRow = dbMgr.getGlobalDb("stickers").prepare("SELECT COUNT(*) AS cnt FROM stickers").get();
+        stickersCount = stkRow?.cnt || 0;
+      } catch {}
+    }
+    if (fs.existsSync(path.join(ud, "db", "emojis.db"))) {
+      try {
+        const emjRow = dbMgr.getGlobalDb("emojis").prepare("SELECT COUNT(*) AS cnt FROM emojis").get();
+        emojisCount = emjRow?.cnt || 0;
+      } catch {}
+    }
   } catch {}
 
   try {
@@ -161,7 +357,7 @@ function getQuickStats() {
     }
   } catch {}
 
-  return { serversCount, pluginsCount, stickersCount };
+  return { serversCount, pluginsCount, stickersCount, emojisCount };
 }
 
 async function buildAndWriteBackupZip(categories, targetFilePath) {
@@ -183,7 +379,7 @@ async function buildAndWriteBackupZip(categories, targetFilePath) {
       formatVersion: 1,
       createdAt: Date.now(),
       categories,
-      appVersion: typeof app.getVersion === "function" ? app.getVersion() : "0.2.1",
+      appVersion: app && typeof app.getVersion === "function" ? app.getVersion() : "0.2.1",
       profile: profileSummary,
       stats,
     };
@@ -285,6 +481,16 @@ function saveBackupSettings(newSettings) {
     const { DbManager } = require("../storage/dbManager.cjs");
     const db = DbManager.getInstance(ud).getGlobalDb("app_config");
     _writeBackupSettingsRaw(db, updated);
+
+    const shouldTriggerAutoCheck =
+      Boolean(updated.autoBackupEnabled) &&
+      (!current.autoBackupEnabled || current.frequency !== updated.frequency);
+    if (shouldTriggerAutoCheck) {
+      setImmediate(() => {
+        checkAndRunAutoBackup().catch(() => {});
+      });
+    }
+
     return updated;
   } catch (err) {
     console.error("[BackupService] Error saving backup settings:", err);
@@ -293,14 +499,14 @@ function saveBackupSettings(newSettings) {
 }
 
 // ─── PUBLIC: CREATE BACKUP FILE (.onipkg) ─────────────────────────────────────
-async function createBackupFile(categories = ["profile", "servers", "addons", "stickers"], targetFilePath = null) {
+async function createBackupFile(categories = ["profile", "servers", "addons", "stickers", "emojis"], targetFilePath = null) {
   sendProgress("Preparando datos y estructura...", 10);
 
   let finalPath = targetFilePath;
   if (!finalPath) {
     const date = new Date();
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    const timeStr = `${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}`;
+    const timeStr = `${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
     const filename = `onicord-backup-${dateStr}-${timeStr}.onipkg`;
     finalPath = path.join(getBackupsDirPath(), filename);
   }
@@ -371,6 +577,27 @@ async function inspectBackup(filePath) {
   }
 }
 
+function collectRestoredPacks(dbMgr, dbName, itemTable, itemIdCol, packTable) {
+  const packsMap = {};
+  try {
+    const db = dbMgr.getGlobalDb(dbName);
+    const rows = db
+      .prepare(
+        `SELECT p.name AS pack_name, i.${itemIdCol} AS item_id
+         FROM ${itemTable} i
+         JOIN ${packTable} p ON p.pack_id = i.pack_id
+         WHERE i.pack_id IS NOT NULL`
+      )
+      .all();
+    for (const r of rows) {
+      if (!r?.pack_name || !r?.item_id) continue;
+      if (!packsMap[r.pack_name]) packsMap[r.pack_name] = [];
+      packsMap[r.pack_name].push(r.item_id);
+    }
+  } catch {}
+  return packsMap;
+}
+
 // ─── PUBLIC: RESTORE BACKUP ───────────────────────────────────────────────────
 async function restoreBackup(filePath, categoriesToRestore = null) {
   if (!filePath || !fs.existsSync(filePath)) {
@@ -399,8 +626,40 @@ async function restoreBackup(filePath, categoriesToRestore = null) {
     { onProgress: sendProgress }
   );
 
+  const restoredCats = Array.isArray(res?.categories) ? res.categories : [];
+  let restoredEmojiPacks = {};
+  let restoredStickerPacks = {};
+
+  try {
+    const { DbManager } = require("../storage/dbManager.cjs");
+    const dbMgr = DbManager.getInstance(ud);
+    dbMgr.startPeriodicWalCheckpoints();
+
+    if (
+      (restoredCats.includes("emojis") || restoredCats.includes("profile")) &&
+      fs.existsSync(path.join(ud, "db", "emojis.db"))
+    ) {
+      restoredEmojiPacks = collectRestoredPacks(dbMgr, "emojis", "emojis", "emoji_id", "emoji_packs");
+      emitSyncComplete({ type: "emoji_pack_imported" });
+    }
+
+    if (
+      (restoredCats.includes("stickers") || restoredCats.includes("profile")) &&
+      fs.existsSync(path.join(ud, "db", "stickers.db"))
+    ) {
+      restoredStickerPacks = collectRestoredPacks(dbMgr, "stickers", "stickers", "sticker_id", "sticker_packs");
+      emitSyncComplete({ type: "sticker_pack_imported" });
+    }
+  } catch (postErr) {
+    console.warn("[BackupService] Error post-processing restored databases:", postErr.message);
+  }
+
   sendProgress("Restauración completada con éxito", 100);
-  return res;
+  return {
+    ...res,
+    restoredEmojiPacks,
+    restoredStickerPacks,
+  };
 }
 
 // ─── PUBLIC: LOCAL VAULT (COPIAS EN DISCO LOCAL) ──────────────────────────────
@@ -460,7 +719,11 @@ const FREQUENCY_MS = {
   monthly: 30 * 24 * 60 * 60 * 1000,
 };
 
+let _autoBackupRunning = false;
+
 async function checkAndRunAutoBackup() {
+  if (global.isQuitting || _autoBackupRunning) return;
+  _autoBackupRunning = true;
   try {
     const settings = getBackupSettings();
     if (!settings.autoBackupEnabled) return;
@@ -487,16 +750,37 @@ async function checkAndRunAutoBackup() {
           } catch {}
         }
       }
+
+      try {
+        if (global.mainWindow && !global.mainWindow.isDestroyed()) {
+          global.mainWindow.webContents.send("backup:local-updated", {
+            lastAutoBackupTime: now,
+          });
+        }
+      } catch {}
+
       console.log("[BackupService] Copia de seguridad automática finalizada.");
     }
   } catch (err) {
     console.error("[BackupService] Error en copia automática:", err.message);
+  } finally {
+    _autoBackupRunning = false;
   }
 }
 
 function startAutoBackupScheduler() {
-  setTimeout(() => checkAndRunAutoBackup(), 15000);
-  setInterval(() => checkAndRunAutoBackup(), 60 * 60 * 1000);
+  const scheduleTimers = () => {
+    const initialTimer = setTimeout(() => checkAndRunAutoBackup(), 15000);
+    if (typeof initialTimer.unref === "function") initialTimer.unref();
+    const intervalTimer = setInterval(() => checkAndRunAutoBackup(), 60 * 60 * 1000);
+    if (typeof intervalTimer.unref === "function") intervalTimer.unref();
+  };
+
+  if (app && typeof app.whenReady === "function") {
+    app.whenReady().then(scheduleTimers).catch(() => {});
+  } else {
+    scheduleTimers();
+  }
 }
 
 startAutoBackupScheduler();

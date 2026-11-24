@@ -1,4 +1,5 @@
-const { ipcMain, BrowserWindow, dialog } = require("electron");
+const { ipcMain, BrowserWindow, dialog, app } = require("electron");
+const path = require("path");
 const pluginService = require("../../services/pluginService.cjs");
 const pluginSandboxService = require("../../services/pluginSandboxService.cjs");
 const driveAuthService = require("../../services/driveAuthService.cjs");
@@ -650,10 +651,14 @@ function registerPluginDriveHandlers() {
     const date = new Date();
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     const defaultFilename = `onicord-backup-${dateStr}.onipkg`;
+    let defaultPath = defaultFilename;
+    try {
+      defaultPath = path.join(app.getPath("documents"), defaultFilename);
+    } catch {}
 
     const result = await dialog.showSaveDialog(window, {
       title: "Exportar Copia de Seguridad Onicord (.onipkg)",
-      defaultPath: defaultFilename,
+      defaultPath,
       filters: [{ name: "Copia de Seguridad Onicord (*.onipkg)", extensions: ["onipkg"] }],
     });
 

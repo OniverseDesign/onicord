@@ -636,6 +636,7 @@ export default function RoomView({
       peerId: null,
       nickname: localEffective?.nickname ?? profile?.nickname ?? t("common.you"),
       avatar: localEffective?.avatar ?? profile?.avatar,
+      banner: localEffective?.banner ?? profile?.banner ?? null,
       isSelf: true,
       online: localStatus !== "invisible",
       status: localStatus,
@@ -684,6 +685,7 @@ export default function RoomView({
 
       const effNickname = savedInfo?.nickname || peerServerOverride?.nickname || p.nickname;
       const effAvatar = savedInfo?.avatar !== undefined ? savedInfo.avatar : (peerServerOverride?.avatar !== undefined && peerServerOverride?.avatar !== null && peerServerOverride?.avatar !== "" ? peerServerOverride.avatar : p.avatar);
+      const effBanner = savedInfo?.banner !== undefined ? savedInfo.banner : (peerServerOverride?.banner !== undefined && peerServerOverride?.banner !== null && peerServerOverride?.banner !== "" ? peerServerOverride.banner : (p.banner ?? null));
       const effLink = savedInfo?.customLink !== undefined ? savedInfo.customLink : (peerServerOverride?.customLink !== undefined ? peerServerOverride.customLink : (p.customLink || ""));
       const effColor = savedInfo?.profileColor || peerServerOverride?.profileColor || p.profileColor;
       const effStatus = savedInfo?.customStatus !== undefined ? savedInfo.customStatus : (peerServerOverride?.customStatus !== undefined ? peerServerOverride.customStatus : (p.customStatus || ""));
@@ -695,6 +697,7 @@ export default function RoomView({
         status: p.status || (p.online ? "online" : "offline"),
         nickname: effNickname,
         avatar: effAvatar,
+        banner: effBanner,
         customLink: effLink,
         profileColor: effColor,
         customStatus: effStatus,
@@ -824,6 +827,7 @@ export default function RoomView({
             id: profile?.id,
             nickname: localEffective?.nickname ?? profile?.nickname ?? m.nickname,
             avatar: localEffective?.avatar ?? profile?.avatar ?? m.avatar,
+            banner: localEffective?.banner ?? profile?.banner ?? m.banner ?? null,
             isSpeaking: amISpeaking,
             isStreaming: Boolean(voice.isStreaming),
             customLink: localEffective?.customLink ?? profile?.customLink,
@@ -858,6 +862,7 @@ export default function RoomView({
 
         const effNickname = savedInfo?.nickname || peerServerOverride?.nickname || m.nickname || peerProfile?.nickname || "User";
         const effAvatar = savedInfo?.avatar !== undefined ? savedInfo.avatar : (peerServerOverride?.avatar !== undefined && peerServerOverride?.avatar !== null && peerServerOverride?.avatar !== "" ? peerServerOverride.avatar : (m.avatar ?? peerProfile?.avatar ?? null));
+        const effBanner = savedInfo?.banner !== undefined ? savedInfo.banner : (peerServerOverride?.banner !== undefined && peerServerOverride?.banner !== null && peerServerOverride?.banner !== "" ? peerServerOverride.banner : (m.banner ?? peerProfile?.banner ?? null));
         const effLink = savedInfo?.customLink !== undefined ? savedInfo.customLink : (peerServerOverride?.customLink !== undefined ? peerServerOverride.customLink : (peerProfile?.customLink || ""));
         const effColor = savedInfo?.profileColor || peerServerOverride?.profileColor || peerProfile?.profileColor || "";
         const effStatus = savedInfo?.customStatus !== undefined ? savedInfo.customStatus : (peerServerOverride?.customStatus !== undefined ? peerServerOverride.customStatus : (peerProfile?.customStatus || ""));
@@ -869,6 +874,7 @@ export default function RoomView({
           peerId: m.peerId,
           nickname: effNickname,
           avatar: effAvatar,
+          banner: effBanner,
           isSpeaking: isPeerSpeaking,
           isStreaming: Boolean(m.isStreaming),
           activity:

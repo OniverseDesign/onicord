@@ -2,6 +2,13 @@ const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
 
+const PROFILE_GLOBAL_DBS = ["app_config", "profile", "activity", "dashboard", "servers_list", "discover"];
+const CATEGORY_GLOBAL_DBS = {
+  addons: "addons",
+  stickers: "stickers",
+  emojis: "emojis",
+};
+
 const GLOBAL_SCHEMAS = {
   app_config: `
     CREATE TABLE IF NOT EXISTS app_settings (
@@ -872,18 +879,28 @@ class DbManager {
   async prepareDatabasesForBackup(stagingDir, categories = ["profile", "servers"]) {
     ensureDirSync(stagingDir);
 
+    const backupGlobalDb = async (dbName, targetPath) => {
+      try {
+        const db = this.getGlobalDb(dbName);
+        await this.backupDatabase(db, targetPath);
+      } catch (err) {
+        console.warn(`[DbManager] Warning backing up global db ${dbName}:`, err.message);
+      }
+    };
+
     if (categories.includes("profile")) {
       const targetDbDir = path.join(stagingDir, "db");
       ensureDirSync(targetDbDir);
 
-      for (const dbName of Object.keys(GLOBAL_SCHEMAS)) {
-        try {
-          const db = this.getGlobalDb(dbName);
-          const targetPath = path.join(targetDbDir, `${dbName}.db`);
-          await db.backup(targetPath);
-        } catch (err) {
-          console.warn(`[DbManager] Warning backing up global db ${dbName}:`, err.message);
-        }
+      for (const dbName of PROFILE_GLOBAL_DBS) {
+        await backupGlobalDb(dbName, path.join(targetDbDir, `${dbName}.db`));
+      }
+    }
+
+    for (const [catId, dbName] of Object.entries(CATEGORY_GLOBAL_DBS)) {
+      if (categories.includes(catId)) {
+        const catDbPath = path.join(stagingDir, catId, "db", `${dbName}.db`);
+        await backupGlobalDb(dbName, catDbPath);
       }
     }
 
@@ -891,11 +908,37 @@ class DbManager {
       const targetServersDir = path.join(stagingDir, "servers");
       ensureDirSync(targetServersDir);
 
+      const backupSqliteFile = async (srcDbPath, destDbPath, openDb = null) => {
+        let dbInstance = openDb && openDb.open ? openDb : null;
+        let shouldClose = false;
+
+        if (!dbInstance) {
+          try {
+            dbInstance = new Database(srcDbPath);
+            shouldClose = true;
+          } catch (e) {
+            console.warn(`[DbManager] No se pudo abrir ${srcDbPath} para backup:`, e.message);
+            return;
+          }
+        }
+
+        try {
+          await dbInstance.backup(destDbPath);
+        } catch (err) {
+          console.warn(`[DbManager] Falló backup atómico de ${path.basename(srcDbPath)}:`, err.message);
+        } finally {
+          if (shouldClose) {
+            try { dbInstance.close(); } catch (_) {}
+          }
+        }
+      };
+
       try {
         const serverRooms = fs.readdirSync(this.serversBaseDir, { withFileTypes: true });
         for (const entry of serverRooms) {
           if (!entry.isDirectory()) continue;
           const roomCode = entry.name;
+          const safeCode = this._safeRoomCode(roomCode) || roomCode;
           const srcRoomDir = path.join(this.serversBaseDir, roomCode);
           const destRoomDir = path.join(targetServersDir, roomCode);
           ensureDirSync(destRoomDir);
@@ -906,29 +949,25 @@ class DbManager {
               const dbBaseName = rf.name.replace(/\.db$/i, "");
               const srcDbPath = path.join(srcRoomDir, rf.name);
               const destDbPath = path.join(destRoomDir, rf.name);
+              const openDb = this._serverConnections.get(`${safeCode}:${dbBaseName}`)?.db;
+              await backupSqliteFile(srcDbPath, destDbPath, openDb);
+            }
+          }
 
-              const connKey = `${roomCode}:${dbBaseName}`;
-              let dbInstance = this._serverConnections.get(connKey)?.db;
-              let shouldClose = false;
-
-              if (!dbInstance || !dbInstance.open) {
-                try {
-                  dbInstance = new Database(srcDbPath);
-                  shouldClose = true;
-                } catch (e) {
-                  console.warn(`[DbManager] No se pudo abrir ${srcDbPath} para backup:`, e.message);
-                  continue;
-                }
-              }
-
-              try {
-                await dbInstance.backup(destDbPath);
-              } catch (err) {
-                console.warn(`[DbManager] Falló backup atómico de ${rf.name}:`, err.message);
-              } finally {
-                if (shouldClose) {
-                  try { dbInstance.close(); } catch (_) {}
-                }
+          const srcDmsDir = path.join(srcRoomDir, "dms");
+          if (fs.existsSync(srcDmsDir)) {
+            const destDmsDir = path.join(destRoomDir, "dms");
+            ensureDirSync(destDmsDir);
+            const dmFiles = fs.readdirSync(srcDmsDir, { withFileTypes: true });
+            for (const df of dmFiles) {
+              if (df.isFile() && df.name.endsWith(".db")) {
+                const peerId = df.name.startsWith("dm_")
+                  ? df.name.slice(3, -3)
+                  : df.name.replace(/\.db$/i, "");
+                const srcDmPath = path.join(srcDmsDir, df.name);
+                const destDmPath = path.join(destDmsDir, df.name);
+                const openDmDb = this._dmConnections.get(`${safeCode}:${peerId}`)?.db;
+                await backupSqliteFile(srcDmPath, destDmPath, openDmDb);
               }
             }
           }
@@ -970,4 +1009,4 @@ class DbManager {
   }
 }
 
-module.exports = { DbManager, GLOBAL_SCHEMAS, SERVER_SCHEMAS, DM_SCHEMA };
+module.exports = { DbManager, GLOBAL_SCHEMAS, SERVER_SCHEMAS, DM_SCHEMA, PROFILE_GLOBAL_DBS };

@@ -713,6 +713,11 @@
     "nickname": "Nombre de Usuario (Apodo)",
     "avatar": "Foto de Perfil (Avatar)",
     "changeAvatar": "Cambiar Avatar",
+    "uploadBanner": "Subir Portada",
+    "changeBanner": "Cambiar Portada",
+    "removeBanner": "Eliminar portada",
+    "bannerTypeError": "Formato no soportado. Usa JPG, PNG, GIF o WebP.",
+    "bannerSizeError": "La imagen de portada no puede superar 8 MB.",
     "customStatus": "Estado Personalizado",
     "statusPlaceholder": "¿Qué estás haciendo hoy?",
     "accentColor": "Color de Acento de Perfil",
@@ -1407,7 +1412,7 @@
       "exporting": "Empaquetando...",
       "exportBtn": "Exportar Copia de Seguridad (.onipkg)",
       "importTitle": "Restaurar desde Archivo (.onipkg)",
-      "importDesc": "Restaura tu perfil, servidores, complementos o stickers desde un archivo .onipkg guardado previamente.",
+      "importDesc": "Restaura tu perfil, servidores, complementos, stickers o emojis desde un archivo .onipkg guardado previamente.",
       "pickFileHint": "Selecciona una copia de seguridad en tu equipo",
       "browseBtn": "Examinar archivo .onipkg",
       "restoreWarning": "Al restaurar se sobreescribirán los datos locales correspondientes a las categorías seleccionadas.",
@@ -1457,7 +1462,9 @@
         "addons": "Complementos",
         "addonsDesc": "Addons .onipkg instalados y su configuración.",
         "stickers": "Stickers",
-        "stickersDesc": "Packs de stickers instalados. Pueden ser pesados."
+        "stickersDesc": "Packs de stickers instalados. Pueden ser pesados.",
+        "emojis": "Emojis personalizados",
+        "emojisDesc": "Emojis personalizados y packs instalados."
       },
       "toasts": {
         "connectSuccess": "¡Google Drive conectado correctamente!",
@@ -1667,6 +1674,7 @@
     "catServers": "Servidores + Mensajes",
     "catAddons": "Complementos",
     "catStickers": "Stickers",
+    "catEmojis": "Emojis",
     "selectAnotherFile": "Seleccionar otro archivo",
     "restoreBackupBtn": "Restaurar Copia de Seguridad",
     "restoringTitle": "Restaurando tus datos",
@@ -1847,5 +1855,12 @@
     "toastKnockMsg": "{{applicant}} ha solicitado ingresar a {{server}}",
     "descPlaceholder": "Describe de qué trata tu servidor...",
     "tagsPlaceholder": "Escribe una etiqueta y presiona Enter o coma..."
+  },
+  "colorPicker": {
+    "eyedropper": "Cuentagotas",
+    "hexLabel": "Código HEX",
+    "saturationArea": "Saturación y brillo",
+    "hueSlider": "Tono",
+    "presets": "Colores rápidos"
   }
 }

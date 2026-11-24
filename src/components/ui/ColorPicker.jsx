@@ -1,7 +1,9 @@
-import React, { useRef } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import { APP_COLORS } from "../../lib/colors";
 import MaterialIcon from "../icons/MaterialIcon";
+import Tooltip from "./Tooltip";
+import ColorPickerPopout, { isLightHex } from "./ColorPickerPopout";
 import { cn } from "../../lib/cn";
 
 // Static style block to prevent re-processing styles on render iterations
@@ -23,7 +25,6 @@ export default function ColorPicker({
   showStructures = false,
 }) {
   const { t } = useTranslation();
-  const customColorInputRef = useRef(null);
 
   // Helper to normalize strings for robust comparison (e.g. ignoring space differences in rgb values)
   const cleanStr = (str) => str?.replace(/\s+/g, "") || "";
@@ -40,20 +41,13 @@ export default function ColorPicker({
 
   const isCustomColor = selectedColor && !isPredefined;
 
-  const handleCustomColorClick = () => {
-    if (customColorInputRef.current) {
-      customColorInputRef.current.click();
-    }
-  };
-
-  const handleCustomColorChange = (e) => {
-    const val = e.target.value;
+  const handleCustomColorChange = (hex) => {
     onSelectColor("custom", {
       key: "custom",
       name: t("settings.theme.customColor", "Personalizado"),
-      colorVar: val,
-      rgbVar: val,
-      isLight: true,
+      colorVar: hex,
+      rgbVar: hex,
+      isLight: isLightHex(hex),
     });
   };
 
@@ -82,64 +76,70 @@ export default function ColorPicker({
           : `rgb(${info.rawRgb})`;
 
         return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onSelectColor(key, info)}
-            className={cn(
-              "w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95",
-              isSelected
-                ? "border-onicord-text scale-105 ring-2 ring-onicord-tint/15"
-                : "border-onicord-tint/15 hover:border-onicord-tint/30"
-            )}
-            style={{ backgroundColor: bgStyle }}
-            title={info.name}
-            aria-label={info.name}
-            aria-pressed={isSelected}
-          >
-            {isSelected && (
-              <MaterialIcon
-                name="check"
-                size={14}
-                className={info.isLight ? "text-onicord-dark" : "text-white"}
-              />
-            )}
-          </button>
+          <Tooltip key={key} content={info.name} side="top">
+            <button
+              type="button"
+              onClick={() => onSelectColor(key, info)}
+              className={cn(
+                "w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95",
+                isSelected
+                  ? "border-onicord-text scale-105 ring-2 ring-onicord-tint/15"
+                  : "border-onicord-tint/15 hover:border-onicord-tint/30"
+              )}
+              style={{ backgroundColor: bgStyle }}
+              aria-label={info.name}
+              aria-pressed={isSelected}
+            >
+              {isSelected && (
+                <MaterialIcon
+                  name="check"
+                  size={14}
+                  className={info.isLight ? "text-onicord-dark" : "text-white"}
+                />
+              )}
+            </button>
+          </Tooltip>
         );
       })}
 
-      {/* Invisible custom input */}
-      <input
-        ref={customColorInputRef}
-        type="color"
+      {/* Custom color popout swatch for custom hex */}
+      <ColorPickerPopout
         value={isCustomColor ? selectedColor : "#7f849c"}
         onChange={handleCustomColorChange}
-        className="sr-only"
-        id="custom-color-picker"
-      />
-
-      {/* Color wheel swatch for custom hex */}
-      <button
-        type="button"
-        onClick={handleCustomColorClick}
-        className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95 relative overflow-hidden ${
-          isCustomColor
-            ? "border-onicord-text scale-105 ring-2 ring-onicord-tint/15"
-            : "border-onicord-tint/15 hover:border-onicord-tint/30 color-picker-cycle"
-        }`}
-        style={{
-          backgroundColor: isCustomColor ? selectedColor : "#ff0055",
-        }}
-        title={t("settings.theme.customColor", "Color personalizado")}
-        aria-label={t("settings.theme.customColor", "Color personalizado")}
-        aria-pressed={isCustomColor}
+        side="bottom"
+        align="center"
       >
-        <MaterialIcon
-          name={isCustomColor ? "check" : "palette"}
-          size={14}
-          className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-        />
-      </button>
+        <Tooltip
+          content={t("settings.theme.customColor", "Color personalizado")}
+          side="top"
+        >
+          <button
+            type="button"
+            className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95 relative overflow-hidden ${
+              isCustomColor
+                ? "border-onicord-text scale-105 ring-2 ring-onicord-tint/15"
+                : "border-onicord-tint/15 hover:border-onicord-tint/30 color-picker-cycle"
+            }`}
+            style={{
+              backgroundColor: isCustomColor ? selectedColor : "#ff0055",
+            }}
+            aria-label={t("settings.theme.customColor", "Color personalizado")}
+            aria-pressed={isCustomColor}
+          >
+            <MaterialIcon
+              name={isCustomColor ? "check" : "palette"}
+              size={14}
+              className={
+                isCustomColor
+                  ? isLightHex(selectedColor)
+                    ? "text-onicord-dark"
+                    : "text-white"
+                  : "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+              }
+            />
+          </button>
+        </Tooltip>
+      </ColorPickerPopout>
     </div>
   );
 }

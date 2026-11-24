@@ -1,6 +1,6 @@
 {
   "name": "onicord",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Onicord",
   "main": "electron/main.cjs",
   "type": "module",
@@ -118,7 +118,8 @@
     "asarUnpack": [
       "**/*.node",
       "node_modules/@ffmpeg-installer/**",
-      "electron/workers/**"
+      "electron/workers/**",
+      "node_modules/adm-zip/**"
     ],
     "win": {
       "extraResources": [

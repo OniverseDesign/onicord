@@ -3,13 +3,53 @@ import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import Select from "../ui/Select";
 import { notificationManager } from "../../lib/notificationManager";
+import { refreshCustomEmojis } from "../../lib/emojiData";
 
 const CATEGORY_KEYS = [
   { id: "profile", icon: "person" },
   { id: "servers", icon: "dns" },
   { id: "addons", icon: "extension" },
   { id: "stickers", icon: "sticky_note_2" },
+  { id: "emojis", icon: "mood" },
 ];
+
+function applyRestoredPacks(restoreResult) {
+  const targets = [
+    ["onicord_emoji_packs", restoreResult?.restoredEmojiPacks],
+    ["onicord_stickers_packs", restoreResult?.restoredStickerPacks],
+  ];
+  for (const [storageKey, incoming] of targets) {
+    if (!incoming || Object.keys(incoming).length === 0) continue;
+    try {
+      const existing = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      const merged = { ...existing };
+      for (const [packName, ids] of Object.entries(incoming)) {
+        if (!Array.isArray(ids) || ids.length === 0) continue;
+        const prevIds = Array.isArray(merged[packName]) ? merged[packName] : [];
+        merged[packName] = Array.from(new Set([...prevIds, ...ids]));
+      }
+      localStorage.setItem(storageKey, JSON.stringify(merged));
+    } catch {}
+  }
+}
+
+function BackupProgressBar({ progress, className = "" }) {
+  if (!progress) return null;
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <div className="flex items-center justify-between text-xs text-onicord-muted">
+        <span>{progress.step}</span>
+        <span className="font-mono font-bold text-onicord-accent">{progress.percent}%</span>
+      </div>
+      <div className="h-1.5 w-full bg-onicord-base/60 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-onicord-accent rounded-full transition-all duration-300"
+          style={{ width: `${progress.percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return "0 B";
@@ -35,7 +75,7 @@ function formatDate(isoString) {
 }
 
 // ─── CARD 1: EXPORT ──────────────────────────────────────────────────────────
-function ExportCard({ selectedCats, onToggleCat, estimatedSize, onExport, exporting, progress }) {
+function ExportCard({ selectedCats, onToggleCat, estimatedSize, onExport, exporting, creatingLocal, progress }) {
   const { t } = useTranslation();
 
   return (
@@ -88,26 +128,13 @@ function ExportCard({ selectedCats, onToggleCat, estimatedSize, onExport, export
       </div>
 
       {/* Progress */}
-      {progress && (
-        <div className="my-3 space-y-2">
-          <div className="flex items-center justify-between text-xs text-onicord-muted">
-            <span>{progress.step}</span>
-            <span className="font-mono font-bold text-onicord-accent">{progress.percent}%</span>
-          </div>
-          <div className="h-1.5 w-full bg-onicord-base/60 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-onicord-accent rounded-full transition-all duration-300"
-              style={{ width: `${progress.percent}%` }}
-            />
-          </div>
-        </div>
-      )}
+      <BackupProgressBar progress={progress} className="my-3" />
 
       <div className="pt-2">
         <button
           type="button"
           onClick={onExport}
-          disabled={selectedCats.length === 0 || exporting}
+          disabled={selectedCats.length === 0 || exporting || creatingLocal}
           className="onicord-btn-primary w-full flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           <MaterialIcon name="file_download" size={16} />
@@ -257,20 +284,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
           </div>
 
           {/* Progress if restoring */}
-          {progress && (
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between text-xs text-onicord-muted">
-                <span>{progress.step}</span>
-                <span className="font-mono font-bold text-onicord-accent">{progress.percent}%</span>
-              </div>
-              <div className="h-1.5 w-full bg-onicord-base/60 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-onicord-accent rounded-full transition-all duration-300"
-                  style={{ width: `${progress.percent}%` }}
-                />
-              </div>
-            </div>
-          )}
+          <BackupProgressBar progress={progress} className="pt-2" />
 
           {/* Warning */}
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200/90 flex items-start gap-2.5">
@@ -323,6 +337,8 @@ function LocalVaultCard({
   onDeleteFromVault,
   onCreateLocalBackup,
   creatingLocal,
+  canCreateLocal,
+  progress,
 }) {
   const { t } = useTranslation();
 
@@ -343,7 +359,7 @@ function LocalVaultCard({
         <button
           type="button"
           onClick={onCreateLocalBackup}
-          disabled={creatingLocal}
+          disabled={creatingLocal || !canCreateLocal}
           className="onicord-btn-secondary py-1 px-3 text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
         >
           <MaterialIcon name="add" size={14} />
@@ -358,6 +374,8 @@ function LocalVaultCard({
       <p className="onicord-settings-row-desc mb-3">
         {t("settings.backup.vaultDesc", "Onicord puede generar copias periódicas automáticas de tus datos en una carpeta interna de tu equipo.")}
       </p>
+
+      <BackupProgressBar progress={progress} className="mb-3" />
 
       {/* Auto Backup Row */}
       <div className="onicord-settings-row">
@@ -547,6 +565,19 @@ export default function BackupTab() {
       unsubProg = api.onBackupProgress((data) => setProgress(data));
     }
 
+    // Listen to auto-backup vault updates
+    let unsubLocalUpdated = null;
+    if (api.onBackupLocalUpdated) {
+      unsubLocalUpdated = api.onBackupLocalUpdated(() => {
+        loadLocalVault();
+        if (api.backupGetSettings) {
+          api.backupGetSettings().then((s) => {
+            if (s) setSettings(s);
+          }).catch(() => {});
+        }
+      });
+    }
+
     // Listen to dropped backup packages
     let unsubDrop = null;
     if (api.onBackupPackageDropped) {
@@ -569,6 +600,7 @@ export default function BackupTab() {
 
     return () => {
       if (unsubProg) unsubProg();
+      if (unsubLocalUpdated) unsubLocalUpdated();
       if (unsubDrop) unsubDrop();
     };
   }, [api, loadLocalVault]);
@@ -578,16 +610,23 @@ export default function BackupTab() {
       ? selectedCats.filter((c) => c !== id)
       : [...selectedCats, id];
     setSelectedCats(next);
+    setSettings((prev) => ({ ...prev, selectedCategories: next }));
     if (api?.backupSaveSettings) {
       api.backupSaveSettings({ selectedCategories: next }).catch(() => {});
     }
   };
 
   const handleUpdateSettings = async (patch) => {
-    const updated = { ...settings, ...patch };
-    setSettings(updated);
+    setSettings((prev) => ({ ...prev, ...patch }));
     if (api?.backupSaveSettings) {
-      await api.backupSaveSettings(updated);
+      try {
+        const saved = await api.backupSaveSettings(patch);
+        if (saved) {
+          setSettings(saved);
+        }
+      } catch (err) {
+        console.error("[BackupTab] Error guardando ajustes de backup:", err);
+      }
     }
   };
 
@@ -645,7 +684,11 @@ export default function BackupTab() {
     setRestoring(true);
     setProgress(null);
     try {
-      await api.backupRestore(filePath, categories);
+      const res = await api.backupRestore(filePath, categories);
+      applyRestoredPacks(res);
+      if (categories.includes("emojis") || categories.includes("profile")) {
+        await refreshCustomEmojis();
+      }
       notificationManager.showToast(
         t("settings.cloudBackup.restore", "Restauración"),
         t(
@@ -675,8 +718,9 @@ export default function BackupTab() {
   };
 
   const handleCreateLocalBackup = async () => {
-    if (!api?.backupCreateLocal) return;
+    if (!api?.backupCreateLocal || selectedCats.length === 0) return;
     setCreatingLocal(true);
+    setProgress(null);
     try {
       await api.backupCreateLocal(selectedCats);
       await loadLocalVault();
@@ -685,6 +729,7 @@ export default function BackupTab() {
       notificationManager.showToast("Error", err.message || "Error al guardar en bóveda", "danger");
     } finally {
       setCreatingLocal(false);
+      setProgress(null);
     }
   };
 
@@ -697,6 +742,7 @@ export default function BackupTab() {
         estimatedSize={estimatedSize}
         onExport={handleExport}
         exporting={exporting}
+        creatingLocal={creatingLocal}
         progress={exporting ? progress : null}
       />
 
@@ -720,6 +766,8 @@ export default function BackupTab() {
         onDeleteFromVault={handleDeleteFromVault}
         onCreateLocalBackup={handleCreateLocalBackup}
         creatingLocal={creatingLocal}
+        canCreateLocal={!exporting && selectedCats.length > 0}
+        progress={creatingLocal ? progress : null}
       />
     </div>
   );

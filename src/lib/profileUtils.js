@@ -43,6 +43,7 @@ export function getEffectiveProfile(profile, serverIdOrRoomCode, servers = []) {
     ...profile,
     nickname: (override.nickname && override.nickname.trim()) || profile.nickname,
     avatar: override.avatar !== undefined && override.avatar !== null && override.avatar !== "" ? override.avatar : profile.avatar,
+    banner: override.banner !== undefined && override.banner !== null && override.banner !== "" ? override.banner : (profile.banner || null),
     customLink: override.customLink !== undefined ? override.customLink : "",
     profileColor: override.profileColor !== undefined && override.profileColor !== "" ? override.profileColor : profile.profileColor,
     customStatus: override.customStatus !== undefined ? override.customStatus : "",

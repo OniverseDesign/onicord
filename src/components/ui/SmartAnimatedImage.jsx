@@ -54,6 +54,8 @@ export default function SmartAnimatedImage({
   style = {},
   timestamp = null,
   isAvatar = false,
+  animateOnHoverOnly = false,
+  externalHovered = false,
 }) {
   const [enableContinuousAnimations, setEnableContinuousAnimations] = useState(getContinuousAnimationsSetting);
   const [isHovered, setIsHovered] = useState(false);
@@ -88,17 +90,19 @@ export default function SmartAnimatedImage({
   }, [isJustArrived, timestamp]);
 
   const timerRef = useRef(null);
+  const effectiveHovered = isHovered || externalHovered;
+  const useStaticCanvas = !enableContinuousAnimations || animateOnHoverOnly;
 
   // Enforce a minimum play duration of 1.5 seconds on hover start
   useEffect(() => {
-    if (isHovered) {
+    if (effectiveHovered) {
       setIsPlayingMinTime(true);
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         setIsPlayingMinTime(false);
       }, 1500);
     }
-  }, [isHovered]);
+  }, [effectiveHovered]);
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -107,7 +111,9 @@ export default function SmartAnimatedImage({
     };
   }, []);
 
-  const shouldAnimate = enableContinuousAnimations || isHovered || isJustArrived || isPlayingMinTime;
+  const shouldAnimate = animateOnHoverOnly
+    ? effectiveHovered || isPlayingMinTime
+    : enableContinuousAnimations || effectiveHovered || isJustArrived || isPlayingMinTime;
 
   const drawStaticFrame = useCallback(() => {
     if (canvasRef.current && imgRef.current) {
@@ -135,22 +141,22 @@ export default function SmartAnimatedImage({
   }, []);
 
   const handleImageLoad = () => {
-    if (!enableContinuousAnimations) {
+    if (useStaticCanvas) {
       drawStaticFrame();
     }
   };
 
   // When continuous animations are disabled, ensure we have drawn the static canvas frame
   useEffect(() => {
-    if (!enableContinuousAnimations && !showCanvas) {
+    if (useStaticCanvas && !showCanvas) {
       drawStaticFrame();
     }
-  }, [enableContinuousAnimations, showCanvas, drawStaticFrame]);
+  }, [useStaticCanvas, showCanvas, drawStaticFrame]);
 
   // Re-draw when src changes, and retry to catch race conditions (cached images/ref mount timing)
   useEffect(() => {
     setShowCanvas(false);
-    if (enableContinuousAnimations) return;
+    if (!useStaticCanvas) return;
 
     let active = true;
     let attempts = 0;
@@ -172,7 +178,7 @@ export default function SmartAnimatedImage({
       active = false;
       clearInterval(interval);
     };
-  }, [src, enableContinuousAnimations, drawStaticFrame]);
+  }, [src, useStaticCanvas, drawStaticFrame]);
 
   const isContain = className.includes("object-contain");
   const fitClass = isContain ? "object-contain" : "object-cover";
@@ -193,7 +199,7 @@ export default function SmartAnimatedImage({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Static frame canvas rendered below when continuous animations are disabled */}
-      {!enableContinuousAnimations && (
+      {useStaticCanvas && (
         <canvas
           ref={canvasRef}
           className={`${cleanClassName} absolute inset-0 w-full h-full ${fitClass}`}

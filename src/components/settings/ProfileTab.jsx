@@ -15,6 +15,8 @@ export default function ProfileTab({
   setNickname,
   avatar,
   setAvatar,
+  banner,
+  setBanner,
   customLink,
   setCustomLink,
   profileColor,
@@ -34,6 +36,7 @@ export default function ProfileTab({
 }) {
   const { t } = useTranslation();
   const fileRef = useRef(null);
+  const bannerFileRef = useRef(null);
 
   // Canonical key for the server we are currently in (uppercase roomCode preferred)
   const currentServerKey = useMemo(() => {
@@ -61,6 +64,11 @@ export default function ProfileTab({
       ? currentServerOverride.avatar
       : null
     : avatar;
+  const currentBanner = isServerScope
+    ? currentServerOverride.banner !== undefined
+      ? currentServerOverride.banner
+      : null
+    : banner;
   const currentLink = isServerScope
     ? (currentServerOverride.customLink ?? "")
     : customLink;
@@ -166,6 +174,59 @@ export default function ProfileTab({
     }
   };
 
+  const handleBannerChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ALLOWED = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/svg+xml",
+      "image/avif",
+    ];
+    if (!ALLOWED.includes(file.type) && !file.type.startsWith("image/")) {
+      setError(
+        t(
+          "profileTab.bannerTypeError",
+          "Formato no soportado. Usa JPG, PNG, GIF o WebP.",
+        ),
+      );
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE) {
+      setError(
+        t(
+          "profileTab.bannerSizeError",
+          "La imagen de portada no puede superar 8 MB.",
+        ),
+      );
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      if (isServerScope && activeScopeKey) {
+        onUpdateServerProfile?.(activeScopeKey, { banner: dataUrl });
+      } else {
+        setBanner(dataUrl);
+      }
+      setError(null);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleRemoveBanner = () => {
+    if (isServerScope && activeScopeKey) {
+      onUpdateServerProfile?.(activeScopeKey, { banner: null });
+    } else {
+      setBanner(null);
+    }
+  };
+
   const previewNickname = isServerScope
     ? currentNick.trim() ||
       nickname ||
@@ -177,6 +238,12 @@ export default function ProfileTab({
       ? currentAvatar
       : avatar
     : avatar;
+
+  const previewBanner = isServerScope
+    ? currentBanner !== null && currentBanner !== undefined && currentBanner !== ""
+      ? currentBanner
+      : banner
+    : banner;
 
   const previewCustomStatus = isServerScope ? currentStatus : customStatus;
 
@@ -379,6 +446,13 @@ export default function ProfileTab({
               className="hidden"
               onChange={handleAvatarChange}
             />
+            <input
+              ref={bannerFileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp,image/avif,image/*"
+              className="hidden"
+              onChange={handleBannerChange}
+            />
 
             <UserProfilePopout
               className="!shadow-none"
@@ -393,6 +467,7 @@ export default function ProfileTab({
                     ? nickname
                     : null,
                 avatar: previewAvatar,
+                banner: previewBanner,
                 customStatus: previewCustomStatus,
                 customLink: previewCustomLink,
                 profileColor: previewProfileColor,
@@ -426,6 +501,8 @@ export default function ProfileTab({
               ]}
               onAvatarClick={() => fileRef.current?.click()}
               onRemoveAvatar={handleRemoveAvatar}
+              onBannerClick={() => bannerFileRef.current?.click()}
+              onRemoveBanner={(!isServerScope || Boolean(currentBanner)) ? handleRemoveBanner : undefined}
             />
           </div>
         </div>
