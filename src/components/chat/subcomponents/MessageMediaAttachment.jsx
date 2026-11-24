@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import MaterialIcon from "../../icons/MaterialIcon";
 import ConfirmDialogModal from "../../modals/ConfirmDialogModal";
 import { getMediaUrl } from "../../../lib/media";
+import { refreshCustomEmojis } from "../../../lib/emojiData";
 
 export function formatBytes(bytes) {
   if (!bytes) return "0 Bytes";
@@ -197,25 +198,46 @@ export default function MessageMediaAttachment({
     if (!activePath) return;
 
     try {
-      const response = await window.electronAPI.importStickerPackRaw(activePath);
+      const response = window.electronAPI?.importMediaPackAuto
+        ? await window.electronAPI.importMediaPackAuto(activePath)
+        : await window.electronAPI.importStickerPackRaw(activePath);
 
       if (response && response.success) {
-        const PACKS_KEY = "onicord_sticker_packs_v1";
-        const savedPacks = JSON.parse(
-          localStorage.getItem(PACKS_KEY) || "{}",
-        );
+        if (response.type === "emojis") {
+          const EMOJI_PACKS_KEY = "onicord_emoji_packs";
+          const savedEmojiPacks = JSON.parse(
+            localStorage.getItem(EMOJI_PACKS_KEY) || "{}",
+          );
+          savedEmojiPacks[response.name] = response.ids || [];
+          localStorage.setItem(EMOJI_PACKS_KEY, JSON.stringify(savedEmojiPacks));
+          refreshCustomEmojis();
 
-        savedPacks[response.name] = response.ids || [];
-        localStorage.setItem(PACKS_KEY, JSON.stringify(savedPacks));
+          onShowAlert(
+            t("chat.emojisPack.installSuccessTitle", "Instalación Exitosa"),
+            t(
+              "chat.emojisPack.installSuccessDesc",
+              { name: response.name, count: response.count },
+              `¡Pack "${response.name}" instalado con éxito!\nSe indexaron ${response.count} emojis en tu biblioteca.`,
+            ),
+          );
+        } else {
+          const PACKS_KEY = "onicord_sticker_packs_v1";
+          const savedPacks = JSON.parse(
+            localStorage.getItem(PACKS_KEY) || "{}",
+          );
 
-        onShowAlert(
-          t("chat.stickers.installSuccessTitle", "Installation Successful"),
-          t(
-            "chat.stickers.installSuccessDesc",
-            { name: response.name, count: response.count },
-            `¡Pack "${response.name}" instalado con éxito!\nSe indexaron ${response.count} stickers en tu biblioteca.`,
-          ),
-        );
+          savedPacks[response.name] = response.ids || [];
+          localStorage.setItem(PACKS_KEY, JSON.stringify(savedPacks));
+
+          onShowAlert(
+            t("chat.stickers.installSuccessTitle", "Installation Successful"),
+            t(
+              "chat.stickers.installSuccessDesc",
+              { name: response.name, count: response.count },
+              `¡Pack "${response.name}" instalado con éxito!\nSe indexaron ${response.count} stickers en tu biblioteca.`,
+            ),
+          );
+        }
       }
     } catch (err) {
       onShowAlert(

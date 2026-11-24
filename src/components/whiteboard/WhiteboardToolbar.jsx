@@ -414,6 +414,7 @@ export default function WhiteboardToolbar({
           <EmojiPickerPopover
             targetRect={emojisTargetRect}
             triggerRef={emojiBtnRef}
+            allowCustom={false}
             onClose={() => setEmojisTargetRect(null)}
             onSelectEmoji={(emoji) => {
               setActiveStamp(emoji);

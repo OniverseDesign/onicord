@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import ModalShell, {
   ModalButton,
@@ -6,6 +6,7 @@ import ModalShell, {
 import MaterialIcon from "../icons/MaterialIcon";
 import { normalizeAudioSettings, DEFAULT_AUDIO } from "../../lib/audioSettings";
 import StickerManagerTab from "../settings/StickerManagerTab";
+import EmojiManagerTab from "../settings/EmojiManagerTab";
 import ThemeManagerTab from "../settings/ThemeManagerTab";
 import ConfirmDialogModal from "./ConfirmDialogModal";
 import { CONFIG_ISLAS, STORAGE_KEY, WIDGET_COMPONENTS, getCombinedConfigs, getWidgetComponent } from "../dashboard/dashboardConfig";
@@ -160,12 +161,14 @@ export default function AppSettingsModal({
       },
       {
         id: "stickers",
-        label: t("settings.tabs.stickers", "Stickers"),
+        label: t("settings.tabs.stickersAndEmojis", "Stickers y Emojis"),
         icon: "sticky_note_2",
-        keywords: ["stickers", "emojis", "pegatinas", "paquetes"],
+        keywords: ["stickers", "emojis", "pegatinas", "paquetes", "emotes"],
         features: [
-          { id: "stickerPacks", label: t("settings.stickers.packs", "Colección de packs de stickers"), keywords: ["stickers", "packs", "emojis", "pegatinas", "onipkg"] },
-          { id: "importStickers", label: t("settings.stickers.import", "Importar paquete de stickers (.onipkg)"), keywords: ["importar", "cargar", "instalar", "subir"] },
+          { id: "stickerPacks", label: t("settings.stickers.packs", "Colección de packs de stickers"), keywords: ["stickers", "packs", "pegatinas", "onipkg"] },
+          { id: "importStickers", label: t("settings.stickers.import", "Importar paquete de stickers (.onipkg)"), keywords: ["importar", "cargar", "instalar", "subir", "stickers"] },
+          { id: "emojiPacks", label: t("settings.emojis.packsFeature", "Colección de packs de emojis"), keywords: ["emojis", "packs", "emotes", "shortcode", "onipkg"] },
+          { id: "importEmojis", label: t("settings.emojis.importFeature", "Importar paquete de emojis (.onipkg, .zip) o imágenes"), keywords: ["importar", "cargar", "instalar", "subir", "emojis", "zip", "emoji.gg"] },
         ],
       },
       {
@@ -216,6 +219,16 @@ export default function AppSettingsModal({
   }, [t]);
 
   const [section, setSection] = useState(initialSection || "general");
+  const [expressionsSubTab, setExpressionsSubTab] = useState("stickers");
+
+  const handleSectionChange = (nextSection, featureId = null) => {
+    setSection(nextSection);
+    if (featureId === "emojiPacks" || featureId === "importEmojis") {
+      setExpressionsSubTab("emojis");
+    } else if (featureId === "stickerPacks" || featureId === "importStickers") {
+      setExpressionsSubTab("stickers");
+    }
+  };
 
   useEffect(() => {
     if (initialSection) {
@@ -226,8 +239,17 @@ export default function AppSettingsModal({
   const [nickname, setNickname] = useState(profile?.nickname ?? "");
   const [avatar, setAvatar] = useState(profile?.avatar ?? null);
   const [audio, setAudio] = useState(() => normalizeAudioSettings(profile?.audio));
+  const [healedAudioBaseline, setHealedAudioBaseline] = useState({});
+  const handleAutoHealAudio = useCallback((patch) => {
+    setAudio((a) => ({ ...a, ...patch }));
+    setHealedAudioBaseline((prev) => ({ ...prev, ...patch }));
+  }, []);
   const [general, setGeneral] = useState(() => normalizeGeneralSettings(profile?.general));
-  const [keybindings, setKeybindings] = useState(() => normalizeKeybindings(profile?.keybindings));
+  const initialKeybindingsRef = useRef(null);
+  if (initialKeybindingsRef.current === null) {
+    initialKeybindingsRef.current = normalizeKeybindings(profile?.keybindings);
+  }
+  const [keybindings, setKeybindings] = useState(() => initialKeybindingsRef.current);
 
   const [overlay, setOverlay] = useState(() => ({
     enabled: profile?.overlay?.enabled ?? true,
@@ -448,12 +470,12 @@ export default function AppSettingsModal({
   };
 
   const hasUnsavedChanges = useMemo(() => {
-    const origNickname = profile?.nickname ?? "";
+    const origNickname = (profile?.nickname ?? "").trim();
     const origAvatar = profile?.avatar ?? null;
-    const origCustomLink = profile?.customLink ?? "";
+    const origCustomLink = (profile?.customLink ?? "").trim();
     const origProfileColor = profile?.profileColor ?? "";
     const origShowRichPresence = profile?.showRichPresence ?? true;
-    const origCustomStatus = profile?.customStatus ?? "";
+    const origCustomStatus = (profile?.customStatus ?? "").trim();
 
     if (nickname.trim() !== origNickname) return true;
     if (avatar !== origAvatar) return true;
@@ -463,7 +485,10 @@ export default function AppSettingsModal({
     if (customStatus.trim() !== origCustomStatus) return true;
 
     const currentAudio = normalizeAudioSettings(audio);
-    const originalAudio = normalizeAudioSettings(profile?.audio);
+    const originalAudio = normalizeAudioSettings({
+      ...(profile?.audio || {}),
+      ...healedAudioBaseline,
+    });
 
     if (currentAudio.inputDeviceId !== originalAudio.inputDeviceId) return true;
     if (currentAudio.outputDeviceId !== originalAudio.outputDeviceId) return true;
@@ -507,7 +532,7 @@ export default function AppSettingsModal({
     if (currentGeneral.downloadDirectory !== originalGeneral.downloadDirectory) return true;
     if (currentGeneral.blurNsfwContent !== originalGeneral.blurNsfwContent) return true;
 
-    const originalKeybindings = Array.isArray(profile?.keybindings) ? profile.keybindings : [];
+    const originalKeybindings = initialKeybindingsRef.current || [];
     if (keybindings.length !== originalKeybindings.length) return true;
     for (let i = 0; i < keybindings.length; i++) {
       const kb = keybindings[i];
@@ -558,6 +583,7 @@ export default function AppSettingsModal({
     showRichPresence,
     customStatus,
     audio,
+    healedAudioBaseline,
     general,
     keybindings,
     overlay,
@@ -672,7 +698,7 @@ export default function AppSettingsModal({
       subtitle={t("settings.title")}
       sections={sections}
       activeSection={section}
-      onSectionChange={setSection}
+      onSectionChange={handleSectionChange}
       onClose={handleCloseAttempt}
       footer={renderFooter()}
       sidebarFooter={
@@ -723,6 +749,7 @@ export default function AppSettingsModal({
         <AudioTab
           audio={audio}
           setAudio={setAudio}
+          onAutoHealAudio={handleAutoHealAudio}
           inputs={inputs}
           outputs={outputs}
           videoInputs={videoInputs}
@@ -761,11 +788,44 @@ export default function AppSettingsModal({
       )}
 
       {section === "stickers" && (
-        <StickerManagerTab
-          profile={profile}
-          currentLayout={currentLayout}
-          onUpdateLayout={onUpdateLayout}
-        />
+        <div className="space-y-4">
+          <div className="onicord-settings-row flex-col items-stretch gap-2.5">
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-onicord-base/40 rounded-xl border border-onicord-border">
+              {[
+                { id: "stickers", label: t("settings.tabs.stickers", "Stickers") },
+                { id: "emojis", label: t("settings.tabs.emojis", "Emojis") },
+              ].map((tab) => {
+                const isActive = expressionsSubTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playNav("select");
+                      setExpressionsSubTab(tab.id);
+                    }}
+                    className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-onicord-accent/15 border-onicord-accent/40 text-onicord-accent font-semibold text-xs shadow-sm"
+                        : "border-transparent text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 font-medium text-xs"
+                    }`}
+                  >
+                    <span className="truncate block">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {expressionsSubTab === "stickers" ? (
+            <StickerManagerTab
+              profile={profile}
+              currentLayout={currentLayout}
+              onUpdateLayout={onUpdateLayout}
+            />
+          ) : (
+            <EmojiManagerTab profile={profile} />
+          )}
+        </div>
       )}
 
       {section === "plugins" && (

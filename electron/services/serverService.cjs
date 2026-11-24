@@ -129,6 +129,61 @@ class ServerService {
     return server;
   }
 
+  /**
+   * Creates a new P2P server populated with channels, roles, and settings
+   * imported from a Discord Server Template.
+   *
+   * @param {Object} importData - Normalized template preview + user selection
+   * @param {Object} profile - User profile data
+   * @returns {Promise<Object>} Newly created server metadata record
+   */
+  async createServerFromDiscordTemplate(importData, profile) {
+    const profileService = require("./profileService.cjs");
+    const discordImportService = require("./discordImportService.cjs");
+    await profileService.saveProfileToDisk(profile);
+
+    const payload = discordImportService.buildServerImportPayload(importData);
+    const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const store = this.getServerStore();
+    const ownerId = profile?.id || null;
+
+    const server = await store.add({
+      name: payload.name,
+      roomCode: code,
+      isOwner: true,
+      ownerId,
+      creatorId: ownerId,
+      creatorID: ownerId,
+      icon: payload.icon || null,
+    });
+
+    const roomMetaStore = new RoomMetaStore(app.getPath("userData"));
+    await roomMetaStore.bump(
+      code,
+      {
+        name: server.name,
+        icon: server.icon || payload.icon || null,
+        channels: payload.channels,
+        roles: payload.roles,
+        afkSettings: payload.afkSettings,
+        groupByRoles: payload.groupByRoles,
+        ownerId,
+        creatorId: ownerId,
+        creatorID: ownerId,
+      },
+      "local"
+    );
+
+    const firstTextOrForum =
+      payload.channels.find((c) => c.type === "text" || c.type === "forum") ||
+      payload.channels.find((c) => c.type !== "category");
+    if (firstTextOrForum?.id) {
+      await store.touch(code, { lastChannelId: firstTextOrForum.id });
+    }
+
+    return (await store.get(code)) || server;
+  }
+
   async leaveRoom(roomManager) {
     console.log(
       "\n============= [SERVICE COMMAND] EXECUTING ROOM: LEAVE (VIEW DEACTIVATE) ============="

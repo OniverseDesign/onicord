@@ -47,6 +47,16 @@ async function handleFilePacket(roomManager, peerId, type, payload) {
     return true;
   }
 
+  if (type === "emoji-request" && payload) {
+    roomManager.chatService.handleEmojiRequest(peerId, payload);
+    return true;
+  }
+
+  if (type === "emoji-response" && payload) {
+    roomManager.chatService.handleEmojiResponse(payload);
+    return true;
+  }
+
   return false;
 }
 

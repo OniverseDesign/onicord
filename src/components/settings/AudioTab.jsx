@@ -34,6 +34,7 @@ function buildDeviceOptions(devices, selectedId, selectedLabel, defaultLabel, fa
 export default function AudioTab({
   audio,
   setAudio,
+  onAutoHealAudio,
   inputs,
   outputs,
   videoInputs = [],
@@ -108,85 +109,61 @@ export default function AudioTab({
     }
   };
 
+  const applyAutoHeal = useCallback(
+    (patch) => {
+      if (onAutoHealAudio) {
+        onAutoHealAudio(patch);
+      } else {
+        setAudio((a) => ({ ...a, ...patch }));
+      }
+    },
+    [onAutoHealAudio, setAudio]
+  );
+
   // Auto-healing: if deviceId changed hash in Chromium, rebind using the label
   useEffect(() => {
-    if (!inputs || inputs.length === 0) return;
+    const healDevice = (devices, idKey, labelKey, logLabel) => {
+      if (!devices || devices.length === 0) return;
+      const currentId = audio[idKey];
+      const currentLabel = audio[labelKey];
+      if (!currentId || currentId === "default") return;
 
-    if (audio.inputDeviceId && audio.inputDeviceId !== "default") {
-      const existsById = inputs.some((d) => d.deviceId === audio.inputDeviceId);
-      if (!existsById && audio.inputDeviceLabel) {
-        const matchByLabel = inputs.find(
-          (d) => d.label && d.label.trim() === audio.inputDeviceLabel.trim()
+      const existsById = devices.some((d) => d.deviceId === currentId);
+      if (!existsById && currentLabel) {
+        const matchByLabel = devices.find(
+          (d) => d.label && d.label.trim() === currentLabel.trim()
         );
         if (matchByLabel) {
-          console.log(
-            `[AudioTab] Auto-healing input deviceId from label "${audio.inputDeviceLabel}": ${audio.inputDeviceId} -> ${matchByLabel.deviceId}`
-          );
-          setAudio((a) => ({
-            ...a,
-            inputDeviceId: matchByLabel.deviceId,
-          }));
+          if (logLabel) {
+            console.log(
+              `[AudioTab] Auto-healing ${logLabel} deviceId from label "${currentLabel}": ${currentId} -> ${matchByLabel.deviceId}`
+            );
+          }
+          applyAutoHeal({ [idKey]: matchByLabel.deviceId });
         }
-      } else if (existsById && !audio.inputDeviceLabel) {
-        const match = inputs.find((d) => d.deviceId === audio.inputDeviceId);
+      } else if (existsById && !currentLabel) {
+        const match = devices.find((d) => d.deviceId === currentId);
         if (match?.label) {
-          setAudio((a) => ({ ...a, inputDeviceLabel: match.label }));
+          applyAutoHeal({ [labelKey]: match.label });
         }
       }
-    }
-  }, [inputs, audio.inputDeviceId, audio.inputDeviceLabel, setAudio]);
+    };
 
-  useEffect(() => {
-    if (!outputs || outputs.length === 0) return;
-
-    if (audio.outputDeviceId && audio.outputDeviceId !== "default") {
-      const existsById = outputs.some((d) => d.deviceId === audio.outputDeviceId);
-      if (!existsById && audio.outputDeviceLabel) {
-        const matchByLabel = outputs.find(
-          (d) => d.label && d.label.trim() === audio.outputDeviceLabel.trim()
-        );
-        if (matchByLabel) {
-          console.log(
-            `[AudioTab] Auto-healing output deviceId from label "${audio.outputDeviceLabel}": ${audio.outputDeviceId} -> ${matchByLabel.deviceId}`
-          );
-          setAudio((a) => ({
-            ...a,
-            outputDeviceId: matchByLabel.deviceId,
-          }));
-        }
-      } else if (existsById && !audio.outputDeviceLabel) {
-        const match = outputs.find((d) => d.deviceId === audio.outputDeviceId);
-        if (match?.label) {
-          setAudio((a) => ({ ...a, outputDeviceLabel: match.label }));
-        }
-      }
-    }
-  }, [outputs, audio.outputDeviceId, audio.outputDeviceLabel, setAudio]);
-
-  // Auto-healing for camera deviceId hash changes
-  useEffect(() => {
-    if (!videoInputs || videoInputs.length === 0) return;
-
-    if (audio.videoDeviceId && audio.videoDeviceId !== "default") {
-      const existsById = videoInputs.some((d) => d.deviceId === audio.videoDeviceId);
-      if (!existsById && audio.videoDeviceLabel) {
-        const matchByLabel = videoInputs.find(
-          (d) => d.label && d.label.trim() === audio.videoDeviceLabel.trim()
-        );
-        if (matchByLabel) {
-          setAudio((a) => ({
-            ...a,
-            videoDeviceId: matchByLabel.deviceId,
-          }));
-        }
-      } else if (existsById && !audio.videoDeviceLabel) {
-        const match = videoInputs.find((d) => d.deviceId === audio.videoDeviceId);
-        if (match?.label) {
-          setAudio((a) => ({ ...a, videoDeviceLabel: match.label }));
-        }
-      }
-    }
-  }, [videoInputs, audio.videoDeviceId, audio.videoDeviceLabel, setAudio]);
+    healDevice(inputs, "inputDeviceId", "inputDeviceLabel", "input");
+    healDevice(outputs, "outputDeviceId", "outputDeviceLabel", "output");
+    healDevice(videoInputs, "videoDeviceId", "videoDeviceLabel", null);
+  }, [
+    inputs,
+    outputs,
+    videoInputs,
+    audio.inputDeviceId,
+    audio.inputDeviceLabel,
+    audio.outputDeviceId,
+    audio.outputDeviceLabel,
+    audio.videoDeviceId,
+    audio.videoDeviceLabel,
+    applyAutoHeal,
+  ]);
 
   // Build input options preserving saved device even if disconnected
   const inputOptions = useMemo(

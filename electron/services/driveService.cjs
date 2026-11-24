@@ -99,6 +99,8 @@ function getCategoryPaths(categories) {
     if (fs.existsSync(st)) paths.push({ src: st, dest: "stickers/stickers", isDir: true });
     const sp = path.join(ud, "sticker_packs");
     if (fs.existsSync(sp)) paths.push({ src: sp, dest: "stickers/sticker_packs", isDir: true });
+    const ep = path.join(ud, "emoji_packs");
+    if (fs.existsSync(ep)) paths.push({ src: ep, dest: "stickers/emoji_packs", isDir: true });
   }
 
   return paths;
@@ -124,6 +126,7 @@ async function estimateBackupSize(categories) {
   if (categories.includes("stickers")) {
     total += getDirSizeSync(path.join(ud, "stickers"));
     total += getDirSizeSync(path.join(ud, "sticker_packs"));
+    total += getDirSizeSync(path.join(ud, "emoji_packs"));
   }
 
   return total;

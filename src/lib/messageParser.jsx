@@ -1,5 +1,8 @@
 import React from "react";
 import ServerInviteCard from "../components/chat/ServerInviteCard";
+import InlineCustomEmoji from "../components/chat/subcomponents/InlineCustomEmoji";
+import Tooltip from "../components/ui/Tooltip";
+import { getEmojiShortcode } from "./emojiData";
 import { parseInviteUrl } from "./inviteUtils";
 
 export function escapeRegExp(string) {
@@ -110,11 +113,37 @@ const handleExternalLinkClick = (e, url) => {
   }
 };
 
+const CUSTOM_EMOJI_MESSAGE_REGEX =
+  /<(a?):([a-zA-Z0-9_-]{2,32}):([a-zA-Z0-9_-]{1,64}):(webp|png|gif|jpg|jpeg)>/gi;
+const UNICODE_EMOJI_SEQUENCE_REGEX =
+  /(?:\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?)*|[\u2600-\u27BF]\uFE0F?)/gu;
+
+export function isJumboEmojiOnlyMessage(text) {
+  if (!text || typeof text !== "string") return false;
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.includes("`")) return false;
+  if (/^(?:>|#{1,3}\s)/.test(trimmed)) return false;
+
+  let count = 0;
+  const withoutCustom = trimmed.replace(CUSTOM_EMOJI_MESSAGE_REGEX, () => {
+    count += 1;
+    return " ";
+  });
+  const remainder = withoutCustom.replace(UNICODE_EMOJI_SEQUENCE_REGEX, () => {
+    count += 1;
+    return " ";
+  });
+
+  if (remainder.trim().length > 0) return false;
+  return count >= 1 && count <= 3;
+}
+
 export function parseInlineStyles(
   text,
   allUsers = [],
   searchQuery = "",
   roles = [],
+  options = {},
 ) {
   if (!text) return [];
 
@@ -207,6 +236,30 @@ export function parseInlineStyles(
       return [linkToken, { type: "text", content: trailing }];
     }
     return linkToken;
+  });
+
+  // 4.5. Custom emojis (<:shortcode:id:ext> or <a:shortcode:id:gif>) BEFORE bold/italic/strike
+  tokens = parseRegexToken(
+    tokens,
+    /<(a?):([a-zA-Z0-9_-]{2,32}):([a-zA-Z0-9_-]{1,64}):(webp|png|gif|jpg|jpeg)>/gi,
+    (match) => ({
+      type: "customEmoji",
+      animated: match[1].toLowerCase() === "a",
+      shortcode: match[2],
+      id: match[3],
+      ext: match[4].toLowerCase(),
+    }),
+  );
+
+  // 4.6. Known Unicode emojis -> wrap with shortcode Tooltip on hover
+  tokens = parseRegexToken(tokens, UNICODE_EMOJI_SEQUENCE_REGEX, (match) => {
+    const shortcode = getEmojiShortcode(match[0]);
+    if (!shortcode) return null;
+    return {
+      type: "unicodeEmoji",
+      emoji: match[0],
+      shortcode,
+    };
   });
 
   // 5. Negrita + Cursiva (***...*** o ___...___)
@@ -329,21 +382,46 @@ export function parseInlineStyles(
       case "bold":
         return (
           <strong key={i} className="font-extrabold text-white select-text">
-            {parseInlineStyles(token.content, allUsers, searchQuery, roles)}
+            {parseInlineStyles(token.content, allUsers, searchQuery, roles, options)}
           </strong>
         );
       case "italic":
         return (
           <em key={i} className="italic text-onicord-text/95 select-text">
-            {parseInlineStyles(token.content, allUsers, searchQuery, roles)}
+            {parseInlineStyles(token.content, allUsers, searchQuery, roles, options)}
           </em>
         );
       case "strike":
         return (
           <span key={i} className="line-through text-onicord-muted/70 select-text">
-            {parseInlineStyles(token.content, allUsers, searchQuery, roles)}
+            {parseInlineStyles(token.content, allUsers, searchQuery, roles, options)}
           </span>
         );
+      case "customEmoji":
+        return (
+          <InlineCustomEmoji
+            key={i}
+            id={token.id}
+            shortcode={token.shortcode}
+            ext={token.ext}
+            animated={token.animated}
+            sizeClass={options.jumbo ? "w-10 h-10 mx-0.5" : "w-5 h-5 mx-0.5"}
+          />
+        );
+      case "unicodeEmoji": {
+        const codeLabel = `:${token.shortcode}:`;
+        return (
+          <Tooltip
+            key={i}
+            side="top"
+            content={<span className="font-mono text-xs">{codeLabel}</span>}
+          >
+            <span className="inline-block align-baseline cursor-default">
+              {token.emoji}
+            </span>
+          </Tooltip>
+        );
+      }
       case "markdownLink":
         return (
           <a

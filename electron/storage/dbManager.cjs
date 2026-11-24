@@ -101,6 +101,31 @@ const GLOBAL_SCHEMAS = {
       FOREIGN KEY (pack_id) REFERENCES sticker_packs(pack_id) ON DELETE SET NULL
     );
   `,
+  emojis: `
+    CREATE TABLE IF NOT EXISTS emoji_packs (
+      pack_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      author TEXT,
+      version TEXT DEFAULT '1.0.0',
+      icon_emoji_id TEXT,
+      position INTEGER NOT NULL DEFAULT 0,
+      is_builtin INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS emojis (
+      emoji_id TEXT PRIMARY KEY,
+      pack_id TEXT,
+      shortcode TEXT NOT NULL,
+      ext TEXT NOT NULL,
+      cas_hash TEXT NOT NULL,
+      animated INTEGER NOT NULL DEFAULT 0,
+      is_favorite INTEGER NOT NULL DEFAULT 0,
+      use_count INTEGER NOT NULL DEFAULT 0,
+      last_used_at INTEGER,
+      added_at INTEGER NOT NULL,
+      FOREIGN KEY (pack_id) REFERENCES emoji_packs(pack_id) ON DELETE SET NULL
+    );
+  `,
   addons: `
     CREATE TABLE IF NOT EXISTS installed_addons (
       plugin_id TEXT PRIMARY KEY,
@@ -593,7 +618,7 @@ class DbManager {
 
   /**
    * Opens or returns a cached personal/global database from `userData/db/<name>.db`.
-   * Valid names: 'app_config', 'profile', 'activity', 'stickers', 'addons', 'dashboard', 'servers_list', 'discover'
+   * Valid names: 'app_config', 'profile', 'activity', 'stickers', 'emojis', 'addons', 'dashboard', 'servers_list', 'discover'
    */
   getGlobalDb(rawName) {
     const name = String(rawName || "").replace(/\.db$/i, "");

@@ -8,6 +8,7 @@ const {
   shell,
   Tray,
   Menu,
+  Notification,
   globalShortcut,
 } = require("electron");
 const path = require("path");
@@ -307,6 +308,7 @@ function enterHeadlessNodeMode() {
   } catch (_) {}
   if (tray) {
     tray.setToolTip("Onicord (Modo Nodo)");
+    updateTrayMenu();
   }
 }
 
@@ -332,6 +334,7 @@ function restoreOrCreateWindow() {
     if (global.mainWindow.isMinimized()) global.mainWindow.restore();
     global.mainWindow.show();
     global.mainWindow.focus();
+    updateTrayMenu();
     return;
   }
 
@@ -339,7 +342,247 @@ function restoreOrCreateWindow() {
   if (updateService) {
     updateService.mainWindow = global.mainWindow;
   }
+  updateTrayMenu();
 }
+
+const TRAY_STATUS_LABELS = {
+  online: "Conectado",
+  idle: "Ausente",
+  dnd: "No molestar",
+  invisible: "Invisible",
+};
+
+async function setUserStatusFromTray(newStatus) {
+  try {
+    if (!profileService.activeProfile) {
+      await profileService.loadProfile();
+    }
+    if (!profileService.activeProfile) return;
+    await profileService.saveProfile(
+      { ...profileService.activeProfile, status: newStatus },
+      global.roomManager,
+    );
+  } catch (err) {
+    console.error("[Onicord Tray] Error cambiando estado:", err?.message || err);
+  } finally {
+    updateTrayMenu();
+  }
+}
+
+function showTrayNotification(title, body) {
+  try {
+    if (Notification.isSupported()) {
+      new Notification({ title, body }).show();
+    }
+  } catch (_) {}
+}
+
+function sendActionToRenderer(channel, payload) {
+  const win = global.mainWindow;
+  if (win && !win.isDestroyed()) {
+    if (win.webContents.isLoading()) {
+      win.webContents.once("did-finish-load", () => {
+        if (!win.isDestroyed()) win.webContents.send(channel, payload);
+      });
+    } else {
+      win.webContents.send(channel, payload);
+    }
+    return true;
+  }
+  return false;
+}
+
+function buildTrayContextMenu() {
+  const win = global.mainWindow;
+  const hasWindow = Boolean(win && !win.isDestroyed());
+  const isVisible = hasWindow && win.isVisible();
+  const isHeadless = Boolean(global.isHeadlessMode);
+  const currentStatus = profileService.activeProfile?.status || "online";
+  const statusLabel = TRAY_STATUS_LABELS[currentStatus] || "Conectado";
+  const localVoice = global.roomManager?.voiceService?.localVoice;
+  const inVoice = Boolean(localVoice?.channelId);
+
+  const template = [
+    {
+      label: isHeadless ? `Onicord (Modo Nodo) — ${statusLabel}` : `Onicord — ${statusLabel}`,
+      enabled: false,
+    },
+    { type: "separator" },
+    isVisible
+      ? {
+          label: "Ocultar en bandeja",
+          click: () => {
+            if (global.mainWindow && !global.mainWindow.isDestroyed()) {
+              global.mainWindow.hide();
+              updateTrayMenu();
+            }
+          },
+        }
+      : {
+          label: "Mostrar Onicord",
+          click: () => restoreOrCreateWindow(),
+        },
+    {
+      label: isHeadless ? "Modo Nodo activo" : "Entrar en Modo Nodo",
+      enabled: !isHeadless,
+      click: () => {
+        if (global.isHeadlessMode) return;
+        enterHeadlessNodeMode();
+        if (global.mainWindow && !global.mainWindow.isDestroyed()) {
+          global.mainWindow.destroy();
+        }
+        updateTrayMenu();
+      },
+    },
+  ];
+
+  if (inVoice) {
+    template.push(
+      { type: "separator" },
+      {
+        label: "Silenciar micrófono",
+        type: "checkbox",
+        checked: Boolean(localVoice.muted),
+        click: () => {
+          sendActionToRenderer("voice:toggle-media", { action: "toggle_mute" });
+          setTimeout(updateTrayMenu, 150);
+        },
+      },
+      {
+        label: "Ensordecer audio",
+        type: "checkbox",
+        checked: Boolean(localVoice.deafened),
+        click: () => {
+          sendActionToRenderer("voice:toggle-media", { action: "toggle_deafen" });
+          setTimeout(updateTrayMenu, 150);
+        },
+      },
+      {
+        label: "Desconectar de voz",
+        click: () => {
+          const sent = sendActionToRenderer("voice:leave-channel");
+          if (!sent) {
+            global.roomManager?.leaveVoice?.().catch(() => {});
+          }
+          setTimeout(updateTrayMenu, 150);
+        },
+      },
+    );
+  }
+
+  template.push(
+    { type: "separator" },
+    {
+      label: "Estado",
+      submenu: [
+        {
+          label: "Conectado",
+          type: "radio",
+          checked: currentStatus === "online",
+          click: () => setUserStatusFromTray("online"),
+        },
+        {
+          label: "Ausente",
+          type: "radio",
+          checked: currentStatus === "idle",
+          click: () => setUserStatusFromTray("idle"),
+        },
+        {
+          label: "No molestar",
+          type: "radio",
+          checked: currentStatus === "dnd",
+          click: () => setUserStatusFromTray("dnd"),
+        },
+        {
+          label: "Invisible",
+          type: "radio",
+          checked: currentStatus === "invisible",
+          click: () => setUserStatusFromTray("invisible"),
+        },
+      ],
+    },
+    { type: "separator" },
+    {
+      label: "Abrir Ajustes",
+      click: () => {
+        restoreOrCreateWindow();
+        sendActionToRenderer("onicord:mcp-trigger-action", { action: "open_settings" });
+      },
+    },
+    {
+      label: "Buscar actualizaciones",
+      click: async () => {
+        try {
+          if (!updateService?.checkForUpdates) return;
+          const res = await updateService.checkForUpdates();
+          if (res?.status === "ok" && res?.updateInfo?.version) {
+            showTrayNotification(
+              "Actualización disponible",
+              `Onicord v${res.updateInfo.version} está lista para descargar.`,
+            );
+          } else if (res?.status === "not-available") {
+            showTrayNotification(
+              "Onicord está actualizado",
+              `Ya tienes la última versión (v${res.version || app.getVersion()}).`,
+            );
+          } else if (res?.status === "dev-mode") {
+            showTrayNotification(
+              "Modo desarrollo",
+              res.message || "Las actualizaciones automáticas están deshabilitadas en desarrollo.",
+            );
+          } else if (res?.status === "error") {
+            showTrayNotification(
+              "Error al buscar actualizaciones",
+              res.error || "No se pudo comprobar si hay actualizaciones.",
+            );
+          }
+        } catch (err) {
+          showTrayNotification(
+            "Error al buscar actualizaciones",
+            err?.message || "No se pudo comprobar si hay actualizaciones.",
+          );
+        }
+      },
+    },
+    {
+      label: "Abrir carpeta de datos",
+      click: () => {
+        shell.openPath(app.getPath("userData")).catch(() => {});
+      },
+    },
+    {
+      label: "Reiniciar Onicord",
+      click: () => {
+        global.isQuitting = true;
+        global.isHeadlessMode = false;
+        app.relaunch();
+        app.exit(0);
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Salir",
+      click: () => {
+        global.isQuitting = true;
+        global.isHeadlessMode = false;
+        app.quit();
+      },
+    },
+  );
+
+  return Menu.buildFromTemplate(template);
+}
+
+function updateTrayMenu() {
+  if (!tray || tray.isDestroyed()) return;
+  try {
+    tray.setContextMenu(buildTrayContextMenu());
+  } catch (err) {
+    console.warn("[Onicord Tray] Error actualizando menú:", err?.message || err);
+  }
+}
+
+global.updateTrayMenu = updateTrayMenu;
 
 function createTray() {
   if (tray) return;
@@ -358,28 +601,15 @@ function createTray() {
       tray.setImage(global.currentAppIcon.resize({ width: 32, height: 32, quality: "best" }));
     } catch (_) {}
   }
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: "Mostrar Onicord",
-      click: () => restoreOrCreateWindow(),
-    },
-    {
-      label: "Salir",
-      click: () => {
-        global.isQuitting = true;
-        global.isHeadlessMode = false;
-        app.quit();
-      },
-    },
-  ]);
 
   tray.setToolTip(global.isHeadlessMode ? "Onicord (Modo Nodo)" : "Onicord");
-  tray.setContextMenu(contextMenu);
+  updateTrayMenu();
 
   const restoreWindow = () => restoreOrCreateWindow();
 
   tray.on("click", restoreWindow);
   tray.on("double-click", restoreWindow);
+  tray.on("right-click", () => updateTrayMenu());
 }
 
 function createWindow() {
@@ -854,8 +1084,17 @@ function createWindow() {
     }
   });
 
+  global.mainWindow.on("show", () => {
+    updateTrayMenu();
+  });
+
+  global.mainWindow.on("hide", () => {
+    updateTrayMenu();
+  });
+
   global.mainWindow.on("closed", () => {
     global.mainWindow = null;
+    updateTrayMenu();
   });
 }
 

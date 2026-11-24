@@ -81,6 +81,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   listServers: () => ipcRenderer.invoke("servers:list"),
   createServer: (name, profile, icon) =>
     ipcRenderer.invoke("servers:create", name, profile, icon),
+  previewDiscordTemplate: (input) =>
+    ipcRenderer.invoke("servers:preview-discord-template", input),
+  importDiscordTemplate: (importData, profile) =>
+    ipcRenderer.invoke("servers:import-discord-template", importData, profile),
   joinServer: (code, name, profile) =>
     ipcRenderer.invoke("servers:join", code, name, profile),
   enterServer: (serverId, profile) =>
@@ -202,6 +206,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("delete-sticker-local", data),
   deleteLocalSticker: (data) =>
     ipcRenderer.invoke("delete-sticker-local", data),
+
+  saveEmojiLocal: (data) => ipcRenderer.invoke("save-emoji-local", data),
+  getEmojiPath: (id) => ipcRenderer.invoke("get-emoji-path", id),
+  requestEmoji: (data) => ipcRenderer.invoke("request-emoji", data),
+  listLocalEmojis: () => ipcRenderer.invoke("list-local-emojis"),
+  updateEmojiShortcode: (data) =>
+    ipcRenderer.invoke("update-emoji-shortcode", data),
+  deleteEmojiLocal: (data) => ipcRenderer.invoke("delete-emoji-local", data),
+  exportEmojiPack: (data) => ipcRenderer.invoke("export-emoji-pack", data),
+  importEmojiPackRaw: (data) =>
+    ipcRenderer.invoke("import-emoji-pack-raw", data),
+  extractEmojiZip: (payload) =>
+    ipcRenderer.invoke("extract-emoji-zip", payload),
+  importMediaPackAuto: (data) =>
+    ipcRenderer.invoke("import-media-pack-auto", data),
 
   extractMusicTrack: (url) => ipcRenderer.invoke("music:extract-track", url),
   resolveAndPrepareStream: (url) => ipcRenderer.invoke("music:resolve-prepare", url),
@@ -452,6 +471,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   installPluginDialog: () => ipcRenderer.invoke("plugins:install-dialog"),
   downloadAndInstallPlugin: (pluginId) => ipcRenderer.invoke("plugins:download-install", pluginId),
   downloadAndInstallStickerPack: (downloadUrl) => ipcRenderer.invoke("stickers:download-install", downloadUrl),
+  downloadAndInstallEmojiPack: (downloadUrl) => ipcRenderer.invoke("emojis:download-install", downloadUrl),
   packPluginDialog: () => ipcRenderer.invoke("plugins:pack-dialog"),
   uninstallPlugin: (pluginId) => ipcRenderer.invoke("plugins:uninstall", pluginId),
   togglePlugin: (pluginId, enabled) => ipcRenderer.invoke("plugins:toggle", pluginId, enabled),

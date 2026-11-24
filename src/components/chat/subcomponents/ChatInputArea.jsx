@@ -7,6 +7,7 @@ import QuickSuggestions from "../QuickSuggestions";
 import FloatingFormattingBar from "../FloatingFormattingBar";
 import CommandsPopover from "../CommandsPopover";
 import MentionsPopover from "../MentionsPopover";
+import EmojiAutocompletePopover from "../EmojiAutocompletePopover";
 import EmojiPickerPopover from "../../ui/EmojiPickerPopover";
 import StickerPopover from "../StickerPopover";
 import Tooltip from "../../ui/Tooltip";
@@ -48,6 +49,8 @@ export default function ChatInputArea({
   setShowCommandsPopup,
   showMentionsPopup,
   setShowMentionsPopup,
+  emojiQuery = null,
+  setEmojiQuery,
   emojisTargetRect,
   setEmojisTargetRect,
   stickersTargetRect,
@@ -91,12 +94,16 @@ export default function ChatInputArea({
   const blurTimeoutRef = useRef(null);
   const commandsPopoverRef = useRef(null);
   const mentionsPopoverRef = useRef(null);
+  const emojiAutocompleteRef = useRef(null);
 
   const handleContentKeyDown = (e) => {
     if (commandsPopoverRef.current?.handleKeyDown?.(e)) {
       return;
     }
     if (mentionsPopoverRef.current?.handleKeyDown?.(e)) {
+      return;
+    }
+    if (emojiAutocompleteRef.current?.handleKeyDown?.(e)) {
       return;
     }
     handleKeyDown?.(e);
@@ -291,6 +298,18 @@ export default function ChatInputArea({
         roles={server?.roles || []}
         setShowMentionsPopup={setShowMentionsPopup}
         tyrannyInputRef={tyrannyInputRef}
+        t={t}
+      />
+
+      <EmojiAutocompletePopover
+        ref={emojiAutocompleteRef}
+        emojiQuery={emojiQuery}
+        input={input}
+        setInput={setInput}
+        setEmojiQuery={setEmojiQuery}
+        tyrannyInputRef={tyrannyInputRef}
+        profile={profile}
+        peers={peers}
         t={t}
       />
 

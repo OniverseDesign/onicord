@@ -2,6 +2,7 @@ const { app, ipcMain } = require("electron");
 const net = require("net");
 const { RoomManager } = require("../../p2p/roomManager.cjs");
 const serverService = require("../../services/serverService.cjs");
+const discordImportService = require("../../services/discordImportService.cjs");
 const cryptoService = require("../../services/cryptoService.cjs");
 const ytdlpService = require("../../services/ytdlpService.cjs");
 const { RoomMetaStore } = require("../../p2p/roomMetaStore.cjs");
@@ -306,6 +307,14 @@ function registerP2PServerHandlers() {
 
   ipcMain.handle("servers:create", async (_event, name, profile, icon) => {
     return serverService.createServer(name, profile, icon);
+  });
+
+  ipcMain.handle("servers:preview-discord-template", async (_event, input) => {
+    return discordImportService.fetchDiscordTemplate(input);
+  });
+
+  ipcMain.handle("servers:import-discord-template", async (_event, importData, profile) => {
+    return serverService.createServerFromDiscordTemplate(importData, profile);
   });
 
   ipcMain.handle("room:leave", async () => {

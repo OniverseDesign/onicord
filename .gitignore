@@ -33,6 +33,7 @@ client_secret_*.json
 
 
 stickers/
+emojis/
 comments-report.json
 extract-comments.js
 

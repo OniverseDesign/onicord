@@ -105,9 +105,7 @@ export default function ModalShell({
   const handleSelectFeature = useCallback(
     (sectionId, featureId) => {
       soundEngine.playNav("select");
-      if (activeSection !== sectionId) {
-        onSectionChange?.(sectionId);
-      }
+      onSectionChange?.(sectionId, featureId);
       setTimeout(() => {
         if (!contentRef.current) return;
         const target = contentRef.current.querySelector(

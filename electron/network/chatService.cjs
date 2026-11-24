@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
 const { checkAdminPermission } = require("../p2p/roomMetaStore.cjs");
+const emojiService = require("../services/emojiService.cjs");
 
 class ChatService {
   constructor(p2pService, chatStore, fileIndexStore, roomMetaStore, callbacks) {
@@ -241,12 +242,16 @@ class ChatService {
       );
       messagesAdded = added;
 
-      // Auto-download any missing stickers contained in the synced messages
+      // Auto-download any missing stickers and custom emojis contained in the synced messages
       for (const msg of filteredIncoming) {
         if (!msg?.text) continue;
         const stickerInfo = this._extractStickerInfo(msg.text, code);
         if (stickerInfo) {
           this.requestSticker(stickerInfo.stickerId, stickerInfo.ext, fromPeerId);
+        }
+        const customEmojis = this._extractCustomEmojis(msg.text, code);
+        for (const em of customEmojis) {
+          this.requestEmoji(em.emojiId, em.ext, fromPeerId, em.shortcode, em.animated);
         }
       }
     }
@@ -886,6 +891,42 @@ class ChatService {
     if (stickerInfo) {
       this.requestSticker(stickerInfo.stickerId, stickerInfo.ext, fromPeerId);
     }
+
+    const customEmojis = this._extractCustomEmojis(message.text, payload.roomCode);
+    for (const em of customEmojis) {
+      this.requestEmoji(em.emojiId, em.ext, fromPeerId, em.shortcode, em.animated);
+    }
+  }
+
+  _extractCustomEmojis(text, roomCode) {
+    if (!text || typeof text !== "string") return [];
+    let plain = text.trim();
+    if (plain.startsWith("[E2EE]:")) {
+      try {
+        const cryptoService = require("../services/cryptoService.cjs");
+        const dec = cryptoService.decrypt(roomCode, plain);
+        if (dec) plain = dec.trim();
+      } catch (_) {}
+    }
+    if (!plain || typeof plain !== "string" || !plain.includes("<")) return [];
+
+    const regex = /<(a?):([a-zA-Z0-9_-]{2,32}):([a-zA-Z0-9_-]{1,64}):(webp|png|gif|jpg|jpeg)>/gi;
+    const seen = new Set();
+    const list = [];
+    let match;
+
+    while ((match = regex.exec(plain)) !== null) {
+      const emojiId = match[3].trim();
+      if (seen.has(emojiId)) continue;
+      seen.add(emojiId);
+      list.push({
+        animated: match[1].toLowerCase() === "a",
+        shortcode: match[2].trim(),
+        emojiId,
+        ext: match[4].toLowerCase(),
+      });
+    }
+    return list;
   }
 
   _extractStickerInfo(text, roomCode) {
@@ -1041,6 +1082,102 @@ class ChatService {
       }
     } catch (err) {
       console.error("[Sticker Receive Error]", err.message);
+    }
+  }
+
+  requestEmoji(
+    emojiId,
+    ext = "webp",
+    preferredPeerId = null,
+    shortcode = null,
+    animated = false
+  ) {
+    if (!emojiId) return;
+    const cleanId = String(emojiId)
+      .replace(/\.(png|jpg|jpeg|gif|webp)$/i, "")
+      .trim();
+    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(cleanId)) return;
+
+    const allowedExts = new Set(["webp", "png", "jpg", "jpeg", "gif"]);
+    const cleanExt = String(ext || "webp").toLowerCase().replace(/^\./, "");
+    const safeExt = allowedExts.has(cleanExt) ? cleanExt : "webp";
+
+    if (emojiService.getEmojiPathSync(cleanId)) return;
+
+    if (!this._requestedEmojis) this._requestedEmojis = new Map();
+    const now = Date.now();
+    const lastEntry = this._requestedEmojis.get(cleanId);
+    if (lastEntry && now - lastEntry.requestedAt < 6000) {
+      return;
+    }
+    this._requestedEmojis.set(cleanId, {
+      requestedAt: now,
+      shortcode: shortcode || cleanId,
+      animated: Boolean(animated),
+    });
+
+    const payload = { emojiId: cleanId, ext: safeExt };
+    if (preferredPeerId) {
+      this.p2p._sendToPeer(preferredPeerId, "emoji-request", payload);
+    }
+    this.p2p._broadcast("emoji-request", payload, this.roomCode);
+  }
+
+  handleEmojiRequest(peerId, payload) {
+    try {
+      const cleanId = String(payload?.emojiId || "").trim();
+      if (!/^[a-zA-Z0-9_-]{1,64}$/.test(cleanId)) return;
+
+      const record = emojiService.getEmojiRecordSync(cleanId);
+      if (!record || !record.localPath || !fs.existsSync(record.localPath)) {
+        return;
+      }
+
+      const stat = fs.statSync(record.localPath);
+      if (stat.size > 2 * 1024 * 1024) return;
+
+      const buffer = fs.readFileSync(record.localPath);
+      this.p2p._sendToPeer(peerId, "emoji-response", {
+        emojiId: cleanId,
+        shortcode: record.shortcode,
+        ext: record.ext,
+        animated: record.animated,
+        base64Data: buffer.toString("base64"),
+      });
+    } catch (err) {
+      console.error("[Emoji Send Error]", err.message);
+    }
+  }
+
+  async handleEmojiResponse(payload) {
+    try {
+      if (!payload?.emojiId || !payload?.base64Data) return;
+      const cleanId = String(payload.emojiId || "").trim();
+      if (!/^[a-zA-Z0-9_-]{1,64}$/.test(cleanId)) return;
+
+      const allowedExts = new Set(["webp", "png", "jpg", "jpeg", "gif"]);
+      const ext = String(payload?.ext || "webp")
+        .toLowerCase()
+        .replace(/^\./, "");
+      if (!allowedExts.has(ext)) return;
+
+      if (!this._requestedEmojis || !this._requestedEmojis.has(cleanId)) return;
+      const meta = this._requestedEmojis.get(cleanId) || {};
+
+      const buffer = Buffer.from(payload.base64Data, "base64");
+      if (!buffer.length || buffer.length > 2 * 1024 * 1024) return;
+
+      await emojiService.saveEmojiLocal({
+        id: cleanId,
+        shortcode: payload.shortcode || meta.shortcode || cleanId,
+        ext,
+        animated: Boolean(payload.animated || meta.animated),
+        base64Data: payload.base64Data,
+      });
+
+      this._requestedEmojis.delete(cleanId);
+    } catch (err) {
+      console.error("[Emoji Receive Error]", err.message);
     }
   }
 }

@@ -1,10 +1,16 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   getSelectionCharacterOffsets,
   setSelectionOffsets,
   renderHTMLForInput,
   applyMarkdownFormat,
 } from "../../../lib/inputFormatter";
+import {
+  getActiveEmojiQuery,
+  replaceCompletedShortcodeAtCursor,
+  searchEmojis,
+  addRecentEmoji,
+} from "../../../lib/emojiData";
 
 export function useChatComposer({ profile, peers }) {
   const [input, setInput] = useState("");
@@ -12,11 +18,28 @@ export function useChatComposer({ profile, peers }) {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [showCommandsPopup, setShowCommandsPopup] = useState(false);
   const [showMentionsPopup, setShowMentionsPopup] = useState(false);
+  const [emojiQuery, setEmojiQuery] = useState(null);
   const [stickersTargetRect, setStickersTargetRect] = useState(null);
   const [emojisTargetRect, setEmojisTargetRect] = useState(null);
 
   const tyrannyInputRef = useRef(null);
   const isLocalTypingRef = useRef(false);
+  const emojiQueryRef = useRef(null);
+
+  useEffect(() => {
+    emojiQueryRef.current = emojiQuery;
+  }, [emojiQuery]);
+
+  const allUsers = useMemo(
+    () => [
+      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
+      ...Object.values(peers || {}).map((p) => ({
+        id: p.id,
+        nickname: p.nickname,
+      })),
+    ],
+    [profile, peers]
+  );
 
   // Measure selection and popover position directly over highlighted text
   const handleInputSelection = useCallback(() => {
@@ -109,13 +132,32 @@ export function useChatComposer({ profile, peers }) {
       if (!inputEl) return;
 
       const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+      if (!sel || sel.rangeCount === 0) {
         setSelection((prev) => (prev ? null : prev));
         return;
       }
 
       if (!inputEl.contains(sel.anchorNode) || !inputEl.contains(sel.focusNode)) {
         setSelection((prev) => (prev ? null : prev));
+        return;
+      }
+
+      if (sel.isCollapsed) {
+        setSelection((prev) => (prev ? null : prev));
+        const activeEmoji = emojiQueryRef.current;
+        if (activeEmoji) {
+          const offsets = getSelectionCharacterOffsets(inputEl);
+          const currentActive = getActiveEmojiQuery(
+            inputEl.textContent || "",
+            offsets.start
+          );
+          if (
+            !currentActive ||
+            currentActive.startIndex !== activeEmoji.startIndex
+          ) {
+            setEmojiQuery(null);
+          }
+        }
         return;
       }
 
@@ -159,13 +201,6 @@ export function useChatComposer({ profile, peers }) {
       return;
     }
 
-    const allUsers = [
-      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
-      ...Object.values(peers || {}).map((p) => ({
-        id: p.id,
-        nickname: p.nickname,
-      })),
-    ];
     const targetHTML = renderHTMLForInput(input, allUsers);
 
     const hasFormattingSpans = targetHTML.includes("<span");
@@ -178,22 +213,83 @@ export function useChatComposer({ profile, peers }) {
       el.innerHTML = targetHTML;
       setSelectionOffsets(el, offsets.start, offsets.end);
     }
-  }, [input, profile, peers]);
+  }, [input, allUsers]);
 
   // Track /commands and @mentions trigger
   useEffect(() => {
     if (!input) {
       setShowCommandsPopup(false);
       setShowMentionsPopup(false);
+      setEmojiQuery(null);
       return;
     }
 
     const partes = input.split(" ");
     const ultimaPalabra = partes[partes.length - 1];
 
-    setShowCommandsPopup(partes.length === 1 && input.startsWith("/"));
-    setShowMentionsPopup(ultimaPalabra.startsWith("@"));
+    const isCommand = partes.length === 1 && input.startsWith("/");
+    const isMention = ultimaPalabra.startsWith("@");
+
+    setShowCommandsPopup(isCommand);
+    setShowMentionsPopup(isMention);
+    if (isCommand || isMention) {
+      setEmojiQuery(null);
+    }
   }, [input]);
+
+  // Process typed input for live :shortcode: replacement and :query autocomplete
+  const processComposerInput = useCallback(
+    (rawText) => {
+      const el = tyrannyInputRef.current;
+      let cursorPos = rawText.length;
+      let isCollapsed = true;
+
+      if (el) {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          if (
+            el.contains(range.startContainer) &&
+            el.contains(range.endContainer)
+          ) {
+            const offsets = getSelectionCharacterOffsets(el);
+            cursorPos = offsets.end;
+            isCollapsed = offsets.start === offsets.end;
+          }
+        }
+      }
+
+      if (isCollapsed) {
+        const replaced = replaceCompletedShortcodeAtCursor(rawText, cursorPos);
+        if (replaced) {
+          if (el) {
+            el.innerHTML = renderHTMLForInput(replaced.newText, allUsers);
+            setSelectionOffsets(el, replaced.newCursorPos, replaced.newCursorPos);
+          }
+          addRecentEmoji(replaced.emoji);
+          isLocalTypingRef.current = false;
+          setInput(replaced.newText);
+          setEmojiQuery(null);
+          setShowMentionsPopup(false);
+          setShowCommandsPopup(false);
+          return replaced.newText;
+        }
+      }
+
+      isLocalTypingRef.current = true;
+      setInput(rawText);
+
+      const active = isCollapsed ? getActiveEmojiQuery(rawText, cursorPos) : null;
+      if (active && searchEmojis(active.query, { limit: 1 }).length > 0) {
+        setEmojiQuery(active);
+      } else {
+        setEmojiQuery(null);
+      }
+
+      return rawText;
+    },
+    [allUsers]
+  );
 
   // Insert emoji at caret
   const handleSelectEmoji = useCallback((emoji) => {
@@ -219,6 +315,7 @@ export function useChatComposer({ profile, peers }) {
       el.innerText += emoji;
     }
 
+    setEmojiQuery(null);
     setInput(el.textContent || "");
   }, []);
 
@@ -252,20 +349,13 @@ export function useChatComposer({ profile, peers }) {
     setInput(newText);
     setSelection(null);
 
-    const allUsers = [
-      { id: profile?.id, nickname: profile?.nickname || "Usuario" },
-      ...Object.values(peers || {}).map((p) => ({
-        id: p.id,
-        nickname: p.nickname,
-      })),
-    ];
     inputEl.innerHTML = renderHTMLForInput(newText, allUsers);
 
     requestAnimationFrame(() => {
       inputEl.focus();
       setSelectionOffsets(inputEl, newStart, newEnd);
     });
-  }, [input, peers, profile, selection]);
+  }, [allUsers, input, selection]);
 
   return {
     input,
@@ -278,6 +368,8 @@ export function useChatComposer({ profile, peers }) {
     setShowCommandsPopup,
     showMentionsPopup,
     setShowMentionsPopup,
+    emojiQuery,
+    setEmojiQuery,
     stickersTargetRect,
     setStickersTargetRect,
     emojisTargetRect,
@@ -285,6 +377,7 @@ export function useChatComposer({ profile, peers }) {
     tyrannyInputRef,
     isLocalTypingRef,
     handleInputSelection,
+    processComposerInput,
     handleSelectEmoji,
     applyFormatting,
   };

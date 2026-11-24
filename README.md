@@ -64,7 +64,7 @@
 
 **Onicord** is a sovereign, serverless communication suite built for users who value privacy, audio clarity, and independence. Unlike centralized platforms (such as Discord, Teams, or Slack), Onicord requires **no central accounts, no cloud servers, and no phone numbers**.
 
-All voice, chat, file sharing, screen streaming, torrent cinema, and synchronized music flow directly between participants over encrypted P2P swarms. **There are no paywalls, artificial tier limits, or paid subscriptions**: transfer files of any size, use animated avatars and server banners, install community sticker packs, and broadcast at 60 FPS completely free.
+All voice, chat, file sharing, screen streaming, torrent cinema, and synchronized music flow directly between participants over encrypted P2P swarms. **There are no paywalls, artificial tier limits, or paid subscriptions**: transfer files of any size, use animated avatars and server banners, install community sticker and custom emoji packs, and broadcast at 60 FPS completely free.
 
 ---
 
@@ -121,6 +121,7 @@ Official release assets are available on the [Latest Release Page](https://githu
 | **Onicord Client** | Main desktop application, P2P mesh engine, and native MCP server. | [OniverseDesign/onicord](https://github.com/OniverseDesign/onicord) |
 | **Onicord Addons** | Official catalog, SDK documentation, and open-source `.onipkg` plugins. | [OniverseDesign/onicord-addons](https://github.com/OniverseDesign/onicord-addons) |
 | **Onicord Stickers** | Official and community sticker packs repository (`.onipkg`). | [OniverseDesign/onicord-stickers](https://github.com/OniverseDesign/onicord-stickers) |
+| **Onicord Emojis** | Official and community custom emoji & emote packs repository (`.onipkg`). | [OniverseDesign/onicord-emojis](https://github.com/OniverseDesign/onicord-emojis) |
 
 ---
 

@@ -25,6 +25,7 @@ import { soundEngine } from "../../../lib/soundEngine";
 import { triggerServerFlameInteraction } from "../../../lib/flameService";
 import { normalizeChatMessage } from "../../../hooks/useChatMessages";
 import { useChatComposer } from "../composer/useChatComposer";
+import { replaceShortcodesInText } from "../../../lib/emojiData";
 
 export default function ThreadSidePanel({
   parentMessage,
@@ -52,13 +53,15 @@ export default function ThreadSidePanel({
     setShowCommandsPopup,
     showMentionsPopup,
     setShowMentionsPopup,
+    emojiQuery,
+    setEmojiQuery,
     stickersTargetRect,
     setStickersTargetRect,
     emojisTargetRect,
     setEmojisTargetRect,
     tyrannyInputRef,
-    isLocalTypingRef,
     handleInputSelection,
+    processComposerInput,
     handleSelectEmoji,
     applyFormatting,
   } = useChatComposer({ profile, peers });
@@ -167,7 +170,7 @@ export default function ThreadSidePanel({
 
   const handleSend = (e) => {
     if (e) e.preventDefault();
-    const text = input.trim();
+    let text = input.trim();
     if (!text || !parentMessage) return;
 
     if (text.startsWith("/")) {
@@ -215,6 +218,7 @@ export default function ThreadSidePanel({
           setReplyTarget(null);
           setShowCommandsPopup(false);
           setShowMentionsPopup(false);
+          setEmojiQuery(null);
           if (tyrannyInputRef.current) {
             tyrannyInputRef.current.innerText = "";
           }
@@ -231,12 +235,15 @@ export default function ThreadSidePanel({
         setReplyTarget(null);
         setShowCommandsPopup(false);
         setShowMentionsPopup(false);
+        setEmojiQuery(null);
         if (tyrannyInputRef.current) {
           tyrannyInputRef.current.innerText = "";
         }
         return;
       }
     }
+
+    text = replaceShortcodesInText(text);
 
     let replyData = null;
     if (replyTarget) {
@@ -281,6 +288,7 @@ export default function ThreadSidePanel({
     setReplyTarget(null);
     setShowCommandsPopup(false);
     setShowMentionsPopup(false);
+    setEmojiQuery(null);
     if (tyrannyInputRef.current) {
       tyrannyInputRef.current.innerText = "";
     }
@@ -312,9 +320,8 @@ export default function ThreadSidePanel({
   };
 
   const handleInputChange = (e) => {
-    isLocalTypingRef.current = true;
-    const text = e.currentTarget.innerText || "";
-    setInput(text);
+    const rawVal = e.currentTarget.textContent || "";
+    processComposerInput(rawVal);
   };
 
   const handlePaste = (e) => {
@@ -893,6 +900,8 @@ export default function ThreadSidePanel({
         setShowCommandsPopup={setShowCommandsPopup}
         showMentionsPopup={showMentionsPopup}
         setShowMentionsPopup={setShowMentionsPopup}
+        emojiQuery={emojiQuery}
+        setEmojiQuery={setEmojiQuery}
         emojisTargetRect={emojisTargetRect}
         setEmojisTargetRect={setEmojisTargetRect}
         stickersTargetRect={stickersTargetRect}

@@ -654,7 +654,16 @@ export function useChatMessages({
     });
 
     const unsubSyncComplete = api.onSyncComplete?.((data) => {
-      if (data?.type === "sticker_pack_imported" || data?.type === "sticker_imported") return;
+      if (
+        data?.type === "sticker_pack_imported" ||
+        data?.type === "sticker_imported" ||
+        data?.type === "emoji_pack_imported" ||
+        data?.type === "emoji_imported" ||
+        data?.type === "emoji_updated" ||
+        data?.type === "emoji_deleted"
+      ) {
+        return;
+      }
       fetchFreshHistory(false);
     });
 

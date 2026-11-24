@@ -1,8 +1,9 @@
 import React, { useMemo } from "react";
-import { parseInlineStyles } from "../../../lib/messageParser";
+import { parseInlineStyles, isJumboEmojiOnlyMessage } from "../../../lib/messageParser";
 
 export function parseBlocks(text, allUsers, searchQuery, roles = []) {
   if (!text) return [];
+  const jumbo = isJumboEmojiOnlyMessage(text);
 
   const codeBlockRegex = /```([\s\S]*?)```/g;
   const blocks = [];
@@ -145,10 +146,10 @@ export function parseBlocks(text, allUsers, searchQuery, roles = []) {
         return (
           <div
             key={i}
-            className="min-h-[1.2em] text-left"
-            style={{ lineHeight: "var(--onicord-chat-line-height, 1.5)" }}
+            className={`min-h-[1.2em] text-left ${jumbo ? "text-3xl leading-snug" : ""}`}
+            style={{ lineHeight: jumbo ? "1.25" : "var(--onicord-chat-line-height, 1.5)" }}
           >
-            {parseInlineStyles(block.content, allUsers, searchQuery, roles)}
+            {parseInlineStyles(block.content, allUsers, searchQuery, roles, { jumbo })}
           </div>
         );
     }

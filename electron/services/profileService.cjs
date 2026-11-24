@@ -646,6 +646,7 @@ class ProfileService {
       global.updateGlobalShortcuts(saved.keybindings);
     }
     global.mainWindow?.webContents.send("profile:updated", saved);
+    global.updateTrayMenu?.();
     return saved;
   }
 

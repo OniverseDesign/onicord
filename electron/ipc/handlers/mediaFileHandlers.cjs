@@ -5,6 +5,7 @@ const fsPromises = require("fs/promises");
 const crypto = require("crypto");
 const mediaScannerService = require("../../services/mediaScannerService.cjs");
 const stickerService = require("../../services/stickerService.cjs");
+const emojiService = require("../../services/emojiService.cjs");
 const ytdlpService = require("../../services/ytdlpService.cjs");
 const mediaTranscodeService = require("../../services/mediaTranscodeService.cjs");
 const { DbManager } = require("../../storage/dbManager.cjs");
@@ -547,6 +548,94 @@ function registerMediaFileHandlers() {
 
   ipcMain.handle("stickers:download-install", async (_event, downloadUrl) => {
     return stickerService.downloadAndInstallStickerPack(downloadUrl);
+  });
+
+  // === Custom Emojis ===
+  ipcMain.handle("save-emoji-local", async (_event, payload) => {
+    if (!payload) return { success: false };
+    let { id, shortcode, ext, base64Data, dataUrl, filename, packId, packName, animated } = payload;
+    if (dataUrl && !base64Data) {
+      base64Data = dataUrl;
+    }
+    if (filename && (!shortcode || !ext)) {
+      const parts = filename.split(".");
+      ext = ext || (parts.length > 1 ? parts.pop().toLowerCase() : "webp");
+      const baseName = parts.join(".");
+      shortcode = shortcode || baseName;
+    }
+    if (!id) id = `emj_${crypto.randomBytes(6).toString("hex")}`;
+    if (!ext) ext = "webp";
+    return emojiService.saveEmojiLocal({
+      id,
+      shortcode: shortcode || id,
+      ext,
+      base64Data,
+      packId,
+      packName,
+      animated,
+    });
+  });
+
+  ipcMain.handle("get-emoji-path", async (_event, id) => {
+    const existing = await emojiService.getEmojiPath(id);
+    if (existing) return existing;
+    if (id && global.roomManager?.chatService) {
+      global.roomManager.chatService.requestEmoji(id);
+    }
+    return null;
+  });
+
+  ipcMain.handle("request-emoji", async (_event, { id, ext, shortcode, animated } = {}) => {
+    if (id && global.roomManager?.chatService) {
+      global.roomManager.chatService.requestEmoji(id, ext, null, shortcode, animated);
+      return { requested: true };
+    }
+    return { requested: false };
+  });
+
+  ipcMain.handle("list-local-emojis", async () => {
+    return emojiService.listLocalEmojis();
+  });
+
+  ipcMain.handle("update-emoji-shortcode", async (_event, { id, shortcode } = {}) => {
+    if (!id || !shortcode) return { success: false };
+    return emojiService.updateEmojiShortcode(id, shortcode);
+  });
+
+  ipcMain.handle("delete-emoji-local", async (_event, data) => {
+    const id = typeof data === "string" ? data : data?.id;
+    if (!id) return false;
+    return emojiService.deleteEmojiLocal(id);
+  });
+
+  ipcMain.handle("export-emoji-pack", async (_event, { packName, emojisList } = {}) => {
+    return emojiService.exportEmojiPack(packName, emojisList, global.roomManager);
+  });
+
+  ipcMain.handle("import-emoji-pack-raw", async (_event, argumentData) => {
+    return emojiService.importEmojiPackRaw(argumentData);
+  });
+
+  ipcMain.handle("extract-emoji-zip", async (_event, payload) => {
+    const data = payload?.data !== undefined ? payload.data : payload;
+    const fileName = payload?.fileName || "";
+    return emojiService.extractEmojiZip(data, fileName);
+  });
+
+  ipcMain.handle("emojis:download-install", async (_event, downloadUrl) => {
+    return emojiService.downloadAndInstallEmojiPack(downloadUrl);
+  });
+
+  ipcMain.handle("import-media-pack-auto", async (_event, argumentData) => {
+    const pkgType = await emojiService.inspectOnipkgType(argumentData);
+    if (pkgType === "emojis") {
+      return emojiService.importEmojiPackRaw(argumentData);
+    }
+    const res = await stickerService.importStickerPackRaw(argumentData);
+    if (res && !res.type) {
+      return { ...res, type: "stickers" };
+    }
+    return res;
   });
 
   // === Music / YT-DLP ===

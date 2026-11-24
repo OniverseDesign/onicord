@@ -14,6 +14,7 @@ import { WatchPartyProvider, useWatchParty } from "./context/WatchPartyContext";
 import { StreamerModeProvider } from "./context/StreamerModeContext";
 import { useAppUpdater } from "./hooks/useAppUpdater";
 import { initGlobalPlaytimeTracker } from "./lib/playtimeTracker";
+import { initCustomEmojisSync } from "./lib/emojiData";
 import IconOnicord from "./components/icons/Onicord.svg?react";
 import Tooltip from "./components/ui/Tooltip";
 
@@ -254,7 +255,11 @@ export default function App() {
 
   useEffect(() => {
     const cleanup = initGlobalPlaytimeTracker();
-    return () => cleanup?.();
+    const cleanupEmojis = initCustomEmojisSync();
+    return () => {
+      cleanup?.();
+      cleanupEmojis?.();
+    };
   }, []);
 
   const [profile, setProfile] = useState(null);
@@ -303,7 +308,19 @@ export default function App() {
       setProfile((prev) => ({ ...(prev || {}), ...e.detail }));
     };
     window.addEventListener("onicord:profile-updated", handleProfileUpdated);
-    return () => window.removeEventListener("onicord:profile-updated", handleProfileUpdated);
+    const unsubIpcProfile = window.electronAPI?.onProfileUpdated?.((updated) => {
+      if (!updated) return;
+      if (updated.status) {
+        try {
+          localStorage.setItem("onicord_explicit_status", updated.status);
+        } catch (_) {}
+      }
+      setProfile((prev) => ({ ...(prev || {}), ...updated }));
+    });
+    return () => {
+      window.removeEventListener("onicord:profile-updated", handleProfileUpdated);
+      if (typeof unsubIpcProfile === "function") unsubIpcProfile();
+    };
   }, []);
 
   const handleServerUpdated = useCallback((updatedServer) => {

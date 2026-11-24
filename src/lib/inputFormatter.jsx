@@ -306,6 +306,19 @@ export function renderHTMLForInput(text, allUsers) {
     content: match[1],
   }));
 
+  tokens = parseRegexToken(
+    tokens,
+    /<(a?):([a-zA-Z0-9_-]{2,32}):([a-zA-Z0-9_-]{1,64}):(webp|png|gif|jpg|jpeg)>/gi,
+    (match) => ({
+      type: "custom_emoji",
+      raw: match[0],
+      animated: match[1].toLowerCase() === "a",
+      shortcode: match[2],
+      id: match[3],
+      ext: match[4].toLowerCase(),
+    })
+  );
+
   tokens = parseRegexToken(tokens, /\*\*\*([^*]+)\*\*\*/g, (match) => ({
     type: "bold_italic",
     raw: match[0],
@@ -367,6 +380,8 @@ export function renderHTMLForInput(text, allUsers) {
         switch (token.type) {
           case "code":
             return `<span class="bg-black/35 border border-onicord-tint/10 rounded px-1 text-[14px] text-onicord-accent font-semibold mx-0.5"><span class="opacity-30">\`</span>${escapeHTML(token.content)}<span class="opacity-30">\`</span></span>`;
+          case "custom_emoji":
+            return `<span class="bg-onicord-accent/15 border border-onicord-accent/30 text-onicord-accent rounded px-1 text-[13px] font-mono font-semibold"><span class="opacity-35">&lt;${token.animated ? "a" : ""}:</span>${escapeHTML(token.shortcode)}<span class="opacity-35">:${escapeHTML(token.id)}:${escapeHTML(token.ext)}&gt;</span></span>`;
           case "bold_italic":
             return `<span class="font-bold italic text-white underline decoration-onicord-accent/40 decoration-1 underline-offset-2"><span class="opacity-30">***</span>${escapeHTML(token.content)}<span class="opacity-30">***</span></span>`;
           case "bold":

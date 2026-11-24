@@ -1,0 +1,1253 @@
+{
+  "categories": [
+    {
+      "id": "faces",
+      "name": "Caras & Personas",
+      "icon": "sentiment_satisfied",
+      "emojis": [
+        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇",
+        "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😜", "🤪", "😎",
+        "🥳", "🤔", "🤨", "😐", "😑", "🙄", "😬", "😔", "😢", "😭",
+        "😠", "😡", "🤯", "🥵", "🥶", "😱", "😴", "🤢", "😈", "💀",
+        "👽", "🤖", "💩", "🤡", "👤"
+      ]
+    },
+    {
+      "id": "hands",
+      "name": "Gestos & Manos",
+      "icon": "back_hand",
+      "emojis": [
+        "👋", "👍", "👎", "👊", "✌️", "👌", "🤌", "🤏", "🤘", "🤟",
+        "🤝", "🙏", "👏", "🙌", "💪", "🧠", "👀", "✍️"
+      ]
+    },
+    {
+      "id": "hearts",
+      "name": "Corazones & Símbolos",
+      "icon": "favorite",
+      "emojis": [
+        "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔",
+        "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "☮️", "✝️",
+        "☪️", "🕉️", "☸️", "✡️", "☯️", "🆔", "⚛️", "☣️", "⚠️", "🚫",
+        "🌀", "💤"
+      ]
+    },
+    {
+      "id": "food",
+      "name": "Comida & Bebida",
+      "icon": "local_pizza",
+      "emojis": [
+        "🍏", "🍎", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍒", "🍑",
+        "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🌶️", "🌽", "🥕",
+        "🥔", "🍕", "🍔", "🍟", "🌭", "🍿", "🍜", "🍝", "🍧", "🍦",
+        "🍩", "🍪", "🍰", "🎂", "🍫", "🍬", "☕", "🥤", "🧋", "🍺",
+        "🍻", "🍷", "🍹", "🥂", "🍾"
+      ]
+    },
+    {
+      "id": "activities",
+      "name": "Actividades & Deportes",
+      "icon": "sports_esports",
+      "emojis": [
+        "⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🎱", "🏓", "🏸",
+        "🏒", "⛳", "🏹", "🎣", "🥊", "🥋", "🛹", "🚴", "🏃", "🧗",
+        "🧘", "🎮", "🕹️", "🎲", "🧩", "♟️", "🎭", "🎨", "🎤", "🎧",
+        "🎬", "🎹"
+      ]
+    },
+    {
+      "id": "places",
+      "name": "Viajes & Lugares",
+      "icon": "travel_explore",
+      "emojis": [
+        "🚗", "🚕", "🚙", "🚌", "🏎️", "🚓", "🚑", "🚒", "🚐", "🚚",
+        "🚜", "🏍️", "🛵", "🚲", "🚉", "🚁", "✈️", "🚀", "🛸", "⛵",
+        "⚓", "🗺️", "🧭", "🏔️", "🌋", "⛺", "🏜️", "🏖️", "🏛️", "🏠",
+        "🏢", "🏨", "🏥", "🏦", "🏫"
+      ]
+    },
+    {
+      "id": "objects",
+      "name": "Objetos & Clima",
+      "icon": "lightbulb",
+      "emojis": [
+        "🔥", "💥", "⚡", "☀️", "❄️", "🌟", "⭐", "🌈", "💡", "🔔",
+        "💯", "📌", "💻", "📱", "🎁", "💎", "👑", "🏆", "📢", "📣",
+        "🛎️", "🔑", "🛡️", "⚙️", "✉️", "📦"
+      ]
+    }
+  ],
+  "entries": {
+    "😀": {
+      "shortcode": "grinning",
+      "aliases": ["happy", "feliz"],
+      "keywords": "smile happy face grin risa feliz alegre sonrisa cara"
+    },
+    "😃": {
+      "shortcode": "smiley",
+      "aliases": ["alegre"],
+      "keywords": "smile happy face grin risa feliz alegre sonrisa cara"
+    },
+    "😄": {
+      "shortcode": "smile",
+      "aliases": ["sonrisa"],
+      "keywords": "smile happy face grin risa feliz alegre sonrisa cara"
+    },
+    "😁": {
+      "shortcode": "grin",
+      "aliases": ["dientes"],
+      "keywords": "smile happy face grin risa feliz alegre sonrisa cara"
+    },
+    "😆": {
+      "shortcode": "laughing",
+      "aliases": ["xd", "haha", "jaja"],
+      "keywords": "smile happy face grin risa feliz alegre sonrisa cara"
+    },
+    "😅": {
+      "shortcode": "sweat_smile",
+      "aliases": ["nervioso"],
+      "keywords": "smile happy face sweat risa sudor nervioso cara"
+    },
+    "😂": {
+      "shortcode": "joy",
+      "aliases": ["lol", "risa"],
+      "keywords": "cry laugh tears joy risa llanto alegria lagrimas"
+    },
+    "🤣": {
+      "shortcode": "rofl",
+      "aliases": ["lmao", "carcajada"],
+      "keywords": "cry laugh tears joy roll floor risa carcajada llanto"
+    },
+    "😊": {
+      "shortcode": "blush",
+      "aliases": ["sonrojo"],
+      "keywords": "smile happy face blush sonrojo feliz sonrisa cara"
+    },
+    "😇": {
+      "shortcode": "innocent",
+      "aliases": ["angel", "angelito"],
+      "keywords": "angel heaven innocent santo inocente celestial halo"
+    },
+    "🙂": {
+      "shortcode": "slight_smile",
+      "aliases": ["slightly_smiling_face"],
+      "keywords": "smile face happy leve sonrisa cara"
+    },
+    "🙃": {
+      "shortcode": "upside_down",
+      "aliases": ["upside_down_face", "alreves"],
+      "keywords": "upside down face al reves cara"
+    },
+    "😉": {
+      "shortcode": "wink",
+      "aliases": ["guino"],
+      "keywords": "wink face guiño ojo cara"
+    },
+    "😌": {
+      "shortcode": "relieved",
+      "aliases": ["alivio"],
+      "keywords": "relieved face relief alivio calma relajado cara"
+    },
+    "😍": {
+      "shortcode": "heart_eyes",
+      "aliases": ["love_eyes", "enamorado"],
+      "keywords": "heart eyes love amor enamorado ojos corazon"
+    },
+    "🥰": {
+      "shortcode": "smiling_face_with_hearts",
+      "aliases": ["in_love", "adorable"],
+      "keywords": "heart face love warm amor enamorado corazones cara"
+    },
+    "😘": {
+      "shortcode": "kissing_heart",
+      "aliases": ["kiss", "beso"],
+      "keywords": "kiss blow heart amor beso cara"
+    },
+    "😜": {
+      "shortcode": "stuck_out_tongue_winking_eye",
+      "aliases": ["wink_tongue", "broma"],
+      "keywords": "tongue wink joke guiño lengua broma loco cara"
+    },
+    "🤪": {
+      "shortcode": "zany_face",
+      "aliases": ["crazy", "loco"],
+      "keywords": "crazy wild goofy loco chiflado divertido cara"
+    },
+    "😎": {
+      "shortcode": "sunglasses",
+      "aliases": ["cool", "facha"],
+      "keywords": "cool glasses sunglasses sol gafas estilo pro cara"
+    },
+    "🥳": {
+      "shortcode": "partying",
+      "aliases": ["party", "fiesta"],
+      "keywords": "party celebrate fiesta celebrar gorro confeti cara"
+    },
+    "🤔": {
+      "shortcode": "thinking",
+      "aliases": ["think", "hmm", "pensando"],
+      "keywords": "think question ponder pensar duda cara"
+    },
+    "🤨": {
+      "shortcode": "raised_eyebrow",
+      "aliases": ["sus", "sospecha"],
+      "keywords": "raised eyebrow suspicious sospecha duda ceja cara"
+    },
+    "😐": {
+      "shortcode": "neutral_face",
+      "aliases": ["neutral", "serio"],
+      "keywords": "neutral deadpan serio neutral indiferente cara"
+    },
+    "😑": {
+      "shortcode": "expressionless",
+      "aliases": ["bruh"],
+      "keywords": "expressionless flat serio plano cara"
+    },
+    "🙄": {
+      "shortcode": "rolling_eyes",
+      "aliases": ["eyeroll", "ojos"],
+      "keywords": "roll eyes desprecio ojos rodar cara"
+    },
+    "😬": {
+      "shortcode": "grimacing",
+      "aliases": ["awkward", "mueca"],
+      "keywords": "grimace teeth mueca dientes tension cara"
+    },
+    "😔": {
+      "shortcode": "pensive",
+      "aliases": ["penoso"],
+      "keywords": "sad pensive triste reflexivo penoso cara"
+    },
+    "😢": {
+      "shortcode": "sad",
+      "aliases": ["cry", "triste"],
+      "keywords": "sad cry tear triste llanto lagrimas pena cara"
+    },
+    "😭": {
+      "shortcode": "sob",
+      "aliases": ["crying", "llorar"],
+      "keywords": "sad cry sob tears llanto lagrimas desconsuelo pena triste cara"
+    },
+    "😠": {
+      "shortcode": "angry",
+      "aliases": ["mad", "enojado"],
+      "keywords": "angry mad enojado enfadado rabia cara"
+    },
+    "😡": {
+      "shortcode": "rage",
+      "aliases": ["furious", "furioso"],
+      "keywords": "angry mad red rabia furioso rojo cara"
+    },
+    "🤯": {
+      "shortcode": "exploding_head",
+      "aliases": ["mindblown", "explosion_mental"],
+      "keywords": "mind blown explode explosion cabeza explota cerebro cara"
+    },
+    "🥵": {
+      "shortcode": "hot_face",
+      "aliases": ["hot", "calor"],
+      "keywords": "hot heat red sweat calor sofoco caliente sudor rojo cara"
+    },
+    "🥶": {
+      "shortcode": "cold_face",
+      "aliases": ["cold", "frio"],
+      "keywords": "cold ice blue congelado frio azul hielo cara"
+    },
+    "😱": {
+      "shortcode": "scream",
+      "aliases": ["scared", "miedo"],
+      "keywords": "scream fear scared horror grito miedo asustado cara"
+    },
+    "😴": {
+      "shortcode": "sleeping",
+      "aliases": ["sleep", "dormir"],
+      "keywords": "sleep zzz tired dormir sueño cansado cara"
+    },
+    "🤢": {
+      "shortcode": "nauseated_face",
+      "aliases": ["sick", "asco"],
+      "keywords": "nausea sick vomit verde asco enfermo vomito cara"
+    },
+    "😈": {
+      "shortcode": "smiling_imp",
+      "aliases": ["devil", "diablo"],
+      "keywords": "devil horn evil diablo cuernos malvado morado"
+    },
+    "💀": {
+      "shortcode": "skull",
+      "aliases": ["dead", "calavera"],
+      "keywords": "skull dead death calavera muerto muerte hueso"
+    },
+    "👽": {
+      "shortcode": "alien",
+      "aliases": ["ufo_face", "marciano"],
+      "keywords": "alien space ufo extraterrestre marciano espacio"
+    },
+    "🤖": {
+      "shortcode": "robot",
+      "aliases": ["bot", "maquina"],
+      "keywords": "robot tech bot maquina robotico"
+    },
+    "💩": {
+      "shortcode": "poop",
+      "aliases": ["hankey", "caca"],
+      "keywords": "poop shit caca mierda mojon"
+    },
+    "🤡": {
+      "shortcode": "clown",
+      "aliases": ["payaso"],
+      "keywords": "clown joker payaso bromista risa"
+    },
+    "👤": {
+      "shortcode": "bust_in_silhouette",
+      "aliases": ["user", "usuario"],
+      "keywords": "user profile shadow silueta usuario perfil sombra"
+    },
+
+    "👋": {
+      "shortcode": "wave",
+      "aliases": ["hello", "hola"],
+      "keywords": "wave hello goodbye salut saludo hola adios mano"
+    },
+    "👍": {
+      "shortcode": "thumbsup",
+      "aliases": ["+1", "like"],
+      "keywords": "like ok yes good plus aprobo bien mano"
+    },
+    "👎": {
+      "shortcode": "thumbsdown",
+      "aliases": ["-1", "dislike"],
+      "keywords": "dislike no bad minus desaprobo mal mano"
+    },
+    "👊": {
+      "shortcode": "punch",
+      "aliases": ["fist", "puno"],
+      "keywords": "fist punch golpe puño mano"
+    },
+    "✌️": {
+      "shortcode": "peace",
+      "aliases": ["paz", "victory"],
+      "keywords": "peace victory paz victoria mano"
+    },
+    "👌": {
+      "shortcode": "ok_hand",
+      "aliases": ["ok", "perfecto"],
+      "keywords": "ok hand perfect perfecto mano"
+    },
+    "🤌": {
+      "shortcode": "pinched_fingers",
+      "aliases": ["italian"],
+      "keywords": "italian gesture que quieres mano"
+    },
+    "🤏": {
+      "shortcode": "pinching_hand",
+      "aliases": ["tiny", "poco"],
+      "keywords": "pinch little poco pellizco mano"
+    },
+    "🤘": {
+      "shortcode": "metal",
+      "aliases": ["rock", "cuernos"],
+      "keywords": "rock metal cuernos mano"
+    },
+    "🤟": {
+      "shortcode": "love_you_gesture",
+      "aliases": ["ily"],
+      "keywords": "love you gesture amor mano"
+    },
+    "🤝": {
+      "shortcode": "handshake",
+      "aliases": ["deal", "trato"],
+      "keywords": "handshake agree deal trato apreton manos"
+    },
+    "🙏": {
+      "shortcode": "pray",
+      "aliases": ["please", "gracias"],
+      "keywords": "pray please thanks rezar por favor gracias manos"
+    },
+    "👏": {
+      "shortcode": "clap",
+      "aliases": ["aplauso"],
+      "keywords": "applause clap aplauso aplaudir manos"
+    },
+    "🙌": {
+      "shortcode": "raised_hands",
+      "aliases": ["hooray", "celebracion"],
+      "keywords": "hooray praise celebracion manos arriba"
+    },
+    "💪": {
+      "shortcode": "muscle",
+      "aliases": ["strong", "fuerza"],
+      "keywords": "muscle strength power fuerza musculo brazo"
+    },
+    "🧠": {
+      "shortcode": "brain",
+      "aliases": ["cerebro"],
+      "keywords": "brain mind thinking cerebro mente cabeza"
+    },
+    "👀": {
+      "shortcode": "eyes",
+      "aliases": ["look", "mirar"],
+      "keywords": "eyes look watch ver mirar ojos"
+    },
+    "✍️": {
+      "shortcode": "writing_hand",
+      "aliases": ["write", "escribir"],
+      "keywords": "write draw pen escribir dibujar lapiz mano"
+    },
+
+    "❤️": {
+      "shortcode": "heart",
+      "aliases": ["love", "corazon"],
+      "keywords": "heart love red corazon amor rojo"
+    },
+    "🧡": {
+      "shortcode": "orange_heart",
+      "aliases": ["corazon_naranja"],
+      "keywords": "heart love orange corazon naranja"
+    },
+    "💛": {
+      "shortcode": "yellow_heart",
+      "aliases": ["corazon_amarillo"],
+      "keywords": "heart love yellow corazon amarillo"
+    },
+    "💚": {
+      "shortcode": "green_heart",
+      "aliases": ["corazon_verde"],
+      "keywords": "heart love green corazon verde"
+    },
+    "💙": {
+      "shortcode": "blue_heart",
+      "aliases": ["corazon_azul"],
+      "keywords": "heart love blue corazon azul"
+    },
+    "💜": {
+      "shortcode": "purple_heart",
+      "aliases": ["corazon_morado"],
+      "keywords": "heart love purple corazon morado"
+    },
+    "🖤": {
+      "shortcode": "black_heart",
+      "aliases": ["corazon_negro"],
+      "keywords": "heart love black corazon negro"
+    },
+    "🤍": {
+      "shortcode": "white_heart",
+      "aliases": ["corazon_blanco"],
+      "keywords": "heart love white corazon blanco"
+    },
+    "🤎": {
+      "shortcode": "brown_heart",
+      "aliases": ["corazon_cafe"],
+      "keywords": "heart love brown corazon cafe"
+    },
+    "💔": {
+      "shortcode": "broken_heart",
+      "aliases": ["heartbreak", "corazon_roto"],
+      "keywords": "heart broken heartbreak corazon roto desamor"
+    },
+    "❣️": {
+      "shortcode": "heart_exclamation",
+      "aliases": ["exclamacion_corazon"],
+      "keywords": "heart exclamation corazon exclamacion"
+    },
+    "💕": {
+      "shortcode": "two_hearts",
+      "aliases": ["corazones"],
+      "keywords": "hearts love corazones amor"
+    },
+    "💞": {
+      "shortcode": "revolving_hearts",
+      "aliases": ["corazones_girando"],
+      "keywords": "hearts revolving corazones girando"
+    },
+    "💓": {
+      "shortcode": "heartbeat",
+      "aliases": ["latido"],
+      "keywords": "heart beating corazon latiendo"
+    },
+    "💗": {
+      "shortcode": "heartpulse",
+      "aliases": ["corazon_creciendo"],
+      "keywords": "heart growing corazon creciendo"
+    },
+    "💖": {
+      "shortcode": "sparkling_heart",
+      "aliases": ["corazon_brillante"],
+      "keywords": "heart sparkle corazon brillante"
+    },
+    "💘": {
+      "shortcode": "cupid",
+      "aliases": ["flecha_corazon"],
+      "keywords": "heart arrow cupid corazon flecha cupido"
+    },
+    "💝": {
+      "shortcode": "gift_heart",
+      "aliases": ["corazon_regalo"],
+      "keywords": "heart ribbon gift corazon regalo"
+    },
+    "☮️": {
+      "shortcode": "peace_symbol",
+      "aliases": ["paz_simbolo"],
+      "keywords": "peace sign paz"
+    },
+    "✝️": {
+      "shortcode": "latin_cross",
+      "aliases": ["cross", "cruz"],
+      "keywords": "cross religion cruz religion"
+    },
+    "☪️": {
+      "shortcode": "star_and_crescent",
+      "aliases": ["islam"],
+      "keywords": "star crescent islam estrella media luna"
+    },
+    "🕉️": {
+      "shortcode": "om",
+      "aliases": ["hinduism"],
+      "keywords": "om hinduism"
+    },
+    "☸️": {
+      "shortcode": "wheel_of_dharma",
+      "aliases": ["dharma"],
+      "keywords": "dharma wheel budismo"
+    },
+    "✡️": {
+      "shortcode": "star_of_david",
+      "aliases": ["david"],
+      "keywords": "star david judaismo"
+    },
+    "☯️": {
+      "shortcode": "yin_yang",
+      "aliases": ["yinyang"],
+      "keywords": "yin yang taoismo"
+    },
+    "🆔": {
+      "shortcode": "id",
+      "aliases": ["identi"],
+      "keywords": "id button identi"
+    },
+    "⚛️": {
+      "shortcode": "atom_symbol",
+      "aliases": ["atom", "atomo"],
+      "keywords": "atom physics atomo"
+    },
+    "☣️": {
+      "shortcode": "biohazard",
+      "aliases": ["biologico"],
+      "keywords": "biohazard biologico"
+    },
+    "⚠️": {
+      "shortcode": "warning",
+      "aliases": ["alert", "alerta", "peligro"],
+      "keywords": "warning alert peligro advertencia"
+    },
+    "🚫": {
+      "shortcode": "no_entry_sign",
+      "aliases": ["prohibited", "ban", "prohibido"],
+      "keywords": "prohibited ban prohibido"
+    },
+    "🌀": {
+      "shortcode": "cyclone",
+      "aliases": ["spiral", "espiral"],
+      "keywords": "cyclone spiral ciclon espiral"
+    },
+    "💤": {
+      "shortcode": "zzz",
+      "aliases": ["sueno"],
+      "keywords": "zzz sleep sleeping sueño dormir"
+    },
+
+    "🍏": {
+      "shortcode": "green_apple",
+      "aliases": ["manzana_verde"],
+      "keywords": "apple green manzana verde fruta comida"
+    },
+    "🍎": {
+      "shortcode": "apple",
+      "aliases": ["red_apple", "manzana"],
+      "keywords": "apple red manzana roja fruta comida"
+    },
+    "🍊": {
+      "shortcode": "tangerine",
+      "aliases": ["orange", "naranja"],
+      "keywords": "orange tangerine naranja fruta comida"
+    },
+    "🍋": {
+      "shortcode": "lemon",
+      "aliases": ["limon"],
+      "keywords": "lemon limon fruta comida"
+    },
+    "🍌": {
+      "shortcode": "banana",
+      "aliases": ["platano"],
+      "keywords": "banana platano fruta comida"
+    },
+    "🍉": {
+      "shortcode": "watermelon",
+      "aliases": ["sandia"],
+      "keywords": "watermelon sandia fruta comida"
+    },
+    "🍇": {
+      "shortcode": "grapes",
+      "aliases": ["uvas"],
+      "keywords": "grapes uvas fruta comida"
+    },
+    "🍓": {
+      "shortcode": "strawberry",
+      "aliases": ["fresa"],
+      "keywords": "strawberry fresa fruta comida"
+    },
+    "🍒": {
+      "shortcode": "cherries",
+      "aliases": ["cerezas"],
+      "keywords": "cherries cerezas fruta comida"
+    },
+    "🍑": {
+      "shortcode": "peach",
+      "aliases": ["durazno"],
+      "keywords": "peach durazno melocoton fruta comida"
+    },
+    "🍍": {
+      "shortcode": "pineapple",
+      "aliases": ["pina"],
+      "keywords": "pineapple piña fruta comida"
+    },
+    "🥥": {
+      "shortcode": "coconut",
+      "aliases": ["coco"],
+      "keywords": "coconut coco fruta comida"
+    },
+    "🥝": {
+      "shortcode": "kiwi",
+      "aliases": ["kiwifruit"],
+      "keywords": "kiwi fruta comida"
+    },
+    "🍅": {
+      "shortcode": "tomato",
+      "aliases": ["tomate"],
+      "keywords": "tomato tomate verdura comida"
+    },
+    "🍆": {
+      "shortcode": "eggplant",
+      "aliases": ["berenjena"],
+      "keywords": "eggplant berenjena verdura comida"
+    },
+    "🥑": {
+      "shortcode": "avocado",
+      "aliases": ["palta", "aguacate"],
+      "keywords": "avocado palta aguacate verdura comida"
+    },
+    "🥦": {
+      "shortcode": "broccoli",
+      "aliases": ["brocoli"],
+      "keywords": "broccoli brocoli verdura comida"
+    },
+    "🌶️": {
+      "shortcode": "hot_pepper",
+      "aliases": ["spicy", "picante"],
+      "keywords": "pepper spicy picante chile verdura comida"
+    },
+    "🌽": {
+      "shortcode": "corn",
+      "aliases": ["choclo", "maiz"],
+      "keywords": "corn choclo elote verdura comida"
+    },
+    "🥕": {
+      "shortcode": "carrot",
+      "aliases": ["zanahoria"],
+      "keywords": "carrot zanahoria verdura comida"
+    },
+    "🥔": {
+      "shortcode": "potato",
+      "aliases": ["papa"],
+      "keywords": "potato papa patata verdura comida"
+    },
+    "🍕": {
+      "shortcode": "pizza",
+      "aliases": ["queso"],
+      "keywords": "pizza queso cheese comida fastfood"
+    },
+    "🍔": {
+      "shortcode": "hamburger",
+      "aliases": ["burger", "hamburguesa"],
+      "keywords": "burger hamburger hamburguesa carne comida fastfood"
+    },
+    "🍟": {
+      "shortcode": "fries",
+      "aliases": ["papas"],
+      "keywords": "french fries papas fritas comida fastfood"
+    },
+    "🌭": {
+      "shortcode": "hotdog",
+      "aliases": ["pancho"],
+      "keywords": "hotdog perro caliente comida fastfood"
+    },
+    "🍿": {
+      "shortcode": "popcorn",
+      "aliases": ["palomitas"],
+      "keywords": "popcorn palomitas pochoclos comida fastfood"
+    },
+    "🍜": {
+      "shortcode": "ramen",
+      "aliases": ["soup", "sopa"],
+      "keywords": "ramen soup sopa fideos comida"
+    },
+    "🍝": {
+      "shortcode": "spaghetti",
+      "aliases": ["pasta"],
+      "keywords": "spaghetti pasta tallarines fideos comida"
+    },
+    "🍧": {
+      "shortcode": "shaved_ice",
+      "aliases": ["granizado"],
+      "keywords": "shaved ice helado postre dulce comida"
+    },
+    "🍦": {
+      "shortcode": "icecream",
+      "aliases": ["helado"],
+      "keywords": "icecream helado cono postre comida"
+    },
+    "🍩": {
+      "shortcode": "doughnut",
+      "aliases": ["donut", "dona"],
+      "keywords": "donut dona postre dulce comida"
+    },
+    "🍪": {
+      "shortcode": "cookie",
+      "aliases": ["galleta"],
+      "keywords": "cookie galleta postre dulce comida"
+    },
+    "🍰": {
+      "shortcode": "cake",
+      "aliases": ["pastel", "torta"],
+      "keywords": "cake pastel torta postre dulce comida"
+    },
+    "🎂": {
+      "shortcode": "birthday",
+      "aliases": ["cumpleanos"],
+      "keywords": "birthday cake pastel cumpleaños vela comida"
+    },
+    "🍫": {
+      "shortcode": "chocolate_bar",
+      "aliases": ["chocolate"],
+      "keywords": "chocolate barra dulce comida"
+    },
+    "🍬": {
+      "shortcode": "candy",
+      "aliases": ["caramelo"],
+      "keywords": "candy caramelo dulce comida"
+    },
+    "☕": {
+      "shortcode": "coffee",
+      "aliases": ["cafe"],
+      "keywords": "coffee cafe taza hot caliente te bebida"
+    },
+    "🥤": {
+      "shortcode": "cup_with_straw",
+      "aliases": ["soda", "refresco"],
+      "keywords": "cup straw gaseosa bebida refresco"
+    },
+    "🧋": {
+      "shortcode": "bubble_tea",
+      "aliases": ["boba"],
+      "keywords": "boba bubble tea te de burbujas bebida"
+    },
+    "🍺": {
+      "shortcode": "beer",
+      "aliases": ["cerveza"],
+      "keywords": "beer cerveza bebida alcohol chop"
+    },
+    "🍻": {
+      "shortcode": "beers",
+      "aliases": ["brindis"],
+      "keywords": "beers cervezas brindis alcohol chops bebida"
+    },
+    "🍷": {
+      "shortcode": "wine_glass",
+      "aliases": ["wine", "vino"],
+      "keywords": "wine vino copa alcohol bebida"
+    },
+    "🍹": {
+      "shortcode": "tropical_drink",
+      "aliases": ["cocktail", "coctel"],
+      "keywords": "drink tropical coctel trago alcohol bebida"
+    },
+    "🥂": {
+      "shortcode": "clinking_glasses",
+      "aliases": ["cheers", "salud"],
+      "keywords": "cheers toast brindis copas bebida"
+    },
+    "🍾": {
+      "shortcode": "champagne",
+      "aliases": ["champana"],
+      "keywords": "champagne champaña botella fiesta bebida"
+    },
+
+    "⚽": {
+      "shortcode": "soccer",
+      "aliases": ["futbol"],
+      "keywords": "soccer football badminton futbol deporte pelota"
+    },
+    "🏀": {
+      "shortcode": "basketball",
+      "aliases": ["basquet"],
+      "keywords": "basketball balon pelota basquetbol deporte"
+    },
+    "🏈": {
+      "shortcode": "football",
+      "aliases": ["nfl"],
+      "keywords": "football pelota futbol americano deporte"
+    },
+    "⚾": {
+      "shortcode": "baseball",
+      "aliases": ["beisbol"],
+      "keywords": "baseball pelota beisbol deporte"
+    },
+    "🎾": {
+      "shortcode": "tennis",
+      "aliases": ["tenis"],
+      "keywords": "tennis pelota tenis deporte"
+    },
+    "🏐": {
+      "shortcode": "volleyball",
+      "aliases": ["voley"],
+      "keywords": "volleyball pelota voleibol deporte"
+    },
+    "🏉": {
+      "shortcode": "rugby_football",
+      "aliases": ["rugby"],
+      "keywords": "rugby pelota deporte"
+    },
+    "🎱": {
+      "shortcode": "8ball",
+      "aliases": ["billar", "pool"],
+      "keywords": "pool billiard bola 8 billar deporte juego"
+    },
+    "🏓": {
+      "shortcode": "ping_pong",
+      "aliases": ["pingpong"],
+      "keywords": "pingpong table tennis paleta ping pong deporte"
+    },
+    "🏸": {
+      "shortcode": "badminton",
+      "aliases": ["raqueta"],
+      "keywords": "badminton raqueta volante deporte"
+    },
+    "🏒": {
+      "shortcode": "hockey",
+      "aliases": ["ice_hockey"],
+      "keywords": "hockey stick puck deporte"
+    },
+    "⛳": {
+      "shortcode": "golf",
+      "aliases": ["golf_flag"],
+      "keywords": "golf flag hoyo deporte"
+    },
+    "🏹": {
+      "shortcode": "bow_and_arrow",
+      "aliases": ["archery", "arco"],
+      "keywords": "bow arrow arco flecha tiro deporte"
+    },
+    "🎣": {
+      "shortcode": "fishing_pole",
+      "aliases": ["fishing", "pesca"],
+      "keywords": "fishing rod caña pescar deporte"
+    },
+    "🥊": {
+      "shortcode": "boxing_glove",
+      "aliases": ["boxing", "boxeo"],
+      "keywords": "boxing glove guante boxeo deporte pelear"
+    },
+    "🥋": {
+      "shortcode": "martial_arts_uniform",
+      "aliases": ["karate", "judo"],
+      "keywords": "martial arts karate judo kimono deporte pelear"
+    },
+    "🛹": {
+      "shortcode": "skateboard",
+      "aliases": ["skate", "patineta"],
+      "keywords": "skateboard patineta skate deporte"
+    },
+    "🚴": {
+      "shortcode": "bicyclist",
+      "aliases": ["ciclista"],
+      "keywords": "bike bicycle ciclista bicicleta deporte"
+    },
+    "🏃": {
+      "shortcode": "runner",
+      "aliases": ["run", "correr"],
+      "keywords": "running run correr atleta deporte"
+    },
+    "🧗": {
+      "shortcode": "climbing",
+      "aliases": ["escalar"],
+      "keywords": "climbing escalator montaña deporte"
+    },
+    "🧘": {
+      "shortcode": "lotus_position",
+      "aliases": ["yoga", "meditar"],
+      "keywords": "meditation yoga meditar zen deporte"
+    },
+    "🎮": {
+      "shortcode": "video_game",
+      "aliases": ["game", "gamepad", "controller"],
+      "keywords": "game controller joystick gamepad videojuego consola play nintendo xbox pc"
+    },
+    "🕹️": {
+      "shortcode": "joystick",
+      "aliases": ["arcade"],
+      "keywords": "joystick arcade retro palanca juego"
+    },
+    "🎲": {
+      "shortcode": "game_die",
+      "aliases": ["dice", "dado"],
+      "keywords": "dice die dado juego azar"
+    },
+    "🧩": {
+      "shortcode": "jigsaw",
+      "aliases": ["puzzle", "rompecabezas"],
+      "keywords": "puzzle pieza rompecabezas juego"
+    },
+    "♟️": {
+      "shortcode": "chess_pawn",
+      "aliases": ["chess", "ajedrez"],
+      "keywords": "chess pawn peon ajedrez juego"
+    },
+    "🎭": {
+      "shortcode": "performing_arts",
+      "aliases": ["theater", "teatro"],
+      "keywords": "theater drama masks teatro mascaras arte"
+    },
+    "🎨": {
+      "shortcode": "art",
+      "aliases": ["paint", "arte"],
+      "keywords": "art paint palette paleta pintura pintar"
+    },
+    "🎤": {
+      "shortcode": "microphone",
+      "aliases": ["mic", "karaoke", "microfono"],
+      "keywords": "microphone mic cantar karaoke microfono musica"
+    },
+    "🎧": {
+      "shortcode": "headphones",
+      "aliases": ["music", "musica", "auriculares"],
+      "keywords": "headphones music cascos auriculares musica"
+    },
+    "🎬": {
+      "shortcode": "clapper",
+      "aliases": ["movie", "cine"],
+      "keywords": "clapper board cine pelicula director claqueta"
+    },
+    "🎹": {
+      "shortcode": "musical_keyboard",
+      "aliases": ["piano"],
+      "keywords": "piano keyboard teclado musica instrumento"
+    },
+
+    "🚗": {
+      "shortcode": "car",
+      "aliases": ["auto", "coche"],
+      "keywords": "car red auto coche carro vehiculo viaje"
+    },
+    "🚕": {
+      "shortcode": "taxi",
+      "aliases": ["cab"],
+      "keywords": "taxi yellow cab amarillo viaje"
+    },
+    "🚙": {
+      "shortcode": "blue_car",
+      "aliases": ["suv", "jeep"],
+      "keywords": "suv blue auto jeep viaje"
+    },
+    "🚌": {
+      "shortcode": "bus",
+      "aliases": ["colectivo"],
+      "keywords": "bus colectivo autobus viaje"
+    },
+    "🏎️": {
+      "shortcode": "race_car",
+      "aliases": ["f1"],
+      "keywords": "racecar f1 auto carrera formula 1"
+    },
+    "🚓": {
+      "shortcode": "police_car",
+      "aliases": ["policia"],
+      "keywords": "police car patrulla policia auto"
+    },
+    "🚑": {
+      "shortcode": "ambulance",
+      "aliases": ["ambulancia"],
+      "keywords": "ambulance ambulancia salud hospital auto"
+    },
+    "🚒": {
+      "shortcode": "fire_engine",
+      "aliases": ["bomberos"],
+      "keywords": "fire engine bomberos camion auto"
+    },
+    "🚐": {
+      "shortcode": "minibus",
+      "aliases": ["van", "caravan", "furgoneta"],
+      "keywords": "caravan minibus furgoneta van auto"
+    },
+    "🚚": {
+      "shortcode": "truck",
+      "aliases": ["camion"],
+      "keywords": "delivery truck camion reparto flete"
+    },
+    "🚜": {
+      "shortcode": "tractor",
+      "aliases": ["granja"],
+      "keywords": "tractor campo granja vehiculo"
+    },
+    "🏍️": {
+      "shortcode": "motorcycle",
+      "aliases": ["moto"],
+      "keywords": "motorcycle moto vehiculo viaje"
+    },
+    "🛵": {
+      "shortcode": "motor_scooter",
+      "aliases": ["scooter"],
+      "keywords": "scooter moto motoneta vehiculo"
+    },
+    "🚲": {
+      "shortcode": "bike",
+      "aliases": ["bicycle", "bici"],
+      "keywords": "bicycle bici bicicleta vehiculo deporte"
+    },
+    "🚉": {
+      "shortcode": "station",
+      "aliases": ["train", "tren"],
+      "keywords": "station train estacion tren subte"
+    },
+    "🚁": {
+      "shortcode": "helicopter",
+      "aliases": ["helicoptero"],
+      "keywords": "helicopter helicoptero volador"
+    },
+    "✈️": {
+      "shortcode": "airplane",
+      "aliases": ["plane", "avion"],
+      "keywords": "airplane plane avion vuelo viaje"
+    },
+    "🚀": {
+      "shortcode": "rocket",
+      "aliases": ["cohete", "space"],
+      "keywords": "rocket space despegue cohete espacio"
+    },
+    "🛸": {
+      "shortcode": "flying_saucer",
+      "aliases": ["ufo", "ovni"],
+      "keywords": "ufo ovni platillo volador espacio"
+    },
+    "⛵": {
+      "shortcode": "sailboat",
+      "aliases": ["boat", "barco"],
+      "keywords": "sailboat velero barco vela mar"
+    },
+    "⚓": {
+      "shortcode": "anchor",
+      "aliases": ["ancla"],
+      "keywords": "anchor ancla barco puerto mar"
+    },
+    "🗺️": {
+      "shortcode": "world_map",
+      "aliases": ["map", "mapa"],
+      "keywords": "map mapa viaje gps"
+    },
+    "🧭": {
+      "shortcode": "compass",
+      "aliases": ["brujula"],
+      "keywords": "compass brujula viaje orientacion"
+    },
+    "🏔️": {
+      "shortcode": "mountain_snow",
+      "aliases": ["mountain", "montana"],
+      "keywords": "mountain snow montaña nieve pico"
+    },
+    "🌋": {
+      "shortcode": "volcano",
+      "aliases": ["volcan"],
+      "keywords": "volcano volcan fuego lava"
+    },
+    "⛺": {
+      "shortcode": "tent",
+      "aliases": ["camp", "carpa"],
+      "keywords": "tent camp acampar carpa"
+    },
+    "🏜️": {
+      "shortcode": "desert",
+      "aliases": ["desierto"],
+      "keywords": "desert desierto calor sol cactus"
+    },
+    "🏖️": {
+      "shortcode": "beach",
+      "aliases": ["playa"],
+      "keywords": "beach sol mar playa sombrilla"
+    },
+    "🏛️": {
+      "shortcode": "classical_building",
+      "aliases": ["temple", "museo"],
+      "keywords": "temple classical building templo museo edificio"
+    },
+    "🏠": {
+      "shortcode": "house",
+      "aliases": ["home", "casa"],
+      "keywords": "house home casa hogar"
+    },
+    "🏢": {
+      "shortcode": "office",
+      "aliases": ["oficina"],
+      "keywords": "office building oficina edificio"
+    },
+    "🏨": {
+      "shortcode": "hotel",
+      "aliases": ["hospedaje"],
+      "keywords": "hotel hospedaje"
+    },
+    "🏥": {
+      "shortcode": "hospital",
+      "aliases": ["clinica"],
+      "keywords": "hospital salud medicina"
+    },
+    "🏦": {
+      "shortcode": "bank",
+      "aliases": ["banco"],
+      "keywords": "bank banco dinero finanzas"
+    },
+    "🏫": {
+      "shortcode": "school",
+      "aliases": ["escuela"],
+      "keywords": "school escuela colegio educacion"
+    },
+
+    "🔥": {
+      "shortcode": "fire",
+      "aliases": ["lit", "fuego"],
+      "keywords": "fire hot flame hoguera fuego flama calor"
+    },
+    "💥": {
+      "shortcode": "boom",
+      "aliases": ["explosion", "choque"],
+      "keywords": "collision spark explosion choque"
+    },
+    "⚡": {
+      "shortcode": "zap",
+      "aliases": ["lightning", "rayo"],
+      "keywords": "lightning voltage rayo electricity energia"
+    },
+    "☀️": {
+      "shortcode": "sunny",
+      "aliases": ["sun", "sol"],
+      "keywords": "sun sunny warm sol despejado calor clima"
+    },
+    "❄️": {
+      "shortcode": "snowflake",
+      "aliases": ["snow", "nieve"],
+      "keywords": "snowflake snow cold nieve copo frio clima"
+    },
+    "🌟": {
+      "shortcode": "star2",
+      "aliases": ["sparkle_star", "brillo"],
+      "keywords": "star glowing estrella brillante luz"
+    },
+    "⭐": {
+      "shortcode": "star",
+      "aliases": ["estrella"],
+      "keywords": "star estrella favorita"
+    },
+    "🌈": {
+      "shortcode": "rainbow",
+      "aliases": ["arcoiris"],
+      "keywords": "rainbow arcoiris color lluvia cielo"
+    },
+    "💡": {
+      "shortcode": "bulb",
+      "aliases": ["idea", "lightbulb"],
+      "keywords": "lightbulb idea bombilla luz foco"
+    },
+    "🔔": {
+      "shortcode": "bell",
+      "aliases": ["campana", "notificacion"],
+      "keywords": "bell notification ring campana alarma notificacion sonido"
+    },
+    "💯": {
+      "shortcode": "100",
+      "aliases": ["hundred", "cien"],
+      "keywords": "hundred 100 cien perfecto nota"
+    },
+    "📌": {
+      "shortcode": "pushpin",
+      "aliases": ["pin", "fijar"],
+      "keywords": "pushpin pin chincheta nota fijar"
+    },
+    "💻": {
+      "shortcode": "computer",
+      "aliases": ["laptop", "pc"],
+      "keywords": "laptop computer notebook pc ordenador tecnologia"
+    },
+    "📱": {
+      "shortcode": "iphone",
+      "aliases": ["phone", "celular"],
+      "keywords": "phone smartphone mobile celular telefono tecnologia"
+    },
+    "🎁": {
+      "shortcode": "gift",
+      "aliases": ["present", "regalo"],
+      "keywords": "gift present regalo sorpresa cumpleaños"
+    },
+    "💎": {
+      "shortcode": "gem",
+      "aliases": ["diamond", "diamante"],
+      "keywords": "gem diamond diamante joya valioso"
+    },
+    "👑": {
+      "shortcode": "crown",
+      "aliases": ["king", "corona"],
+      "keywords": "crown king queen corona rey reina owner"
+    },
+    "🏆": {
+      "shortcode": "trophy",
+      "aliases": ["win", "trofeo"],
+      "keywords": "trophy prize copa trofeo ganador campeon"
+    },
+    "📢": {
+      "shortcode": "loudspeaker",
+      "aliases": ["altavoz"],
+      "keywords": "loudspeaker altavoz anuncio"
+    },
+    "📣": {
+      "shortcode": "mega",
+      "aliases": ["megaphone", "megafono"],
+      "keywords": "megaphone megafono grito anuncio"
+    },
+    "🛎️": {
+      "shortcode": "bellhop",
+      "aliases": ["timbre"],
+      "keywords": "bellhop timbre recepcion hotel"
+    },
+    "🔑": {
+      "shortcode": "key",
+      "aliases": ["llave"],
+      "keywords": "key llave abrir candado"
+    },
+    "🛡️": {
+      "shortcode": "shield",
+      "aliases": ["escudo"],
+      "keywords": "shield protection defense escudo proteccion defensa"
+    },
+    "⚙️": {
+      "shortcode": "gear",
+      "aliases": ["settings", "ajustes"],
+      "keywords": "gear cog engranaje ajustes opciones tool"
+    },
+    "✉️": {
+      "shortcode": "envelope",
+      "aliases": ["mail", "correo"],
+      "keywords": "envelope letter mail sobre carta correo mensaje"
+    },
+    "📦": {
+      "shortcode": "package",
+      "aliases": ["box", "paquete"],
+      "keywords": "package box caja paquete envio"
+    }
+  }
+}

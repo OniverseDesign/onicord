@@ -23,6 +23,7 @@ import ChatMessageList from "./subcomponents/ChatMessageList";
 import ChatInputArea from "./subcomponents/ChatInputArea";
 import { useVoiceChannelInfo } from "../../context/VoiceContext";
 import { useChatComposer } from "./composer/useChatComposer";
+import { replaceShortcodesInText } from "../../lib/emojiData";
 
 function formatBytes(bytes) {
   if (!bytes) return "0 Bytes";
@@ -62,13 +63,15 @@ export default function ChatPanel({
     setShowCommandsPopup,
     showMentionsPopup,
     setShowMentionsPopup,
+    emojiQuery,
+    setEmojiQuery,
     stickersTargetRect,
     setStickersTargetRect,
     emojisTargetRect,
     setEmojisTargetRect,
     tyrannyInputRef,
-    isLocalTypingRef,
     handleInputSelection,
+    processComposerInput,
     handleSelectEmoji,
     applyFormatting,
   } = useChatComposer({ profile, peers });
@@ -360,9 +363,8 @@ export default function ChatPanel({
   }, [visibleSuggestions.length, replyTarget, scrollToBottom, isAtBottomRef]);
 
   const handleInputChange = (e) => {
-    isLocalTypingRef.current = true;
-    const val = e.target.textContent || "";
-    setInput(val);
+    const rawVal = e.currentTarget.textContent || "";
+    const val = processComposerInput(rawVal);
 
     const partes = val.split(" ");
     const ultimaPalabra = partes[partes.length - 1] || "";
@@ -414,7 +416,7 @@ export default function ChatPanel({
 
   const handleSend = async (e) => {
     e.preventDefault();
-    const text = input.trim();
+    let text = input.trim();
 
     if (text.startsWith("/")) {
       const partes = text.split(" ");
@@ -464,6 +466,7 @@ export default function ChatPanel({
         } finally {
           setInput("");
           setReplyTarget(null);
+          setEmojiQuery(null);
           focusTimeoutRef.current = setTimeout(() => {
             tyrannyInputRef.current?.focus();
           }, 50);
@@ -475,10 +478,13 @@ export default function ChatPanel({
           triggerServerFlameInteraction(profile, server, onProfileChange);
           setInput("");
           setReplyTarget(null);
+          setEmojiQuery(null);
           return;
         }
       }
     }
+
+    text = replaceShortcodesInText(text);
 
     const trimmedTitle = postTitle.trim();
     if ((!text && pendingFiles.length === 0 && !trimmedTitle) || sending) return;
@@ -497,6 +503,7 @@ export default function ChatPanel({
 
     setSending(true);
     setInput("");
+    setEmojiQuery(null);
     if (isForum) setPostTitle("");
 
     try {
@@ -1198,6 +1205,8 @@ export default function ChatPanel({
         setShowCommandsPopup={setShowCommandsPopup}
         showMentionsPopup={showMentionsPopup}
         setShowMentionsPopup={setShowMentionsPopup}
+        emojiQuery={emojiQuery}
+        setEmojiQuery={setEmojiQuery}
         emojisTargetRect={emojisTargetRect}
         setEmojisTargetRect={setEmojisTargetRect}
         stickersTargetRect={stickersTargetRect}

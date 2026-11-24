@@ -1,3 +1,13 @@
+# Onicord v0.3.4
+
+## Changes
+
+- **Custom Emojis, Packs & P2P On-Demand Sync**: Implemented a full custom emoji engine (`emojiService.cjs`, SQLite `emojis`/`emoji_packs` tables, CAS deduplication) supporting static and animated images, `.onipkg`/`.zip` pack import and export, remote catalog installation (`onicord-emojis`), inline rendering (`InlineCustomEmoji`), custom emoji reactions (`MessageReactionsBar`, `ForumPostCard`), jumbo emoji sizing (`isJumboEmojiOnlyMessage`), automatic P2P peer syncing (`emoji-request`/`emoji-response`), and backup inclusion in `backupService` and `driveService`.
+- **Discord Server Template Importer**: Added `discordImportService.cjs`, `serverService.createServerFromDiscordTemplate`, and an "Import from Discord" tab in `AddServerModal` to analyze `discord.new` / `discord.com/template` links and clone categories, text/voice/forum channels, NSFW/AFK flags, and mapped role permissions into new P2P servers.
+- **Emoji Manager, Shortcode Autocomplete & Picker Overhaul**: Added `EmojiManagerTab` inside the unified "Stickers & Emojis" settings section (`AppSettingsModal`), implemented `:shortcode:` autocomplete (`EmojiAutocompletePopover`, `useChatComposer`, `inputFormatter.jsx`), refactored `EmojiPickerPopover` with unified catalog/custom search (`emojiCatalog.json`, `emojiData.js`), added shortcode tooltips for Unicode emojis, and added automatic `.onipkg` emoji/sticker pack detection in `MessageMediaAttachment`.
+- **Dynamic System Tray Context Menu**: Upgraded the OS tray menu (`electron/main.cjs`) with live presence status switching (`online`, `idle`, `dnd`, `invisible`), active voice controls (mute, deafen, disconnect), one-click Headless Node Mode entry, Settings/Data Folder shortcuts, app relaunch, and manual update checks with native notifications, synchronized back to `App.jsx` via `profile:updated`.
+- **Audio Device Auto-Healing Fix & Multi-Language Localization**: Consolidated input, output, and camera device ID auto-healing in `AudioTab` with `onAutoHealAudio` baseline tracking in `AppSettingsModal` to eliminate false unsaved-changes warnings, and synced all new Discord import and custom emoji translations across English, Spanish, and Portuguese locales.
+
 # Onicord v0.3.3
 
 ## Changes

@@ -6,6 +6,9 @@ import MessageTextContent from "./MessageTextContent";
 import MessageMediaAttachment from "./MessageMediaAttachment";
 import MessageMediaGallery, { isImageFile } from "./MessageMediaGallery";
 import EmojiPickerPopover from "../../ui/EmojiPickerPopover";
+import Tooltip from "../../ui/Tooltip";
+import { parseCustomEmojiToken, getEmojiShortcode } from "../../../lib/emojiData";
+import InlineCustomEmoji from "./InlineCustomEmoji";
 import { resolveAuthorDisplay, buildPeerLookup } from "../../../lib/profileUtils";
 import { formatTime, formatFriendlyDate, EphemeralCountdownBadge } from "./MessageHeader";
 
@@ -331,24 +334,75 @@ const ForumPostCard = memo(
                 users.includes(myId) ||
                 users.includes("self") ||
                 (profile?.id && users.includes(profile.id));
+              const customEmoji = parseCustomEmojiToken(emoji);
+              const unicodeShortcode = customEmoji ? null : getEmojiShortcode(emoji);
+              const shortcodeLabel = customEmoji
+                ? `:${customEmoji.shortcode}:`
+                : unicodeShortcode
+                  ? `:${unicodeShortcode}:`
+                  : emoji;
+              const userNames = users.map((uid) => {
+                if (uid === myId || uid === "self" || uid === profile?.id)
+                  return t("common.you");
+                const display = resolveAuthorDisplay(uid, profile, peers, {}, server);
+                return display.nickname || t("common.user");
+              });
               return (
-                <button
+                <Tooltip
                   key={emoji}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleReaction?.(msg.id, emoji);
-                  }}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-150 cursor-pointer active:scale-95 ${
-                    hasMyReaction
-                      ? "bg-onicord-accent/20 text-onicord-accent border-onicord-accent/40 shadow-2xs"
-                      : "bg-onicord-base/60 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-onicord-text"
-                  }`}
-                  title={`${emoji} (${users.length})`}
+                  side="top"
+                  content={
+                    <div className="flex items-center gap-2 py-0.5">
+                      {customEmoji ? (
+                        <InlineCustomEmoji
+                          id={customEmoji.id}
+                          shortcode={customEmoji.shortcode}
+                          ext={customEmoji.ext}
+                          animated={customEmoji.animated}
+                          sizeClass="w-5 h-5 shrink-0"
+                          showTooltip={false}
+                        />
+                      ) : (
+                        <span className="text-base leading-none shrink-0">{emoji}</span>
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-mono text-xs text-onicord-text font-semibold">
+                          {shortcodeLabel}
+                        </span>
+                        <span className="text-[11px] font-normal text-onicord-muted truncate max-w-[200px]">
+                          {t("chat.reactedBy")}: {userNames.join(", ")}
+                        </span>
+                      </div>
+                    </div>
+                  }
                 >
-                  <span className="text-sm leading-none">{emoji}</span>
-                  <span className="text-xs font-mono leading-none">{users.length}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleReaction?.(msg.id, emoji);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-150 cursor-pointer active:scale-95 ${
+                      hasMyReaction
+                        ? "bg-onicord-accent/20 text-onicord-accent border-onicord-accent/40 shadow-2xs"
+                        : "bg-onicord-base/60 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-onicord-text"
+                    }`}
+                  >
+                    {customEmoji ? (
+                      <InlineCustomEmoji
+                        id={customEmoji.id}
+                        shortcode={customEmoji.shortcode}
+                        ext={customEmoji.ext}
+                        animated={customEmoji.animated}
+                        sizeClass="w-4 h-4"
+                        showTooltip={false}
+                      />
+                    ) : (
+                      <span className="text-sm leading-none">{emoji}</span>
+                    )}
+                    <span className="text-xs font-mono leading-none">{users.length}</span>
+                  </button>
+                </Tooltip>
               );
             })}
           </div>
