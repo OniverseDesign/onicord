@@ -17,7 +17,7 @@ export default function FlameBadge({
   const tier = getFlameTier(currentDays);
 
   const sizeClasses = {
-    sm: "px-1.5 py-0.5 text-[11px] gap-0.2 pr-2",
+    sm: "px-1.5 py-0.5 text-xs gap-0.2 pr-2",
     md: "px-2 py-1 text-xs gap-0.3 pr-2.5",
     lg: "px-2.5 py-1 text-sm gap-0.5 pr-2",
   };
@@ -42,7 +42,7 @@ export default function FlameBadge({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={cn(
-          "inline-flex items-center justify-center align-middle font-bold rounded-full border transition-all duration-300 select-none cursor-help text-slate-950 [.light-mode_&]:text-white",
+          "inline-flex items-center justify-center align-middle font-bold rounded-full border transition-all duration-relaxed select-none cursor-help text-slate-950 [.light-mode_&]:text-white",
           tier.badgeBg,
           tier.glow,
           sizeClasses[size] || sizeClasses.sm,

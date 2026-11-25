@@ -1,3 +1,7 @@
 :root {
   --radius: 22px;
+  --radius-outer: var(--radius);
+  --radius-inner: calc(var(--radius) - var(--gap));
+  --radius-control: calc(var(--radius) - (var(--gap) * 3));
+  --radius-chip: 8px;
 }

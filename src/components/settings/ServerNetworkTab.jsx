@@ -117,29 +117,29 @@ export default function ServerNetworkTab({
         {/* DIRECT CONNECTION BENEFITS */}
         <div className="bg-onicord-base/50 border border-onicord-border rounded-xl p-3.5 mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-center gap-1">
+            <span className="text-2xs font-bold text-onicord-success uppercase tracking-wider flex items-center justify-center gap-1">
               <MaterialIcon name="speed" size={12} />
               {t("serverSettings.network.benefit1Title", "Latencia <1ms")}
             </span>
-            <p className="text-[9px] text-onicord-muted leading-relaxed text-center">
+            <p className="text-2xs text-onicord-muted leading-relaxed text-center">
               {t("serverSettings.network.benefit1Desc", "Ideal para redes LAN o si el host tiene fibra directa.")}
             </p>
           </div>
           <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-onicord-border sm:pl-3">
-            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-center gap-1">
+            <span className="text-2xs font-bold text-onicord-warning uppercase tracking-wider flex items-center justify-center gap-1">
               <MaterialIcon name="router" size={12} />
               {t("serverSettings.network.benefit2Title", "Port Forwarding")}
             </span>
-            <p className="text-[9px] text-onicord-muted leading-relaxed text-center">
+            <p className="text-2xs text-onicord-muted leading-relaxed text-center">
               {t("serverSettings.network.benefit2Desc", "Solo el host del servidor necesita abrir el puerto.")}
             </p>
           </div>
           <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-onicord-border sm:pl-3">
-            <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider flex items-center justify-center gap-1">
+            <span className="text-2xs font-bold text-onicord-info uppercase tracking-wider flex items-center justify-center gap-1">
               <MaterialIcon name="device_hub" size={12} />
               {t("serverSettings.network.benefit3Title", "LAN Automático")}
             </span>
-            <p className="text-[9px] text-onicord-muted leading-relaxed text-center">
+            <p className="text-2xs text-onicord-muted leading-relaxed text-center">
               {t("serverSettings.network.benefit3Desc", "Bypass automático de mDNS para audio local.")}
             </p>
           </div>
@@ -154,7 +154,7 @@ export default function ServerNetworkTab({
                   <label className="text-xs font-semibold text-onicord-text">
                     {t("serverSettings.network.directIpLabel", "IP Pública o Hostname")}
                   </label>
-                  <span className="text-[9px] text-onicord-muted font-mono">
+                  <span className="text-2xs text-onicord-muted font-mono">
                     {t("serverSettings.network.ipHint", "IP pública actual")}
                   </span>
                 </div>
@@ -188,7 +188,7 @@ export default function ServerNetworkTab({
             </div>
 
             {isPrivilegedPort && (
-              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px]">
+              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-onicord-warning/10 border border-onicord-warning/20 text-onicord-warning text-2xs">
                 <MaterialIcon name="warning" size={16} className="shrink-0 mt-0.5" />
                 <p>
                   {t("serverSettings.network.privilegedPortWarning", "Los puertos inferiores a 1024 son reservados y pueden requerir privilegios de administrador del sistema. Recomendamos usar un puerto entre 1024 y 65535.")}
@@ -199,14 +199,14 @@ export default function ServerNetworkTab({
             {/* NETWORK DIAGNOSTIC / CONNECTIVITY CHECK */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-onicord-base/50 border border-onicord-border rounded-xl gap-3">
               <div className="space-y-1">
-                <span className="text-[10px] uppercase font-bold text-onicord-muted tracking-wider block">
+                <span className="text-2xs uppercase font-bold text-onicord-muted tracking-wider block">
                   {t("serverSettings.network.diagnosticTitle", "Prueba de Conectividad")}
                 </span>
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${
-                    portStatus === "open" ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-pulse" :
-                    portStatus === "closed" ? "bg-onicord-danger shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
-                    portStatus === "checking" ? "bg-amber-400 animate-ping" : "bg-onicord-tint/20"
+                    portStatus === "open" ? "bg-onicord-success shadow-onicord-glow-success animate-pulse" :
+                    portStatus === "closed" ? "bg-onicord-danger shadow-onicord-glow-danger" :
+                    portStatus === "checking" ? "bg-onicord-warning animate-ping" : "bg-onicord-tint/20"
                   }`} />
                   <span className="text-xs font-semibold text-onicord-text">
                     {portStatus === "open" && t("serverSettings.network.portOpen", "Puerto abierto y listo")}
@@ -238,7 +238,7 @@ export default function ServerNetworkTab({
             </div>
 
             {checkingError && (
-              <div className="p-3 bg-onicord-danger/10 border border-onicord-danger/20 rounded-xl text-[10px] text-onicord-danger font-mono whitespace-pre-wrap leading-relaxed animate-fade-in">
+              <div className="p-3 bg-onicord-danger/10 border border-onicord-danger/20 rounded-xl text-2xs text-onicord-danger font-mono whitespace-pre-wrap leading-relaxed animate-fade-in">
                 <span className="font-bold block mb-1">{t("serverSettings.network.errorLabel", "Detalle del error:")}</span>
                 {checkingError}
               </div>
@@ -248,14 +248,14 @@ export default function ServerNetworkTab({
             {portStatus === "open" && directInviteLink && (
               <div className="pt-3 border-t border-onicord-border space-y-2 animate-slide-up">
                 <div className="flex items-center gap-1">
-                  <MaterialIcon name="share" className="text-emerald-400" size={14} />
+                  <MaterialIcon name="share" className="text-onicord-success" size={14} />
                   <label className="text-xs font-semibold text-onicord-text">
                     {t("serverSettings.network.directLinkLabel", "Enlace de Invitación Directa")}
                   </label>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-onicord-base/50 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl px-3 py-2.5 font-mono text-[10px] text-emerald-300 truncate select-all transition-colors duration-200">
+                  <div className="flex-1 bg-onicord-base/50 border border-onicord-success/20 hover:border-onicord-success/40 rounded-xl px-3 py-2.5 font-mono text-2xs text-onicord-success truncate select-all transition-colors duration-normal">
                     {directInviteLink}
                   </div>
                   
@@ -268,8 +268,8 @@ export default function ServerNetworkTab({
                     }}
                     className={`shrink-0 h-9 px-4 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
                       copiedLink 
-                        ? "bg-emerald-500 text-white" 
-                        : "bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300"
+                        ? "bg-onicord-success text-white" 
+                        : "bg-onicord-success/20 hover:bg-onicord-success/30 border border-onicord-success/30 text-onicord-success"
                     }`}
                   >
                     <MaterialIcon name={copiedLink ? "check" : "content_copy"} size={14} />
@@ -277,7 +277,7 @@ export default function ServerNetworkTab({
                   </button>
                 </div>
 
-                <p className="text-[10px] text-onicord-muted leading-relaxed">
+                <p className="text-2xs text-onicord-muted leading-relaxed">
                   {t("serverSettings.network.directLinkHint", "Comparte este enlace directo con tus amigos. Cuando lo abran, Onicord configurará la IP y el puerto automáticamente para conectarse directamente por TCP sin pasar por la red pública DHT.")}
                 </p>
               </div>
@@ -285,9 +285,9 @@ export default function ServerNetworkTab({
 
             {/* QUICK TROUBLESHOOTING GUIDE IF PORT IS CLOSED */}
             {portStatus === "closed" && (
-              <div className="p-3 bg-onicord-tint/5 border border-onicord-border rounded-xl space-y-2 text-[10px] text-onicord-muted animate-fade-in leading-relaxed">
+              <div className="p-3 bg-onicord-tint/5 border border-onicord-border rounded-xl space-y-2 text-2xs text-onicord-muted animate-fade-in leading-relaxed">
                 <span className="font-semibold text-onicord-text flex items-center gap-1">
-                  <MaterialIcon name="info" className="text-amber-400" size={14} />
+                  <MaterialIcon name="info" className="text-onicord-warning" size={14} />
                   {t("serverSettings.network.howToFixPort", "¿Cómo solucionar el puerto inaccesible?")}
                 </span>
                 <ul className="list-disc pl-4 space-y-1">
@@ -319,7 +319,7 @@ export default function ServerNetworkTab({
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-[10px] font-bold text-onicord-muted uppercase block mb-1">
+              <label className="text-2xs font-bold text-onicord-muted uppercase block mb-1">
                 {t("serverSettings.network.type", "Tipo de Servidor")}
               </label>
               <Select
@@ -334,7 +334,7 @@ export default function ServerNetworkTab({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="text-[10px] font-bold text-onicord-muted uppercase block mb-1">
+              <label className="text-2xs font-bold text-onicord-muted uppercase block mb-1">
                 {t("serverSettings.network.url", "URL de Conexión")}
               </label>
               <ModalInput
@@ -349,7 +349,7 @@ export default function ServerNetworkTab({
           {newType === "turn" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 animate-fade-in">
               <div>
-                <label className="text-[10px] font-bold text-onicord-muted uppercase block mb-1">
+                <label className="text-2xs font-bold text-onicord-muted uppercase block mb-1">
                   {t("serverSettings.network.username", "Usuario TURN")}
                 </label>
                 <ModalInput
@@ -361,7 +361,7 @@ export default function ServerNetworkTab({
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-onicord-muted uppercase block mb-1">
+                <label className="text-2xs font-bold text-onicord-muted uppercase block mb-1">
                   {t("serverSettings.network.credential", "Contraseña / Token")}
                 </label>
                 <ModalInput
@@ -391,7 +391,7 @@ export default function ServerNetworkTab({
         <div className="pt-4 border-t border-onicord-border mt-4 space-y-3">
           <h4 className="text-xs font-bold text-onicord-text uppercase tracking-wide flex items-center justify-between">
             <span>{t("serverSettings.network.configuredServers", "Servidores Configurados")}</span>
-            <span className="text-[10px] bg-onicord-tint/10 px-2 py-0.5 rounded-full font-mono font-bold text-onicord-muted">
+            <span className="text-2xs bg-onicord-tint/10 px-2 py-0.5 rounded-full font-mono font-bold text-onicord-muted">
               {iceServers.length}
             </span>
           </h4>
@@ -399,7 +399,7 @@ export default function ServerNetworkTab({
           {iceServers.length === 0 ? (
             <div className="p-5 rounded-xl bg-onicord-base/50 border border-dashed border-onicord-border flex flex-col items-center justify-center text-center space-y-1.5">
               <MaterialIcon name="dns" size={24} className="text-onicord-muted opacity-30" />
-              <p className="text-[10px] text-onicord-muted leading-relaxed">
+              <p className="text-2xs text-onicord-muted leading-relaxed">
                 {t("serverSettings.network.noServers", "No hay servidores personalizados. Se usarán los relays públicos por defecto de Onicord.")}
               </p>
             </div>
@@ -410,22 +410,22 @@ export default function ServerNetworkTab({
                 return (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-2.5 bg-onicord-base/50 border border-onicord-border rounded-xl hover:border-onicord-tint/10 transition duration-200 gap-3"
+                    className="flex items-center justify-between p-2.5 bg-onicord-base/50 border border-onicord-border rounded-xl hover:border-onicord-border-strong transition duration-normal gap-3"
                   >
                     <div className="min-w-0 flex items-center gap-2">
                       <span
-                        className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 ${
-                          isTurn ? "bg-amber-500/10 text-amber-300 border border-amber-500/20" : "bg-sky-500/10 text-sky-300 border border-sky-500/20"
+                        className={`text-2xs font-black px-1.5 py-0.5 rounded uppercase shrink-0 ${
+                          isTurn ? "bg-onicord-warning/10 text-onicord-warning border border-onicord-warning/20" : "bg-onicord-info/10 text-onicord-info border border-onicord-info/20"
                         }`}
                       >
                         {isTurn ? "TURN" : "STUN"}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-[10px] font-mono font-semibold text-onicord-text truncate" title={srv.urls}>
+                        <p className="text-2xs font-mono font-semibold text-onicord-text truncate" title={srv.urls}>
                           {srv.urls}
                         </p>
                         {isTurn && srv.username && (
-                          <p className="text-[9px] text-onicord-muted mt-0.5 truncate">
+                          <p className="text-2xs text-onicord-muted mt-0.5 truncate">
                             {t("serverSettings.network.user", "User")}: <span className="font-mono text-onicord-subtext">{srv.username}</span>
                           </p>
                         )}

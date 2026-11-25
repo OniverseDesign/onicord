@@ -1,7 +1,7 @@
 @layer components {
   /* MODAL SHELL & STRUCTURE STYLES */
   .onicord-modal-backdrop {
-    @apply fixed inset-0 z-modal flex items-center justify-center bg-onicord-mantle/90 p-4 backdrop-blur-[2px] onicord-animate-backdrop-in pointer-events-auto;
+    @apply fixed inset-0 z-modal flex items-center justify-center bg-onicord-mantle/90 p-4 backdrop-blur-onicord-backdrop onicord-animate-backdrop-in pointer-events-auto;
   }
   .onicord-modal-warning-box {
     @apply text-sm leading-snug text-onicord-muted mt-4 select-none;
@@ -82,6 +82,6 @@
   }
 
   .onicord-modal-subnav-item {
-    @apply w-full text-left px-2.5 py-1.5 text-[11px] rounded-lg text-onicord-muted hover:text-onicord-accent hover:bg-onicord-tint/[0.05] transition-all flex items-center gap-1.5 select-none;
+    @apply w-full text-left px-2.5 py-1.5 text-xs rounded-lg text-onicord-muted hover:text-onicord-accent hover:bg-onicord-tint/[0.05] transition-all flex items-center gap-1.5 select-none;
   }
 }

@@ -18,14 +18,14 @@ export default function DeleteStickerModal({ sticker, onClose, onConfirm }) {
       >
         {}
         <div className="mb-4">
-          <h2 className="text-[20px] font-bold text-onicord-text leading-tight">
+          <h2 className="text-xl font-bold text-onicord-text leading-tight">
             Delete sticker
           </h2>
         </div>
 
         {}
         <div className="flex-1 space-y-4">
-          <p className="text-[15px] leading-normal text-onicord-subtext text-left">
+          <p className="text-base leading-normal text-onicord-subtext text-left">
             Are you sure you want to delete{" "}
             <span className="font-semibold text-onicord-text">
               \"{sticker.name || "this sticker"}\"
@@ -42,17 +42,17 @@ export default function DeleteStickerModal({ sticker, onClose, onConfirm }) {
               />
             </div>
             <div className="flex flex-col min-w-0 text-left">
-              <span className="font-semibold text-onicord-text truncate text-[14px]">
+              <span className="font-semibold text-onicord-text truncate text-sm">
                 {sticker.name || "Local Sticker"}
               </span>
-              <span className="font-mono text-[11px] text-onicord-muted tracking-tight uppercase">
+              <span className="font-mono text-xs text-onicord-muted tracking-tight uppercase">
                 ID: {sticker.id}
               </span>
             </div>
           </div>
 
           <div className="onicord-modal-warning-box text-left">
-            <strong className="block text-onicord-danger text-[11px] uppercase font-bold tracking-wider mb-1">
+            <strong className="block text-onicord-danger text-xs uppercase font-bold tracking-wider mb-1">
               Advertencia:
             </strong>
             This action will delete the physical file from the disk. If you need it

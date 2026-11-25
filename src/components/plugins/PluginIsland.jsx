@@ -227,7 +227,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
 
   return (
     <div
-      className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
+      className={`w-full overflow-hidden transition-all duration-relaxed ease-in-out shrink-0 flex flex-col ${
         hasWidgets
           ? "max-h-[600px] opacity-100 scale-100 pointer-events-auto"
           : "max-h-0 opacity-0 scale-95 pointer-events-none -mb-[calc(var(--gap)+3px)]"
@@ -241,7 +241,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
             ? `${widgetHeight + (hasMultipleWidgets ? 30 : 0)}px`
             : "56px",
         }}
-        className={`w-full shrink-0 rounded-onicord-outer-p4 border border-onicord-island overflow-hidden relative flex flex-col justify-between select-none shadow-sm transition-all duration-300 ease-out ${
+        className={`w-full shrink-0 rounded-onicord-outer-p4 border border-onicord-island overflow-hidden relative flex flex-col justify-between select-none shadow-sm transition-all duration-relaxed ease-out ${
           isExpanded && !displayWidget?.supportsLightMode
             ? "bg-onicord-base [.light-mode_&]:bg-[#1e1e2e]"
             : "bg-onicord-base"
@@ -254,7 +254,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
             className="w-full h-[56px] px-3 py-2 flex items-center gap-2.5 cursor-pointer select-none transition-colors hover:bg-onicord-tint/[0.04]"
           >
             {/* Addon avatar / profile icon */}
-            <div className="w-9 h-9 rounded-full bg-onicord-tint/5 border border-onicord-tint/10 shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
+            <div className="w-9 h-9 rounded-full bg-onicord-tint/5 border border-onicord-border-strong shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
               {displayWidget.icon ? (
                 <img
                   src={displayWidget.icon}
@@ -281,18 +281,18 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
                   size={14}
                   fill={true}
                   weight={400}
-                  className="text-indigo-400 shrink-0"
+                  className="text-onicord-accent shrink-0"
                   title={t("plugins.islandPlugin", "Complemento")}
                 />
                 {currentUpdateTime && (
-                  <span className="text-[10px] text-onicord-muted shrink-0 ml-auto tabular-nums">
+                  <span className="text-2xs text-onicord-muted shrink-0 ml-auto tabular-nums">
                     {currentUpdateTime}
                   </span>
                 )}
               </div>
 
               {/* Latest activity description */}
-              <p className="text-[11px] text-onicord-subtext truncate mt-0.5 leading-tight">
+              <p className="text-xs text-onicord-subtext truncate mt-0.5 leading-tight">
                 {currentSummaryText}
               </p>
             </div>
@@ -303,7 +303,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
                 {displayWidgets.map((_, idx) => (
                   <span
                     key={idx}
-                    className={`rounded-full transition-all duration-200 ${
+                    className={`rounded-full transition-all duration-normal ${
                       idx === currentIndex
                         ? "bg-onicord-text w-1.5 h-1.5 opacity-90"
                         : "bg-onicord-tint/20 w-1 h-1"
@@ -357,8 +357,8 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
             onClick={handlePrev}
             className={`p-0.5 rounded-full transition-colors flex items-center justify-center cursor-pointer active:scale-90 ${
               !displayWidget?.supportsLightMode
-                ? "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 [.light-mode_&]:text-white/50 [.light-mode_&]:hover:text-white [.light-mode_&]:hover:bg-white/10"
-                : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
+                ? "text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover [.light-mode_&]:text-white/50 [.light-mode_&]:hover:text-white [.light-mode_&]:hover:bg-white/10"
+                : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover"
             }`}
             title={t("plugins.prevPlugin", "Anterior complemento")}
           >
@@ -373,7 +373,7 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
                   setCurrentIndex(idx);
                   resetIdleTimer();
                 }}
-                className={`rounded-full transition-all duration-200 cursor-pointer ${
+                className={`rounded-full transition-all duration-normal cursor-pointer ${
                   idx === currentIndex
                     ? !displayWidget?.supportsLightMode
                       ? "bg-onicord-text [.light-mode_&]:bg-white w-2 h-2 opacity-95"
@@ -390,8 +390,8 @@ export default function PluginIsland({ roomCode, profile, server, voice }) {
             onClick={handleNext}
             className={`p-0.5 rounded-full transition-colors flex items-center justify-center cursor-pointer active:scale-90 ${
               !displayWidget?.supportsLightMode
-                ? "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 [.light-mode_&]:text-white/50 [.light-mode_&]:hover:text-white [.light-mode_&]:hover:bg-white/10"
-                : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
+                ? "text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover [.light-mode_&]:text-white/50 [.light-mode_&]:hover:text-white [.light-mode_&]:hover:bg-white/10"
+                : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover"
             }`}
             title={t("plugins.nextPlugin", "Siguiente complemento")}
           >

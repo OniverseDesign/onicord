@@ -140,7 +140,7 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
         <div className="flex flex-col gap-5 py-2">
           <div
             onClick={handleSelectFile}
-            className="p-8 rounded-onicord-inner bg-onicord-base/40 border-2 border-dashed border-onicord-tint/10 hover:border-onicord-accent/50 hover:bg-onicord-base/60 transition-all text-center cursor-pointer group"
+            className="p-8 rounded-onicord-inner bg-onicord-base/40 border-2 border-dashed border-onicord-border-strong hover:border-onicord-accent/50 hover:bg-onicord-base/60 transition-all text-center cursor-pointer group"
           >
             <div className="w-14 h-14 rounded-2xl bg-onicord-accent/10 border border-onicord-accent/25 flex items-center justify-center mx-auto mb-3 text-onicord-accent group-hover:scale-105 transition-transform">
               <MaterialIcon name="settings_backup_restore" size={28} />
@@ -209,10 +209,10 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
                 <h4 className="text-sm font-bold text-onicord-text truncate">
                   {inspectedBackup.profile?.nickname || inspectedBackup.fileName}
                 </h4>
-                <p className="text-[11px] text-onicord-muted mt-0.5 truncate">
+                <p className="text-xs text-onicord-muted mt-0.5 truncate">
                   {formatDate(inspectedBackup.createdAt, i18n?.language || "es")}
                 </p>
-                <span className="inline-block text-[10px] font-mono text-onicord-faded mt-1">
+                <span className="inline-block text-2xs font-mono text-onicord-faded mt-1">
                   {formatBytes(inspectedBackup.fileSize)}
                 </span>
               </div>
@@ -221,7 +221,7 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
             {/* Right side: Included Categories Selector */}
             <div className="flex-1 flex flex-col justify-between min-w-0">
               <div>
-                <p className="text-[11px] uppercase font-bold text-onicord-muted tracking-wider mb-2">
+                <p className="text-xs uppercase font-bold text-onicord-muted tracking-wider mb-2">
                   {t("profileSetup.categoriesToRestore", "Categorías a restaurar:")}
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -235,7 +235,7 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
                         className={`flex items-center justify-between p-2.5 rounded-onicord-button border text-left text-xs transition-all cursor-pointer ${
                           isSelected
                             ? "bg-onicord-accent/15 border-onicord-accent/40 text-onicord-text font-medium shadow-sm"
-                            : "bg-onicord-base/30 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
+                            : "bg-onicord-base/30 border-onicord-border text-onicord-muted hover:border-onicord-border-strong"
                         }`}
                       >
                         <span className="truncate">
@@ -306,12 +306,12 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
             </div>
             <div className="h-2.5 w-full bg-onicord-base rounded-full overflow-hidden border border-onicord-border p-[2px]">
               <div
-                className="h-full bg-onicord-accent rounded-full transition-all duration-300"
+                className="h-full bg-onicord-accent rounded-full transition-all duration-relaxed"
                 style={{ width: `${progress?.percent || 0}%` }}
               />
             </div>
           </div>
-          <p className="text-[11px] text-onicord-muted text-center max-w-xs leading-relaxed">
+          <p className="text-xs text-onicord-muted text-center max-w-xs leading-relaxed">
             {t(
               "profileSetup.restoringWarning",
               "Por favor, no cierres la aplicación durante el proceso de restauración."
@@ -322,7 +322,7 @@ function OnipkgRestorePanel({ onBack, onRestoreComplete }) {
 
       {step === "done" && (
         <div className="flex flex-col items-center gap-4 py-6 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+          <div className="w-14 h-14 rounded-2xl bg-onicord-success/15 border border-onicord-success/30 flex items-center justify-center text-onicord-success shadow-lg shadow-emerald-500/10">
             <MaterialIcon name="check_circle" size={32} />
           </div>
           <div>
@@ -395,7 +395,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
       <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-onicord-accent/5 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-onicord-accent/5 blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-[620px] rounded-onicord-outer-p4 border border-onicord-tint/10 bg-onicord-surface p-6 sm:p-7 shadow-2xl shadow-black/50 onicord-animate-modal-in">
+      <div className="relative z-10 w-full max-w-[620px] rounded-onicord-outer-p4 border border-onicord-border-strong bg-onicord-surface p-6 sm:p-7 shadow-2xl shadow-black/50 onicord-animate-modal-in">
         {showRestore ? (
           <>
             <header className="flex items-center justify-between mb-4">
@@ -454,7 +454,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                   <h4 className="text-xs font-semibold text-onicord-text">
                     {t("profileSetup.avatarLabel", "Foto de perfil")}
                   </h4>
-                  <p className="text-[11px] text-onicord-muted mt-0.5">
+                  <p className="text-xs text-onicord-muted mt-0.5">
                     {t("profileSetup.avatarHint", "Máx. 8 MB · PNG, JPG, WebP")}
                   </p>
                 </div>
@@ -464,7 +464,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="onicord-btn-secondary h-8 px-3 rounded-onicord-button text-xs font-semibold border border-onicord-tint/10 hover:border-onicord-tint/20 hover:bg-onicord-tint/5 transition-all cursor-pointer text-onicord-text"
+                    className="onicord-btn-secondary h-8 px-3 rounded-onicord-button text-xs font-semibold border border-onicord-border-strong hover:border-onicord-border-strong hover:bg-onicord-hover transition-all cursor-pointer text-onicord-text"
                   >
                     {avatar
                       ? t("profileSetup.changeAvatar", "Cambiar foto")
@@ -492,7 +492,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                         {t("profileTab.nickname", "Nombre de usuario")}{" "}
                         <span className="text-onicord-accent">*</span>
                       </label>
-                      <span className="text-[10px] font-mono text-onicord-faded">
+                      <span className="text-2xs font-mono text-onicord-faded">
                         {nickname.length}/32
                       </span>
                     </div>
@@ -501,11 +501,11 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                       value={nickname}
                       onChange={(e) => setNickname(e.target.value)}
                       maxLength={32}
-                      className="onicord-input h-10 px-3.5 text-sm rounded-onicord-button bg-onicord-base border border-onicord-tint/10 text-onicord-text placeholder:text-onicord-faded focus:border-onicord-accent focus:ring-1 focus:ring-onicord-accent transition-all w-full"
+                      className="onicord-input h-10 px-3.5 text-sm rounded-onicord-button bg-onicord-base border border-onicord-border-strong text-onicord-text placeholder:text-onicord-faded focus:border-onicord-accent focus:ring-1 focus:ring-onicord-accent transition-all w-full"
                       placeholder={t("profileTab.yourNamePlaceholder", "e.g. PlayerOne")}
                       autoFocus
                     />
-                    <p className="text-[11px] text-onicord-faded pt-0.5">
+                    <p className="text-xs text-onicord-faded pt-0.5">
                       {t(
                         "profileSetup.minCharsHint",
                         "Mínimo 2 caracteres · Visible en todos los servidores"
@@ -517,7 +517,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                   <div className="space-y-1.5 text-left w-full">
                     <label className="onicord-field-label !mb-0 flex items-center gap-1.5">
                       <span>{t("profileTab.statusLabel", "Estado personalizado")}</span>
-                      <span className="text-[10px] text-onicord-faded font-normal">
+                      <span className="text-2xs text-onicord-faded font-normal">
                         ({t("common.optional", "Opcional")})
                       </span>
                     </label>
@@ -526,7 +526,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                       value={customStatus}
                       onChange={(e) => setCustomStatus(e.target.value)}
                       maxLength={64}
-                      className="onicord-input h-10 px-3.5 text-sm rounded-onicord-button bg-onicord-base border border-onicord-tint/10 text-onicord-text placeholder:text-onicord-faded focus:border-onicord-accent focus:ring-1 focus:ring-onicord-accent transition-all w-full"
+                      className="onicord-input h-10 px-3.5 text-sm rounded-onicord-button bg-onicord-base border border-onicord-border-strong text-onicord-text placeholder:text-onicord-faded focus:border-onicord-accent focus:ring-1 focus:ring-onicord-accent transition-all w-full"
                       placeholder={t(
                         "profileTab.statusPlaceholder",
                         "Ej. En llamada de voz / Programando..."
@@ -548,7 +548,7 @@ export default function ProfileSetup({ initialProfile, onComplete, onRestoreComp
                     <button
                       type="button"
                       onClick={() => setShowRestore(true)}
-                      className="onicord-btn-secondary h-10 px-4 rounded-onicord-button border border-onicord-tint/10 hover:border-onicord-tint/20 text-xs sm:text-sm font-semibold text-onicord-text transition-colors cursor-pointer"
+                      className="onicord-btn-secondary h-10 px-4 rounded-onicord-button border border-onicord-border-strong hover:border-onicord-border-strong text-xs sm:text-sm font-semibold text-onicord-text transition-colors cursor-pointer"
                     >
                       {t("profileSetup.restoreAccount", "Restaurar cuenta")}
                     </button>

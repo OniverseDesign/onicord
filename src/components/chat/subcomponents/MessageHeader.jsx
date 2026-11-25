@@ -28,11 +28,11 @@ export function EphemeralCountdownBadge({ expiresAt, compact = false }) {
         defaultValue: `Se eliminará en ${remaining}s`,
       })}
       className={`inline-flex items-center gap-0.5 rounded-md font-semibold tabular-nums border transition-colors shrink-0 select-none ${
-        compact ? "px-1 py-0 text-[9px]" : "px-1.5 py-0.5 text-[10px] ml-1"
+        compact ? "px-1 py-0 text-2xs" : "px-1.5 py-0.5 text-2xs ml-1"
       } ${
         isUrgent
           ? "bg-onicord-danger/20 text-onicord-danger border-onicord-danger/40 animate-pulse"
-          : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+          : "bg-onicord-warning/15 text-onicord-warning border-onicord-warning/30"
       }`}
     >
       <MaterialIcon name="timer" size={compact ? 10 : 11} />
@@ -127,7 +127,7 @@ export default function MessageHeader({
           size={15}
           fill={true}
           weight={400}
-          className="text-indigo-400 shrink-0"
+          className="text-onicord-accent shrink-0"
           title={t("chat.complementBadge", "Complemento")}
         />
       )}
@@ -137,7 +137,7 @@ export default function MessageHeader({
           size={15}
           fill={true}
           weight={400}
-          className="text-indigo-400 shrink-0 inline"
+          className="text-onicord-accent shrink-0 inline"
           title="Webhook P2P"
         />
       )}

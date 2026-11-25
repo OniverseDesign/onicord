@@ -89,7 +89,7 @@ export default function MediaPreviewModal({
   return createPortal(
     <div
       className={cn(
-        "onicord-modal-backdrop fixed inset-0 !z-modal-nested select-none pointer-events-auto bg-onicord-mantle/90 backdrop-blur-md flex items-center justify-center p-4",
+        "onicord-modal-backdrop fixed inset-0 !z-modal-nested select-none pointer-events-auto bg-onicord-mantle/90 backdrop-blur-onicord-popover flex items-center justify-center p-4",
         isClosing && "onicord-animate-backdrop-out"
       )}
       onClick={triggerClose}
@@ -106,7 +106,7 @@ export default function MediaPreviewModal({
 
       {/* Counter Badge if list has multiple files */}
       {filesList.length > 1 && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 border border-white/10 text-xs font-mono font-bold text-white backdrop-blur-md z-modal-controls shadow-lg">
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-onicord-scrim border border-onicord-on-scrim/10 text-xs font-mono font-bold text-onicord-on-scrim backdrop-blur-onicord-popover z-modal-controls shadow-lg">
           {currentIndex + 1} / {filesList.length}
         </div>
       )}
@@ -119,7 +119,7 @@ export default function MediaPreviewModal({
             e.stopPropagation();
             onNavigate(currentIndex - 1);
           }}
-          className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-on-accent text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-modal-controls group"
+          className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-onicord-scrim hover:bg-onicord-accent hover:text-onicord-on-accent text-onicord-on-scrim border border-onicord-on-scrim/20 flex items-center justify-center backdrop-blur-onicord-popover shadow-2xl transition-all duration-fast active:scale-95 cursor-pointer z-modal-controls group"
           title={t("common.previous", "Anterior (←)")}
         >
           <MaterialIcon name="chevron_left" size="lg" />
@@ -134,7 +134,7 @@ export default function MediaPreviewModal({
             e.stopPropagation();
             onNavigate(currentIndex + 1);
           }}
-          className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-onicord-accent hover:text-onicord-on-accent text-white border border-white/20 flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-150 active:scale-95 cursor-pointer z-modal-controls group"
+          className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-onicord-scrim hover:bg-onicord-accent hover:text-onicord-on-accent text-onicord-on-scrim border border-onicord-on-scrim/20 flex items-center justify-center backdrop-blur-onicord-popover shadow-2xl transition-all duration-fast active:scale-95 cursor-pointer z-modal-controls group"
           title={t("common.next", "Siguiente (→)")}
         >
           <MaterialIcon name="chevron_right" size="lg" />
@@ -202,7 +202,7 @@ export default function MediaPreviewModal({
           )}
         </div>
 
-        <div className="mt-3 w-full shrink-0 flex items-center justify-between border-t border-white/10 pt-3 select-none gap-4">
+        <div className="mt-3 w-full shrink-0 flex items-center justify-between border-t border-onicord-border pt-3 select-none gap-4">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-onicord-text truncate">
               {currentName}
@@ -220,7 +220,7 @@ export default function MediaPreviewModal({
                 console.warn("showItemInFolder is not defined");
               }
             }}
-            className="onicord-btn-secondary px-3 py-1.5 text-xs shrink-0 border border-onicord-island hover:bg-onicord-accent hover:text-onicord-on-accent rounded-full flex items-center gap-1.5 transition-all duration-150"
+            className="onicord-btn-secondary px-3 py-1.5 text-xs shrink-0 border border-onicord-island hover:bg-onicord-accent hover:text-onicord-on-accent rounded-full flex items-center gap-1.5 transition-all duration-fast"
           >
             <MaterialIcon name="folder_open" size="sm" />
             <span>{t("chat.openLocation", "Abrir carpeta")}</span>
@@ -342,7 +342,7 @@ function NativeVideoPlayer({ src, initialTime = 0 }) {
       onDoubleClick={handleDoubleClick}
       onPlay={() => logDiag("info", "Video playing")}
       onPause={() => logDiag("info", "Video paused")}
-      className="w-full max-w-5xl max-h-[82vh] object-contain rounded-2xl shadow-xl bg-black border border-white/10"
+      className="w-full max-w-5xl max-h-[82vh] object-contain rounded-2xl shadow-xl bg-black border border-onicord-on-scrim/10"
     />
   );
 }
@@ -351,11 +351,11 @@ function NativeAudioPlayer({ src, fileName, fileSize, audioCover, formatBytes })
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-onicord-mantle/95 rounded-2xl border border-onicord-island w-full max-w-md gap-4 shadow-2xl backdrop-blur-xl animate-fade-in">
       {audioCover ? (
-        <div className="relative group w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex items-center justify-center bg-black/40">
+        <div className="relative group w-48 h-48 sm:w-56 sm:h-56 rounded-2xl overflow-hidden shadow-2xl border border-onicord-on-scrim/10 flex items-center justify-center bg-onicord-scrim">
           <img
             src={audioCover}
             alt={fileName}
-            className="w-full h-full object-cover rounded-2xl animate-fade-in transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover rounded-2xl animate-fade-in transition-transform duration-relaxed group-hover:scale-105"
           />
         </div>
       ) : (
@@ -364,11 +364,11 @@ function NativeAudioPlayer({ src, fileName, fileSize, audioCover, formatBytes })
         </div>
       )}
       <div className="w-full text-center px-2">
-        <h4 className="text-sm font-bold text-white truncate max-w-full" title={fileName}>
+        <h4 className="text-sm font-bold text-onicord-text truncate max-w-full" title={fileName}>
           {fileName}
         </h4>
         {fileSize > 0 && (
-          <p className="text-[11px] text-onicord-muted font-mono mt-0.5">
+          <p className="text-xs text-onicord-muted font-mono mt-0.5">
             {formatBytes ? formatBytes(fileSize) : ""}
           </p>
         )}

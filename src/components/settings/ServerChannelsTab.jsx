@@ -60,7 +60,7 @@ export default function ServerChannelsTab({
             <button
               type="button"
               onClick={() => addChannel("text")}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-hover text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
               title={t("serverSettings.channels.addChannel", "Añadir canal de texto")}
             >
               <MaterialIcon name="tag" size="sm" />
@@ -68,7 +68,7 @@ export default function ServerChannelsTab({
             <button
               type="button"
               onClick={() => addChannel("voice")}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-hover text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
               title={t("serverSettings.channels.addVoiceChannel", "Añadir canal de voz")}
             >
               <MaterialIcon name="volume_up" size="sm" />
@@ -76,7 +76,7 @@ export default function ServerChannelsTab({
             <button
               type="button"
               onClick={() => addChannel("forum")}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-hover text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
               title={t("serverSettings.channels.addForumChannel", "Añadir canal de foro")}
             >
               <MaterialIcon name="forum" size={16} />
@@ -84,7 +84,7 @@ export default function ServerChannelsTab({
             <button
               type="button"
               onClick={() => addChannel("whiteboard")}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-hover text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
               title={t("serverSettings.channels.addWhiteboardChannel", "Añadir canal de pizarra")}
             >
               <MaterialIcon name="draw" size={16} />
@@ -92,7 +92,7 @@ export default function ServerChannelsTab({
             <button
               type="button"
               onClick={() => addChannel("afk")}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-hover text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
               title={t("serverSettings.channels.addAfkBtn", "Añadir canal AFK")}
             >
               <MaterialIcon name="bedtime" size={16} />
@@ -100,7 +100,7 @@ export default function ServerChannelsTab({
             <button
               type="button"
               onClick={() => addChannel("category")}
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-onicord-surface hover:bg-onicord-hover text-onicord-muted hover:text-onicord-text transition-colors shrink-0 cursor-pointer"
               title={t("serverSettings.channels.addNewCategory", "Añadir nueva categoría")}
             >
               <MaterialIcon name="create_new_folder" size={16} />
@@ -119,7 +119,7 @@ export default function ServerChannelsTab({
             onDragStart={(e) => handleDragStart(e, "category", cat.id)}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDropCategory(e, cat.id)}
-            className="onicord-settings-card hover:border-onicord-tint/10 transition-colors"
+            className="onicord-settings-card hover:border-onicord-border-strong transition-colors"
           >
             {/* Category Header */}
             <div className="flex items-center gap-2 bg-onicord-base/60 border border-onicord-border p-2.5 rounded-xl cursor-grab active:cursor-grabbing group">
@@ -128,7 +128,7 @@ export default function ServerChannelsTab({
                 <div className="w-1 h-1 bg-current rounded-full" />
                 <div className="w-1 h-1 bg-current rounded-full" />
               </div>
-              <span className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider shrink-0 select-none">
+              <span className="text-2xs font-bold text-onicord-muted uppercase tracking-wider shrink-0 select-none">
                 {t("serverSettings.channels.categoryLabel", "Categoría")}
               </span>
               <ModalInput
@@ -183,7 +183,7 @@ export default function ServerChannelsTab({
         onDrop={(e) => handleDropChannel(e, null, null)}
         className={`transition-all ${
           orphans.length === 0
-            ? "min-h-[50px] border-2 border-dashed border-onicord-tint/10 hover:border-onicord-accent/40 rounded-2xl flex items-center justify-center bg-onicord-base/30 p-4"
+            ? "min-h-[50px] border-2 border-dashed border-onicord-border-strong hover:border-onicord-accent/40 rounded-2xl flex items-center justify-center bg-onicord-base/30 p-4"
             : "onicord-settings-card"
         }`}
       >
@@ -287,7 +287,7 @@ function ChannelGroupEditor({
               }}
               onDragOver={onDragOver}
               onDrop={(e) => onDropChannel(e, parentCategoryId, ch.id)}
-              className="flex flex-col bg-onicord-base/40 border border-onicord-border p-2.5 rounded-xl cursor-grab active:cursor-grabbing hover:border-onicord-tint/10 transition-colors group"
+              className="flex flex-col bg-onicord-base/40 border border-onicord-border p-2.5 rounded-xl cursor-grab active:cursor-grabbing hover:border-onicord-border-strong transition-colors group"
             >
               <div className="flex gap-3 items-center w-full">
                 <div className="text-onicord-muted opacity-40 group-hover:opacity-80 px-1 py-1 select-none flex flex-col gap-[3px] shrink-0">
@@ -305,7 +305,7 @@ function ChannelGroupEditor({
                   onMouseDown={(e) => e.stopPropagation()}
                   className={`flex shrink-0 items-center p-1 rounded-lg transition-colors ${
                     ch.type === "text" || ch.type === "forum"
-                      ? "hover:bg-onicord-tint/10 cursor-pointer"
+                      ? "hover:bg-onicord-hover cursor-pointer"
                       : "cursor-default opacity-80"
                   }`}
                   title={
@@ -351,9 +351,9 @@ function ChannelGroupEditor({
                       setOpenAfkChannelId((prev) => (prev === ch.id ? null : ch.id))
                     }
                     onMouseDown={(e) => e.stopPropagation()}
-                    className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-tint/10 transition-colors shrink-0 cursor-pointer ${
+                    className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-hover transition-colors shrink-0 cursor-pointer ${
                       openAfkChannelId === ch.id
-                        ? "text-amber-400 bg-onicord-tint/10"
+                        ? "text-onicord-warning bg-onicord-tint/10"
                         : "text-onicord-muted hover:text-onicord-text"
                     }`}
                     title={t("serverSettings.channels.afkTimeoutLabel", "Tiempo límite de inactividad")}
@@ -366,8 +366,8 @@ function ChannelGroupEditor({
                       type="button"
                       onClick={() => onUpdate(ch.id, "isPrivate", !isPrivate)}
                       onMouseDown={(e) => e.stopPropagation()}
-                      className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-tint/10 transition-colors shrink-0 cursor-pointer ${
-                        isPrivate ? "text-amber-400" : "text-onicord-muted"
+                      className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-hover transition-colors shrink-0 cursor-pointer ${
+                        isPrivate ? "text-onicord-warning" : "text-onicord-muted"
                       }`}
                       title={isPrivate ? t("serverSettings.channels.makePublic", "Hacer canal público") : t("serverSettings.channels.makePrivate", "Hacer canal privado")}
                     >
@@ -378,8 +378,8 @@ function ChannelGroupEditor({
                       type="button"
                       onClick={() => onUpdate(ch.id, "hasSpeakRestrictions", !hasSpeakRestrictions)}
                       onMouseDown={(e) => e.stopPropagation()}
-                      className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-tint/10 transition-colors shrink-0 cursor-pointer ${
-                        hasSpeakRestrictions ? "text-amber-400" : "text-onicord-muted"
+                      className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-hover transition-colors shrink-0 cursor-pointer ${
+                        hasSpeakRestrictions ? "text-onicord-warning" : "text-onicord-muted"
                       }`}
                       title={
                         hasSpeakRestrictions
@@ -408,8 +408,8 @@ function ChannelGroupEditor({
                         type="button"
                         onClick={() => onUpdate(ch.id, "nsfw", !isNsfw)}
                         onMouseDown={(e) => e.stopPropagation()}
-                        className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-tint/10 transition-colors shrink-0 cursor-pointer ${
-                          isNsfw ? "text-rose-400 bg-rose-500/10" : "text-onicord-muted"
+                        className={`w-8 h-8 flex items-center justify-center rounded-xl hover:bg-onicord-hover transition-colors shrink-0 cursor-pointer ${
+                          isNsfw ? "text-onicord-danger bg-onicord-danger/10" : "text-onicord-muted"
                         }`}
                         title={
                           isNsfw
@@ -449,10 +449,10 @@ function ChannelGroupEditor({
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
-                    className="w-full mt-2.5 pt-2 border-t border-onicord-border space-y-2.5 animate-fade-in text-[11px] bg-onicord-base/50 p-2.5 rounded-lg cursor-default text-left select-none"
+                    className="w-full mt-2.5 pt-2 border-t border-onicord-border space-y-2.5 animate-fade-in text-xs bg-onicord-base/50 p-2.5 rounded-lg cursor-default text-left select-none"
                   >
                     <div className="flex items-center justify-between">
-                      <p className="font-bold text-onicord-muted uppercase tracking-wider text-[9px]">
+                      <p className="font-bold text-onicord-muted uppercase tracking-wider text-2xs">
                         {t("serverSettings.channels.afkTimeoutLabel", "Tiempo límite de inactividad")}
                       </p>
                       <span className="text-xs font-bold text-onicord-accent">
@@ -487,7 +487,7 @@ function ChannelGroupEditor({
                         }}
                         className="onicord-range-input w-full cursor-pointer"
                       />
-                      <div className="flex justify-between text-[10px] text-onicord-muted font-medium pt-1.5 select-none">
+                      <div className="flex justify-between text-2xs text-onicord-muted font-medium pt-1.5 select-none">
                         {afkTimeoutOptions.map((s, idx) => (
                           <span
                             key={s.value}
@@ -516,9 +516,9 @@ function ChannelGroupEditor({
               {!isAfk && isPrivate && (
                 <div
                   onMouseDown={(e) => e.stopPropagation()}
-                  className="w-full mt-2.5 pt-2 border-t border-onicord-border space-y-1.5 animate-fade-in text-[11px] bg-onicord-base/50 p-2.5 rounded-lg cursor-default text-left"
+                  className="w-full mt-2.5 pt-2 border-t border-onicord-border space-y-1.5 animate-fade-in text-xs bg-onicord-base/50 p-2.5 rounded-lg cursor-default text-left"
                 >
-                  <p className="font-bold text-onicord-muted uppercase tracking-wider text-[9px]">
+                  <p className="font-bold text-onicord-muted uppercase tracking-wider text-2xs">
                     {t("serverSettings.channels.allowedRolesTitle", "Roles con Acceso Privado")}
                   </p>
 
@@ -541,17 +541,17 @@ function ChannelGroupEditor({
                           }}
                           title={t("serverSettings.channels.removeRoleHint", "Haz clic para quitar rol")}
                         >
-                          <div className="flex items-center gap-1.5 transition-opacity duration-150 group-hover/badge:opacity-0">
+                          <div className="flex items-center gap-1.5 transition-opacity duration-fast group-hover/badge:opacity-0">
                             <div
                               className="w-2.5 h-2.5 rounded-full shrink-0"
                               style={{ backgroundColor: r.color }}
                             />
-                            <span className="text-[11px] font-semibold text-onicord-text">
+                            <span className="text-xs font-semibold text-onicord-text">
                               {r.name}
                             </span>
                           </div>
 
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-onicord-text">
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-fast text-onicord-text">
                             <MaterialIcon name="delete" size="sm" />
                           </div>
                         </div>
@@ -577,9 +577,9 @@ function ChannelGroupEditor({
                         {activeRoleMenuId === ch.id && (
                           <div
                             ref={menuRef}
-                            className="onicord-floating-menu w-52 left-0 top-8 z-[100] shadow-2xl p-2 space-y-1 text-left bg-onicord-base border border-onicord-tint/10 rounded-xl"
+                            className="onicord-floating-menu w-52 left-0 top-8 z-modal-controls shadow-2xl p-2 space-y-1 text-left bg-onicord-base border border-onicord-border-strong rounded-xl"
                           >
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted px-2 py-1 border-b border-onicord-border">
+                            <p className="text-2xs font-bold uppercase tracking-wider text-onicord-muted px-2 py-1 border-b border-onicord-border">
                               {t("serverSettings.members.assignRoleTitle", "Asignar Rol al Canal")}
                             </p>
                             <div className="max-h-[160px] overflow-y-auto minimal-scrollbar space-y-1 pt-1">
@@ -596,7 +596,7 @@ function ChannelGroupEditor({
                                         : [...allowedRoles, r.id];
                                       onUpdate(ch.id, "allowedRoles", nextRoles);
                                     }}
-                                    className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all hover:bg-onicord-tint/10 cursor-pointer"
+                                    className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all hover:bg-onicord-hover cursor-pointer"
                                   >
                                     <div className="flex items-center gap-2 min-w-0">
                                       <div
@@ -627,7 +627,7 @@ function ChannelGroupEditor({
                     )}
 
                     {roles.length === 0 && (
-                      <p className="text-[10px] text-onicord-muted italic">
+                      <p className="text-2xs text-onicord-muted italic">
                         {t(
                           "serverSettings.channels.noRolesForPrivate",
                           "Sin roles creados. Solo administradores pueden ver este canal."
@@ -641,15 +641,15 @@ function ChannelGroupEditor({
               {!isAfk && hasSpeakRestrictions && (
                 <div
                   onMouseDown={(e) => e.stopPropagation()}
-                  className="w-full mt-2.5 pt-2 border-t border-onicord-border space-y-1.5 animate-fade-in text-[11px] bg-onicord-base/50 p-2.5 rounded-lg cursor-default text-left"
+                  className="w-full mt-2.5 pt-2 border-t border-onicord-border space-y-1.5 animate-fade-in text-xs bg-onicord-base/50 p-2.5 rounded-lg cursor-default text-left"
                 >
                   <div className="flex items-center justify-between">
-                    <p className="font-bold text-onicord-muted uppercase tracking-wider text-[9px]">
+                    <p className="font-bold text-onicord-muted uppercase tracking-wider text-2xs">
                       {ch.type === "voice"
                         ? t("serverSettings.channels.restrictedSpeakVoiceTitle", "Roles Sin Permiso de Hablar (Solo Oyentes)")
                         : t("serverSettings.channels.restrictedSpeakTextTitle", "Roles Sin Permiso de Escribir (Solo Lectura)")}
                     </p>
-                    <span className="text-[9px] text-onicord-muted">
+                    <span className="text-2xs text-onicord-muted">
                       {disallowedSpeakRoles.length === 0
                         ? t("serverSettings.channels.allCanSpeak", "Todos autorizados actualmente")
                         : t("serverSettings.channels.rolesCountRestricted", { count: disallowedSpeakRoles.length, defaultValue: `${disallowedSpeakRoles.length} restringido(s)` })}
@@ -667,16 +667,16 @@ function ChannelGroupEditor({
                               const nextRoles = disallowedSpeakRoles.filter((id) => id !== "@everyone");
                               onUpdate(ch.id, "disallowedSpeakRoles", nextRoles);
                             }}
-                            className="relative flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-onicord-tint/20 transition-all cursor-pointer hover:!bg-onicord-danger hover:!border-onicord-danger group/badge bg-onicord-tint/10"
+                            className="relative flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-onicord-border-strong transition-all cursor-pointer hover:!bg-onicord-danger hover:!border-onicord-danger group/badge bg-onicord-tint/10"
                             title={t("serverSettings.channels.allowRoleHint", "Haz clic para autorizar a hablar")}
                           >
-                            <div className="flex items-center gap-1.5 transition-opacity duration-150 group-hover/badge:opacity-0">
+                            <div className="flex items-center gap-1.5 transition-opacity duration-fast group-hover/badge:opacity-0">
                               <MaterialIcon name="public" size={13} className="text-onicord-muted" />
-                              <span className="text-[11px] font-semibold text-onicord-text">
+                              <span className="text-xs font-semibold text-onicord-text">
                                 {t("serverSettings.channels.everyoneRole", "@everyone (Sin rol)")}
                               </span>
                             </div>
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-onicord-text">
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-fast text-onicord-text">
                               <MaterialIcon name="delete" size="sm" />
                             </div>
                           </div>
@@ -698,17 +698,17 @@ function ChannelGroupEditor({
                           }}
                           title={t("serverSettings.channels.allowRoleHint", "Haz clic para autorizar a hablar")}
                         >
-                          <div className="flex items-center gap-1.5 transition-opacity duration-150 group-hover/badge:opacity-0">
+                          <div className="flex items-center gap-1.5 transition-opacity duration-fast group-hover/badge:opacity-0">
                             <div
                               className="w-2.5 h-2.5 rounded-full shrink-0"
                               style={{ backgroundColor: r.color }}
                             />
-                            <span className="text-[11px] font-semibold text-onicord-text">
+                            <span className="text-xs font-semibold text-onicord-text">
                               {r.name}
                             </span>
                           </div>
 
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-150 text-onicord-text">
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/badge:opacity-100 transition-opacity duration-fast text-onicord-text">
                             <MaterialIcon name="delete" size="sm" />
                           </div>
                         </div>
@@ -733,9 +733,9 @@ function ChannelGroupEditor({
                       {activeSpeakMenuId === ch.id && (
                         <div
                           ref={menuRef}
-                          className="onicord-floating-menu w-56 left-0 top-8 z-[100] shadow-2xl p-2 space-y-1 text-left bg-onicord-base border border-onicord-tint/10 rounded-xl"
+                          className="onicord-floating-menu w-56 left-0 top-8 z-modal-controls shadow-2xl p-2 space-y-1 text-left bg-onicord-base border border-onicord-border-strong rounded-xl"
                         >
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted px-2 py-1 border-b border-onicord-border">
+                          <p className="text-2xs font-bold uppercase tracking-wider text-onicord-muted px-2 py-1 border-b border-onicord-border">
                             {t("serverSettings.channels.selectRolesToMute", "Destildar / Restringir Roles")}
                           </p>
                           <div className="max-h-[180px] overflow-y-auto minimal-scrollbar space-y-1 pt-1">
@@ -750,7 +750,7 @@ function ChannelGroupEditor({
                                   : [...disallowedSpeakRoles, "@everyone"];
                                 onUpdate(ch.id, "disallowedSpeakRoles", nextRoles);
                               }}
-                              className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all hover:bg-onicord-tint/10 cursor-pointer"
+                              className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all hover:bg-onicord-hover cursor-pointer"
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <MaterialIcon name="public" size={14} className="text-onicord-muted shrink-0" />
@@ -759,7 +759,7 @@ function ChannelGroupEditor({
                                 </span>
                               </div>
                               {disallowedSpeakRoles.includes("@everyone") ? (
-                                <span className="text-[10px] text-onicord-danger font-bold flex items-center gap-1">
+                                <span className="text-2xs text-onicord-danger font-bold flex items-center gap-1">
                                   <MaterialIcon name="block" size={13} /> {t("serverSettings.channels.readOnlyBadge", "Solo lectura")}
                                 </span>
                               ) : (
@@ -784,7 +784,7 @@ function ChannelGroupEditor({
                                       : [...disallowedSpeakRoles, r.id];
                                     onUpdate(ch.id, "disallowedSpeakRoles", nextRoles);
                                   }}
-                                  className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all hover:bg-onicord-tint/10 cursor-pointer"
+                                  className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-all hover:bg-onicord-hover cursor-pointer"
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <div
@@ -799,7 +799,7 @@ function ChannelGroupEditor({
                                     </span>
                                   </div>
                                   {isRestricted ? (
-                                    <span className="text-[10px] text-onicord-danger font-bold flex items-center gap-1">
+                                    <span className="text-2xs text-onicord-danger font-bold flex items-center gap-1">
                                       <MaterialIcon name="block" size={13} /> {t("serverSettings.channels.readOnlyBadge", "Solo lectura")}
                                     </span>
                                   ) : (

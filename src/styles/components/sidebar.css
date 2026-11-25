@@ -5,7 +5,7 @@
   }
 
   .onicord-channel-indicator {
-    @apply absolute left-[-8px] top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-onicord-text transition-all duration-200 pointer-events-none;
+    @apply absolute left-[-8px] top-1/2 w-1 -translate-y-1/2 rounded-r-full bg-onicord-text transition-all duration-normal pointer-events-none;
   }
 
   .onicord-channel {
@@ -38,7 +38,7 @@
   }
 
   .onicord-icon-btn {
-    @apply flex h-8 w-8 items-center justify-center rounded-onicord-button transition-colors duration-150 cursor-pointer;
+    @apply flex h-8 w-8 items-center justify-center rounded-onicord-button transition-colors duration-fast cursor-pointer;
     color: var(--onicord-base);
   }
   .onicord-icon-btn:hover {
@@ -61,7 +61,7 @@
     @apply text-xl font-semibold leading-none opacity-70 shrink-0 select-none;
   }
   .onicord-vector-icon-button {
-    @apply transition-colors duration-150 text-onicord-muted cursor-pointer;
+    @apply transition-colors duration-fast text-onicord-muted cursor-pointer;
   }
   .group:hover .onicord-vector-icon-button {
     color: var(--onicord-text);

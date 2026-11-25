@@ -1428,6 +1428,13 @@ app.whenReady().then(async () => {
     ? (activeProfile.showRichPresence ?? true)
     : true;
   global.updateScannerState(showRP, activeProfile?.customGames);
+
+  try {
+    const suggestionService = require("./services/suggestionService.cjs");
+    suggestionService.scheduleInitialIndex(4000);
+  } catch (err) {
+    console.warn("[Main] Failed scheduling quick suggestions index:", err.message);
+  }
 });
 
 app.on("will-quit", () => {

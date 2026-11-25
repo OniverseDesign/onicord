@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setFullscreen: (flag) => ipcRenderer.send("window:setFullscreen", flag),
   closeWindow: () => ipcRenderer.send("window:close"),
   focusWindow: () => ipcRenderer.send("window:focus"),
+  setWindowBackgroundMaterial: (material) =>
+    ipcRenderer.invoke("window:setBackgroundMaterial", material),
   showItemInFolder: (fullPath) =>
     ipcRenderer.send("show-item-in-folder", fullPath),
   updateAppIcon: (dataUrl) => ipcRenderer.send("app:update-icon", dataUrl),
@@ -137,6 +139,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ),
   searchChatMessages: (roomCode, query, options) =>
     ipcRenderer.invoke("chat:search", roomCode, query, options),
+  getQuickSuggestionsSnapshot: (roomCode, channelId) =>
+    ipcRenderer.invoke("suggestions:getSnapshot", roomCode, channelId || "general"),
+  setQuickSuggestionPref: (payload) =>
+    ipcRenderer.invoke("suggestions:setPref", payload),
+  clearDismissedQuickSuggestions: () =>
+    ipcRenderer.invoke("suggestions:clearDismissed"),
+  reindexQuickSuggestions: () =>
+    ipcRenderer.invoke("suggestions:reindex"),
   sendTyping: (channelId) => ipcRenderer.invoke("chat:setTyping", channelId),
   consumeHeadlessUnreads: () =>
     ipcRenderer.invoke("chat:consume-headless-unreads"),
@@ -172,7 +182,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       "plugins:package-dropped", "backup:package-dropped", "backup:local-updated",
       "game-activity-changed", "profile:updated", "onicord:mcp-trigger-action",
       "onicord:global-keybind",
-      "voice:join-channel", "voice:leave-channel", "voice:toggle-media"
+      "voice:join-channel", "voice:leave-channel", "voice:toggle-media",
+      "suggestions:updated"
     ];
     if (!ALLOWED_CHANNELS.includes(channel)) {
       console.warn(`[Preload Guard] Intento de suscripción no permitida al canal: ${channel}`);

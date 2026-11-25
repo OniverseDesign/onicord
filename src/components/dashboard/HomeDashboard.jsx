@@ -448,7 +448,7 @@ export default function HomeDashboard({
       <header className="onicord-dashboard-header">
         <div className="flex items-center gap-4 min-w-0 flex-1">
           {}
-          <div className={`h-12 w-12 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-inner select-none transition-transform duration-300 hover:scale-105 active:scale-95 ${profile?.avatar ? "" : "bg-onicord-island"}`}>
+          <div className={`h-12 w-12 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-inner select-none transition-transform duration-relaxed hover:scale-105 active:scale-95 ${profile?.avatar ? "" : "bg-onicord-island"}`}>
             {profile?.avatar ? (
               <SmartAnimatedImage
                 src={profile.avatar} 
@@ -504,7 +504,7 @@ export default function HomeDashboard({
                   alert("Layout copiado a la consola.");
                 }
               }}
-              className="px-4 py-2 bg-onicord-island text-onicord-text border border-onicord-tint/10 font-semibold rounded-onicord-inner text-xs transition-all duration-150 active:scale-95 hover:bg-onicord-tint/5 cursor-pointer shadow-sm"
+              className="px-4 py-2 bg-onicord-island text-onicord-text border border-onicord-border-strong font-semibold rounded-onicord-inner text-xs transition-all duration-fast active:scale-95 hover:bg-onicord-hover cursor-pointer shadow-sm"
             >
               Fijar Layout Base (💾)
             </button>
@@ -527,7 +527,7 @@ export default function HomeDashboard({
             style={{
               gridArea: `${islas[activeOp.key].y} / ${islas[activeOp.key].x} / span ${islas[activeOp.key].h} / span ${islas[activeOp.key].w}`,
             }}
-            className="bg-onicord-tint/5 border border-dashed border-onicord-tint/20 rounded-onicord-outer-p4 pointer-events-none z-10 transition-all duration-150 ease-out"
+            className="bg-onicord-tint/5 border border-dashed border-onicord-border-strong rounded-onicord-outer-p4 pointer-events-none z-10 transition-all duration-fast ease-out"
           />
         )}
 
@@ -578,7 +578,7 @@ export default function HomeDashboard({
               className={`min-w-0 min-h-0 rounded-onicord-outer-p4 ${
                 isSelected
                   ? "transition-none shadow-2xl border-onicord-accent/80 scale-x-[0.98] scale-y-[0.98]"
-                  : "transition-all duration-500 ease-out transform-gpu scale-100 border-transparent"
+                  : "transition-all duration-slow ease-out transform-gpu scale-100 border-transparent"
               }`}
             >
               <Isla
@@ -611,7 +611,7 @@ export default function HomeDashboard({
               </Isla>
 
               {}
-              <div className="absolute inset-0 pointer-events-none rounded-onicord-outer-p4 border border-transparent group-hover:border-onicord-accent/20 transition-colors duration-200">
+              <div className="absolute inset-0 pointer-events-none rounded-onicord-outer-p4 border border-transparent group-hover:border-onicord-accent/20 transition-colors duration-normal">
                 <div
                   onPointerDown={(e) => handleResizePointerDown(e, key, "n")}
                   className="resize-handle onicord-bento-resize-edge-h top-[-3px]"

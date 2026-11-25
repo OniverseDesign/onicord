@@ -163,7 +163,7 @@ const AvatarPicker = React.forwardRef(function AvatarPicker(
         style={resolvedCircleStyle}
         title={title}
         className={cn(
-          "rounded-full overflow-hidden flex items-center justify-center relative select-none transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-onicord-accent",
+          "rounded-full overflow-hidden flex items-center justify-center relative select-none transition-all duration-normal outline-none focus-visible:ring-2 focus-visible:ring-onicord-accent",
           cfg.circle,
           src ? "bg-onicord-base" : emptyClassName,
           isInteractive ? "cursor-pointer" : "cursor-default",

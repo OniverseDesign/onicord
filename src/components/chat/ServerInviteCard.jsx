@@ -159,7 +159,7 @@ export default function ServerInviteCard({ roomCode, fullUrl, ip, port }) {
   const memberCount = serverData?.memberCount || 1;
 
   return (
-    <div className="my-2.5 pr-3 max-w-md w-full rounded-onicord-inner bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 overflow-hidden backdrop-blur-md transition-all group/invite text-left select-none">
+    <div className="my-2.5 pr-3 max-w-md w-full rounded-onicord-inner bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 overflow-hidden backdrop-blur-onicord-popover transition-all group/invite text-left select-none">
 
       {/* Main content body */}
       <div className="p-3.5 flex items-center gap-3.5">

@@ -24,7 +24,7 @@
     @apply border border-onicord-border;
   }
   .onicord-panel-bordered-soft {
-    @apply border border-onicord-tint/[0.04];
+    @apply border border-onicord-border-subtle;
   }
   .onicord-panel-bordered-overlay {
     @apply border border-onicord-tint/[0.06];
@@ -42,7 +42,7 @@
     @apply onicord-panel onicord-panel-overlay onicord-panel-bordered-soft text-sm text-onicord-muted;
   }
   .onicord-panel-card {
-    @apply onicord-panel onicord-panel-base onicord-panel-bordered rounded-onicord-inner transition-colors duration-200 select-none;
+    @apply onicord-panel onicord-panel-base onicord-panel-bordered rounded-onicord-inner transition-colors duration-normal select-none;
   }
   .onicord-modal-preview-box {
     @apply flex items-center justify-center gap-4 p-3.5 rounded-onicord-inner bg-onicord-base/50 border border-onicord-border shadow-inner;

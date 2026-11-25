@@ -378,7 +378,7 @@ export default function UserPanel({
           return (
             <div
               key={`${btn.pluginId}-${btn.id}`}
-              className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center justify-center shrink-0 ${
+              className={`overflow-hidden transition-all duration-relaxed ease-in-out flex items-center justify-center shrink-0 ${
                 inVoice
                   ? "w-8 opacity-100 scale-100 pointer-events-auto"
                   : "w-0 opacity-0 scale-75 pointer-events-none -mr-1.5"
@@ -415,7 +415,7 @@ export default function UserPanel({
 
         {/* Screen share button */}
         <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center justify-center shrink-0 ${
+          className={`overflow-hidden transition-all duration-relaxed ease-in-out flex items-center justify-center shrink-0 ${
             inVoice
               ? "w-8 opacity-100 scale-100 pointer-events-auto"
               : "w-0 opacity-0 scale-75 pointer-events-none -mr-1.5"
@@ -474,7 +474,7 @@ export default function UserPanel({
 
         {/* Voice disconnect button */}
         <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out flex items-center justify-center shrink-0 ${
+          className={`overflow-hidden transition-all duration-relaxed ease-in-out flex items-center justify-center shrink-0 ${
             inVoice
               ? "w-8 opacity-100 scale-100 pointer-events-auto"
               : "w-0 opacity-0 scale-75 pointer-events-none -ml-1.5"
@@ -500,7 +500,7 @@ export default function UserPanel({
   return (
     <div className="w-full shrink-0 bg-onicord-base rounded-onicord-outer-p4 p-2 border border-onicord-island box-border flex flex-col overflow-hidden select-none">
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`overflow-hidden transition-all duration-relaxed ease-in-out ${
           inVoice
             ? "max-h-24 opacity-100 mb-0"
             : "max-h-0 opacity-0 pointer-events-none"
@@ -523,7 +523,7 @@ export default function UserPanel({
             </p>
           </div>
         </div>
-        <hr className="my-2 border-onicord-dark-muted border-t-1" />
+        <hr className="my-2 border-onicord-border border-t-1" />
       </div>
 
       <div className="flex items-center justify-between w-full min-w-0">
@@ -578,22 +578,22 @@ export default function UserPanel({
           items={[
             {
               label: t("status.online", "Conectado"),
-              icon: <span className="w-2.5 h-2.5 rounded-full bg-onicord-success shrink-0" />,
+              icon: <span className="w-2.5 h-2.5 rounded-full bg-onicord-status-online shrink-0" />,
               onClick: () => handleStatusSelect("online"),
             },
             {
               label: t("status.idle", "Ausente"),
-              icon: <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />,
+              icon: <span className="w-2.5 h-2.5 rounded-full bg-onicord-status-idle shrink-0" />,
               onClick: () => handleStatusSelect("idle"),
             },
             {
               label: t("status.dnd", "No molestar"),
-              icon: <span className="w-2.5 h-2.5 rounded-full bg-onicord-danger shrink-0" />,
+              icon: <span className="w-2.5 h-2.5 rounded-full bg-onicord-status-dnd shrink-0" />,
               onClick: () => handleStatusSelect("dnd"),
             },
             {
               label: t("status.invisible", "Invisible"),
-              icon: <span className="w-2.5 h-2.5 rounded-full bg-onicord-overlay shrink-0" />,
+              icon: <span className="w-2.5 h-2.5 rounded-full bg-onicord-status-offline shrink-0" />,
               onClick: () => handleStatusSelect("invisible"),
             },
           ]}

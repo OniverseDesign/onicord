@@ -120,13 +120,13 @@ export default function HardwareWidget({
         <div className="min-w-0">
           <p
             style={{ fontSize: "clamp(0.55rem, 2.2cqi, 0.7rem)" }}
-            className="font-bold uppercase tracking-wide text-[var(--onicord-faded)] truncate"
+            className="font-bold uppercase tracking-wide text-onicord-faded truncate"
           >
             {t("widgets.hardware.cpuApp", "CPU App")}
           </p>
           <p
             style={{ fontSize: "clamp(0.8rem, 5.5cqi, 1.75rem)" }}
-            className="font-black text-[var(--onicord-text)] tracking-tighter font-mono leading-none truncate mt-0.5"
+            className="font-black text-onicord-text tracking-tighter font-mono leading-none truncate mt-0.5"
           >
             {cpuReal}%
           </p>
@@ -135,13 +135,13 @@ export default function HardwareWidget({
         <div className="min-w-0">
           <p
             style={{ fontSize: "clamp(0.55rem, 2.2cqi, 0.7rem)" }}
-            className="font-bold uppercase tracking-wide text-[var(--onicord-faded)] truncate"
+            className="font-bold uppercase tracking-wide text-onicord-faded truncate"
           >
             {t("widgets.hardware.memoryOS", "Memory OS")}
           </p>
           <p
             style={{ fontSize: "clamp(0.8rem, 5.5cqi, 1.75rem)" }}
-            className="font-black text-[var(--onicord-success)] tracking-tighter font-mono leading-none truncate mt-0.5"
+            className="font-black text-onicord-success tracking-tighter font-mono leading-none truncate mt-0.5"
           >
             {ramReal}
           </p>
@@ -150,13 +150,13 @@ export default function HardwareWidget({
         <div className="min-w-0">
           <p
             style={{ fontSize: "clamp(0.55rem, 2.2cqi, 0.7rem)" }}
-            className="font-bold uppercase tracking-wide text-[var(--onicord-faded)] truncate"
+            className="font-bold uppercase tracking-wide text-onicord-faded truncate"
           >
             {t("widgets.hardware.network", "Network")}
           </p>
           <p
             style={{ fontSize: "clamp(0.8rem, 5.5cqi, 1.75rem)" }}
-            className="font-black text-[var(--onicord-accent)] tracking-tighter font-mono leading-none truncate mt-0.5"
+            className="font-black text-onicord-accent tracking-tighter font-mono leading-none truncate mt-0.5"
           >
             {netSpeed}
           </p>
@@ -165,13 +165,13 @@ export default function HardwareWidget({
         <div className="min-w-0">
           <p
             style={{ fontSize: "clamp(0.55rem, 2.2cqi, 0.7rem)" }}
-            className="font-bold uppercase tracking-wide text-[var(--onicord-faded)] truncate"
+            className="font-bold uppercase tracking-wide text-onicord-faded truncate"
           >
             {t("widgets.hardware.signaling", "Signaling")}
           </p>
           <p
             style={{ fontSize: "clamp(0.8rem, 5.5cqi, 1.75rem)" }}
-            className="font-black text-[var(--onicord-lavender)] tracking-tighter font-mono leading-none truncate mt-0.5"
+            className="font-black text-onicord-accent tracking-tighter font-mono leading-none truncate mt-0.5"
           >
             {activeConnectionsCount > 0 ? `${ping}ms` : "0ms"}
           </p>
@@ -197,9 +197,9 @@ export default function HardwareWidget({
             >
               <div
                 style={{ height: `${heightBar}%` }}
-                className={`absolute bottom-0 left-0 right-0 rounded-full transition-all duration-300 ease-out ${
+                className={`absolute bottom-0 left-0 right-0 rounded-full transition-all duration-relaxed ease-out ${
                   isLast
-                    ? "bg-[#c3a9ff] shadow-md shadow-[#c3a9ff]/40 opacity-100"
+                    ? "bg-onicord-accent shadow-onicord-glow-accent opacity-100"
                     : "bg-onicord-sapphire opacity-35"
                 }`}
                 title={t("widgets.hardware.cpuTooltip", { cpu: rawCpuValue, max: cpuMax })}

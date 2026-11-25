@@ -7,26 +7,20 @@
     padding: var(--gap);
   }
 
-  /* RADIUS FLOTANTES PREMIUM SIN HARDCODEO */
+  /* RADIUS FLOTANTES PREMIUM SIN HARDCODEO (Alias legacy; inner y button provienen de tailwind.config.js) */
   .rounded-onicord-outer-p4 {
-    border-radius: var(--radius);
-  }
-  .rounded-onicord-inner {
-    border-radius: calc(var(--radius) - var(--gap));
-  }
-  .rounded-onicord-button {
-    border-radius: calc(var(--radius) - (var(--gap) * 3));
+    border-radius: var(--radius-outer);
   }
 
   /* RESIZERS */
   .onicord-resizer-handle {
-    @apply w-[6px] mx-[-3px] rounded-full shrink-0 cursor-col-resize z-20 hover:bg-onicord-accent/20 active:bg-onicord-accent/40 transition-colors duration-150;
+    @apply w-[6px] mx-[-3px] rounded-full shrink-0 cursor-col-resize z-20 hover:bg-onicord-accent/20 active:bg-onicord-accent/40 transition-colors duration-fast;
   }
   .onicord-bento-resize-edge-v {
-    @apply absolute top-2 bottom-2 w-[7px] cursor-ew-resize pointer-events-auto bg-transparent hover:bg-onicord-accent/30 rounded transition-colors duration-100;
+    @apply absolute top-2 bottom-2 w-[7px] cursor-ew-resize pointer-events-auto bg-transparent hover:bg-onicord-accent/30 rounded transition-colors duration-instant;
   }
   .onicord-bento-resize-edge-h {
-    @apply absolute left-2 right-2 h-[7px] cursor-ns-resize pointer-events-auto bg-transparent hover:bg-onicord-accent/30 rounded transition-colors duration-100;
+    @apply absolute left-2 right-2 h-[7px] cursor-ns-resize pointer-events-auto bg-transparent hover:bg-onicord-accent/30 rounded transition-colors duration-instant;
   }
 
   /* MICRO-ANIMATIONS & HOVER SLIDE TOKENS */

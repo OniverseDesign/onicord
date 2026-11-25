@@ -220,7 +220,7 @@ export default function ChatMessageList({
             <div
               className={`w-full ${
                 isSkeletonFadingOut
-                  ? "absolute inset-0 z-10 pointer-events-none transition-opacity duration-200 opacity-0 bg-onicord-base"
+                  ? "absolute inset-0 z-10 pointer-events-none transition-opacity duration-normal opacity-0 bg-onicord-base"
                   : "min-h-full"
               }`}
             >
@@ -384,7 +384,7 @@ export default function ChatMessageList({
           type="button"
           onClick={handleScrollButtonClick}
           tabIndex={showScrollBottom ? 0 : -1}
-          className={`absolute bottom-4 right-6 z-30 inline-flex items-center gap-1 pl-3 pr-2 py-1 rounded-full bg-onicord-accent border border-onicord-accent/30 text-onicord-on-accent text-xs font-bold transition-all duration-300 ease-out cursor-pointer select-none shadow-xs ${
+          className={`absolute bottom-4 right-6 z-30 inline-flex items-center gap-1 pl-3 pr-2 py-1 rounded-full bg-onicord-accent border border-onicord-accent/30 text-onicord-on-accent text-xs font-bold transition-all duration-relaxed ease-out cursor-pointer select-none shadow-xs ${
             showScrollBottom
               ? "opacity-100 translate-y-0 pointer-events-auto"
               : "opacity-0 translate-y-2 pointer-events-none"
@@ -397,7 +397,7 @@ export default function ChatMessageList({
             name={isForum ? "arrow_upward" : "arrow_downward"}
             size={16}
             weight={500}
-            className="text-onicord-dark shrink-0"
+            className="text-onicord-on-accent shrink-0"
           />
         </button>
       </div>

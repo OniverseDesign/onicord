@@ -113,7 +113,7 @@ export default function ActivityInviteCard({
   const effectiveIcon = icon || defaultIcon;
 
   return (
-    <div className="w-full max-w-md my-2 p-3 rounded-2xl bg-onicord-mantle border border-onicord-island select-none text-onicord-text font-sans flex items-stretch gap-3.5 shadow-sm transition-all duration-200 hover:border-onicord-accent/30">
+    <div className="w-full max-w-md my-2 p-3 rounded-2xl bg-onicord-mantle border border-onicord-island select-none text-onicord-text font-sans flex items-stretch gap-3.5 shadow-sm transition-all duration-normal hover:border-onicord-accent/30">
       {/* Columna Izquierda: Imagen / Carátula de ancho fijo y altura completa */}
       <div className="w-28 sm:w-32 self-stretch min-h-[108px] rounded-xl overflow-hidden shrink-0 bg-onicord-surface/40 border border-onicord-border relative flex items-center justify-center">
         {coverUrl && !imgError ? (
@@ -165,7 +165,7 @@ export default function ActivityInviteCard({
                 <button
                   type="button"
                   onClick={handleCopyCode}
-                  className="p-0.5 rounded hover:bg-onicord-tint/10 text-onicord-muted hover:text-white transition-all cursor-pointer flex items-center justify-center"
+                  className="p-0.5 rounded hover:bg-onicord-hover text-onicord-muted hover:text-white transition-all cursor-pointer flex items-center justify-center"
                   title={copied ? t("activityInvite.copied", "Copiado") : t("activityInvite.copyCode", "Copiar código")}
                 >
                   <MaterialIcon
@@ -183,7 +183,7 @@ export default function ActivityInviteCard({
         <button
           type="button"
           onClick={handleJoin}
-          className="w-full py-2 px-4 bg-onicord-accent hover:bg-onicord-accent/90 text-onicord-on-accent rounded-full font-bold text-xs transition-all duration-150 flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer shadow-sm"
+          className="w-full py-2 px-4 bg-onicord-accent hover:bg-onicord-accent/90 text-onicord-on-accent rounded-full font-bold text-xs transition-all duration-fast flex items-center justify-center gap-1.5 active:scale-[0.98] cursor-pointer shadow-sm"
         >
           <MaterialIcon name="play_arrow" size={15} />
           <span>{buttonText}</span>

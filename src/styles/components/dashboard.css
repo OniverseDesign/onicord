@@ -1,10 +1,10 @@
 @layer components {
   /* 🎛️ DASHBOARD, SERVER RAIL, AND GRID STYLES */
   .onicord-rail-indicator {
-    @apply absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-onicord-text transition-all duration-200;
+    @apply absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-onicord-text transition-all duration-normal;
   }
   .onicord-rail-btn-server {
-    @apply flex h-12 w-12 items-center justify-center overflow-hidden text-sm font-semibold transition-all duration-200 rounded-[24px] bg-onicord-base text-onicord-text hover:rounded-[16px] hover:bg-onicord-accent hover:text-white border-none outline-none ring-0;
+    @apply flex h-12 w-12 items-center justify-center overflow-hidden text-sm font-semibold transition-all duration-normal rounded-[24px] bg-onicord-base text-onicord-text hover:rounded-[16px] hover:bg-onicord-accent hover:text-white border-none outline-none ring-0;
   }
   .onicord-rail-btn-server svg {
     transform-origin: center !important;
@@ -18,7 +18,7 @@
     will-change: transform;
   }
   .onicord-rail-drop-line {
-    @apply pointer-events-none h-0.5 w-10 rounded-full bg-onicord-accent shadow-[0_0_8px_rgba(var(--onicord-accent-rgb,99,102,241),0.9)];
+    @apply pointer-events-none h-0.5 w-10 rounded-full bg-onicord-accent shadow-onicord-glow-accent;
   }
 
   .onicord-server-header-btn {
@@ -35,11 +35,11 @@
     @apply bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island p-5 flex items-center justify-between shadow-md shrink-0;
   }
   .onicord-bento-grid {
-    @apply grid flex-1 min-h-0 bg-onicord-mantle/10 rounded-onicord-outer-p4 border border-onicord-tint/[0.04];
+    @apply grid flex-1 min-h-0 bg-onicord-mantle/10 rounded-onicord-outer-p4 border border-onicord-border-subtle;
   }
 
   .onicord-rail-btn {
-    @apply flex h-12 w-12 items-center justify-center border border-onicord-island rounded-[24px] bg-onicord-surface transition-all duration-200 hover:rounded-[16px] hover:text-white cursor-pointer;
+    @apply flex h-12 w-12 items-center justify-center border border-onicord-island rounded-[24px] bg-onicord-surface transition-all duration-normal hover:rounded-[16px] hover:text-white cursor-pointer;
   }
   .onicord-rail-btn-accent {
     @apply border-onicord-overlay text-onicord-accent hover:bg-onicord-accent;
@@ -57,26 +57,26 @@
     width: calc(100% - (var(--hover-slide-amount) * 0.75));
   }
   .onicord-btn-expression-square {
-    @apply overflow-hidden bg-onicord-mantle rounded-onicord-button border border-transparent hover:border-onicord-accent/40 hover:bg-onicord-accent flex items-center justify-center aspect-square transition duration-150 cursor-pointer active:scale-95;
+    @apply overflow-hidden bg-onicord-mantle rounded-onicord-button border border-transparent hover:border-onicord-accent/40 hover:bg-onicord-accent flex items-center justify-center aspect-square transition duration-fast cursor-pointer active:scale-95;
   }
 
   /* Media Control Bar / Items */
   .onicord-media-control-bar-wrapper {
     container-type: inline-size;
     container-name: streambar;
-    @apply absolute bottom-4 left-0 right-0 flex justify-center z-30 transition-all duration-300 ease-in-out px-2 pointer-events-none;
+    @apply absolute bottom-4 left-0 right-0 flex justify-center z-30 transition-all duration-relaxed ease-in-out px-2 pointer-events-none;
   }
   .onicord-media-control-bar {
-    @apply flex flex-row items-center justify-center gap-1.5 @[420px]:gap-3 bg-onicord-surface/90 px-2.5 @[420px]:px-4 py-1.5 @[420px]:py-2 rounded-full border border-onicord-island backdrop-blur-xl transition-all duration-200 select-none max-w-full shrink-0 pointer-events-auto overflow-hidden;
+    @apply flex flex-row items-center justify-center gap-1.5 @[420px]:gap-3 bg-onicord-surface/90 px-2.5 @[420px]:px-4 py-1.5 @[420px]:py-2 rounded-full border border-onicord-island backdrop-blur-xl transition-all duration-normal select-none max-w-full shrink-0 pointer-events-auto overflow-hidden;
   }
   .onicord-media-bar-btn {
-    @apply flex h-9 px-2.5 @[420px]:px-4 items-center justify-center gap-2 rounded-full bg-onicord-tint/[0.05] hover:bg-onicord-tint/[0.10] border border-onicord-border hover:border-onicord-tint/15 text-xs font-semibold text-onicord-text transition-colors duration-150 cursor-pointer active:scale-95 shrink-0;
+    @apply flex h-9 px-2.5 @[420px]:px-4 items-center justify-center gap-2 rounded-full bg-onicord-tint/[0.05] hover:bg-onicord-tint/[0.10] border border-onicord-border hover:border-onicord-tint/15 text-xs font-semibold text-onicord-text transition-colors duration-fast cursor-pointer active:scale-95 shrink-0;
   }
   .onicord-icon-btn-round {
-    @apply w-8 h-8 @[420px]:w-9 @[420px]:h-9 rounded-full flex items-center justify-center bg-onicord-tint/[0.05] hover:bg-onicord-tint/[0.10] border border-onicord-border hover:border-onicord-tint/15 text-onicord-text transition-colors duration-150 cursor-pointer shrink-0 active:scale-95;
+    @apply w-8 h-8 @[420px]:w-9 @[420px]:h-9 rounded-full flex items-center justify-center bg-onicord-tint/[0.05] hover:bg-onicord-tint/[0.10] border border-onicord-border hover:border-onicord-tint/15 text-onicord-text transition-colors duration-fast cursor-pointer shrink-0 active:scale-95;
   }
   .onicord-icon-btn-round-stop {
-    @apply w-8 h-8 @[420px]:w-9 @[420px]:h-9 rounded-full flex items-center justify-center bg-onicord-danger/20 hover:bg-onicord-danger text-onicord-danger hover:text-onicord-on-danger border border-onicord-danger/30 transition-colors duration-150 cursor-pointer shrink-0 active:scale-95;
+    @apply w-8 h-8 @[420px]:w-9 @[420px]:h-9 rounded-full flex items-center justify-center bg-onicord-danger/20 hover:bg-onicord-danger text-onicord-danger hover:text-onicord-on-danger border border-onicord-danger/30 transition-colors duration-fast cursor-pointer shrink-0 active:scale-95;
   }
 
   /* Navigation Tabs */

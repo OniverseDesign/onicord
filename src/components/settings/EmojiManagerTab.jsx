@@ -633,7 +633,7 @@ export default function EmojiManagerTab() {
                   />
                 </div>
                 <div className="flex items-center gap-0.5 bg-onicord-mantle border border-onicord-border rounded-lg px-2 py-1 focus-within:border-onicord-accent">
-                  <span className="text-[11px] font-mono text-onicord-muted">:</span>
+                  <span className="text-xs font-mono text-onicord-muted">:</span>
                   <input
                     type="text"
                     value={item.shortcode}
@@ -658,9 +658,9 @@ export default function EmojiManagerTab() {
                       );
                     }}
                     placeholder={t("settings.emojis.shortcodePlaceholder", "clave")}
-                    className="w-full bg-transparent text-[11px] font-mono text-onicord-text outline-none min-w-0"
+                    className="w-full bg-transparent text-xs font-mono text-onicord-text outline-none min-w-0"
                   />
-                  <span className="text-[11px] font-mono text-onicord-muted">:</span>
+                  <span className="text-xs font-mono text-onicord-muted">:</span>
                 </div>
               </div>
             ))}
@@ -745,7 +745,7 @@ export default function EmojiManagerTab() {
               return (
                 <li
                   key={`emoji-pack-${packTitle}`}
-                  className="flex flex-col bg-onicord-base/60 border border-onicord-border p-3.5 rounded-2xl hover:border-onicord-tint/10 transition-colors space-y-3"
+                  className="flex flex-col bg-onicord-base/60 border border-onicord-border p-3.5 rounded-2xl hover:border-onicord-border-strong transition-colors space-y-3"
                 >
                   <div className="flex items-center gap-3 w-full">
                     <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden border border-onicord-border">
@@ -767,21 +767,21 @@ export default function EmojiManagerTab() {
                         <span className="font-bold text-xs text-onicord-text truncate">
                           {packTitle}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted">
+                        <span className="text-2xs px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted">
                           v{version}
                         </span>
-                        <span className="text-[10px] text-onicord-accent font-medium">
+                        <span className="text-2xs text-onicord-accent font-medium">
                           {t("settings.emojis.packCountLabel", "{{count}} emojis", {
                             count: emojiIds.length,
                           })}
                         </span>
-                        <span className="text-[10px] text-onicord-muted/70 truncate">
+                        <span className="text-2xs text-onicord-muted/70 truncate">
                           {t("settings.emojis.byAuthor", "por {{author}}", {
                             author,
                           })}
                         </span>
                       </div>
-                      <p className="text-[11px] text-onicord-muted truncate mt-0.5">
+                      <p className="text-xs text-onicord-muted truncate mt-0.5">
                         {catalogMatch?.description ||
                           t(
                             "settings.emojis.localPackDesc",
@@ -794,7 +794,7 @@ export default function EmojiManagerTab() {
                       <button
                         type="button"
                         onClick={() => handleExportOPK(packTitle)}
-                        className="px-2.5 py-1.5 rounded-xl bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-text text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl bg-onicord-tint/5 hover:bg-onicord-hover text-onicord-text text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
                         title={t(
                           "settings.emojis.exportPackTitle",
                           "Exportar paquete .onipkg"
@@ -806,7 +806,7 @@ export default function EmojiManagerTab() {
                       <button
                         type="button"
                         onClick={() => handleEditPackInit(packTitle)}
-                        className="px-2.5 py-1.5 rounded-xl bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-text text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl bg-onicord-tint/5 hover:bg-onicord-hover text-onicord-text text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
                         title={t(
                           "settings.emojis.editGroupTitle",
                           "Editar paquete de emojis"
@@ -901,7 +901,7 @@ export default function EmojiManagerTab() {
               return (
                 <li
                   key={pack.id}
-                  className="flex items-center gap-3 bg-onicord-base/60 border border-onicord-border p-3.5 rounded-2xl hover:border-onicord-tint/10 transition-colors"
+                  className="flex items-center gap-3 bg-onicord-base/60 border border-onicord-border p-3.5 rounded-2xl hover:border-onicord-border-strong transition-colors"
                 >
                   <div className="w-8 h-8 rounded-full bg-onicord-accent/10 text-onicord-accent flex items-center justify-center shrink-0 overflow-hidden border border-onicord-border">
                     {pack.icon && !failedIcons[pack.id] ? (
@@ -928,23 +928,23 @@ export default function EmojiManagerTab() {
                       <span className="font-bold text-xs text-onicord-text truncate">
                         {pack.name}
                       </span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted">
+                      <span className="text-2xs px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted">
                         v{pack.version || "1.0"}
                       </span>
-                      <span className="text-[10px] text-onicord-accent font-medium">
+                      <span className="text-2xs text-onicord-accent font-medium">
                         {t("settings.emojis.packCountLabel", "{{count}} emojis", {
                           count: pack.emojisCount || pack.count || "?",
                         })}
                       </span>
                       {pack.author && (
-                        <span className="text-[10px] text-onicord-muted/70 truncate">
+                        <span className="text-2xs text-onicord-muted/70 truncate">
                           {t("settings.emojis.byAuthor", "por {{author}}", {
                             author: pack.author,
                           })}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-onicord-muted truncate mt-0.5">
+                    <p className="text-xs text-onicord-muted truncate mt-0.5">
                       {pack.description ||
                         t("common.noDescription", "Sin descripción disponible.")}
                     </p>
@@ -955,7 +955,7 @@ export default function EmojiManagerTab() {
                       type="button"
                       onClick={() => handleDownloadCatalogPack(pack)}
                       disabled={isDownloading}
-                      className="px-3.5 py-1.5 rounded-onicord-button bg-amber-500 text-black text-xs font-bold hover:opacity-90 transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
+                      className="px-3.5 py-1.5 rounded-onicord-button bg-onicord-warning text-black text-xs font-bold hover:opacity-90 transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
                       title={t("settings.emojis.updatePackToVer", "Actualizar pack a v{{ver}}", {
                         ver: pack.version,
                       })}
@@ -1005,7 +1005,7 @@ export default function EmojiManagerTab() {
       {/* Upload / Import button */}
       <label
         data-setting-id="importEmojis"
-        className="onicord-btn-secondary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 rounded-2xl border border-onicord-tint/10 hover:bg-onicord-surface transition cursor-pointer"
+        className="onicord-btn-secondary w-full py-3 text-xs font-bold flex items-center justify-center gap-2 rounded-2xl border border-onicord-border-strong hover:bg-onicord-surface transition cursor-pointer"
       >
         <MaterialIcon name="add" size={16} />
         <span>
@@ -1118,7 +1118,7 @@ export default function EmojiManagerTab() {
                           className={`relative rounded-onicord-button p-2 bg-onicord-base/60 border cursor-pointer flex flex-col items-center gap-1.5 group transition-all ${
                             isSelected
                               ? "border-2 border-onicord-accent bg-onicord-accent/10"
-                              : "border-onicord-island hover:border-onicord-tint/20"
+                              : "border-onicord-island hover:border-onicord-border-strong"
                           }`}
                         >
                           <button
@@ -1127,7 +1127,7 @@ export default function EmojiManagerTab() {
                               e.stopPropagation();
                               setEmojiToDelete(em);
                             }}
-                            className="absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-md bg-onicord-base text-onicord-muted border border-onicord-tint/10 hover:text-onicord-text hover:bg-onicord-danger hover:border-onicord-danger/20 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-30"
+                            className="absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-md bg-onicord-base text-onicord-muted border border-onicord-border-strong hover:text-onicord-text hover:bg-onicord-danger hover:border-onicord-danger/20 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer z-30"
                             title={t("settings.emojis.deleteTitle", "Eliminar emoji")}
                           >
                             <MaterialIcon name="delete" size="xs" />
@@ -1165,7 +1165,7 @@ export default function EmojiManagerTab() {
                                   }
                                 }}
                                 onBlur={() => handleSaveShortcodeEdit(em.id)}
-                                className="w-full bg-transparent text-[10px] font-mono text-onicord-text outline-none min-w-0 text-center"
+                                className="w-full bg-transparent text-2xs font-mono text-onicord-text outline-none min-w-0 text-center"
                               />
                             </div>
                           ) : (
@@ -1174,7 +1174,7 @@ export default function EmojiManagerTab() {
                                 side="top"
                                 content={<span className="font-mono text-xs">{codeLabel}</span>}
                               >
-                                <span className="text-[10px] font-mono text-onicord-muted truncate">
+                                <span className="text-2xs font-mono text-onicord-muted truncate">
                                   {codeLabel}
                                 </span>
                               </Tooltip>

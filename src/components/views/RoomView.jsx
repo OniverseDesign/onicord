@@ -1945,7 +1945,7 @@ export default function RoomView({
             <div
               onPointerDown={startResizeThread}
               className={cn(
-                "onicord-resizer-handle cursor-col-resize shrink-0 z-10 transition-opacity duration-150",
+                "onicord-resizer-handle cursor-col-resize shrink-0 z-10 transition-opacity duration-fast",
                 isThreadClosing && "opacity-0 pointer-events-none"
               )}
             />

@@ -5,6 +5,7 @@ import { ModalInput } from "../ui/ModalShell";
 import Heading from "../ui/Heading";
 import Text from "../ui/Text";
 import AvatarPicker from "../ui/AvatarPicker";
+import SegmentedControl from "../ui/SegmentedControl";
 import MaterialIcon from "../icons/MaterialIcon";
 import { cn } from "../../lib/cn";
 import { parseInviteUrl } from "../../lib/inviteUtils";
@@ -312,41 +313,28 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
 
         {/* Mode Switcher */}
         <div className="mb-5 pr-8 flex justify-center">
-          <div className="inline-flex rounded-xl bg-onicord-mantle p-1 border border-onicord-border">
-            <button
-              type="button"
-              disabled={Boolean(busyAction)}
-              onClick={() => {
-                setActiveTab("default");
-                setError(null);
-              }}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
-                activeTab === "default"
-                  ? "bg-onicord-accent text-white shadow-sm"
-                  : "text-onicord-muted hover:text-onicord-text"
-              )}
-            >
-              {t("addServerModal.createOrJoinTab", "Crear / Unirse")}
-            </button>
-            <button
-              type="button"
-              disabled={Boolean(busyAction)}
-              onClick={() => {
-                setActiveTab("discord");
-                setError(null);
-              }}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors inline-flex items-center gap-1.5",
-                activeTab === "discord"
-                  ? "bg-onicord-accent text-white shadow-sm"
-                  : "text-onicord-muted hover:text-onicord-text"
-              )}
-            >
-              <MaterialIcon name="download" size="xs" />
-              {t("addServerModal.importDiscordTab", "Importar de Discord")}
-            </button>
-          </div>
+          <SegmentedControl
+            role="tablist"
+            fullWidth={false}
+            size="sm"
+            disabled={Boolean(busyAction)}
+            value={activeTab}
+            onChange={(val) => {
+              setActiveTab(val);
+              setError(null);
+            }}
+            options={[
+              {
+                value: "default",
+                label: t("addServerModal.createOrJoinTab", "Crear / Unirse"),
+              },
+              {
+                value: "discord",
+                label: t("addServerModal.importDiscordTab", "Importar de Discord"),
+                icon: "download",
+              },
+            ]}
+          />
         </div>
 
         {activeTab === "default" ? (
@@ -566,7 +554,7 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
             <div className="max-h-56 overflow-y-auto space-y-3 pr-1 rounded-lg border border-onicord-border bg-onicord-mantle/40 p-3">
               {/* Channels & Categories */}
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted mb-1.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-onicord-muted mb-1.5">
                   {t("addServerModal.discordChannelsSection", "Canales y categorías")}
                 </p>
                 <div className="space-y-1">
@@ -597,7 +585,7 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
                         <span className="truncate flex-1 text-onicord-text">{ch.name}</span>
                         {isAfk && (
                           <span
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-onicord-accent/15 text-onicord-accent shrink-0"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-bold bg-onicord-accent/15 text-onicord-accent shrink-0"
                             title={t("addServerModal.discordAfkChannel", "Canal AFK")}
                           >
                             <MaterialIcon name="bedtime" size={12} />
@@ -613,7 +601,7 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
                           />
                         )}
                         {ch.nsfw && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-onicord-danger/15 text-onicord-danger shrink-0">
+                          <span className="px-1.5 py-0.5 rounded text-2xs font-bold bg-onicord-danger/15 text-onicord-danger shrink-0">
                             {t("addServerModal.discordNsfwBadge", "+18")}
                           </span>
                         )}
@@ -626,7 +614,7 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
               {/* Roles */}
               {(discordPreview.roles || []).length > 0 && (
                 <div className="pt-2 border-t border-onicord-border/60">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted mb-1.5">
+                  <p className="text-xs font-bold uppercase tracking-wider text-onicord-muted mb-1.5">
                     {t("addServerModal.discordRolesSection", "Roles")}
                   </p>
                   <div className="flex flex-wrap gap-1.5">

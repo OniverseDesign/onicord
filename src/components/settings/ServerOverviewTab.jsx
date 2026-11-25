@@ -345,7 +345,7 @@ export default function ServerOverviewTab({
                               template: "",
                             }))
                           }
-                          className="text-[10px] text-onicord-accent hover:underline cursor-pointer"
+                          className="text-2xs text-onicord-accent hover:underline cursor-pointer"
                         >
                           {t("serverSettings.overview.restoreDefaultTemplate", "Restablecer a plantilla por defecto")}
                         </button>
@@ -362,14 +362,14 @@ export default function ServerOverviewTab({
                       }
                       placeholder={t("serverSettings.overview.defaultWelcomeTemplate", "¡Bienvenido {user} a {server}! 🎉")}
                       rows={3}
-                      className="w-full bg-onicord-base border border-onicord-tint/10 rounded-xl p-2.5 text-xs text-onicord-text outline-none focus:border-onicord-accent resize-none"
+                      className="w-full bg-onicord-base border border-onicord-border-strong rounded-xl p-2.5 text-xs text-onicord-text outline-none focus:border-onicord-accent resize-none"
                     />
                     <div className="flex flex-col gap-1 mt-1.5">
-                      <p className="text-[10px] text-onicord-muted">
+                      <p className="text-2xs text-onicord-muted">
                         {t("serverSettings.overview.welcomeVariablesHint", "Variables disponibles: {user} (nombre del usuario) y {server} (nombre del servidor).")}
                       </p>
                       {isDefaultWelcomeTemplate(welcomeSettings?.template) && (
-                        <p className="text-[10px] text-onicord-accent flex items-center gap-1 font-medium">
+                        <p className="text-2xs text-onicord-accent flex items-center gap-1 font-medium">
                           <span>
                             {t("serverSettings.overview.multilingualNotice", "Plantilla por defecto activa: cada miembro verá el mensaje en su propio idioma.")}
                           </span>
@@ -386,7 +386,7 @@ export default function ServerOverviewTab({
         {/* COLUMNA DERECHA: VISTA PREVIA DEL SIDEBAR REAL (ROOMVIEW CHANNELS) (6/12) */}
         <div className="md:col-span-6">
           <div className="onicord-settings-card flex flex-col items-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted mb-3 flex items-center gap-1.5 self-start">
+            <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted mb-3 flex items-center gap-1.5 self-start">
               <MaterialIcon name="visibility" size={14} />
               <span>
                 {t("settings.theme.preview", "Vista Previa de la Sala")}
@@ -463,7 +463,7 @@ export default function ServerOverviewTab({
                   {/* Server name + Flame on same row */}
                   <div className="flex items-center justify-between px-5 pt-2 pb-3">
                     <span
-                      className="text-[15px] font-semibold text-onicord-text truncate max-w-[200px]"
+                      className="text-base font-semibold text-onicord-text truncate max-w-[200px]"
                       title={name}
                     >
                       {name || "Servidor"}
@@ -513,7 +513,7 @@ export default function ServerOverviewTab({
                         size="sm"
                         readOnly={readOnly}
                         removeOnHoverOnly={true}
-                        circleClassName="border border-onicord-tint/10 bg-onicord-surface shadow-sm shrink-0"
+                        circleClassName="border border-onicord-border-strong bg-onicord-surface shadow-sm shrink-0"
                         emptyClassName="bg-onicord-surface text-onicord-text"
                         circleStyle={{}}
                         title={!readOnly ? t("serverSettings.overview.changeIcon", "Cambiar Icono") : undefined}
@@ -521,7 +521,7 @@ export default function ServerOverviewTab({
                       />
                       {/* Server Name */}
                       <span
-                        className="text-[14px] font-bold text-onicord-text truncate ml-2.5 max-w-[130px]"
+                        className="text-sm font-bold text-onicord-text truncate ml-2.5 max-w-[130px]"
                         title={name}
                       >
                         {name || "Servidor"}
@@ -548,7 +548,7 @@ export default function ServerOverviewTab({
                     );
                     return (
                       <div key={cat.id} className="space-y-1">
-                        <div className="flex items-center justify-between text-[11px] font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1 cursor-pointer hover:text-onicord-text transition-colors duration-150">
+                        <div className="flex items-center justify-between text-xs font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1 cursor-pointer hover:text-onicord-text transition-colors duration-fast">
                           <span className="truncate">{cat.name}</span>
                           <MaterialIcon
                             name="expand_more"
@@ -567,7 +567,7 @@ export default function ServerOverviewTab({
                                 className={`flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-xs font-medium cursor-default transition-colors ${
                                   isActive
                                     ? "bg-onicord-tint/10 text-onicord-text font-semibold shadow-sm border border-onicord-border"
-                                    : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
+                                    : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover"
                                 }`}
                               >
                                 <MaterialIcon
@@ -598,7 +598,7 @@ export default function ServerOverviewTab({
                           className={`flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-xs font-medium cursor-default transition-colors ${
                             isActive
                               ? "bg-onicord-tint/10 text-onicord-text font-semibold shadow-sm border border-onicord-border"
-                              : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
+                              : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover"
                           }`}
                         >
                           <MaterialIcon
@@ -618,7 +618,7 @@ export default function ServerOverviewTab({
                 {categories.length === 0 && orphanChannels.length === 0 && (
                   /* Sample channels if no data */
                   <div>
-                    <div className="flex items-center justify-between text-[11px] font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1.5 cursor-pointer hover:text-onicord-text transition-colors duration-150">
+                    <div className="flex items-center justify-between text-xs font-bold text-onicord-muted uppercase tracking-wider px-3 mb-1.5 cursor-pointer hover:text-onicord-text transition-colors duration-fast">
                       <span>
                         {t("serverSettings.channels.textChannels", "Canales")}
                       </span>
@@ -644,7 +644,7 @@ export default function ServerOverviewTab({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 text-xs font-medium cursor-default transition-colors duration-100">
+                      <div className="flex items-center gap-2 px-3 py-2 mx-2 rounded-xl text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover text-xs font-medium cursor-default transition-colors duration-instant">
                         <MaterialIcon
                           name="volume_up"
                           size={16}

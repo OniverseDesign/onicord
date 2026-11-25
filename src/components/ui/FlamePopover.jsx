@@ -61,17 +61,17 @@ export default function FlamePopover({ rect, tier, currentDays, isServer, onClos
           <h4 className="text-xs font-bold truncate leading-tight text-onicord-text">
             {isServer ? t("flame.serverFlame") : t("flame.title")}
           </h4>
-          <span className="text-[10px] font-medium" style={{ color: tier.color }}>
+          <span className="text-2xs font-medium" style={{ color: tier.color }}>
             {tier.name} — {t("flame.days", { count: currentDays })}
           </span>
         </div>
       </div>
-      <p className="text-[11px] text-onicord-muted leading-relaxed mb-2">
+      <p className="text-xs text-onicord-muted leading-relaxed mb-2">
         {isServer
           ? t("flame.serverExplanation")
           : t("flame.userExplanation")}
       </p>
-      <div className="text-[10px] font-mono bg-onicord-surface/60 p-1.5 rounded-lg border border-onicord-island text-onicord-faded">
+      <div className="text-2xs font-mono bg-onicord-surface/60 p-1.5 rounded-lg border border-onicord-island text-onicord-faded">
         <span className="text-onicord-accent font-bold">{t("flame.rule")}</span> {t("flame.ruleDesc")}
       </div>
     </div>,

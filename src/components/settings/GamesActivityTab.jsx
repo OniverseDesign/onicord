@@ -163,13 +163,13 @@ export default function GamesActivityTab({
         {/* CURRENT GAME */}
         {showRichPresence && (
           <div className="mt-4 pt-4 border-t border-onicord-border">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-onicord-muted block mb-2.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-onicord-muted block mb-2.5">
               {t("gamesTab.currentGame", "Juego actual")}
             </span>
 
             <div className="flex items-center gap-3.5 p-3 rounded-xl bg-onicord-surface/30 border border-onicord-border">
               <div className="relative w-12 h-12 shrink-0">
-                <div className="w-full h-full rounded-lg bg-onicord-base border border-onicord-tint/10 flex items-center justify-center overflow-hidden">
+                <div className="w-full h-full rounded-lg bg-onicord-base border border-onicord-border-strong flex items-center justify-center overflow-hidden">
                   {activeGame?.cover ? (
                     <img src={activeGame.cover} alt={activeGame.name} className="w-full h-full object-cover" />
                   ) : (
@@ -192,7 +192,7 @@ export default function GamesActivityTab({
                 <p className="text-sm font-bold text-onicord-text truncate">
                   {activeGame?.name || t("gamesTab.noActiveGame", "Ningún juego o aplicación detectada")}
                 </p>
-                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-onicord-subtext flex-wrap">
+                <div className="flex items-center gap-2 mt-0.5 text-xs text-onicord-subtext flex-wrap">
                   <span className="flex items-center gap-1">
                     <MaterialIcon
                       name={activeGame?.type === "app" ? "apps" : activeGame?.type === "music" ? "headphones" : "sports_esports"}
@@ -229,7 +229,7 @@ export default function GamesActivityTab({
             <h3 className="onicord-settings-section-title !m-0">
               <span>{t("gamesTab.customGamesTitle", "Tus Juegos y Software Registrados")}</span>
             </h3>
-            <p className="text-[11px] text-onicord-muted mt-1 leading-relaxed">
+            <p className="text-xs text-onicord-muted mt-1 leading-relaxed">
               {t(
                 "gamesTab.customGamesDescShort",
                 "Selecciona cualquier ejecutable o acceso directo (.lnk/.exe) y Onicord configurará automáticamente su nombre e icono."
@@ -255,7 +255,7 @@ export default function GamesActivityTab({
               notification.type === "success"
                 ? "bg-onicord-success/10 border-onicord-success/20 text-onicord-success"
                 : notification.type === "warning"
-                ? "bg-amber-500/10 border-amber-500/20 text-amber-300"
+                ? "bg-onicord-warning/10 border-onicord-warning/20 text-onicord-warning"
                 : "bg-onicord-danger/10 border-onicord-danger/20 text-onicord-danger"
             }`}
           >
@@ -279,7 +279,7 @@ export default function GamesActivityTab({
           <div className="flex flex-col items-center justify-center py-10 text-center text-onicord-muted space-y-2">
             <MaterialIcon name="sports_esports" size={38} className="opacity-40" />
             <p className="text-xs font-semibold">{t("profileTab.noCustomGames", "No tienes juegos o software registrados.")}</p>
-            <p className="text-[10px] text-onicord-muted/70 max-w-sm">
+            <p className="text-2xs text-onicord-muted/70 max-w-sm">
               {t(
                 "gamesTab.emptyHintSimple",
                 "Haz clic en 'Agregar juego o software' arriba para añadir cualquier juego o programa desde tu escritorio o disco."
@@ -294,7 +294,7 @@ export default function GamesActivityTab({
                 <div key={game.id || game.exe} className="flex items-center justify-between py-3 gap-3.5 group">
                   {/* Icon, title and executable */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-10 h-10 rounded-lg bg-onicord-base border border-onicord-tint/10 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-10 h-10 rounded-lg bg-onicord-base border border-onicord-border-strong flex items-center justify-center shrink-0 overflow-hidden">
                       {game.cover ? (
                         <img src={game.cover} alt={game.title} className="w-full h-full object-cover" />
                       ) : (
@@ -324,7 +324,7 @@ export default function GamesActivityTab({
                           <button
                             type="button"
                             onClick={() => handleSaveRename(game.id)}
-                            className="p-1 text-onicord-success hover:bg-onicord-tint/5 rounded cursor-pointer"
+                            className="p-1 text-onicord-success hover:bg-onicord-hover rounded cursor-pointer"
                           >
                             <MaterialIcon name="check" size={16} />
                           </button>
@@ -342,14 +342,14 @@ export default function GamesActivityTab({
                           <button
                             type="button"
                             onClick={() => handleToggleType(game.id)}
-                            className="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-subtext hover:text-onicord-text border border-onicord-border cursor-pointer transition-colors"
+                            className="text-2xs font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-onicord-tint/5 hover:bg-onicord-hover text-onicord-subtext hover:text-onicord-text border border-onicord-border cursor-pointer transition-colors"
                             title={t("gamesTab.clickToToggleType", "Clic para alternar entre Juego y Software")}
                           >
                             {game.type === "app" ? t("gamesTab.badgeApp", "App") : t("gamesTab.badgeGame", "Juego")}
                           </button>
                         </div>
                       )}
-                      <p className="text-[10px] font-mono text-onicord-muted/70 truncate">{game.exe}</p>
+                      <p className="text-2xs font-mono text-onicord-muted/70 truncate">{game.exe}</p>
                     </div>
                   </div>
 

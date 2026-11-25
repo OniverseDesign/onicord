@@ -201,7 +201,7 @@ export default function EmojiPickerPopover({
           type="button"
           onClick={() => handleSelectEmojiLocal(emoji)}
           onMouseEnter={() => setHoveredEmoji(emoji)}
-          className="w-9 h-9 flex items-center justify-center text-xl hover:bg-onicord-tint/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-110 cursor-pointer"
+          className="w-9 h-9 flex items-center justify-center text-xl hover:bg-onicord-hover rounded-xl transition-transform duration-instant active:scale-125 hover:scale-110 cursor-pointer"
         >
           {renderEmojiGlyph(emoji)}
         </button>
@@ -284,7 +284,7 @@ export default function EmojiPickerPopover({
       className="onicord-floating-menu w-80 h-96 flex flex-col !p-0 overflow-hidden z-popover"
     >
       {/* Search Header */}
-      <div className="p-2.5 border-b border-onicord-tint/10 bg-onicord-mantle/50 flex items-center gap-2">
+      <div className="p-2.5 border-b border-onicord-border-strong bg-onicord-mantle/50 flex items-center gap-2">
         <MaterialIcon name="search" size="lg" className="text-onicord-muted pl-1" />
         <input
           type="text"
@@ -312,7 +312,7 @@ export default function EmojiPickerPopover({
             <Tooltip content={t("chat.emojis.recent", "Recientes")} side="top">
               <button
                 onClick={() => handleTabClick("recent")}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 cursor-pointer ${
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-fast cursor-pointer ${
                   activeTab === "recent"
                     ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold"
                     : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent"
@@ -328,7 +328,7 @@ export default function EmojiPickerPopover({
             <Tooltip content={t("chat.emojis.custom", "Personalizados")} side="top">
               <button
                 onClick={() => handleTabClick("custom")}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 cursor-pointer ${
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-fast cursor-pointer ${
                   activeTab === "custom"
                     ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold"
                     : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent"
@@ -344,7 +344,7 @@ export default function EmojiPickerPopover({
             <Tooltip key={cat.id} content={t(`chat.emojis.${cat.id}`, cat.name)} side="top">
               <button
                 onClick={() => handleTabClick(cat.id)}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 cursor-pointer ${
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-fast cursor-pointer ${
                   activeTab === cat.id
                     ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold"
                     : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent"
@@ -364,7 +364,7 @@ export default function EmojiPickerPopover({
           onMouseLeave={() => setHoveredEmoji(null)}
           className="flex-1 overflow-y-auto p-2.5 custom-scrollbar"
         >
-          <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 mb-1.5">
+          <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 mb-1.5">
             {t("chat.searchResults", "Resultados de búsqueda")}
           </h4>
           <div className="grid grid-cols-7 gap-1 content-start">
@@ -393,7 +393,7 @@ export default function EmojiPickerPopover({
               ref={(el) => (sectionRefs.current["recent"] = el)}
               className="space-y-1.5"
             >
-              <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
+              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
                 {t("chat.emojis.recent", "Recientes")}
               </h4>
               <div className="grid grid-cols-7 gap-1 pt-1">
@@ -431,7 +431,7 @@ export default function EmojiPickerPopover({
               >
                 {packSections.map((group) => (
                   <div key={`custom-pack-${group.title}`} className="space-y-1.5">
-                    <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1 truncate">
+                    <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1 truncate">
                       {group.title}
                     </h4>
                     <div className="grid grid-cols-7 gap-1 pt-1">
@@ -444,7 +444,7 @@ export default function EmojiPickerPopover({
 
                 {looseCustom.length > 0 && (
                   <div className="space-y-1.5">
-                    <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
+                    <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
                       {t("chat.emojis.custom", "Personalizados")}
                     </h4>
                     <div className="grid grid-cols-7 gap-1 pt-1">
@@ -465,7 +465,7 @@ export default function EmojiPickerPopover({
               ref={(el) => (sectionRefs.current[cat.id] = el)}
               className="space-y-1.5 animate-fade-in"
             >
-              <h4 className="text-[10px] font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
+              <h4 className="text-2xs font-bold text-onicord-muted uppercase tracking-wider pl-1 border-b border-onicord-border pb-1">
                 {t(`chat.emojis.${cat.id}`, cat.name)}
               </h4>
               <div className="grid grid-cols-7 gap-1 pt-1">
@@ -479,7 +479,7 @@ export default function EmojiPickerPopover({
       )}
 
       {/* Shortcode preview footer */}
-      <div className="shrink-0 h-7 px-3 border-t border-onicord-border bg-onicord-mantle/60 flex items-center gap-2 text-[11px] text-onicord-muted">
+      <div className="shrink-0 h-7 px-3 border-t border-onicord-border bg-onicord-mantle/60 flex items-center gap-2 text-xs text-onicord-muted">
         {hoveredEmoji ? (
           <>
             {renderEmojiGlyph(hoveredEmoji, "w-4 h-4 shrink-0", "text-base leading-none")}

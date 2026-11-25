@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import Logo from "../icons/Logo.svg?react";
 import MaterialIcon from "../icons/MaterialIcon";
+import SegmentedControl from "../ui/SegmentedControl";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import MediaPreviewModal from "../modals/MediaPreviewModal";
 import { getMediaUrl } from "../../lib/media";
@@ -107,7 +108,7 @@ export default function ServerStorageTab({ server }) {
           </h3>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-onicord-text bg-onicord-base/80 border border-onicord-tint/10 px-2.5 py-1 rounded-lg">
+            <span className="text-xs font-mono font-bold text-onicord-text bg-onicord-base/80 border border-onicord-border-strong px-2.5 py-1 rounded-lg">
               {formatBytes(totalSize)}
             </span>
             {files.length > 0 && (
@@ -134,51 +135,51 @@ export default function ServerStorageTab({ server }) {
             <div className="h-2.5 w-full bg-onicord-base/80 rounded-full overflow-hidden flex border border-onicord-border">
               <div
                 style={{ width: `${getPercentage(imagesSize)}%` }}
-                className="bg-sky-500 h-full transition-all duration-300"
+                className="bg-onicord-info h-full transition-all duration-relaxed"
                 title={t("serverSettings.storage.imagesTitle", "Imágenes: {{size}}", { size: formatBytes(imagesSize) })}
               />
               <div
                 style={{ width: `${getPercentage(videosSize)}%` }}
-                className="bg-emerald-500 h-full transition-all duration-300"
+                className="bg-onicord-success h-full transition-all duration-relaxed"
                 title={t("serverSettings.storage.videosTitle", "Vídeos: {{size}}", { size: formatBytes(videosSize) })}
               />
               <div
                 style={{ width: `${getPercentage(audioSize)}%` }}
-                className="bg-amber-500 h-full transition-all duration-300"
+                className="bg-onicord-warning h-full transition-all duration-relaxed"
                 title={t("serverSettings.storage.audioTitle", "Audio: {{size}}", { size: formatBytes(audioSize) })}
               />
               <div
                 style={{ width: `${getPercentage(textSize)}%` }}
-                className="bg-purple-500 h-full transition-all duration-300"
+                className="bg-onicord-accent h-full transition-all duration-relaxed"
                 title={t("serverSettings.storage.textTitle", "Texto: {{size}}", { size: formatBytes(textSize) })}
               />
               <div
                 style={{ width: `${getPercentage(docsSize)}%` }}
-                className="bg-indigo-500 h-full transition-all duration-300"
+                className="bg-onicord-accent h-full transition-all duration-relaxed"
                 title={t("serverSettings.storage.docsTitle", "Documentos: {{size}}", { size: formatBytes(docsSize) })}
               />
             </div>
 
             {/* Category Legend */}
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-onicord-muted font-medium pt-1">
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-onicord-muted font-medium pt-1">
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm bg-sky-500" />
+                <span className="w-2 h-2 rounded-sm bg-onicord-info" />
                 <span>{t("serverSettings.storage.images", "Imágenes")}: {formatBytes(imagesSize)}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm bg-emerald-500" />
+                <span className="w-2 h-2 rounded-sm bg-onicord-success" />
                 <span>{t("serverSettings.storage.videos", "Vídeos")}: {formatBytes(videosSize)}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm bg-amber-500" />
+                <span className="w-2 h-2 rounded-sm bg-onicord-warning" />
                 <span>{t("serverSettings.storage.audio", "Audio")}: {formatBytes(audioSize)}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm bg-purple-500" />
+                <span className="w-2 h-2 rounded-sm bg-onicord-accent" />
                 <span>{t("serverSettings.storage.text", "Texto/Código")}: {formatBytes(textSize)}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-sm bg-indigo-500" />
+                <span className="w-2 h-2 rounded-sm bg-onicord-accent" />
                 <span>{t("serverSettings.storage.documents", "Documentos")}: {formatBytes(docsSize)}</span>
               </div>
             </div>
@@ -189,29 +190,22 @@ export default function ServerStorageTab({ server }) {
       {/* Media files grid and filters */}
       <div className="onicord-settings-card">
         {/* Category filter pills */}
-        <div className="flex gap-2 pb-1 overflow-x-auto minimal-scrollbar">
-          {[
-            { id: "all", label: t("common.all", "Todos"), icon: "folder_open" },
-            { id: "image", label: t("serverSettings.storage.images", "Imágenes"), icon: "image" },
-            { id: "video", label: t("serverSettings.storage.videos", "Vídeos"), icon: "movie" },
-            { id: "audio", label: t("serverSettings.storage.audio", "Audio"), icon: "music_note" },
-            { id: "text", label: t("serverSettings.storage.text", "Texto"), icon: "code" },
-            { id: "document", label: t("serverSettings.storage.documents", "Documentos"), icon: "description" },
-          ].map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => handleCategoryChange(c.id)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
-                category === c.id
-                  ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold"
-                  : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-onicord-text"
-              }`}
-            >
-              <MaterialIcon name={c.icon} size={14} />
-              <span>{c.label}</span>
-            </button>
-          ))}
+        <div className="overflow-x-auto minimal-scrollbar pb-1">
+          <SegmentedControl
+            role="tablist"
+            fullWidth={false}
+            size="sm"
+            value={category}
+            onChange={handleCategoryChange}
+            options={[
+              { value: "all", label: t("common.all", "Todos"), icon: "folder_open" },
+              { value: "image", label: t("serverSettings.storage.images", "Imágenes"), icon: "image" },
+              { value: "video", label: t("serverSettings.storage.videos", "Vídeos"), icon: "movie" },
+              { value: "audio", label: t("serverSettings.storage.audio", "Audio"), icon: "music_note" },
+              { value: "text", label: t("serverSettings.storage.text", "Texto"), icon: "code" },
+              { value: "document", label: t("serverSettings.storage.documents", "Documentos"), icon: "description" },
+            ]}
+          />
         </div>
 
         {/* Files Grid */}
@@ -228,7 +222,7 @@ export default function ServerStorageTab({ server }) {
             <h4 className="text-xs font-bold text-onicord-text">
               {t("serverSettings.storage.noFilesTitle", "Sin archivos en esta categoría")}
             </h4>
-            <p className="text-[11px] text-onicord-muted max-w-sm leading-relaxed">
+            <p className="text-xs text-onicord-muted max-w-sm leading-relaxed">
               Los archivos compartidos en los canales de texto de este servidor aparecerán aquí.
             </p>
           </div>
@@ -239,7 +233,7 @@ export default function ServerStorageTab({ server }) {
                 <div
                   key={file.id || file.localPath || `${file.name}-${index}`}
                   onClick={() => setPreviewIndex(index)}
-                  className="group relative bg-onicord-base/60 hover:bg-onicord-base border border-onicord-border hover:border-onicord-accent/40 rounded-xl p-2.5 flex flex-col justify-between transition-all duration-200 cursor-pointer"
+                  className="group relative bg-onicord-base/60 hover:bg-onicord-base border border-onicord-border hover:border-onicord-accent/40 rounded-xl p-2.5 flex flex-col justify-between transition-all duration-normal cursor-pointer"
                   style={{ contain: "content" }}
                   title={t("common.clickToPreview", "Clic para previsualizar")}
                 >
@@ -254,22 +248,22 @@ export default function ServerStorageTab({ server }) {
                         className="w-full h-full object-cover select-none pointer-events-none"
                       />
                     ) : file.type === "video" ? (
-                      <div className="w-full h-full bg-emerald-950/30 flex flex-col items-center justify-center gap-1 group-hover:bg-emerald-900/40 transition duration-200">
-                        <MaterialIcon name="play_circle_filled" size={28} className="text-emerald-400 drop-shadow group-hover:scale-110 transition duration-300" />
-                        <span className="text-[9px] font-mono font-bold text-emerald-300 uppercase tracking-wider">{t("common.video", "VIDEO")}</span>
+                      <div className="w-full h-full bg-emerald-950/30 flex flex-col items-center justify-center gap-1 group-hover:bg-emerald-900/40 transition duration-normal">
+                        <MaterialIcon name="play_circle_filled" size={28} className="text-onicord-success drop-shadow group-hover:scale-110 transition duration-relaxed" />
+                        <span className="text-2xs font-mono font-bold text-onicord-success uppercase tracking-wider">{t("common.video", "VIDEO")}</span>
                       </div>
                     ) : file.type === "audio" ? (
-                      <MaterialIcon name="music_note" size={24} className="text-amber-400 group-hover:scale-110 transition duration-300" />
+                      <MaterialIcon name="music_note" size={24} className="text-onicord-warning group-hover:scale-110 transition duration-relaxed" />
                     ) : file.type === "text" ? (
-                      <MaterialIcon name="code" size={24} className="text-purple-400 group-hover:scale-110 transition duration-300" />
+                      <MaterialIcon name="code" size={24} className="text-onicord-accent group-hover:scale-110 transition duration-relaxed" />
                     ) : file.type === "pdf" ? (
-                      <MaterialIcon name="picture_as_pdf" size={24} className="text-rose-400 group-hover:scale-110 transition duration-300" />
+                      <MaterialIcon name="picture_as_pdf" size={24} className="text-onicord-danger group-hover:scale-110 transition duration-relaxed" />
                     ) : (
-                      <MaterialIcon name="description" size={24} className="text-onicord-muted group-hover:scale-110 transition duration-300" />
+                      <MaterialIcon name="description" size={24} className="text-onicord-muted group-hover:scale-110 transition duration-relaxed" />
                     )}
 
                     {/* Preview overlay icon */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-normal flex items-center justify-center">
                       <MaterialIcon name="visibility" size={20} className="text-white drop-shadow" />
                     </div>
                   </div>
@@ -279,9 +273,9 @@ export default function ServerStorageTab({ server }) {
                     <h4 className="text-xs font-semibold text-onicord-text truncate leading-tight" title={file.name}>
                       {file.name}
                     </h4>
-                    <div className="flex items-center justify-between mt-1 text-[10px] text-onicord-muted">
+                    <div className="flex items-center justify-between mt-1 text-2xs text-onicord-muted">
                       <span>{formatBytes(file.size)}</span>
-                      <span className="uppercase text-[9px] bg-onicord-tint/5 px-1.5 py-0.5 rounded font-mono">
+                      <span className="uppercase text-2xs bg-onicord-tint/5 px-1.5 py-0.5 rounded font-mono">
                         {file.extension.slice(1) || "FILE"}
                       </span>
                     </div>
@@ -296,7 +290,7 @@ export default function ServerStorageTab({ server }) {
                 <button
                   type="button"
                   onClick={() => setVisibleCount((prev) => prev + 24)}
-                  className="onicord-btn-secondary px-5 py-2 text-xs font-bold border border-onicord-island hover:bg-onicord-accent hover:text-onicord-on-accent rounded-xl flex items-center gap-2 transition duration-150 cursor-pointer shadow-md"
+                  className="onicord-btn-secondary px-5 py-2 text-xs font-bold border border-onicord-island hover:bg-onicord-accent hover:text-onicord-on-accent rounded-xl flex items-center gap-2 transition duration-fast cursor-pointer shadow-md"
                 >
                   <MaterialIcon name="expand_more" size={16} />
                   <span>Cargar más ({filteredFiles.length - visibleCount} restantes)</span>

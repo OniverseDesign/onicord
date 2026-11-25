@@ -88,7 +88,7 @@ export default function InviteModal({
               {onlineCount != null && onlineCount > 0 && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-onicord-success/10 border border-onicord-success/20 shadow-sm">
                   <span className="w-2 h-2 rounded-full bg-onicord-success flex-shrink-0 animate-pulse" />
-                  <span className="text-[11px] font-semibold text-onicord-text leading-none">
+                  <span className="text-xs font-semibold text-onicord-text leading-none">
                     {onlineCount.toLocaleString()} {t("inviteModal.online")}
                   </span>
                 </div>
@@ -96,7 +96,7 @@ export default function InviteModal({
               {memberCount != null && memberCount > 0 && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-onicord-tint/10 border border-onicord-tint/60 shadow-sm">
                   <span className="w-2 h-2 rounded-full bg-onicord-tint/60 flex-shrink-0" />
-                  <span className="text-[11px] font-semibold text-onicord-text leading-none">
+                  <span className="text-xs font-semibold text-onicord-text leading-none">
                     {memberCount.toLocaleString()} {t("inviteModal.members")}
                   </span>
                 </div>
@@ -108,7 +108,7 @@ export default function InviteModal({
             <button
               disabled={busy}
               onClick={onAccept}
-              className="w-full py-3 rounded-xl font-bold text-base transition-all duration-150 select-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-xl font-bold text-base transition-all duration-fast select-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 background: busy
                   ? "rgba(var(--onicord-lavender)/0.4)"
@@ -137,7 +137,7 @@ export default function InviteModal({
             <button
               disabled={busy}
               onClick={triggerClose}
-              className="w-full py-2.5 rounded-xl font-semibold text-sm text-onicord-muted hover:text-onicord-subtext transition-colors duration-150 select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2.5 rounded-xl font-semibold text-sm text-onicord-muted hover:text-onicord-subtext transition-colors duration-fast select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t("inviteModal.cancel")}
             </button>

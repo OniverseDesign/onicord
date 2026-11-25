@@ -261,7 +261,7 @@ const MentionsPopover = memo(
         <div className="onicord-context-menu-title border-b border-onicord-tint/[0.02] pb-1 mb-1 flex items-center justify-between text-xs text-onicord-muted">
           <span>{t ? t("chat.mentionUser", "Menciones") : "Menciones"}</span>
           {filteredRoles.length > 0 && (
-            <span className="text-[10px] opacity-60 font-mono">
+            <span className="text-2xs opacity-60 font-mono">
               {filteredRoles.length} {t ? t("roles.roles", "roles") : "roles"}
             </span>
           )}
@@ -291,7 +291,7 @@ const MentionsPopover = memo(
                         @{item.name}
                       </span>
                       <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${
+                        className={`text-2xs px-1.5 py-0.5 rounded font-semibold uppercase ${
                           isSelected
                             ? "bg-onicord-surface/20 text-onicord-surface"
                             : "bg-onicord-tint/10 text-onicord-muted group-hover:text-onicord-surface"
@@ -306,14 +306,14 @@ const MentionsPopover = memo(
                         className={`font-bold ${
                           isSelected
                             ? "text-inherit"
-                            : "text-[var(--onicord-lavender)] group-hover:text-inherit"
+                            : "text-onicord-accent group-hover:text-inherit"
                         }`}
                       >
                         @{item.name}
                       </span>
                       {item.isMe && (
                         <span
-                          className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-semibold ${
+                          className={`text-2xs px-1.5 py-0.5 rounded uppercase font-semibold ${
                             isSelected
                               ? "bg-onicord-surface/20 text-onicord-surface"
                               : "bg-onicord-tint/5 text-onicord-muted group-hover:text-onicord-surface"
@@ -326,7 +326,7 @@ const MentionsPopover = memo(
                   )}
                 </div>
                 <span
-                  className={`text-[10px] font-mono ${
+                  className={`text-2xs font-mono ${
                     isSelected
                       ? "text-inherit opacity-80"
                       : "opacity-50 group-hover:text-onicord-surface"

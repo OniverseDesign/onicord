@@ -367,7 +367,7 @@ const ChatMessageItem = memo(
           "bg-onicord-accent/10",
           "rounded-xl",
           "transition-all",
-          "duration-300",
+          "duration-relaxed",
         );
         setTimeout(() => {
           el.classList.remove("bg-onicord-accent/10", "rounded-xl");
@@ -475,10 +475,10 @@ const ChatMessageItem = memo(
               <span className="font-bold text-xs text-onicord-accent">
                 {displayNickname}
               </span>
-              <span className="px-1.5 py-0.2 rounded bg-onicord-accent/20 text-onicord-accent text-[9px] font-bold tracking-wider uppercase">
+              <span className="px-1.5 py-0.2 rounded bg-onicord-accent/20 text-onicord-accent text-2xs font-bold tracking-wider uppercase">
                 {t("chat.welcomeBadge", "Bienvenida")}
               </span>
-              <span className="text-[10px] text-onicord-muted ml-auto">
+              <span className="text-2xs text-onicord-muted ml-auto">
                 {formatTime(msg.timestamp)}
               </span>
             </div>
@@ -493,7 +493,7 @@ const ChatMessageItem = memo(
     return (
       <div
         id={`msg-${msg.id}`}
-        className="flex flex-col w-full relative group/row transition-all duration-300"
+        className="flex flex-col w-full relative group/row transition-all duration-relaxed"
       >
         {replyToData && (
           <div
@@ -502,7 +502,7 @@ const ChatMessageItem = memo(
             title={t("chat.jumpToOriginal")}
           >
             <div className="w-8 h-3.5 border-l-2 border-t-2 border-onicord-accent rounded-tl-[6px] mt-3 shrink-0 ml-[-28px] mr-0.5 opacity-25 group-hover/reply:opacity-80 transition-opacity" />
-            <div className="h-4 w-4 rounded-full bg-onicord-accent overflow-hidden shrink-0 flex items-center justify-center text-[9px] font-bold text-white">
+            <div className="h-4 w-4 rounded-full bg-onicord-accent overflow-hidden shrink-0 flex items-center justify-center text-2xs font-bold text-white">
               {usuarioCitado.avatar === "bot-star" ||
               (usuarioCitado.isComplement && !usuarioCitado.avatar) ? (
                 <IconEstrella className="w-2.5 h-2.5 text-white" />
@@ -523,9 +523,9 @@ const ChatMessageItem = memo(
             <span className="onicord-mention">
               @{usuarioCitado.nickname}
             </span>
-            <div className="text-onicord-muted/60 group-hover/reply:text-onicord-text truncate max-w-[550px] text-[13px] flex items-center gap-1 transition-colors">
+            <div className="text-onicord-muted/60 group-hover/reply:text-onicord-text truncate max-w-[550px] text-sm flex items-center gap-1 transition-colors">
               {replyToData.text?.includes("[FILE_ATTACHMENT]:") ? (
-                <span className="italic flex items-center gap-1 text-[13px] opacity-80">
+                <span className="italic flex items-center gap-1 text-sm opacity-80">
                   Archivo adjunto
                 </span>
               ) : (
@@ -562,10 +562,10 @@ const ChatMessageItem = memo(
             }
           >
             <div className="w-8 h-3.5 border-l-2 border-t-2 border-onicord-accent rounded-tl-[6px] mt-3 shrink-0 ml-[-28px] mr-0.5 opacity-25 group-hover/forward:opacity-80 transition-opacity" />
-            <span className="text-onicord-muted/70 group-hover/forward:text-onicord-muted text-[13px] font-medium">
+            <span className="text-onicord-muted/70 group-hover/forward:text-onicord-muted text-sm font-medium">
               {t("chat.forwardedFromChannel", "Reenviado desde")}
             </span>
-            <span className="onicord-mention flex items-center gap-0.5 text-[13px] font-semibold">
+            <span className="onicord-mention flex items-center gap-0.5 text-sm font-semibold">
               <MaterialIcon name="tag" size={12} className="opacity-80" />
               {originChannelName}
             </span>
@@ -573,7 +573,7 @@ const ChatMessageItem = memo(
         )}
 
         <div
-          className={`onicord-message-row group relative transition-all duration-300 ${
+          className={`onicord-message-row group relative transition-all duration-relaxed ${
             isGrouped ? "py-0.5" : "py-1 mt-2"
           } ${
             isMentioned
@@ -585,7 +585,7 @@ const ChatMessageItem = memo(
           }
         >
           {isGrouped ? (
-            <div className="w-11 shrink-0 flex items-center justify-end select-none text-[10px] text-onicord-muted font-medium pr-1">
+            <div className="w-11 shrink-0 flex items-center justify-end select-none text-2xs text-onicord-muted font-medium pr-1">
               {isEphemeral && expiresAt ? (
                 <EphemeralCountdownBadge expiresAt={expiresAt} compact />
               ) : (

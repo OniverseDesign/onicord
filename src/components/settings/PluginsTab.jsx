@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
+import SegmentedControl from "../ui/SegmentedControl";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import {
   getPluginLocalizedMeta,
@@ -297,16 +298,16 @@ export default function PluginsTab({ profile, onSaved }) {
 
       {/* Updates Available Banner */}
       {pluginsWithUpdates.length > 0 && (
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-onicord-warning/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-onicord-warning/20 text-onicord-warning border border-onicord-warning/30 flex items-center justify-center shrink-0">
               <MaterialIcon name="upgrade" size={20} />
             </div>
             <div>
               <p className="text-xs font-bold text-amber-200">
                 {t("settings.plugins.updatesAvailableTitle", "Actualizaciones de complementos disponibles")}
               </p>
-              <p className="text-[11px] text-amber-300/80 mt-0.5">
+              <p className="text-xs text-onicord-warning/80 mt-0.5">
                 {pluginsWithUpdates.length === 1
                   ? t("settings.plugins.oneUpdateDesc", "Hay 1 complemento con una versión más reciente.")
                   : t("settings.plugins.multipleUpdatesDesc", "Hay {{count}} complementos con versiones más recientes.", { count: pluginsWithUpdates.length })}
@@ -317,7 +318,7 @@ export default function PluginsTab({ profile, onSaved }) {
             type="button"
             onClick={handleUpdateAll}
             disabled={updatingAll}
-            className="px-4 py-2 rounded-onicord-button bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold transition flex items-center justify-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50 active:scale-95 shadow-md shadow-amber-500/15"
+            className="px-4 py-2 rounded-onicord-button bg-onicord-warning hover:bg-onicord-warning text-black text-xs font-extrabold transition flex items-center justify-center gap-1.5 shrink-0 cursor-pointer disabled:opacity-50 active:scale-95 shadow-md shadow-amber-500/15"
           >
             <MaterialIcon name={updatingAll ? "sync" : "update"} size={16} className={updatingAll ? "animate-spin" : ""} />
             <span>{updatingAll ? t("common.updating", "Actualizando...") : t("settings.plugins.updateAllBtn", "Actualizar Todos")}</span>
@@ -329,59 +330,20 @@ export default function PluginsTab({ profile, onSaved }) {
       <div className="onicord-settings-card space-y-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           {/* Scope Pills */}
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-onicord-base/60 border border-onicord-border shrink-0 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setScopeFilter("all")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                scopeFilter === "all"
-                  ? "bg-onicord-accent text-onicord-on-accent shadow-sm"
-                  : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5"
-              }`}
-            >
-              <span>{t("common.all", "Todos")}</span>
-              <span className="text-[10px] opacity-75">({allMergedPlugins.length})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setScopeFilter("server")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                scopeFilter === "server"
-                  ? "bg-sky-500 text-black shadow-sm"
-                  : "text-onicord-muted hover:text-sky-300 hover:bg-onicord-tint/5"
-              }`}
-            >
-              <MaterialIcon name="groups" size={14} />
-              <span>{t("plugins.scope.server", "Servidor")}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setScopeFilter("client")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                scopeFilter === "client"
-                  ? "bg-purple-500 text-white shadow-sm"
-                  : "text-onicord-muted hover:text-purple-300 hover:bg-onicord-tint/5"
-              }`}
-            >
-              <MaterialIcon name="dashboard" size={14} />
-              <span>{t("plugins.scope.client", "Personal")}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setScopeFilter("hybrid")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                scopeFilter === "hybrid"
-                  ? "bg-amber-500 text-black shadow-sm"
-                  : "text-onicord-muted hover:text-amber-300 hover:bg-onicord-tint/5"
-              }`}
-            >
-              <MaterialIcon name="hub" size={14} />
-              <span>{t("plugins.scope.hybrid", "Híbrido")}</span>
-            </button>
-          </div>
+          <SegmentedControl
+            role="tablist"
+            fullWidth={false}
+            size="sm"
+            className="shrink-0 overflow-x-auto max-w-full"
+            value={scopeFilter}
+            onChange={setScopeFilter}
+            options={[
+              { value: "all", label: t("common.all", "Todos"), badge: allMergedPlugins.length },
+              { value: "server", label: t("plugins.scope.server", "Servidor"), icon: "groups" },
+              { value: "client", label: t("plugins.scope.client", "Personal"), icon: "dashboard" },
+              { value: "hybrid", label: t("plugins.scope.hybrid", "Híbrido"), icon: "hub" },
+            ]}
+          />
 
           {/* Search field */}
           <div className="relative flex-1 min-w-[180px]">
@@ -415,7 +377,7 @@ export default function PluginsTab({ profile, onSaved }) {
         <div className="flex items-center justify-between mb-3">
           <h3 className="onicord-settings-section-title mb-0 flex items-center gap-2">
             <span>{t("settings.plugins.title", "Complementos")}</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-onicord-tint/5 text-onicord-muted font-semibold">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-onicord-tint/5 text-onicord-muted font-semibold">
               {filteredPlugins.length}
             </span>
           </h3>
@@ -463,7 +425,7 @@ export default function PluginsTab({ profile, onSaved }) {
               return (
                 <li
                   key={plugin.id}
-                  className={`flex flex-col bg-onicord-base/40 border border-onicord-border p-3.5 rounded-2xl transition-colors hover:border-onicord-tint/10 ${
+                  className={`flex flex-col bg-onicord-base/40 border border-onicord-border p-3.5 rounded-2xl transition-colors hover:border-onicord-border-strong ${
                     isInstalled && plugin.enabled === false ? "opacity-60" : ""
                   }`}
                 >
@@ -490,23 +452,23 @@ export default function PluginsTab({ profile, onSaved }) {
                         <span className="font-bold text-xs text-onicord-text truncate">
                           {name}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted font-mono">
+                        <span className="text-2xs px-1.5 py-0.2 rounded-md bg-onicord-tint/5 text-onicord-muted font-mono">
                           v{plugin.version || "1.0"}
                         </span>
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded-md border flex items-center gap-1 font-semibold ${scopeInfo.badgeClass}`}
+                          className={`text-2xs px-2 py-0.5 rounded-md border flex items-center gap-1 font-semibold ${scopeInfo.badgeClass}`}
                           title={scopeInfo.description}
                         >
                           <MaterialIcon name={scopeInfo.icon} size={12} />
                           <span>{scopeInfo.label}</span>
                         </span>
                         {plugin.author && (
-                          <span className="text-[10px] text-onicord-muted/70 truncate hidden md:inline">
+                          <span className="text-2xs text-onicord-muted/70 truncate hidden md:inline">
                             por {plugin.author}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-onicord-muted truncate mt-0.5">
+                      <p className="text-xs text-onicord-muted truncate mt-0.5">
                         {description}
                       </p>
                     </div>
@@ -517,7 +479,7 @@ export default function PluginsTab({ profile, onSaved }) {
                         type="button"
                         onClick={() => handleInstallFromCatalog(catalogEntry)}
                         disabled={isDownloading}
-                        className="px-3 py-1.5 rounded-onicord-button bg-amber-500 text-black text-xs font-bold hover:opacity-90 transition flex items-center gap-1 shrink-0 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-onicord-button bg-onicord-warning-vivid text-onicord-dark text-xs font-bold hover:opacity-90 transition flex items-center gap-1 shrink-0 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
                         title={t("settings.plugins.updateAvailableTooltip", "Actualizar de v{{current}} a v{{latest}}", {
                           current: plugin.version || "1.0",
                           latest: catalogEntry.version,
@@ -541,7 +503,7 @@ export default function PluginsTab({ profile, onSaved }) {
                       className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors shrink-0 cursor-pointer ${
                         isExpanded
                           ? "bg-onicord-accent/20 text-onicord-accent"
-                          : "hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-accent"
+                          : "hover:bg-onicord-hover text-onicord-muted hover:text-onicord-accent"
                       }`}
                       title={t("settings.plugins.detailsAndConfig", "Detalles y Configuración del complemento")}
                     >
@@ -600,16 +562,16 @@ export default function PluginsTab({ profile, onSaved }) {
                   {isExpanded && (
                     <div className="w-full mt-3 p-4 bg-onicord-surface/80 border border-onicord-border rounded-xl animate-fade-in space-y-3">
                       <div className="flex items-center justify-between pb-2 border-b border-onicord-border">
-                        <p className="font-bold text-onicord-accent uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                        <p className="font-bold text-onicord-accent uppercase tracking-wider text-2xs flex items-center gap-1.5">
                           <MaterialIcon name="verified_user" size={14} />
                           <span>{t("settings.plugins.securityInfo", "Información y Permisos de Seguridad")}</span>
                         </p>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-onicord-muted font-mono">
+                          <span className="text-2xs text-onicord-muted font-mono">
                             ID: {plugin.id}
                           </span>
                           {!isInstalled && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-onicord-accent/10 border border-onicord-accent/20 text-onicord-accent font-semibold">
+                            <span className="text-2xs px-2 py-0.5 rounded-full bg-onicord-accent/10 border border-onicord-accent/20 text-onicord-accent font-semibold">
                               {t("settings.plugins.notInstalledBadge", "Disponible en catálogo")}
                             </span>
                           )}
@@ -631,28 +593,28 @@ export default function PluginsTab({ profile, onSaved }) {
                           {plugin.permissions && plugin.permissions.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5">
                               {plugin.permissions.map((perm) => {
-                                let badgeStyle = "bg-onicord-tint/5 border-onicord-tint/10 text-onicord-muted";
+                                let badgeStyle = "bg-onicord-tint/5 border-onicord-border-strong text-onicord-muted";
                                 if (perm === "network.outbound")
-                                  badgeStyle = "bg-amber-500/10 border-amber-500/30 text-amber-300";
+                                  badgeStyle = "bg-onicord-warning/10 border-onicord-warning/30 text-onicord-warning";
                                 else if (
                                   perm.startsWith("user.") ||
                                   perm.startsWith("server.")
                                 )
-                                  badgeStyle = "bg-sky-500/10 border-sky-500/30 text-sky-300";
+                                  badgeStyle = "bg-onicord-info/10 border-onicord-info/30 text-onicord-info";
                                 else if (
                                   perm.startsWith("audio.") ||
                                   perm.startsWith("gaming.")
                                 )
-                                  badgeStyle = "bg-purple-500/10 border-purple-500/30 text-purple-300";
+                                  badgeStyle = "bg-onicord-accent/10 border-onicord-accent/30 text-onicord-accent";
                                 else if (perm.startsWith("chat."))
-                                  badgeStyle = "bg-emerald-500/10 border-emerald-500/30 text-emerald-300";
+                                  badgeStyle = "bg-onicord-success/10 border-onicord-success/30 text-onicord-success";
                                 else if (perm.startsWith("p2p."))
-                                  badgeStyle = "bg-indigo-500/10 border-indigo-500/30 text-indigo-300";
+                                  badgeStyle = "bg-onicord-accent/10 border-onicord-accent/30 text-onicord-accent";
 
                                 return (
                                   <span
                                     key={perm}
-                                    className={`text-[10px] px-2 py-0.5 rounded-md font-mono border ${badgeStyle}`}
+                                    className={`text-2xs px-2 py-0.5 rounded-md font-mono border ${badgeStyle}`}
                                   >
                                     {perm}
                                   </span>
@@ -667,7 +629,7 @@ export default function PluginsTab({ profile, onSaved }) {
                         </div>
 
                         {plugin.hash && (
-                          <div className="pt-2 flex items-center gap-2 text-[10px] text-onicord-muted/60 font-mono">
+                          <div className="pt-2 flex items-center gap-2 text-2xs text-onicord-muted/60 font-mono">
                             <span>{t("settings.plugins.sha256Hash", "Hash SHA-256:")}</span>
                             <span className="truncate max-w-[280px]">
                               {plugin.hash}
@@ -718,7 +680,7 @@ export default function PluginsTab({ profile, onSaved }) {
           type="button"
           onClick={handleImportPackage}
           disabled={isImporting}
-          className="onicord-btn-secondary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 rounded-2xl border border-onicord-tint/10 hover:bg-onicord-surface transition cursor-pointer"
+          className="onicord-btn-secondary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 rounded-2xl border border-onicord-border-strong hover:bg-onicord-surface transition cursor-pointer"
         >
           <MaterialIcon name="add" size="sm" />
           <span>
@@ -731,7 +693,7 @@ export default function PluginsTab({ profile, onSaved }) {
         <button
           type="button"
           onClick={handlePackFolder}
-          className="onicord-btn-secondary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 rounded-2xl border border-onicord-tint/10 hover:bg-onicord-surface transition cursor-pointer"
+          className="onicord-btn-secondary w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 rounded-2xl border border-onicord-border-strong hover:bg-onicord-surface transition cursor-pointer"
         >
           <MaterialIcon name="archive" size={16} />
           <span>{t("settings.plugins.packPluginFolder", "Empaquetar carpeta de complemento")}</span>

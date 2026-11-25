@@ -4,7 +4,7 @@
     @apply rounded-onicord-inner bg-onicord-mantle flex flex-col overflow-hidden border border-onicord-island;
   }
   .onicord-chat-toolbar-btn {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-onicord-inner border-2 border-transparent bg-transparent shadow-none transition-all duration-200 hover:bg-onicord-base hover:shadow-sm;
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-onicord-inner border-2 border-transparent bg-transparent shadow-none transition-all duration-normal hover:bg-onicord-base hover:shadow-sm;
   }
   .onicord-chat-input {
     @apply min-w-0 flex-1 bg-transparent py-[14px] text-base text-onicord-text placeholder:text-onicord-muted outline-none;
@@ -37,7 +37,7 @@
     @apply m-3 p-3 max-w-[360px] rounded-onicord-inner bg-onicord-surface border border-onicord-mantle flex items-center gap-3 relative animate-fade-in;
   }
   .onicord-dismiss-chip {
-    @apply absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-full bg-onicord-tint/15 text-onicord-muted hover:bg-onicord-danger hover:text-onicord-on-danger transition-colors duration-150 shadow cursor-pointer;
+    @apply absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-full bg-onicord-tint/15 text-onicord-muted hover:bg-onicord-danger hover:text-onicord-on-danger transition-colors duration-fast shadow cursor-pointer;
   }
   .onicord-channel-welcome-icon {
     @apply mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-onicord-surface;

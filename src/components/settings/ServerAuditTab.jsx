@@ -53,18 +53,18 @@ export default function ServerAuditTab({ server }) {
     switch (action) {
       case "create_channel":
         return {
-          bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+          bg: "bg-onicord-success/10 text-onicord-success border border-onicord-success/20",
           icon: "add_circle_outline",
         };
       case "delete_channel":
         return {
-          bg: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
+          bg: "bg-onicord-danger/10 text-onicord-danger border border-onicord-danger/20",
           icon: "remove_circle_outline",
         };
       case "update_channel":
       case "update_settings":
         return {
-          bg: "bg-sky-500/10 text-sky-400 border border-sky-500/20",
+          bg: "bg-onicord-info/10 text-onicord-info border border-onicord-info/20",
           icon: "edit",
         };
       case "create_role":
@@ -72,12 +72,12 @@ export default function ServerAuditTab({ server }) {
       case "update_role":
       case "assign_role":
         return {
-          bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+          bg: "bg-onicord-accent/10 text-onicord-accent border border-onicord-accent/20",
           icon: "shield",
         };
       case "update_plugin":
         return {
-          bg: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
+          bg: "bg-onicord-accent/10 text-onicord-accent border border-onicord-accent/20",
           icon: "extension",
         };
       default:
@@ -133,7 +133,7 @@ export default function ServerAuditTab({ server }) {
             type="button"
             onClick={fetchAuditLogs}
             disabled={loading}
-            className="p-1.5 rounded-lg bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors flex items-center gap-1.5 text-xs border border-onicord-border disabled:opacity-50 shrink-0"
+            className="p-1.5 rounded-lg bg-onicord-tint/5 hover:bg-onicord-hover text-onicord-muted hover:text-onicord-text transition-colors flex items-center gap-1.5 text-xs border border-onicord-border disabled:opacity-50 shrink-0"
             title={t("common.refresh", "Actualizar")}
           >
             <MaterialIcon
@@ -141,7 +141,7 @@ export default function ServerAuditTab({ server }) {
               size={16}
               className={loading ? "animate-spin" : ""}
             />
-            <span className="text-[11px] font-medium hidden sm:inline">
+            <span className="text-xs font-medium hidden sm:inline">
               {t("common.refresh", "Actualizar")}
             </span>
           </button>
@@ -158,7 +158,7 @@ export default function ServerAuditTab({ server }) {
               <h4 className="text-xs font-bold text-onicord-text">
                 {t("serverSettings.audit.loading", "Cargando registros...")}
               </h4>
-              <p className="text-[11px] text-onicord-muted max-w-sm leading-relaxed">
+              <p className="text-xs text-onicord-muted max-w-sm leading-relaxed">
                 {t(
                   "serverSettings.audit.loadingHelp",
                   "Obteniendo el historial de eventos del servidor..."
@@ -175,7 +175,7 @@ export default function ServerAuditTab({ server }) {
               <h4 className="text-xs font-bold text-onicord-text">
                 {t("serverSettings.audit.noLogs", "No hay registros disponibles")}
               </h4>
-              <p className="text-[11px] text-onicord-muted max-w-sm leading-relaxed">
+              <p className="text-xs text-onicord-muted max-w-sm leading-relaxed">
                 {t(
                   "serverSettings.audit.noLogsHelp",
                   "Los cambios que realicen los administradores en el servidor aparecerán en esta lista."
@@ -195,11 +195,11 @@ export default function ServerAuditTab({ server }) {
                 return (
                   <div
                     key={log.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-onicord-border hover:border-onicord-tint/10 transition-colors gap-3"
+                    className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-onicord-border hover:border-onicord-border-strong transition-colors gap-3"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Avatar circular */}
-                      <div className="relative w-8 h-8 rounded-full bg-onicord-accent overflow-hidden flex items-center justify-center shrink-0 border border-onicord-tint/10 shadow-sm">
+                      <div className="relative w-8 h-8 rounded-full bg-onicord-accent overflow-hidden flex items-center justify-center shrink-0 border border-onicord-border-strong shadow-sm">
                         {avatarUrl ? (
                           <img
                             src={avatarUrl}
@@ -220,25 +220,25 @@ export default function ServerAuditTab({ server }) {
                           </span>
 
                           <div
-                            className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${badge.bg}`}
+                            className={`flex items-center gap-1 text-2xs px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${badge.bg}`}
                           >
                             <MaterialIcon name={badge.icon} size={10} />
                             <span>{formatActionName(log.action)}</span>
                           </div>
 
                           {log.target && (
-                            <span className="text-[9px] bg-onicord-tint/5 text-onicord-text/80 px-1.5 py-0.5 rounded border border-onicord-border font-mono max-w-[120px] truncate">
+                            <span className="text-2xs bg-onicord-tint/5 text-onicord-text/80 px-1.5 py-0.5 rounded border border-onicord-border font-mono max-w-[120px] truncate">
                               {log.target}
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-onicord-muted mt-0.5 leading-snug">
+                        <span className="text-xs text-onicord-muted mt-0.5 leading-snug">
                           {log.details}
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-[10px] text-onicord-muted/60 whitespace-nowrap shrink-0 font-mono self-center">
+                    <div className="text-2xs text-onicord-muted/60 whitespace-nowrap shrink-0 font-mono self-center">
                       {new Date(log.timestamp).toLocaleString()}
                     </div>
                   </div>

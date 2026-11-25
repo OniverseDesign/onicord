@@ -1,31 +1,33 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import ModalShell, {
   ModalButton,
 } from "../ui/ModalShell";
 import MaterialIcon from "../icons/MaterialIcon";
+import SegmentedControl from "../ui/SegmentedControl";
 import { normalizeAudioSettings, DEFAULT_AUDIO } from "../../lib/audioSettings";
-import StickerManagerTab from "../settings/StickerManagerTab";
-import EmojiManagerTab from "../settings/EmojiManagerTab";
-import ThemeManagerTab from "../settings/ThemeManagerTab";
 import ConfirmDialogModal from "./ConfirmDialogModal";
 import { CONFIG_ISLAS, STORAGE_KEY, WIDGET_COMPONENTS, getCombinedConfigs, getWidgetComponent } from "../dashboard/dashboardConfig";
 import { useMicTest } from "../../hooks/useMicTest";
 import { useAudioDevices } from "../../hooks/useAudioDevices";
-import ProfileTab from "../settings/ProfileTab";
-import AudioTab from "../settings/AudioTab";
-import WidgetsTab from "../settings/WidgetsTab";
-import GeneralTab from "../settings/GeneralTab";
-import DevSandboxTab from "../settings/DevSandboxTab";
-import AboutTab from "../settings/AboutTab";
-import PluginsTab from "../settings/PluginsTab";
-import KeybindingsTab from "../settings/KeybindingsTab";
 import { normalizeKeybindings } from "../../lib/defaultKeybindings";
 import { normalizeGeneralSettings, DEFAULT_GENERAL } from "../../lib/generalSettings";
-import BackupTab from "../settings/BackupTab";
-import OverlayTab from "../settings/OverlayTab";
-import GamesActivityTab from "../settings/GamesActivityTab";
 import { soundEngine } from "../../lib/soundEngine";
+
+const StickerManagerTab = lazy(() => import("../settings/StickerManagerTab"));
+const EmojiManagerTab = lazy(() => import("../settings/EmojiManagerTab"));
+const ThemeManagerTab = lazy(() => import("../settings/ThemeManagerTab"));
+const ProfileTab = lazy(() => import("../settings/ProfileTab"));
+const AudioTab = lazy(() => import("../settings/AudioTab"));
+const WidgetsTab = lazy(() => import("../settings/WidgetsTab"));
+const GeneralTab = lazy(() => import("../settings/GeneralTab"));
+const DevSandboxTab = lazy(() => import("../settings/DevSandboxTab"));
+const AboutTab = lazy(() => import("../settings/AboutTab"));
+const PluginsTab = lazy(() => import("../settings/PluginsTab"));
+const KeybindingsTab = lazy(() => import("../settings/KeybindingsTab"));
+const BackupTab = lazy(() => import("../settings/BackupTab"));
+const OverlayTab = lazy(() => import("../settings/OverlayTab"));
+const GamesActivityTab = lazy(() => import("../settings/GamesActivityTab"));
 
 export default function AppSettingsModal({
   profile,
@@ -722,6 +724,14 @@ export default function AppSettingsModal({
         </button>
       }
     >
+      <Suspense
+        fallback={
+          <div className="space-y-4 py-2">
+            <div className="h-24 rounded-onicord-inner onicord-skeleton-breath" />
+            <div className="h-36 rounded-onicord-inner onicord-skeleton-breath onicord-skeleton-stagger-2" />
+          </div>
+        }
+      >
       {section === "general" && (
         <GeneralTab general={general} setGeneral={setGeneral} />
       )}
@@ -798,31 +808,16 @@ export default function AppSettingsModal({
       {section === "stickers" && (
         <div className="space-y-4">
           <div className="onicord-settings-row flex-col items-stretch gap-2.5">
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-onicord-base/40 rounded-xl border border-onicord-border">
-              {[
-                { id: "stickers", label: t("settings.tabs.stickers", "Stickers") },
-                { id: "emojis", label: t("settings.tabs.emojis", "Emojis") },
-              ].map((tab) => {
-                const isActive = expressionsSubTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => {
-                      soundEngine.playNav("select");
-                      setExpressionsSubTab(tab.id);
-                    }}
-                    className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-onicord-accent/15 border-onicord-accent/40 text-onicord-accent font-semibold text-xs shadow-sm"
-                        : "border-transparent text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 font-medium text-xs"
-                    }`}
-                  >
-                    <span className="truncate block">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <SegmentedControl
+              role="tablist"
+              playSound
+              value={expressionsSubTab}
+              onChange={setExpressionsSubTab}
+              options={[
+                { value: "stickers", label: t("settings.tabs.stickers", "Stickers") },
+                { value: "emojis", label: t("settings.tabs.emojis", "Emojis") },
+              ]}
+            />
           </div>
           {expressionsSubTab === "stickers" ? (
             <StickerManagerTab
@@ -847,6 +842,7 @@ export default function AppSettingsModal({
       {section === "dev" && (
         <DevSandboxTab profile={profile} onProfileChange={onSaved} servers={servers} activeServerId={activeServerId} />
       )}
+      </Suspense>
 
       {error && (
         <p className="onicord-error-banner mt-4 animate-fade-in">{error}</p>

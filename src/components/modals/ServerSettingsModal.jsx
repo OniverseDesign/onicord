@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { checkPermission } from "../../lib/permissionsHelper";
 import { copyTextToClipboard } from "../../lib/clipboard";
@@ -8,17 +8,17 @@ import ModalShell, {
   ModalButton,
 } from "../ui/ModalShell";
 
-import ServerOverviewTab from "../settings/ServerOverviewTab";
-import ServerChannelsTab from "../settings/ServerChannelsTab";
-import ServerRolesTab from "../settings/ServerRolesTab";
-import ServerMembersTab from "../settings/ServerMembersTab";
-import ServerInviteTab from "../settings/ServerInviteTab";
-import ServerStorageTab from "../settings/ServerStorageTab";
-import ServerNetworkTab from "../settings/ServerNetworkTab";
-import ServerAuditTab from "../settings/ServerAuditTab";
-import ServerPluginsTab from "../settings/ServerPluginsTab";
-import ServerWebhooksTab from "../settings/ServerWebhooksTab";
-import ServerDiscoverTab from "../settings/ServerDiscoverTab";
+const ServerOverviewTab = lazy(() => import("../settings/ServerOverviewTab"));
+const ServerChannelsTab = lazy(() => import("../settings/ServerChannelsTab"));
+const ServerRolesTab = lazy(() => import("../settings/ServerRolesTab"));
+const ServerMembersTab = lazy(() => import("../settings/ServerMembersTab"));
+const ServerInviteTab = lazy(() => import("../settings/ServerInviteTab"));
+const ServerStorageTab = lazy(() => import("../settings/ServerStorageTab"));
+const ServerNetworkTab = lazy(() => import("../settings/ServerNetworkTab"));
+const ServerAuditTab = lazy(() => import("../settings/ServerAuditTab"));
+const ServerPluginsTab = lazy(() => import("../settings/ServerPluginsTab"));
+const ServerWebhooksTab = lazy(() => import("../settings/ServerWebhooksTab"));
+const ServerDiscoverTab = lazy(() => import("../settings/ServerDiscoverTab"));
 
 function slugId(prefix, name) {
   const base = name
@@ -742,6 +742,14 @@ export default function ServerSettingsModal({
       onClose={onClose}
       footer={renderFooter()}
     >
+      <Suspense
+        fallback={
+          <div className="space-y-4 py-2">
+            <div className="h-24 rounded-onicord-inner onicord-skeleton-breath" />
+            <div className="h-36 rounded-onicord-inner onicord-skeleton-breath onicord-skeleton-stagger-2" />
+          </div>
+        }
+      >
       {section === "overview" && (
         <ServerOverviewTab
           name={name}
@@ -882,6 +890,7 @@ export default function ServerSettingsModal({
           server={serverWithCopy}
         />
       )}
+      </Suspense>
       
       {error && (
         <p className="onicord-error-banner mt-3 animate-fade-in">{error}</p>

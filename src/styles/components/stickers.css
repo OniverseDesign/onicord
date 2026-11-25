@@ -7,10 +7,10 @@
     @apply grid grid-cols-4 gap-1.5 bg-onicord-mantle/50 p-1.5 rounded-onicord-inner border border-onicord-island;
   }
   .onicord-sticker-thumb {
-    @apply w-14 h-14 shrink-0 bg-onicord-mantle/50 rounded-onicord-button p-1.5 flex items-center justify-center border border-onicord-tint/[0.04];
+    @apply w-14 h-14 shrink-0 bg-onicord-mantle/50 rounded-onicord-button p-1.5 flex items-center justify-center border border-onicord-border-subtle;
   }
   .onicord-popover-section-header {
-    @apply text-[11px] font-bold text-onicord-muted truncate flex items-center gap-1.5 cursor-pointer hover:text-onicord-text transition-colors py-0.5;
+    @apply text-xs font-bold text-onicord-muted truncate flex items-center gap-1.5 cursor-pointer hover:text-onicord-text transition-colors py-0.5;
   }
 
   /* Sticker States (linked to cards.css .onicord-sticker-card) */

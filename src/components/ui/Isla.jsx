@@ -38,9 +38,9 @@ export default function Isla({
   return (
     <div
       className={cn(
-        "relative w-full h-full rounded-onicord-outer-p4 border flex flex-col overflow-hidden transition-all duration-300 p-0",
+        "relative w-full h-full rounded-onicord-outer-p4 border flex flex-col overflow-hidden transition-all duration-relaxed p-0",
         fondoClase,
-        tieneBlur && "bg-black/90 backdrop-blur-md",
+        tieneBlur && "bg-black/90 backdrop-blur-onicord-popover",
         isEditable && "cursor-grab active:cursor-grabbing hover:shadow-lg bg-onicord-accent/5 bg-opacity-95",
         className
       )}
@@ -49,7 +49,7 @@ export default function Isla({
       {}
       {customBackground && customBackground.type === "image" && (
         <div
-          className="absolute inset-0 z-0 pointer-events-none opacity-70 scale-110 blur-lg transition-all duration-500 transform-gpu"
+          className="absolute inset-0 z-0 pointer-events-none opacity-70 scale-110 blur-lg transition-all duration-slow transform-gpu"
           style={{
             backgroundImage: `url(${customBackground.value})`,
             backgroundPosition: "center",
@@ -60,7 +60,7 @@ export default function Isla({
 
       {customBackground && customBackground.type === "color" && (
         <div
-          className="absolute inset-0 z-0 transition-all duration-500 pointer-events-none"
+          className="absolute inset-0 z-0 transition-all duration-slow pointer-events-none"
           style={{
             backgroundColor: customBackground.value,
           }}
@@ -69,7 +69,7 @@ export default function Isla({
 
       {}
       <div
-        className={`absolute inset-0 border-2 border-transparent pointer-events-none transition-all duration-300 rounded-onicord-outer-p4 ${
+        className={`absolute inset-0 border-2 border-transparent pointer-events-none transition-all duration-relaxed rounded-onicord-outer-p4 ${
           isEditable ? "!border-onicord-accent/40 animate-pulse" : ""
         }`}
       />

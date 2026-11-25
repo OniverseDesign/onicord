@@ -143,7 +143,7 @@ export default function NetworkPopover({
           <h4 className="text-xs font-bold truncate leading-tight text-onicord-text">
             {t("network.title")}
           </h4>
-          <span className="text-[10px] font-medium text-onicord-accent">
+          <span className="text-2xs font-medium text-onicord-accent">
             {networkTopology === "sfu" ? t("network.sfu") : t("network.mesh")}
           </span>
         </div>
@@ -151,7 +151,7 @@ export default function NetworkPopover({
 
       <div className="space-y-1.5 mb-2.5 max-h-[120px] overflow-y-auto minimal-scrollbar">
         {otherMembers.length === 0 ? (
-          <p className="text-[11px] text-onicord-muted italic py-1">
+          <p className="text-xs text-onicord-muted italic py-1">
             {t("network.noPeersConnected")}
           </p>
         ) : (
@@ -163,18 +163,18 @@ export default function NetworkPopover({
             const isDirectType = effectiveConnType.includes("Direct") || effectiveConnType.includes("STUN");
 
             return (
-              <div key={m.peerId} className="flex items-center justify-between text-[11px] py-0.5">
+              <div key={m.peerId} className="flex items-center justify-between text-xs py-0.5">
                 <div className="flex flex-col min-w-0">
                   <span className="text-onicord-text font-medium truncate max-w-[120px]">
                     {m.nickname}
                   </span>
-                  <span className={`text-[9px] font-semibold leading-none ${
+                  <span className={`text-2xs font-semibold leading-none ${
                     isLanType
-                      ? "text-emerald-400" 
+                      ? "text-onicord-success" 
                       : isRelayType
-                        ? "text-purple-400"
+                        ? "text-onicord-accent"
                         : isDirectType 
-                          ? "text-amber-400" 
+                          ? "text-onicord-warning" 
                           : "text-onicord-muted"
                   }`}>
                     {effectiveConnType}
@@ -189,7 +189,7 @@ export default function NetworkPopover({
         )}
       </div>
 
-      <div className="text-[9px] font-mono bg-black/30 p-1.5 rounded-lg border border-onicord-border text-onicord-faded space-y-0.5">
+      <div className="text-2xs font-mono bg-black/30 p-1.5 rounded-lg border border-onicord-border text-onicord-faded space-y-0.5">
         <div>
           <span className="text-onicord-accent font-bold">{t("network.topology")}:</span> {networkTopology.toUpperCase()}
         </div>

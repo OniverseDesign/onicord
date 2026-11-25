@@ -180,8 +180,8 @@ const ForumPostCard = memo(
       <article
         onClick={isInThread ? undefined : () => onOpenThread(msg)}
         onContextMenu={(e) => onContextMenu(e, msg, nickname, avatar, isMyMessage)}
-        className={`group relative bg-onicord-surface border border-onicord-border rounded-2xl p-4 sm:p-5 transition-all duration-150 mb-3.5 text-left w-full shadow-xs ${
-          isInThread ? "cursor-default" : "hover:bg-onicord-surface/75 hover:border-onicord-tint/10 cursor-pointer"
+        className={`group relative bg-onicord-surface border border-onicord-border rounded-2xl p-4 sm:p-5 transition-all duration-fast mb-3.5 text-left w-full shadow-xs ${
+          isInThread ? "cursor-default" : "hover:bg-onicord-surface/75 hover:border-onicord-border-strong cursor-pointer"
         }`}
       >
         {/* Top Header: Author + Timestamp + Actions */}
@@ -223,7 +223,7 @@ const ForumPostCard = memo(
           {/* Top-Right Hover Toolbar (Exact style of normal message toolbar buttons) */}
           {isMyMessage && (
             <div
-              className="onicord-message-toolbar top-3.5 right-3.5 border-onicord-tint/10"
+              className="onicord-message-toolbar top-3.5 right-3.5 border-onicord-border-strong"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -369,7 +369,7 @@ const ForumPostCard = memo(
                         <span className="font-mono text-xs text-onicord-text font-semibold">
                           {shortcodeLabel}
                         </span>
-                        <span className="text-[11px] font-normal text-onicord-muted truncate max-w-[200px]">
+                        <span className="text-xs font-normal text-onicord-muted truncate max-w-[200px]">
                           {t("chat.reactedBy")}: {userNames.join(", ")}
                         </span>
                       </div>
@@ -382,10 +382,10 @@ const ForumPostCard = memo(
                       e.stopPropagation();
                       onToggleReaction?.(msg.id, emoji);
                     }}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-150 cursor-pointer active:scale-95 ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all duration-fast cursor-pointer active:scale-95 ${
                       hasMyReaction
                         ? "bg-onicord-accent/20 text-onicord-accent border-onicord-accent/40 shadow-2xs"
-                        : "bg-onicord-base/60 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-onicord-text"
+                        : "bg-onicord-base/60 text-onicord-muted border-onicord-border hover:bg-onicord-hover hover:text-onicord-text"
                     }`}
                   >
                     {customEmoji ? (
@@ -424,7 +424,7 @@ const ForumPostCard = memo(
                 setPickerTargetRect(e.currentTarget.getBoundingClientRect());
               }
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-onicord-base/60 hover:bg-onicord-tint/10 border border-onicord-border hover:border-onicord-tint/10 text-xs font-semibold text-onicord-muted hover:text-onicord-text transition-all cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-onicord-base/60 hover:bg-onicord-hover border border-onicord-border hover:border-onicord-border-strong text-xs font-semibold text-onicord-muted hover:text-onicord-text transition-all cursor-pointer active:scale-95"
             title={t("chat.addReaction", "Reaccionar")}
           >
             <MaterialIcon name="add_reaction" size={16} />
@@ -442,7 +442,7 @@ const ForumPostCard = memo(
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all cursor-pointer active:scale-95 ${
                 threadRepliesCount > 0
                   ? "bg-onicord-accent/15 text-onicord-accent border-onicord-accent/30 hover:bg-onicord-accent/25"
-                  : "bg-onicord-base/60 hover:bg-onicord-tint/10 border-onicord-border hover:border-onicord-tint/10 text-onicord-muted hover:text-white"
+                  : "bg-onicord-base/60 hover:bg-onicord-hover border-onicord-border hover:border-onicord-border-strong text-onicord-muted hover:text-white"
               }`}
               title={t("chat.replyInThread", "Responder en hilo")}
             >
@@ -466,7 +466,7 @@ const ForumPostCard = memo(
               e.stopPropagation();
               onForwardClick?.(msg);
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-onicord-base/60 hover:bg-onicord-tint/10 border border-onicord-border hover:border-onicord-tint/10 text-xs font-semibold text-onicord-muted hover:text-onicord-text transition-all cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-onicord-base/60 hover:bg-onicord-hover border border-onicord-border hover:border-onicord-border-strong text-xs font-semibold text-onicord-muted hover:text-onicord-text transition-all cursor-pointer active:scale-95"
             title={t("chat.forwardMessage", "Reenviar")}
           >
             <MaterialIcon name="shortcut" size={15} />

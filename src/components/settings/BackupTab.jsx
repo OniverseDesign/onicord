@@ -43,7 +43,7 @@ function BackupProgressBar({ progress, className = "" }) {
       </div>
       <div className="h-1.5 w-full bg-onicord-base/60 rounded-full overflow-hidden">
         <div
-          className="h-full bg-onicord-accent rounded-full transition-all duration-300"
+          className="h-full bg-onicord-accent rounded-full transition-all duration-relaxed"
           style={{ width: `${progress.percent}%` }}
         />
       </div>
@@ -177,7 +177,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
       </p>
 
       {!inspectedBackup ? (
-        <div className="border border-dashed border-onicord-tint/10 hover:border-onicord-accent/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 bg-onicord-base/30 transition-colors text-center">
+        <div className="border border-dashed border-onicord-border-strong hover:border-onicord-accent/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 bg-onicord-base/30 transition-colors text-center">
           <div className="w-10 h-10 rounded-xl bg-onicord-base border border-onicord-border flex items-center justify-center text-onicord-accent shadow-sm">
             <MaterialIcon name="upload_file" size={22} />
           </div>
@@ -185,7 +185,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
             <p className="text-xs font-semibold text-onicord-text">
               {t("settings.backup.pickFileHint", "Selecciona una copia de seguridad en tu equipo")}
             </p>
-            <p className="text-[11px] text-onicord-muted mt-0.5">
+            <p className="text-xs text-onicord-muted mt-0.5">
               Formato de paquete Onicord (.onipkg)
             </p>
           </div>
@@ -199,7 +199,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
           </button>
         </div>
       ) : (
-        <div className="border border-onicord-tint/10 rounded-2xl bg-onicord-base/40 p-4 space-y-4">
+        <div className="border border-onicord-border-strong rounded-2xl bg-onicord-base/40 p-4 space-y-4">
           {/* Header of inspected backup */}
           <div className="flex items-start justify-between gap-3 pb-3 border-b border-onicord-border">
             <div className="flex items-center gap-3 min-w-0">
@@ -230,7 +230,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
                     ? inspectedBackup.profile.nickname
                     : inspectedBackup.fileName}
                 </p>
-                <p className="text-[10px] text-onicord-muted mt-0.5">
+                <p className="text-2xs text-onicord-muted mt-0.5">
                   {formatDate(inspectedBackup.createdAt)} · {formatBytes(inspectedBackup.fileSize)}
                 </p>
               </div>
@@ -240,7 +240,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
               type="button"
               onClick={onCancelInspected}
               disabled={restoring}
-              className="p-1 rounded-lg text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover transition-colors cursor-pointer"
               title={t("common.close", "Cerrar")}
             >
               <MaterialIcon name="close" size={16} />
@@ -249,7 +249,7 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
 
           {/* Categories Selector */}
           <div>
-            <p className="text-[11px] font-semibold text-onicord-muted uppercase tracking-wider mb-2">
+            <p className="text-xs font-semibold text-onicord-muted uppercase tracking-wider mb-2">
               {t("settings.cloudBackup.selectToRestore", "Selecciona qué restaurar de este backup:")}
             </p>
             <div className="space-y-1">
@@ -287,8 +287,8 @@ function ImportCard({ onSelectFile, inspectedBackup, onCancelInspected, onConfir
           <BackupProgressBar progress={progress} className="pt-2" />
 
           {/* Warning */}
-          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-200/90 flex items-start gap-2.5">
-            <MaterialIcon name="warning" size={16} className="text-amber-400 shrink-0 mt-0.5" />
+          <div className="rounded-xl border border-onicord-warning/20 bg-onicord-warning/10 p-3 text-xs text-amber-200/90 flex items-start gap-2.5">
+            <MaterialIcon name="warning" size={16} className="text-onicord-warning shrink-0 mt-0.5" />
             <span className="leading-relaxed">
               {t(
                 "settings.backup.restoreWarning",
@@ -448,19 +448,19 @@ function LocalVaultCard({
             {localBackups.map((b) => (
               <div
                 key={b.name}
-                className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-onicord-border hover:border-onicord-tint/10 transition-colors gap-3"
+                className="flex items-center justify-between p-3 rounded-xl bg-onicord-base/40 border border-onicord-border hover:border-onicord-border-strong transition-colors gap-3"
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold text-onicord-text truncate">{b.name}</p>
                   <div className="flex items-center flex-wrap gap-2 mt-0.5">
-                    <span className="text-[10px] text-onicord-muted">{formatDate(b.createdAt)}</span>
-                    <span className="text-[10px] font-mono text-onicord-muted">· {formatBytes(b.size)}</span>
+                    <span className="text-2xs text-onicord-muted">{formatDate(b.createdAt)}</span>
+                    <span className="text-2xs font-mono text-onicord-muted">· {formatBytes(b.size)}</span>
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1.5">
                     {b.categories.map((c) => (
                       <span
                         key={c}
-                        className="text-[9px] uppercase font-bold tracking-wide bg-onicord-accent/10 text-onicord-accent border border-onicord-accent/20 px-1.5 py-0.5 rounded"
+                        className="text-2xs uppercase font-bold tracking-wide bg-onicord-accent/10 text-onicord-accent border border-onicord-accent/20 px-1.5 py-0.5 rounded"
                       >
                         {t(`settings.cloudBackup.categories.${c}`, c)}
                       </span>
@@ -480,7 +480,7 @@ function LocalVaultCard({
                   <button
                     type="button"
                     onClick={() => onDeleteFromVault(b.name)}
-                    className="p-1.5 text-red-400/70 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors cursor-pointer"
+                    className="p-1.5 text-onicord-danger/70 hover:text-onicord-danger hover:bg-onicord-danger/10 rounded-lg transition-colors cursor-pointer"
                     title={t("settings.cloudBackup.deleteBackup", "Eliminar copia")}
                   >
                     <MaterialIcon name="delete" size={15} />

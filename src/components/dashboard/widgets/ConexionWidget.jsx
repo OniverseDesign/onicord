@@ -381,7 +381,7 @@ export default function ConexionWidget({
       {/* Connection Info Footer */}
       <div className="onicord-widget-footer-sep !pt-1 gap-2 flex flex-col z-10 shrink-0">
         {connectedServer ? (
-          <div className="flex w-full justify-between items-center font-mono font-bold uppercase text-[9px] text-onicord-dark-muted">
+          <div className="flex w-full justify-between items-center font-mono font-bold uppercase text-2xs text-onicord-dark-muted">
             <span className="truncate max-w-[70%]">
               {t("widgets.connection.swarm", "Swarm:")}{" "}
               {activeConnectionsCount > 0
@@ -391,9 +391,9 @@ export default function ConexionWidget({
             <span className="shrink-0 text-onicord-dark-sub">{ping}ms</span>
           </div>
         ) : (
-          <div className="flex w-full justify-between items-center font-mono font-bold uppercase text-[9px] text-onicord-dark-muted">
+          <div className="flex w-full justify-between items-center font-mono font-bold uppercase text-2xs text-onicord-dark-muted">
             <span>{t("widgets.connection.idleNode", "IDLE NODE")}</span>
-            <span className="text-red-400/80">{t("widgets.connection.offline", "OFFLINE")}</span>
+            <span className="text-onicord-danger/80">{t("widgets.connection.offline", "OFFLINE")}</span>
           </div>
         )}
 

@@ -140,45 +140,6 @@ export default function UserProfilePopout({
   const hasBanner = Boolean(member.banner);
   const showBannerUploadSlot = !hasBanner && isInlinePreview && Boolean(onBannerClick);
 
-  const isRightSide = x > window.innerWidth / 2;
-  const style = isInlinePreview
-    ? {
-        backgroundColor: member.profileColor || undefined,
-        position: "relative",
-        width: "100%",
-        maxWidth: "280px",
-      }
-    : {
-        top: Math.max(10, Math.min(y, window.innerHeight - (hasBanner ? 520 : 440))),
-        left: isRightSide ? Math.max(10, x - 300) : Math.min(window.innerWidth - 300, x + 20),
-        transformOrigin: isRightSide ? "top right" : "top left",
-        backgroundColor: member.profileColor || undefined,
-        position: "fixed",
-        zIndex: "var(--z-popover, 50)",
-      };
-
-  const isOffline = member.online === false || member.status === "offline" || member.status === "invisible";
-  const dotColor = isOffline
-    ? "bg-onicord-overlay"
-    : (member.status === "streamer" || member.status === "streaming")
-      ? "bg-purple-500"
-      : member.status === "idle"
-        ? "bg-amber-500"
-        : (member.status === "dnd" || member.status === "muted" || member.status === "deafened")
-          ? "bg-onicord-danger"
-          : "bg-onicord-success";
-  const initial = (member.nickname || "Usuario").charAt(0).toUpperCase();
-  const flameData = evaluateUserFlame(member.flame || {}, serverId);
-  const displayHighest = Math.max(
-    flameData.highestStreak || 0,
-    flameData.currentStreak || 0,
-  );
-
-  const cutoutBorderColor =
-    member.profileColor || "rgb(var(--onicord-bg-mantle))";
-
-  const cutoutColorDot = "rgb(var(--onicord-bg-mantle) / 0.3)";
-
   const currentColorConfig = Object.values(APP_COLORS).find(
     (c) =>
       member.profileColor === c.key ||
@@ -192,21 +153,91 @@ export default function UserProfilePopout({
           `rgb(${c.rawRgb})`.replace(/\s+/g, "")),
   );
 
+  // Keep structural profile choices (surface/mantle/overlay) fixed instead of flipping with Light/Dark theme
+  const resolvedBgColor =
+    currentColorConfig?.isStructure && currentColorConfig.key !== "default"
+      ? `rgb(${currentColorConfig.rawRgb})`
+      : member.profileColor || undefined;
+
+  const isRightSide = x > window.innerWidth / 2;
+  const style = isInlinePreview
+    ? {
+        backgroundColor: resolvedBgColor,
+        position: "relative",
+        width: "100%",
+        maxWidth: "280px",
+      }
+    : {
+        top: Math.max(10, Math.min(y, window.innerHeight - (hasBanner ? 520 : 440))),
+        left: isRightSide ? Math.max(10, x - 300) : Math.min(window.innerWidth - 300, x + 20),
+        transformOrigin: isRightSide ? "top right" : "top left",
+        backgroundColor: resolvedBgColor,
+        position: "fixed",
+        zIndex: "var(--z-popover, 50)",
+      };
+
+  const isOffline = member.online === false || member.status === "offline" || member.status === "invisible";
+  const dotColor = isOffline
+    ? "bg-onicord-status-offline"
+    : (member.status === "streamer" || member.status === "streaming")
+      ? "bg-onicord-status-streaming"
+      : member.status === "idle"
+        ? "bg-onicord-status-idle"
+        : (member.status === "dnd" || member.status === "muted" || member.status === "deafened")
+          ? "bg-onicord-status-dnd"
+          : "bg-onicord-status-online";
+  const initial = (member.nickname || "Usuario").charAt(0).toUpperCase();
+  const flameData = evaluateUserFlame(member.flame || {}, serverId);
+  const displayHighest = Math.max(
+    flameData.highestStreak || 0,
+    flameData.currentStreak || 0,
+  );
+
+  const cutoutBorderColor =
+    resolvedBgColor || "rgb(var(--onicord-bg-mantle))";
+
+  const cutoutColorDot = "rgb(var(--onicord-bg-mantle) / 0.3)";
+
+  const hasCustomBg = Boolean(resolvedBgColor);
   const isLightBg = currentColorConfig
     ? currentColorConfig.isLight
-    : member.profileColor
-      ? isLightColor(member.profileColor)
+    : hasCustomBg
+      ? isLightColor(resolvedBgColor)
       : false;
+  const isAppLightMode =
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("light-mode");
+  const isEffectiveLightSurface = hasCustomBg ? isLightBg : isAppLightMode;
 
-  const textMainClass = isLightBg ? "text-onicord-dark" : "text-onicord-text";
-  const textMutedClass = isLightBg
-    ? "text-onicord-dark-muted font-bold"
-    : "text-onicord-muted";
-  const dividerClass = isLightBg ? "border-black/10" : "border-onicord-border";
-  const boxBgClass = isLightBg ? "bg-black/5" : "bg-black/10";
+  const textMainClass = !hasCustomBg
+    ? "text-onicord-text"
+    : isLightBg
+      ? "text-onicord-dark"
+      : "text-onicord-on-scrim";
+  const textMutedClass = !hasCustomBg
+    ? "text-onicord-muted"
+    : isLightBg
+      ? "text-onicord-dark-muted font-bold"
+      : "text-onicord-on-scrim/70";
+  const dividerClass = !hasCustomBg
+    ? "border-onicord-border"
+    : isLightBg
+      ? "border-onicord-on-light/10"
+      : "border-onicord-on-scrim/10";
+  const boxBgClass = isLightBg ? "bg-onicord-on-light/5" : "bg-onicord-on-scrim/10";
   const linkBgClass = isLightBg
-    ? "bg-black/10 hover:bg-black/20 text-onicord-dark"
-    : "bg-black/20 hover:bg-black/40 text-onicord-accent";
+    ? "bg-onicord-on-light/10 hover:bg-onicord-on-light/20 text-onicord-dark"
+    : "bg-onicord-on-scrim/10 hover:bg-onicord-on-scrim/20 text-onicord-accent";
+  const sectionCardClass = !hasCustomBg
+    ? "bg-onicord-base border border-onicord-border-strong"
+    : isLightBg
+      ? "bg-onicord-on-light/[0.06] border border-onicord-on-light/15"
+      : "bg-onicord-on-scrim/[0.06] border border-onicord-on-scrim/15";
+  const activitySurfaceMode = !hasCustomBg
+    ? "default"
+    : isLightBg
+      ? "light"
+      : "dark";
 
   const handleLinkClick = (e) => {
     e.preventDefault();
@@ -244,8 +275,8 @@ export default function UserProfilePopout({
           className={cn(
             "absolute w-7 h-7 rounded-full flex items-center justify-center shrink-0 p-0 transition-all z-20 cursor-pointer group",
             hasBanner
-              ? "top-4 right-4 bg-black/45 hover:bg-black/65 backdrop-blur-sm text-white"
-              : "top-2.5 right-2.5 bg-black/35 hover:bg-black/55 text-onicord-text"
+              ? "top-4 right-4 bg-onicord-scrim hover:bg-onicord-scrim-heavy backdrop-blur-sm text-onicord-on-scrim"
+              : "top-2.5 right-2.5 bg-onicord-scrim-soft hover:bg-onicord-scrim text-onicord-text"
           )}
           title={t("profileTab.editServerProfile", "Editar perfil del servidor")}
         >
@@ -262,7 +293,7 @@ export default function UserProfilePopout({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
             {onBannerClick && (
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
+              <div className="absolute inset-0 bg-onicord-scrim opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -357,12 +388,12 @@ export default function UserProfilePopout({
         </h3>
 
         {member.globalNickname && member.globalNickname !== member.nickname && (
-          <span className={`text-[11px] font-medium ${textMutedClass} truncate max-w-[200px] text-center -mt-0.5 mb-1`}>
+          <span className={`text-xs font-medium ${textMutedClass} truncate max-w-[200px] text-center -mt-0.5 mb-1`}>
             @{member.globalNickname}
           </span>
         )}
 
-        <p className={`text-[11px] mb-2 text-center ${textMutedClass}`}>
+        <p className={`text-micro mb-2 text-center ${textMutedClass}`}>
           {member.customStatus ||
             (isOffline ? t("common.offline") : t("common.online"))}
         </p>
@@ -371,7 +402,7 @@ export default function UserProfilePopout({
         {member.customLink && (
           <button
             onClick={handleLinkClick}
-            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 mb-2 rounded-onicord-button text-[11px] font-semibold transition-colors w-full cursor-pointer ${linkBgClass}`}
+            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 mb-2 rounded-onicord-button text-xs font-semibold transition-colors w-full cursor-pointer ${linkBgClass}`}
           >
             <MaterialIcon name="link" size="base" />
             <div className="mt-0.5">
@@ -384,15 +415,15 @@ export default function UserProfilePopout({
 
         {/* User Flame Badge (Streak) */}
         {!disableFlameSystem && (
-          <div className="w-full mb-2 p-3 rounded-xl bg-onicord-base border border-onicord-island flex items-center justify-between">
+          <div className={`w-full mb-2 p-3 rounded-xl flex items-center justify-between ${sectionCardClass}`}>
             <div className="flex items-center gap-3 min-w-0">
               <FlameBadge days={flameData.currentStreak || 0} size="md" />
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold truncate text-onicord-text">
+                <span className={`text-xs font-bold truncate ${textMainClass}`}>
                   {t("flame.title")} —{" "}
                   {t("flame.days", { count: flameData.currentStreak || 0 })}
                 </span>
-                <span className="text-[10px] truncate text-onicord-muted">
+                <span className={`text-2xs truncate ${textMutedClass}`}>
                   {flameData.interactedToday
                     ? t("userPopout.activeToday")
                     : t("userPopout.inactiveToday")}
@@ -400,10 +431,10 @@ export default function UserProfilePopout({
               </div>
             </div>
             <div className="text-right shrink-0">
-              <span className="text-[9px] block font-mono uppercase text-onicord-muted">
+              <span className={`text-2xs block font-mono uppercase ${textMutedClass}`}>
                 {t("flame.highestStreak")}
               </span>
-              <span className="text-xs font-mono font-bold text-onicord-text">
+              <span className={`text-xs font-mono font-bold ${textMainClass}`}>
                 {t("flame.days", { count: displayHighest })}
               </span>
             </div>
@@ -427,7 +458,7 @@ export default function UserProfilePopout({
                   let green = parseInt(cleanHex.substring(2, 4), 16);
                   let blue = parseInt(cleanHex.substring(4, 6), 16);
 
-                  if (isLightBg) {
+                  if (isEffectiveLightSurface) {
                     red = Math.round(red * darkenFactor);
                     green = Math.round(green * darkenFactor);
                     blue = Math.round(blue * darkenFactor);
@@ -449,7 +480,7 @@ export default function UserProfilePopout({
                     className="flex items-center justify-center gap-1.5 px-2 py-0.5 h-[22px] rounded-full border select-none transition-all"
                     style={{
                       backgroundColor: adaptedColor.translucent,
-                      borderColor: isLightBg
+                      borderColor: isEffectiveLightSurface
                         ? adaptedColor.solid
                         : adaptedColor.border,
                     }}
@@ -470,22 +501,17 @@ export default function UserProfilePopout({
                     ) : (
                       <>
                         <div
-                          className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/5"
+                          className="w-2.5 h-2.5 rounded-full shrink-0 border border-onicord-on-light/10"
                           style={{
                             backgroundColor: r.color,
-                            borderColor: isLightBg
+                            borderColor: isEffectiveLightSurface
                               ? adaptedColor.solid
                               : adaptedColor.border,
                           }}
                         />
 
                         <span
-                          className="text-[11px] font-semibold tracking-wide leading-none select-none"
-                          style={{
-                            color: isLightBg
-                              ? "var(--onicord-text-dark)"
-                              : "var(--onicord-text)",
-                          }}
+                          className={`text-xs font-semibold tracking-wide leading-none select-none ${textMainClass}`}
                         >
                           {r.name}
                         </span>
@@ -510,6 +536,7 @@ export default function UserProfilePopout({
                 type={member.activity.type || "game"}
                 state={member.activity.state}
                 party={member.activity.party}
+                surfaceMode={activitySurfaceMode}
                 details={
                   member.activity.details ||
                   (member.activity.type === "music"
@@ -531,12 +558,12 @@ export default function UserProfilePopout({
           <div className={`w-full mt-3 pt-3 border-t ${dividerClass}`}>
             <div className="flex items-center justify-between mb-1.5">
               <h4
-                className={`text-[9px] font-bold uppercase tracking-wider ${textMutedClass}`}
+                className={`text-2xs font-bold uppercase tracking-wider ${textMutedClass}`}
               >
                 {t("settings.voiceVideo.volume")}
               </h4>
               <span
-                className={`text-[11px] font-mono font-semibold ${textMutedClass}`}
+                className={`text-xs font-mono font-semibold ${textMutedClass}`}
               >
                 {volume}%
               </span>
@@ -547,7 +574,7 @@ export default function UserProfilePopout({
               max="200"
               value={volume}
               onChange={(e) => onVolumeChange(Number(e.target.value))}
-              className="w-full h-1.5 bg-black/20 rounded-lg appearance-none cursor-pointer accent-onicord-accent hover:accent-onicord-lavender transition-all"
+              className="w-full h-1.5 bg-onicord-tint/15 rounded-lg appearance-none cursor-pointer accent-onicord-accent hover:accent-onicord-lavender transition-all"
             />
           </div>
         )}

@@ -360,7 +360,7 @@ export default function StreamDisplay({
   const containerClassName = isMini
     ? `${
         IsPipClosed ? "hidden" : ""
-      } fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-transform duration-150 touch-none select-none`
+      } fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-transform duration-fast touch-none select-none`
     : `relative flex-1 w-full h-full min-h-0 min-w-0 flex flex-col select-none overflow-hidden bg-black ${
         isFullscreen
           ? "fixed inset-0 z-50 w-screen h-screen rounded-none border-none"
@@ -390,7 +390,7 @@ export default function StreamDisplay({
       {isMini ? (
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/60 flex flex-col justify-between p-2 pointer-events-none z-20">
           <div className="flex items-center justify-between w-full">
-            <span className="bg-black/75 px-2 py-0.5 rounded text-[10px] text-white font-semibold select-none pointer-events-none truncate">
+            <span className="bg-onicord-scrim-heavy px-2 py-0.5 rounded text-2xs text-onicord-on-scrim font-semibold select-none pointer-events-none truncate">
               {streamAuthorName && streamAuthorName !== "Usuario" && streamAuthorName !== t("common.user")
                 ? streamAuthorName
                 : t("voice.liveStream")}
@@ -405,7 +405,7 @@ export default function StreamDisplay({
                     e.preventDefault();
                     if (!hasMoved.current && onToggleSize) onToggleSize();
                   }}
-                  className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-white/5 text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 cursor-pointer"
+                  className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-onicord-border text-onicord-text hover:bg-onicord-overlay hover:text-onicord-text transition duration-fast cursor-pointer"
                   title={t("voice.fullScreen")}
                 >
                   <MaterialIcon name="fullscreen" size="lg" />
@@ -426,10 +426,10 @@ export default function StreamDisplay({
                     onToggleLocalWebcam();
                   }
                 }}
-                className={`flex h-7 w-7 items-center justify-center rounded-full border transition duration-150 cursor-pointer ${
+                className={`flex h-7 w-7 items-center justify-center rounded-full border transition duration-fast cursor-pointer ${
                   isLocalWebcamActive
                     ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent hover:brightness-110"
-                    : "bg-onicord-surface border-white/10 text-onicord-text hover:bg-onicord-overlay hover:text-white"
+                    : "bg-onicord-surface border-onicord-on-scrim/10 text-onicord-text hover:bg-onicord-overlay hover:text-onicord-on-scrim"
                 } ${isWebcamBusy ? "opacity-50 cursor-wait" : ""}`}
                 title={
                   isLocalWebcamActive
@@ -457,7 +457,7 @@ export default function StreamDisplay({
                   if (onToggleSize) onToggleSize();
                 }
               }}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-onicord-danger/30 text-onicord-danger hover:bg-onicord-danger hover:text-white transition duration-150 cursor-pointer"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-onicord-danger/30 text-onicord-danger hover:bg-onicord-danger hover:text-onicord-on-danger transition duration-fast cursor-pointer"
               title={isLocal ? t("voice.stopStream") : t("voice.closePiP", "Cerrar PiP")}
             >
               {isLocal ? (
@@ -473,13 +473,13 @@ export default function StreamDisplay({
           {/* Top left overlay badge - Hides after 3s of fullscreen inactivity */}
           <div
             style={{ zIndex: 45, transform: "translate3d(0, 0, 50px)" }}
-            className={`absolute top-4 left-4 flex items-center gap-2 bg-black/80 border border-white/10 px-3.5 py-1.5 rounded-full text-xs backdrop-blur-md select-none transition-all duration-300 pointer-events-auto ${
+            className={`absolute top-4 left-4 flex items-center gap-2 bg-onicord-scrim-heavy border border-onicord-on-scrim/10 px-3.5 py-1.5 rounded-full text-xs backdrop-blur-onicord-popover select-none transition-all duration-relaxed pointer-events-auto ${
               isFullscreen && !showControls
                 ? "opacity-0 -translate-y-4 pointer-events-none"
                 : "opacity-100 translate-y-0 pointer-events-auto"
             }`}
           >
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-onicord-on-scrim">
               {t("voice.screenOf", { name: streamAuthorName || t("common.you") })}
             </span>
             <span className="onicord-live-badge">
@@ -576,7 +576,7 @@ export default function StreamDisplay({
                         );
                       })}
                       {onToggleWebcamMirror && (
-                        <div className="my-1 border-t border-white/5" />
+                        <div className="my-1 border-t border-onicord-border" />
                       )}
                     </>
                   )}
@@ -678,14 +678,14 @@ function MultiStreamTile({
             ? t("voice.listeningStream", "Escuchando")
             : t("voice.clickToListenStream", "Haz clic para escuchar esta transmisión")
       }
-      className={`relative w-full h-full min-h-0 min-w-0 overflow-hidden bg-black/90 flex items-center justify-center transition-all duration-150 group/tile ${
+      className={`relative w-full h-full min-h-0 min-w-0 overflow-hidden bg-onicord-scrim-heavy flex items-center justify-center transition-all duration-fast group/tile ${
         isMini ? "rounded-md border" : "rounded-onicord-inner border-2 cursor-pointer"
       } ${
         isSelectedAudio && !entry.isLocal
           ? "border-onicord-accent ring-2 ring-onicord-accent/40 shadow-lg"
           : isSelectedAudio
             ? "border-onicord-accent/70"
-            : "border-white/10 hover:border-white/25"
+            : "border-onicord-on-scrim/10 hover:border-onicord-on-scrim/25"
       }`}
     >
       {entry.stream ? (
@@ -702,7 +702,7 @@ function MultiStreamTile({
         <div className="flex flex-col items-center justify-center gap-2 text-onicord-muted p-3">
           <MaterialIcon name="videocam" size={isMini ? 16 : 28} className="animate-pulse text-onicord-accent/80" />
           {!isMini && (
-            <span className="text-xs font-medium text-white/80 truncate max-w-[180px]">
+            <span className="text-xs font-medium text-onicord-on-scrim/80 truncate max-w-[180px]">
               {authorLabel}
             </span>
           )}
@@ -711,23 +711,23 @@ function MultiStreamTile({
 
       {!isMini && (
         <>
-          <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/80 border border-white/10 px-2.5 py-1 rounded-full text-[11px] backdrop-blur-md pointer-events-none select-none max-w-[60%]">
-            <span className="font-semibold text-white truncate">{authorLabel}</span>
+          <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-onicord-scrim-heavy border border-onicord-on-scrim/10 px-2.5 py-1 rounded-full text-xs backdrop-blur-onicord-popover pointer-events-none select-none max-w-[60%]">
+            <span className="font-semibold text-onicord-on-scrim truncate">{authorLabel}</span>
             <span className="onicord-live-badge">{t("common.live")}</span>
           </div>
 
           <div className="absolute top-3 right-3 z-20 pointer-events-none select-none">
             {entry.isLocal ? (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium bg-black/80 border border-white/10 text-onicord-muted backdrop-blur-md">
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-onicord-scrim-heavy border border-onicord-on-scrim/10 text-onicord-muted backdrop-blur-onicord-popover">
                 <MaterialIcon name="volume_off" size="sm" />
               </span>
             ) : isSelectedAudio && !isAudioMuted ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-onicord-accent/30 border border-onicord-accent/60 text-white backdrop-blur-md shadow">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-onicord-accent/30 border border-onicord-accent/60 text-onicord-on-scrim backdrop-blur-onicord-popover shadow">
                 <MaterialIcon name="volume_up" size="sm" />
                 <span>{t("voice.listeningStream", "Escuchando")}</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium bg-black/80 border border-white/10 text-onicord-muted backdrop-blur-md opacity-85 group-hover/tile:opacity-100">
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-onicord-scrim-heavy border border-onicord-on-scrim/10 text-onicord-muted backdrop-blur-onicord-popover opacity-85 group-hover/tile:opacity-100">
                 <MaterialIcon name="volume_off" size="sm" />
                 <span className="hidden sm:inline">{t("voice.mutedStream", "Silenciada")}</span>
               </span>
@@ -776,7 +776,7 @@ export function MultiStreamDisplay({
     : { isolation: "isolate" };
 
   const containerClassName = isMini
-    ? "fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-transform duration-150 touch-none select-none"
+    ? "fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-transform duration-fast touch-none select-none"
     : `relative flex-1 w-full h-full min-h-0 min-w-0 flex flex-col select-none overflow-hidden bg-black ${
         isFullscreen
           ? "fixed inset-0 z-50 w-screen h-screen rounded-none border-none"
@@ -818,7 +818,7 @@ export function MultiStreamDisplay({
       {isMini ? (
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/60 flex flex-col justify-between p-2 pointer-events-none z-20">
           <div className="flex items-center justify-between w-full">
-            <span className="bg-black/75 px-2 py-0.5 rounded text-[10px] text-white font-semibold select-none pointer-events-none truncate">
+            <span className="bg-onicord-scrim-heavy px-2 py-0.5 rounded text-2xs text-onicord-on-scrim font-semibold select-none pointer-events-none truncate">
               {t("voice.multiStreamTitle", {
                 count: streams.length,
                 defaultValue: `Transmisiones del canal (${streams.length})`,
@@ -834,7 +834,7 @@ export function MultiStreamDisplay({
                     e.preventDefault();
                     if (!hasMoved.current && onToggleSize) onToggleSize();
                   }}
-                  className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-white/5 text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 cursor-pointer"
+                  className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-onicord-border text-onicord-text hover:bg-onicord-overlay hover:text-onicord-text transition duration-fast cursor-pointer"
                   title={t("voice.fullScreen")}
                 >
                   <MaterialIcon name="fullscreen" size="lg" />
@@ -851,7 +851,7 @@ export function MultiStreamDisplay({
                 e.preventDefault();
                 if (onToggleSize) onToggleSize();
               }}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-onicord-danger/30 text-onicord-danger hover:bg-onicord-danger hover:text-white transition duration-150 cursor-pointer"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-onicord-danger/30 text-onicord-danger hover:bg-onicord-danger hover:text-onicord-on-danger transition duration-fast cursor-pointer"
               title={t("voice.closePiP", "Cerrar PiP")}
             >
               <MaterialIcon name="close" size={16} />
@@ -862,13 +862,13 @@ export function MultiStreamDisplay({
         <>
           <div
             style={{ zIndex: 45, transform: "translate3d(0, 0, 50px)" }}
-            className={`absolute top-3.5 left-4 flex items-center gap-2 bg-black/80 border border-white/10 px-3.5 py-1.5 rounded-full text-xs backdrop-blur-md select-none transition-all duration-300 pointer-events-auto ${
+            className={`absolute top-3.5 left-4 flex items-center gap-2 bg-onicord-scrim-heavy border border-onicord-on-scrim/10 px-3.5 py-1.5 rounded-full text-xs backdrop-blur-onicord-popover select-none transition-all duration-relaxed pointer-events-auto ${
               isFullscreen && !showControls
                 ? "opacity-0 -translate-y-4 pointer-events-none"
                 : "opacity-100 translate-y-0 pointer-events-auto"
             }`}
           >
-            <span className="font-semibold text-white">
+            <span className="font-semibold text-onicord-on-scrim">
               {t("voice.multiStreamTitle", {
                 count: streams.length,
                 defaultValue: `Transmisiones del canal (${streams.length})`,

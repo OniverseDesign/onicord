@@ -102,7 +102,7 @@ export default function VoiceUserVolumeMenu({
     <>
       {/* Transparent fullscreen backdrop: dismisses menu on outside click */}
       <div
-        className="fixed inset-0 z-[49] cursor-default bg-transparent"
+        className="fixed inset-0 z-titlebar cursor-default bg-transparent"
         onPointerDown={(e) => {
           e.stopPropagation();
           triggerClose();
@@ -136,14 +136,14 @@ export default function VoiceUserVolumeMenu({
             <p className="text-xs font-bold text-onicord-text truncate leading-tight">
               {nickname}
             </p>
-            <p className="text-[10px] text-onicord-muted uppercase tracking-wider font-semibold">
+            <p className="text-2xs text-onicord-muted uppercase tracking-wider font-semibold">
               {t("contextMenu.userVolume", "Volumen de usuario")}
             </p>
           </div>
         </div>
 
         <div className="space-y-1.5 mb-3 bg-onicord-base/50 p-2 rounded-lg border border-onicord-border">
-          <div className="flex items-center justify-between text-[11px] font-mono text-onicord-subtext">
+          <div className="flex items-center justify-between text-xs font-mono text-onicord-subtext">
             <span>0%</span>
             <span className="font-bold text-onicord-accent">{currentVol}%</span>
             <span>200%</span>
@@ -164,7 +164,7 @@ export default function VoiceUserVolumeMenu({
             onClick={handleToggleMute}
             className={`onicord-context-menu-item ${
               isMuted
-                ? "onicord-context-menu-item-default text-emerald-400 hover:text-white"
+                ? "onicord-context-menu-item-default text-onicord-success hover:text-white"
                 : "onicord-context-menu-item-danger"
             }`}
           >

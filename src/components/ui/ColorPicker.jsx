@@ -70,10 +70,9 @@ export default function ColorPicker({
             cleanStr(selectedColor) === cleanStr(info.colorVar) ||
             cleanStr(selectedColor) === cleanStr(`rgb(${info.rawRgb})`));
 
-        // Determine background display style
-        const bgStyle = info.isStructure
-          ? info.colorVar
-          : `rgb(${info.rawRgb})`;
+        // Determine background display style (only "default" tracks dynamic theme; structure swatches stay fixed)
+        const bgStyle =
+          key === "default" ? info.colorVar : `rgb(${info.rawRgb})`;
 
         return (
           <Tooltip key={key} content={info.name} side="top">
@@ -81,7 +80,7 @@ export default function ColorPicker({
               type="button"
               onClick={() => onSelectColor(key, info)}
               className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95",
+                "w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-instant hover:scale-105 active:scale-95",
                 isSelected
                   ? "border-onicord-text scale-105 ring-2 ring-onicord-tint/15"
                   : "border-onicord-tint/15 hover:border-onicord-tint/30"
@@ -94,7 +93,13 @@ export default function ColorPicker({
                 <MaterialIcon
                   name="check"
                   size={14}
-                  className={info.isLight ? "text-onicord-dark" : "text-white"}
+                  className={
+                    key === "default"
+                      ? "text-onicord-text"
+                      : info.isLight
+                        ? "text-onicord-dark"
+                        : "text-onicord-on-scrim"
+                  }
                 />
               )}
             </button>
@@ -115,7 +120,7 @@ export default function ColorPicker({
         >
           <button
             type="button"
-            className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-100 hover:scale-105 active:scale-95 relative overflow-hidden ${
+            className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all border duration-instant hover:scale-105 active:scale-95 relative overflow-hidden ${
               isCustomColor
                 ? "border-onicord-text scale-105 ring-2 ring-onicord-tint/15"
                 : "border-onicord-tint/15 hover:border-onicord-tint/30 color-picker-cycle"
@@ -133,8 +138,8 @@ export default function ColorPicker({
                 isCustomColor
                   ? isLightHex(selectedColor)
                     ? "text-onicord-dark"
-                    : "text-white"
-                  : "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+                    : "text-onicord-on-scrim"
+                  : "text-onicord-on-scrim drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
               }
             />
           </button>

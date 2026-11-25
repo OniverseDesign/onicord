@@ -23,13 +23,13 @@ export default function DeleteServerModal({ server, onClose, onConfirm }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4">
-          <h2 className="text-[20px] font-bold text-onicord-text leading-tight">
+          <h2 className="text-xl font-bold text-onicord-text leading-tight">
             {t("deleteServerModal.title", "Eliminar servidor")}
           </h2>
         </div>
 
         <div className="flex-1 space-y-4">
-          <p className="text-[15px] leading-normal text-onicord-subtext text-left">
+          <p className="text-base leading-normal text-onicord-subtext text-left">
             {t("deleteServerModal.confirmText", "¿Estás seguro de que deseas eliminar este servidor? Esta acción destruirá los canales locales.")}{" "}
             <span className="font-semibold text-onicord-text break-words">
               "{server.name}"
@@ -38,7 +38,7 @@ export default function DeleteServerModal({ server, onClose, onConfirm }) {
 
           {/* Preview box */}
           <div className="onicord-modal-preview-box !justify-start items-center gap-3.5 p-3.5">
-            <div className="h-12 w-12 shrink-0 rounded-[14px] overflow-hidden bg-onicord-surface flex items-center justify-center border border-onicord-tint/10 select-none shadow-sm">
+            <div className="h-12 w-12 shrink-0 rounded-[14px] overflow-hidden bg-onicord-surface flex items-center justify-center border border-onicord-border-strong select-none shadow-sm">
               {server.icon ? (
                 <SmartAnimatedImage
                   src={server.icon}
@@ -53,10 +53,10 @@ export default function DeleteServerModal({ server, onClose, onConfirm }) {
               )}
             </div>
             <div className="flex flex-col min-w-0 flex-1 text-left">
-              <span className="font-bold text-onicord-text truncate text-[15px]" title={server.name}>
+              <span className="font-bold text-onicord-text truncate text-base" title={server.name}>
                 {server.name}
               </span>
-              <span className="text-[11px] text-onicord-muted font-mono tracking-wider truncate uppercase mt-0.5">
+              <span className="text-xs text-onicord-muted font-mono tracking-wider truncate uppercase mt-0.5">
                 ID: {server.roomCode || server.id}
               </span>
             </div>

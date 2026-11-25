@@ -1517,10 +1517,10 @@ export default function WhiteboardStage({
       <canvas ref={strokesCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-10" />
 
       {/* Canvas 2: Remote cursors (isolated from strokes redraw) */}
-      <canvas ref={cursorsCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-[35]" />
+      <canvas ref={cursorsCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-sticky" />
 
       {/* World-Transformed SVG Layer (Connectors + Smart Snap Guides) */}
-      <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-[25]">
+      <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-resizer">
         <defs>
           <marker id="wb-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
             <polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" />

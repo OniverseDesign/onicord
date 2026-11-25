@@ -22,17 +22,47 @@ export default {
           "dark-sub": "var(--onicord-text-dark-sub)",
           "dark-muted": "var(--onicord-text-dark-muted)",
 
-          // 🌗 TINTE, BORDES Y TEXTO SOBRE ACENTOS ADAPTATIVOS
+          // 🌗 TINTE, BORDES, INTERACCIONES Y TEXTO SOBRE ACENTOS ADAPTATIVOS
           tint: "rgb(var(--onicord-tint-rgb) / <alpha-value>)",
+          "border-subtle": "var(--onicord-border-subtle)",
           border: "var(--onicord-border)",
+          "border-strong": "var(--onicord-border-strong)",
+          "border-island": "var(--onicord-border-island)",
+          hover: "var(--hover)",
+          active: "var(--active)",
+          "message-hover": "var(--message-hover)",
           "on-accent": "var(--onicord-on-accent)",
           "on-danger": "var(--onicord-on-danger)",
+          "on-warning": "var(--onicord-on-warning)",
+          "on-info": "var(--onicord-on-info)",
+
+          // ── SCRIMS PARA OVERLAYS SOBRE MEDIA ──
+          "scrim-soft": "var(--onicord-scrim-soft)",
+          scrim: "var(--onicord-scrim)",
+          "scrim-heavy": "var(--onicord-scrim-heavy)",
+          "on-scrim": "rgb(var(--onicord-on-scrim-rgb) / <alpha-value>)",
+          "on-light": "rgb(var(--onicord-on-light-rgb) / <alpha-value>)",
 
           // ── ACENTOS NATIVOS CORE ENVOLVILLES EN ALFA ──
-          accent: "rgb(var(--onicord-lavender) / <alpha-value>)",
+          accent: "rgb(var(--onicord-accent-rgb) / <alpha-value>)",
           danger: "rgb(var(--onicord-danger) / <alpha-value>)",
           success: "rgb(var(--onicord-success) / <alpha-value>)",
+          warning: "rgb(var(--onicord-warning) / <alpha-value>)",
+          info: "rgb(var(--onicord-info) / <alpha-value>)",
           sapphire: "rgb(var(--onicord-sapphire) / <alpha-value>)",
+
+          // ── INDICADORES SATURADOS (VIVID) Y ESTADOS DE PRESENCIA ──
+          "success-vivid": "rgb(var(--onicord-success-vivid) / <alpha-value>)",
+          "warning-vivid": "rgb(var(--onicord-warning-vivid) / <alpha-value>)",
+          "danger-vivid": "rgb(var(--onicord-danger-vivid) / <alpha-value>)",
+          "info-vivid": "rgb(var(--onicord-info-vivid) / <alpha-value>)",
+          "accent-vivid": "rgb(var(--onicord-accent-vivid) / <alpha-value>)",
+          "offline-vivid": "rgb(var(--onicord-offline-vivid) / <alpha-value>)",
+          "status-online": "rgb(var(--onicord-success-vivid) / <alpha-value>)",
+          "status-idle": "rgb(var(--onicord-warning-vivid) / <alpha-value>)",
+          "status-dnd": "rgb(var(--onicord-danger-vivid) / <alpha-value>)",
+          "status-streaming": "rgb(var(--onicord-accent-vivid) / <alpha-value>)",
+          "status-offline": "rgb(var(--onicord-offline-vivid) / <alpha-value>)",
 
           // ── ESCALA PASTEL MOCHA V2 COMPLETA ENVOLVIBLE ──
           rosewater: "rgb(var(--onicord-rosewater) / <alpha-value>)",
@@ -49,8 +79,9 @@ export default {
         },
       },
       fontSize: {
-        // 📏 Escala tipográfica armonizada Onicord (8 niveles estándar)
+        // 📏 Escala tipográfica armonizada Onicord (9 niveles estándar)
         "2xs": ["var(--font-size-2xs, 10px)", { lineHeight: "var(--line-height-2xs, 14px)", letterSpacing: "0.04em" }],
+        micro: ["var(--font-size-micro, 11px)", { lineHeight: "var(--line-height-micro, 15px)" }],
         xs: ["var(--font-size-xs, 12px)", { lineHeight: "var(--line-height-xs, 16px)" }],
         sm: ["var(--font-size-sm, 14px)", { lineHeight: "var(--line-height-sm, 20px)" }],
         base: ["var(--font-size-base, 15px)", { lineHeight: "var(--line-height-base, 22px)" }],
@@ -58,15 +89,17 @@ export default {
         xl: ["var(--font-size-xl, 20px)", { lineHeight: "var(--line-height-xl, 26px)", letterSpacing: "-0.02em" }],
         "2xl": ["var(--font-size-2xl, 24px)", { lineHeight: "var(--line-height-2xl, 30px)", letterSpacing: "-0.025em" }],
         "3xl": ["var(--font-size-3xl, 30px)", { lineHeight: "var(--line-height-3xl, 36px)", letterSpacing: "-0.03em" }],
-
-        // 🏷️ Alias semánticos
-        badge: ["var(--font-size-2xs, 10px)", { lineHeight: "var(--line-height-2xs, 14px)", letterSpacing: "0.04em" }],
-        caption: ["var(--font-size-xs, 12px)", { lineHeight: "var(--line-height-xs, 16px)" }],
-        body: ["var(--font-size-base, 15px)", { lineHeight: "var(--line-height-base, 22px)" }],
       },
       fontFamily: {
-        sans: ["var(--font)", "sans-serif"],
-        mono: ["var(--font)", "monospace"],
+        sans: ["var(--font-sans)", "sans-serif"],
+        mono: ["var(--font-sans)", "monospace"],
+        code: ["var(--font-mono)", "monospace"],
+      },
+      borderRadius: {
+        "onicord-outer": "var(--radius-outer)",
+        "onicord-inner": "var(--radius-inner)",
+        "onicord-button": "var(--radius-control)",
+        "onicord-chip": "var(--radius-chip)",
       },
       boxShadow: {
         sm: "var(--onicord-shadow-sm)",
@@ -77,20 +110,30 @@ export default {
         inner: "var(--onicord-shadow-inner)",
         "onicord-header": "var(--onicord-shadow-header)",
         "onicord-elevated": "var(--onicord-shadow-elevated)",
+        "onicord-glow-accent": "var(--onicord-glow-accent)",
+        "onicord-glow-success": "var(--onicord-glow-success)",
+        "onicord-glow-danger": "var(--onicord-glow-danger)",
+        "onicord-glow-warning": "var(--onicord-glow-warning)",
+      },
+      backdropBlur: {
+        "onicord-backdrop": "2px",
+        "onicord-popover": "12px",
+        "onicord-island": "24px",
       },
       zIndex: {
-        content: "10",
-        resizer: "20",
-        sticky: "30",
-        titlebar: "40",
-        popover: "50",
-        modal: "60",
-        "modal-card": "61",
-        "modal-nested": "70",
-        "modal-nested-card": "71",
-        "modal-controls": "75",
-        tooltip: "80",
-        toast: "90",
+        content: "var(--z-content)",
+        resizer: "var(--z-resizer)",
+        sticky: "var(--z-sticky)",
+        titlebar: "var(--z-titlebar)",
+        popover: "var(--z-popover)",
+        modal: "var(--z-modal)",
+        "modal-card": "var(--z-modal-card)",
+        "modal-nested": "var(--z-modal-nested)",
+        "modal-nested-card": "var(--z-modal-nested-card)",
+        "modal-controls": "var(--z-modal-controls)",
+        tooltip: "var(--z-tooltip)",
+        toast: "var(--z-toast)",
+        "overlay-top": "var(--z-overlay-top)",
       },
       transitionDuration: {
         instant: "var(--duration-instant)",

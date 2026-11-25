@@ -11,6 +11,7 @@ export default function RichPresenceCard({
   type = "game",
   state = null,
   party = null,
+  surfaceMode = "default",
 }) {
   const { t } = useTranslation();
   const [elapsedTime, setElapsedTime] = useState("00:00");
@@ -73,12 +74,52 @@ export default function RichPresenceCard({
     gameName === "Cinema" ||
     (typeof details === "string" && details.toLowerCase().includes("cinema"));
 
+  const surfaceStyles =
+    surfaceMode === "light"
+      ? {
+          cardClass: "bg-onicord-on-light/[0.06] border border-onicord-on-light/15",
+          coverBgClass: "bg-onicord-on-light/10",
+          smallCoverBorderClass: "border-onicord-on-light/15 bg-onicord-on-light/10",
+          titleClass: "text-onicord-dark",
+          detailsClass: "text-onicord-dark-sub",
+          stateClass: "text-onicord-dark-muted font-medium",
+          fallbackIconClass: "text-onicord-dark-muted",
+          timerClass: "text-onicord-dark-sub",
+          movieIconClass: "text-onicord-dark",
+          partyBadgeClass: "bg-onicord-on-light/10 text-onicord-dark-sub",
+        }
+      : surfaceMode === "dark"
+        ? {
+            cardClass: "bg-onicord-on-scrim/[0.06] border border-onicord-on-scrim/15",
+            coverBgClass: "bg-onicord-on-scrim/10",
+            smallCoverBorderClass: "border-onicord-on-scrim/20 bg-onicord-scrim",
+            titleClass: "text-onicord-on-scrim",
+            detailsClass: "text-onicord-on-scrim/80",
+            stateClass: "text-onicord-on-scrim/65",
+            fallbackIconClass: isMovie ? "text-onicord-accent-vivid" : "text-onicord-on-scrim/70",
+            timerClass: "text-onicord-success-vivid",
+            movieIconClass: "text-onicord-accent-vivid",
+            partyBadgeClass: "bg-onicord-on-scrim/10 text-onicord-on-scrim/80",
+          }
+        : {
+            cardClass: "bg-onicord-base border border-onicord-border-strong",
+            coverBgClass: "bg-onicord-surface/40",
+            smallCoverBorderClass: "border-onicord-base bg-onicord-surface",
+            titleClass: "text-onicord-text",
+            detailsClass: "text-onicord-subtext",
+            stateClass: "text-onicord-muted",
+            fallbackIconClass: isMovie ? "text-onicord-accent" : "text-onicord-muted",
+            timerClass: "text-onicord-success",
+            movieIconClass: "text-onicord-accent",
+            partyBadgeClass: "bg-onicord-tint/5 text-onicord-subtext",
+          };
+
   return (
-    <div className="shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island py-3">
+    <div className={`shrink-0 rounded-onicord-outer-p4 py-3 ${surfaceStyles.cardClass}`}>
       <div className="flex items-center gap-4 px-4">
         {/* Cover image / Icon */}
         <div className="relative w-14 h-14 shrink-0">
-          <div className="w-full h-full rounded-[10px] overflow-hidden flex items-center justify-center bg-onicord-surface/40">
+          <div className={`w-full h-full rounded-[10px] overflow-hidden flex items-center justify-center ${surfaceStyles.coverBgClass}`}>
             {cover ? (
               <img
                 src={cover}
@@ -90,7 +131,7 @@ export default function RichPresenceCard({
                 <MaterialIcon
                   name={isApp ? "apps" : isMusic ? "music_note" : isMovie ? "movie" : "sports_esports"}
                   size={28}
-                  className={isMovie ? "text-onicord-accent" : "text-onicord-muted"}
+                  className={surfaceStyles.fallbackIconClass}
                 />
               </div>
             )}
@@ -99,7 +140,7 @@ export default function RichPresenceCard({
           {/* Emulator / sub-client badge */}
           {smallCover && (
             <div
-              className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full overflow-hidden border-2 border-onicord-base bg-onicord-surface shadow-sm flex items-center justify-center"
+              className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full overflow-hidden border-2 shadow-sm flex items-center justify-center ${surfaceStyles.smallCoverBorderClass}`}
               title={details || undefined}
             >
               <img
@@ -124,7 +165,7 @@ export default function RichPresenceCard({
             >
               <p
                 ref={textRef}
-                className={`text-[14px] font-bold text-onicord-text leading-tight shrink-0 ${
+                className={`text-sm font-bold leading-tight shrink-0 ${surfaceStyles.titleClass} ${
                   isOverflowing ? "pr-6" : ""
                 }`}
               >
@@ -133,7 +174,7 @@ export default function RichPresenceCard({
 
               {isOverflowing && (
                 <p
-                  className="text-[14px] font-bold text-onicord-text leading-tight shrink-0 pr-6 group-hover:hidden"
+                  className={`text-sm font-bold leading-tight shrink-0 pr-6 group-hover:hidden ${surfaceStyles.titleClass}`}
                   aria-hidden="true"
                 >
                   {gameName}
@@ -144,38 +185,38 @@ export default function RichPresenceCard({
 
           {/* Activity details */}
           {details && (
-            <p className="text-[12px] text-onicord-subtext truncate leading-snug mt-0.5">
+            <p className={`text-xs truncate leading-snug mt-0.5 ${surfaceStyles.detailsClass}`}>
               {details}
             </p>
           )}
 
           {/* Dynamic session state (Discord RPC) */}
           {state && (
-            <p className="text-[11px] text-onicord-muted truncate leading-snug">
+            <p className={`text-micro truncate leading-snug ${surfaceStyles.stateClass}`}>
               {state}
             </p>
           )}
 
           {/* Timer and badges */}
-          <div className="flex items-center justify-between text-onicord-success gap-1.5 mt-1">
+          <div className={`flex items-center justify-between gap-1.5 mt-1 ${surfaceStyles.timerClass}`}>
             <div className="flex items-center gap-1.5">
               {isApp ? (
                 <MaterialIcon name="apps" size="lg" />
               ) : isMusic ? (
                 <MaterialIcon name="headphones" size="lg" />
               ) : isMovie ? (
-                <MaterialIcon name="movie" size="lg" className="text-onicord-accent" />
+                <MaterialIcon name="movie" size="lg" className={surfaceStyles.movieIconClass} />
               ) : (
                 <MaterialIcon name="sports_esports" size="lg" />
               )}
-              <span className="text-[12px] font-mono font-bold tracking-tight">
+              <span className="text-xs font-mono font-bold tracking-tight">
                 {elapsedTime}
               </span>
             </div>
 
             {/* Party / Lobby badge from RPC */}
             {party && party.size && (
-              <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-onicord-tint/5 text-onicord-subtext flex items-center gap-1">
+              <span className={`text-2xs font-mono font-medium px-1.5 py-0.5 rounded flex items-center gap-1 ${surfaceStyles.partyBadgeClass}`}>
                 <MaterialIcon name="groups" size={12} />
                 <span>
                   {party.size}/{party.max || party.size}

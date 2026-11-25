@@ -180,7 +180,7 @@ export default function MessageEmbedCard({ url }) {
     return (
       <div
         onClick={handleOpenExternal}
-        className="flex max-w-[500px] mt-2 rounded-onicord-inner overflow-hidden bg-onicord-mantle border border-emerald-500/25 hover:border-emerald-500/60 justify-between items-center p-3 cursor-pointer transition-all duration-200 group/spotify text-left gap-3 select-none"
+        className="flex max-w-[500px] mt-2 rounded-onicord-inner overflow-hidden bg-onicord-mantle border border-emerald-500/25 hover:border-emerald-500/60 justify-between items-center p-3 cursor-pointer transition-all duration-normal group/spotify text-left gap-3 select-none"
       >
         {ogData.image && (
           <img
@@ -214,7 +214,7 @@ export default function MessageEmbedCard({ url }) {
     return (
       <div
         onClick={handleOpenExternal}
-        className="flex flex-col max-w-[340px] mt-2 rounded-onicord-inner bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 p-3 gap-1.5 text-left cursor-pointer transition-all duration-200 group/card select-none"
+        className="flex flex-col max-w-[340px] mt-2 rounded-onicord-inner bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 p-3 gap-1.5 text-left cursor-pointer transition-all duration-normal group/card select-none"
       >
         <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted truncate">
           {ogData.siteName || "Pinterest"}
@@ -231,12 +231,12 @@ export default function MessageEmbedCard({ url }) {
         )}
 
         {ogData.image && (
-          <div className="w-full relative bg-black/40 overflow-hidden rounded-xl border border-onicord-border flex items-center justify-center max-h-[420px] mt-1">
+          <div className="w-full relative bg-onicord-scrim overflow-hidden rounded-xl border border-onicord-border flex items-center justify-center max-h-[420px] mt-1">
             <img
               src={ogData.image}
               alt=""
               referrerPolicy="no-referrer"
-              className="w-full max-h-[420px] object-contain group-hover/card:scale-[1.02] transition-transform duration-300 rounded-xl"
+              className="w-full max-h-[420px] object-contain group-hover/card:scale-[1.02] transition-transform duration-relaxed rounded-xl"
               onError={(e) => {
                 e.target.style.display = "none";
               }}
@@ -303,7 +303,7 @@ export default function MessageEmbedCard({ url }) {
         )}
 
         <div
-          className={`w-full relative bg-black/40 ${
+          className={`w-full relative bg-onicord-scrim ${
             isVertical ? "aspect-[9/16]" : isGifOrTenor && !ogData.video ? "aspect-auto max-h-[360px]" : "aspect-video"
           } overflow-hidden rounded-xl mt-1 border border-onicord-border flex items-center justify-center`}
         >
@@ -324,18 +324,18 @@ export default function MessageEmbedCard({ url }) {
                   e.stopPropagation();
                   setIsPlaying(true);
                 }}
-                className="w-full h-full relative cursor-pointer group/yt overflow-hidden flex items-center justify-center bg-black/40"
+                className="w-full h-full relative cursor-pointer group/yt overflow-hidden flex items-center justify-center bg-onicord-scrim"
               >
                 {ytThumb && (
                   <img
                     src={ytThumb}
                     alt=""
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover/yt:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover/yt:scale-105 transition-transform duration-relaxed"
                   />
                 )}
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover/yt:bg-black/20 transition-colors">
-                  <div className="w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center group-hover/yt:scale-110 transition-transform">
+                <div className="absolute inset-0 bg-onicord-scrim-soft flex items-center justify-center group-hover/yt:bg-onicord-scrim-soft transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-red-600/90 text-onicord-on-scrim flex items-center justify-center group-hover/yt:scale-110 transition-transform">
                     <MaterialIcon name="play_arrow" size={28} />
                   </div>
                 </div>
@@ -352,7 +352,7 @@ export default function MessageEmbedCard({ url }) {
                         }),
                       );
                     }}
-                    className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 hover:bg-onicord-accent text-white text-xs font-semibold tracking-wide backdrop-blur-md shadow-lg border border-onicord-tint/10 opacity-0 group-hover/yt:opacity-100 transition-all duration-200"
+                    className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-onicord-scrim-heavy hover:bg-onicord-accent text-onicord-on-scrim hover:text-onicord-on-accent text-xs font-semibold tracking-wide backdrop-blur-onicord-popover shadow-lg border border-onicord-on-scrim/10 opacity-0 group-hover/yt:opacity-100 transition-all duration-normal"
                   >
                     <MaterialIcon name="smart_display" size={14} />
                     <span>Watch Party</span>
@@ -374,17 +374,17 @@ export default function MessageEmbedCard({ url }) {
           ) : ogData.image ? (
             <div
               onClick={handleOpenExternal}
-              className="w-full h-full relative cursor-pointer group/ext overflow-hidden flex items-center justify-center bg-black/40"
+              className="w-full h-full relative cursor-pointer group/ext overflow-hidden flex items-center justify-center bg-onicord-scrim"
             >
               <img
                 src={ogData.image}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-contain group-hover/ext:scale-105 transition-transform duration-300 rounded-xl"
+                className="w-full h-full object-contain group-hover/ext:scale-105 transition-transform duration-relaxed rounded-xl"
               />
               {!isGifOrTenor && (
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/ext:opacity-100 flex items-center justify-center transition-opacity">
-                  <div className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center group-hover/ext:scale-110 transition-transform">
+                <div className="absolute inset-0 bg-onicord-scrim-soft opacity-0 group-hover/ext:opacity-100 flex items-center justify-center transition-opacity">
+                  <div className="w-10 h-10 rounded-full bg-onicord-scrim text-onicord-on-scrim flex items-center justify-center group-hover/ext:scale-110 transition-transform">
                     <MaterialIcon name="open_in_new" size={22} />
                   </div>
                 </div>
@@ -400,7 +400,7 @@ export default function MessageEmbedCard({ url }) {
   return (
     <div
       onClick={handleOpenExternal}
-      className="flex max-w-[550px] mt-2 rounded-onicord-inner overflow-hidden bg-onicord-mantle border border-onicord-island justify-between items-stretch cursor-pointer hover:border-onicord-accent/40 transition-all duration-200 group/card text-left"
+      className="flex max-w-[550px] mt-2 rounded-onicord-inner overflow-hidden bg-onicord-mantle border border-onicord-island justify-between items-stretch cursor-pointer hover:border-onicord-accent/40 transition-all duration-normal group/card text-left"
     >
       {/* Embed Text Details */}
       <div className="flex flex-col min-w-0 flex-1 p-3 justify-center">

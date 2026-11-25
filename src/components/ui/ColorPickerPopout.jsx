@@ -488,7 +488,7 @@ export default function ColorPickerPopout({
               zIndex: "calc(var(--z-tooltip, 80) - 1)",
             }}
             className={cn(
-              "w-[236px] p-3 bg-onicord-mantle/95 backdrop-blur-md border border-onicord-island",
+              "w-[236px] p-3 bg-onicord-mantle/95 backdrop-blur-onicord-popover border border-onicord-island",
               "rounded-2xl shadow-2xl onicord-animate-popup-in select-none space-y-3",
               className
             )}
@@ -582,7 +582,7 @@ export default function ColorPickerPopout({
             {/* Controls Row: Preview swatch + HEX input + EyeDropper */}
             <div className="flex items-center gap-2">
               <div
-                className="w-7 h-7 rounded-lg border border-onicord-tint/20 shrink-0"
+                className="w-7 h-7 rounded-lg border border-onicord-border-strong shrink-0"
                 style={{ backgroundColor: currentHex }}
               />
 
@@ -628,7 +628,7 @@ export default function ColorPickerPopout({
             {/* Optional Quick Presets */}
             {normalizedPresets && normalizedPresets.length > 0 && (
               <div className="pt-2 border-t border-onicord-border space-y-1.5">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted">
+                <div className="text-2xs font-bold uppercase tracking-wider text-onicord-muted">
                   {t("colorPicker.presets", "Colores rápidos")}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -645,10 +645,10 @@ export default function ColorPickerPopout({
                         aria-label={preset.name || preset.hex.toUpperCase()}
                         aria-pressed={isSelected}
                         className={cn(
-                          "w-5 h-5 rounded-full flex items-center justify-center cursor-pointer transition-transform border duration-100 hover:scale-110 active:scale-95",
+                          "w-5 h-5 rounded-full flex items-center justify-center cursor-pointer transition-transform border duration-instant hover:scale-110 active:scale-95",
                           isSelected
                             ? "border-onicord-text ring-2 ring-onicord-tint/20 scale-110"
-                            : "border-onicord-tint/20 hover:border-onicord-tint/40"
+                            : "border-onicord-border-strong hover:border-onicord-tint/40"
                         )}
                         style={{ backgroundColor: preset.hex }}
                       >

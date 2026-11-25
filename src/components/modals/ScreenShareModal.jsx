@@ -6,6 +6,7 @@ import { soundEngine } from "../../lib/soundEngine";
 import { useAnimatedMount } from "../../hooks/useAnimatedMount";
 import { cn } from "../../lib/cn";
 import Select from "../ui/Select";
+import SegmentedControl from "../ui/SegmentedControl";
 import { acquireWebcamStream } from "../../lib/voice/webcamCompositor";
 
 const WEBCAM_CORNER_OPTIONS = [
@@ -388,40 +389,18 @@ export default function ScreenShareModal({
 
         {/* Stream source category tabs and quality selector */}
         <div className="flex flex-wrap items-center justify-between px-6 py-2.5 shrink-0 gap-2.5">
-          <div className="flex items-center gap-2">
-            {[
-              { id: "screen", label: t("screenShare.screens", "Pantallas"), count: screens.length },
-              { id: "window", label: t("screenShare.windows", "Ventanas"), count: windows.length },
-              { id: "camera", label: t("screenShare.cameraTab", "Cámara"), count: cameraDevices.length },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => handleTabChange(tab.id)}
-                  className={cn(
-                    "h-8 px-3 text-xs font-semibold rounded-lg border transition-all flex items-center gap-2 cursor-pointer select-none box-border",
-                    isActive
-                      ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold shadow-sm"
-                      : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-onicord-text"
-                  )}
-                >
-                  <span>{tab.label}</span>
-                  <span
-                    className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none",
-                      isActive
-                        ? "bg-black/20 text-onicord-dark"
-                        : "bg-onicord-tint/5 text-onicord-muted"
-                    )}
-                  >
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <SegmentedControl
+            role="tablist"
+            fullWidth={false}
+            size="sm"
+            value={activeTab}
+            onChange={handleTabChange}
+            options={[
+              { value: "screen", label: t("screenShare.screens", "Pantallas"), badge: screens.length },
+              { value: "window", label: t("screenShare.windows", "Ventanas"), badge: windows.length },
+              { value: "camera", label: t("screenShare.cameraTab", "Cámara"), badge: cameraDevices.length },
+            ]}
+          />
 
           {/* CONTROLS RIGHT: WEBCAM OVERLAY + AUDIO TOGGLE + GAMING MODE TOGGLE + QUALITY SELECTOR */}
           <div className="flex items-center gap-2">
@@ -443,7 +422,7 @@ export default function ScreenShareModal({
                     ? "opacity-40 cursor-not-allowed bg-onicord-base/30 text-onicord-muted border-onicord-border"
                     : includeWebcam
                       ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold shadow-sm"
-                      : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-onicord-text"
+                      : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-hover hover:text-onicord-text"
                 )}
               >
                 <MaterialIcon name={includeWebcam ? "videocam" : "videocam_off"} size={16} />
@@ -463,7 +442,7 @@ export default function ScreenShareModal({
                 "h-8 px-2.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer select-none box-border",
                 includeAudio
                   ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold shadow-sm"
-                  : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-white"
+                  : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-hover hover:text-onicord-text"
               )}
             >
               <MaterialIcon name={includeAudio ? "volume_up" : "volume_off"} size={16} />
@@ -482,7 +461,7 @@ export default function ScreenShareModal({
                 "h-8 px-3 text-xs font-semibold rounded-lg border transition-all flex items-center cursor-pointer select-none box-border",
                 isGameMode
                   ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold shadow-sm"
-                  : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-tint/10 hover:text-white"
+                  : "bg-onicord-base/40 text-onicord-muted border-onicord-border hover:bg-onicord-hover hover:text-onicord-text"
               )}
             >
               <span>{t("screenShare.gameMode", "Modo Juegos")}</span>
@@ -527,35 +506,31 @@ export default function ScreenShareModal({
 
             <div className="flex items-center gap-2 shrink-0">
               {activeTab !== "camera" && (
-                <div className="flex items-center gap-1 bg-onicord-surface/80 p-1 rounded-lg border border-onicord-border">
-                  <span className="text-[11px] font-medium text-onicord-muted px-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-onicord-muted">
                     {t("screenShare.webcamPosition", "Posición")}:
                   </span>
-                  {WEBCAM_CORNER_OPTIONS.map((opt) => {
-                    const isActivePos = webcamPosition === opt.id;
-                    const labelMap = {
-                      "top-left": t("screenShare.posTopLeft", opt.defaultLabel),
-                      "top-right": t("screenShare.posTopRight", opt.defaultLabel),
-                      "bottom-left": t("screenShare.posBottomLeft", opt.defaultLabel),
-                      "bottom-right": t("screenShare.posBottomRight", opt.defaultLabel),
-                    };
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => handleSelectWebcamPosition(opt.id)}
-                        title={labelMap[opt.id]}
-                        className={cn(
-                          "w-6 h-6 rounded-md flex items-center justify-center transition-colors cursor-pointer",
-                          isActivePos
-                            ? "bg-onicord-accent text-onicord-on-accent shadow-sm"
-                            : "text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/10"
-                        )}
-                      >
-                        <MaterialIcon name={opt.icon} size={14} />
-                      </button>
-                    );
-                  })}
+                  <SegmentedControl
+                    fullWidth={false}
+                    size="xs"
+                    value={webcamPosition}
+                    onChange={handleSelectWebcamPosition}
+                    ariaLabel={t("screenShare.webcamPosition", "Posición")}
+                    options={WEBCAM_CORNER_OPTIONS.map((opt) => {
+                      const labelMap = {
+                        "top-left": t("screenShare.posTopLeft", opt.defaultLabel),
+                        "top-right": t("screenShare.posTopRight", opt.defaultLabel),
+                        "bottom-left": t("screenShare.posBottomLeft", opt.defaultLabel),
+                        "bottom-right": t("screenShare.posBottomRight", opt.defaultLabel),
+                      };
+                      return {
+                        value: opt.id,
+                        icon: opt.icon,
+                        title: labelMap[opt.id],
+                        ariaLabel: labelMap[opt.id],
+                      };
+                    })}
+                  />
                 </div>
               )}
 
@@ -582,7 +557,7 @@ export default function ScreenShareModal({
           {activeTab === "camera" ? (
             cameraDevices.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-2 text-onicord-muted py-12 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-onicord-tint/5 border border-onicord-tint/10 flex items-center justify-center text-onicord-muted mb-1">
+                <div className="w-12 h-12 rounded-2xl bg-onicord-tint/5 border border-onicord-border-strong flex items-center justify-center text-onicord-muted mb-1">
                   <MaterialIcon name="videocam_off" size={24} />
                 </div>
                 <p className="text-sm font-semibold text-onicord-text">
@@ -618,14 +593,14 @@ export default function ScreenShareModal({
                     )}
                   />
                   {camPreviewLoading && (
-                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-2 text-onicord-muted">
-                      <div className="w-8 h-8 border-[3px] border-onicord-tint/10 border-t-onicord-accent rounded-full animate-spin" />
+                    <div className="absolute inset-0 bg-onicord-scrim-heavy flex flex-col items-center justify-center gap-2 text-onicord-on-scrim/70">
+                      <div className="w-8 h-8 border-[3px] border-onicord-border-strong border-t-onicord-accent rounded-full animate-spin" />
                       <span className="text-xs font-medium">
                         {t("screenShare.loadingCamera", "Iniciando vista previa...")}
                       </span>
                     </div>
                   )}
-                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/75 border border-onicord-tint/10 text-[11px] font-semibold text-white flex items-center gap-1.5 backdrop-blur-md">
+                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-onicord-scrim-heavy border border-onicord-on-scrim/10 text-xs font-semibold text-onicord-on-scrim flex items-center gap-1.5 backdrop-blur-onicord-popover">
                     <span className="w-2 h-2 rounded-full bg-onicord-accent animate-pulse" />
                     <span className="truncate max-w-[260px]">{selectedCameraLabel}</span>
                   </div>
@@ -634,7 +609,7 @@ export default function ScreenShareModal({
             )
           ) : loading ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 text-onicord-muted py-12">
-              <div className="w-9 h-9 border-[3px] border-onicord-tint/10 border-t-onicord-accent rounded-full animate-spin" />
+              <div className="w-9 h-9 border-[3px] border-onicord-border-strong border-t-onicord-accent rounded-full animate-spin" />
               <p className="text-xs font-medium">
                 {t("screenShare.loadingSources", "Buscando pantallas y ventanas...")}
               </p>
@@ -674,19 +649,19 @@ export default function ScreenShareModal({
                       onSelectSource(src, resolution, buildStreamOptions("screen"));
                     }}
                     className={cn(
-                      "group relative flex flex-col rounded-xl overflow-hidden border transition-all duration-150 cursor-pointer select-none",
+                      "group relative flex flex-col rounded-xl overflow-hidden border transition-all duration-fast cursor-pointer select-none",
                       isSelected
-                        ? "bg-onicord-mantle border-onicord-accent shadow-[0_0_16px_rgba(var(--onicord-accent),0.25)] ring-2 ring-onicord-accent/80"
+                        ? "bg-onicord-mantle border-onicord-accent shadow-onicord-glow-accent ring-2 ring-onicord-accent/80"
                         : "bg-onicord-mantle/70 border-onicord-border hover:border-onicord-accent/40 hover:bg-onicord-mantle"
                     )}
                   >
                     {/* Preview Thumbnail */}
-                    <div className="aspect-video w-full bg-black/90 relative flex items-center justify-center overflow-hidden border-b border-black/30">
+                    <div className="aspect-video w-full bg-onicord-scrim-heavy relative flex items-center justify-center overflow-hidden border-b border-onicord-border">
                       {src.thumbnail ? (
                         <img
                           src={src.thumbnail}
                           alt={src.name}
-                          className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-200"
+                          className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-normal"
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-lg bg-onicord-tint/5 flex items-center justify-center text-onicord-muted/30 text-xs">
@@ -728,7 +703,7 @@ export default function ScreenShareModal({
                         <img
                           src={src.appIcon}
                           alt=""
-                          className="absolute bottom-2 left-2 w-5 h-5 rounded bg-black/60 p-0.5 backdrop-blur-sm shadow"
+                          className="absolute bottom-2 left-2 w-5 h-5 rounded bg-onicord-scrim p-0.5 backdrop-blur-sm shadow"
                         />
                       )}
                     </div>
@@ -776,7 +751,7 @@ export default function ScreenShareModal({
                 <span className="w-1.5 h-1.5 rounded-full bg-onicord-accent shrink-0" />
                 <span className="truncate text-onicord-text font-medium">{selectedSource.name}</span>
                 {includeWebcam && cameraDevices.length > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-onicord-accent/15 text-onicord-accent border border-onicord-accent/30 font-semibold shrink-0">
+                  <span className="text-2xs px-1.5 py-0.5 rounded bg-onicord-accent/15 text-onicord-accent border border-onicord-accent/30 font-semibold shrink-0">
                     + {t("screenShare.webcamOverlay", "Webcam")}
                   </span>
                 )}

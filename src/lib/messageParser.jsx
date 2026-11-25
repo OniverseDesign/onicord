@@ -39,7 +39,7 @@ export function highlightText(text, query) {
 
   return parts.map((part, i) =>
     matchSet.has(part.toLowerCase()) ? (
-      <mark key={i} className="bg-amber-500/35 text-white rounded px-0.5 font-bold">
+      <mark key={i} className="bg-onicord-warning/35 text-white rounded px-0.5 font-bold">
         {part}
       </mark>
     ) : (
@@ -374,7 +374,7 @@ export function parseInlineStyles(
         return (
           <code
             key={i}
-            className="bg-onicord-mantle/80 border border-onicord-island rounded px-1.5 py-0.5 font-mono text-[13px] text-onicord-accent font-semibold mx-0.5 select-all"
+            className="bg-onicord-mantle/80 border border-onicord-island rounded px-1.5 py-0.5 font-mono text-sm text-onicord-accent font-semibold mx-0.5 select-all"
           >
             {token.content}
           </code>
@@ -463,7 +463,7 @@ export function parseInlineStyles(
         return (
           <span
             key={i}
-            className="onicord-mention text-[15px] select-all font-semibold"
+            className="onicord-mention text-base select-all font-semibold"
             style={token.color ? { color: token.color } : {}}
           >
             @{token.content}
@@ -473,7 +473,7 @@ export function parseInlineStyles(
         return (
           <span
             key={i}
-            className="onicord-mention text-[15px] select-all font-semibold"
+            className="onicord-mention text-base select-all font-semibold"
           >
             @{token.content}
           </span>

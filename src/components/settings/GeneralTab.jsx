@@ -4,6 +4,7 @@ import { DEFAULT_GENERAL } from "../../lib/generalSettings";
 import { soundEngine, SFX_LEVEL } from "../../lib/soundEngine";
 import { SUPPORTED_LANGUAGES } from "../../i18n/languages";
 import Select from "../ui/Select";
+import SegmentedControl from "../ui/SegmentedControl";
 import MaterialIcon from "../icons/MaterialIcon";
 import { useStreamerMode } from "../../context/StreamerModeContext";
 
@@ -31,6 +32,9 @@ export default function GeneralTab({ general, setGeneral }) {
   const [webCacheClearedMsg, setWebCacheClearedMsg] = useState(false);
   const [chatLineHeight, setChatLineHeight] = useState("1.5");
   const [defaultDownloadDir, setDefaultDownloadDir] = useState("");
+  const [suggestionsHiddenCleared, setSuggestionsHiddenCleared] = useState(false);
+  const [suggestionsReindexing, setSuggestionsReindexing] = useState(false);
+  const [suggestionsReindexed, setSuggestionsReindexed] = useState(false);
 
   const {
     isStreamerMode,
@@ -318,7 +322,7 @@ export default function GeneralTab({ general, setGeneral }) {
               </div>
             </div>
             <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
-              <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[32px]">
+              <span className="text-xs text-onicord-muted font-mono font-bold select-none min-w-[32px]">
                 80%
               </span>
               <input
@@ -332,7 +336,7 @@ export default function GeneralTab({ general, setGeneral }) {
                 }
                 className="onicord-range-input flex-1"
               />
-              <span className="text-[11px] text-onicord-accent font-mono font-bold select-none min-w-[36px] text-right">
+              <span className="text-xs text-onicord-accent font-mono font-bold select-none min-w-[36px] text-right">
                 {general.zoomLevel || 100}%
               </span>
             </div>
@@ -351,7 +355,7 @@ export default function GeneralTab({ general, setGeneral }) {
               </div>
             </div>
             <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
-              <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[32px]">
+              <span className="text-xs text-onicord-muted font-mono font-bold select-none min-w-[32px]">
                 1.2x
               </span>
               <input
@@ -363,7 +367,7 @@ export default function GeneralTab({ general, setGeneral }) {
                 onChange={handleLineHeightChange}
                 className="onicord-range-input flex-1"
               />
-              <span className="text-[11px] text-onicord-accent font-mono font-bold select-none min-w-[36px] text-right">
+              <span className="text-xs text-onicord-accent font-mono font-bold select-none min-w-[36px] text-right">
                 {chatLineHeight}x
               </span>
             </div>
@@ -408,8 +412,50 @@ export default function GeneralTab({ general, setGeneral }) {
                 {t("settings.general.enableQuickSuggestions", "Sugerencias de mensajes rápidos")}
               </p>
               <p className="onicord-settings-row-desc">
-                {t("settings.general.enableQuickSuggestionsDesc", "Muestra comandos rápidos e historial sugerido.")}
+                {t("settings.general.enableQuickSuggestionsDesc", "Muestra accesos rápidos para reescribir tus frases más frecuentes sobre el input de chat.")}
               </p>
+              {(general.enableQuickSuggestions ?? true) && window.electronAPI?.clearDismissedQuickSuggestions && (
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await window.electronAPI?.clearDismissedQuickSuggestions?.();
+                        setSuggestionsHiddenCleared(true);
+                        setTimeout(() => setSuggestionsHiddenCleared(false), 2000);
+                      } catch {}
+                    }}
+                    className="text-xs px-2.5 py-1 rounded-onicord-inner bg-onicord-mantle border border-onicord-island text-onicord-subtext hover:text-onicord-text hover:border-onicord-accent/50 transition-colors cursor-pointer"
+                  >
+                    {suggestionsHiddenCleared
+                      ? t("settings.general.hiddenSuggestionsReset", "Ocultas restablecidas")
+                      : t("settings.general.resetHiddenSuggestions", "Restablecer sugerencias ocultas")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={suggestionsReindexing}
+                    onClick={async () => {
+                      if (suggestionsReindexing) return;
+                      setSuggestionsReindexing(true);
+                      try {
+                        await window.electronAPI?.reindexQuickSuggestions?.();
+                        setSuggestionsReindexed(true);
+                        setTimeout(() => setSuggestionsReindexed(false), 2500);
+                      } catch {
+                      } finally {
+                        setSuggestionsReindexing(false);
+                      }
+                    }}
+                    className="text-xs px-2.5 py-1 rounded-onicord-inner bg-onicord-mantle border border-onicord-island text-onicord-subtext hover:text-onicord-text hover:border-onicord-accent/50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                  >
+                    {suggestionsReindexing
+                      ? t("settings.general.reindexingSuggestions", "Indexando...")
+                      : suggestionsReindexed
+                        ? t("settings.general.suggestionsReindexed", "Historial indexado")
+                        : t("settings.general.reindexSuggestions", "Reindexar historial")}
+                  </button>
+                </div>
+              )}
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
               <input
@@ -526,29 +572,16 @@ export default function GeneralTab({ general, setGeneral }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-1.5 p-1 bg-onicord-base/40 rounded-xl border border-onicord-border">
-              {soundLevels.map((lvl) => {
-                const isActive = lvl.level === sfxLevel;
-                return (
-                  <button
-                    key={lvl.level}
-                    type="button"
-                    onClick={() => handleSfxLevelChange(lvl.level)}
-                    className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
-                      isActive
-                        ? "bg-onicord-accent/15 border-onicord-accent/40 text-onicord-accent font-semibold text-xs shadow-sm"
-                        : "border-transparent text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 font-medium text-xs"
-                    }`}
-                  >
-                    <span className="truncate block">{lvl.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <SegmentedControl
+              options={soundLevels.map((lvl) => ({ value: lvl.level, label: lvl.label }))}
+              value={sfxLevel}
+              onChange={handleSfxLevelChange}
+              ariaLabel={t("settings.sfx.levelTitle", "Nivel de Efectos de Sonido")}
+            />
           </div>
 
           {/* Sound pack select row */}
-          <div className={`onicord-settings-input-row transition-opacity duration-200 ${sfxLevel === 0 ? "opacity-40 pointer-events-none" : ""}`}>
+          <div className={`onicord-settings-input-row transition-opacity duration-normal ${sfxLevel === 0 ? "opacity-40 pointer-events-none" : ""}`}>
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.sfx.pack", "Paquete de Sonidos")}
@@ -581,7 +614,7 @@ export default function GeneralTab({ general, setGeneral }) {
           </div>
 
           {/* Sound effects volume slider row */}
-          <div className={`onicord-settings-slider-row transition-opacity duration-200 ${sfxLevel === 0 ? "opacity-40 pointer-events-none" : ""}`}>
+          <div className={`onicord-settings-slider-row transition-opacity duration-normal ${sfxLevel === 0 ? "opacity-40 pointer-events-none" : ""}`}>
             <div className="flex justify-between items-center">
               <div className="min-w-0 pr-2">
                 <p className="onicord-settings-row-title">
@@ -593,7 +626,7 @@ export default function GeneralTab({ general, setGeneral }) {
               </div>
             </div>
             <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
-              <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[32px]">
+              <span className="text-xs text-onicord-muted font-mono font-bold select-none min-w-[32px]">
                 0%
               </span>
               <input
@@ -606,7 +639,7 @@ export default function GeneralTab({ general, setGeneral }) {
                 onChange={handleSfxVolumeChange}
                 className="onicord-range-input flex-1"
               />
-              <span className="text-[11px] text-onicord-accent font-mono font-bold select-none min-w-[36px] text-right">
+              <span className="text-xs text-onicord-accent font-mono font-bold select-none min-w-[36px] text-right">
                 {sfxVolume}%
               </span>
             </div>
@@ -658,7 +691,7 @@ export default function GeneralTab({ general, setGeneral }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
-                  <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[38px]">
+                  <span className="text-xs text-onicord-muted font-mono font-bold select-none min-w-[38px]">
                     {AUTO_DOWNLOAD_SIZE_STEPS[0].label}
                   </span>
                   <input
@@ -670,9 +703,9 @@ export default function GeneralTab({ general, setGeneral }) {
                     onChange={handleDownloadSizeIndexChange}
                     className="onicord-range-input flex-1"
                   />
-                  <span className={`text-[11px] font-mono font-bold select-none px-2 py-0.5 rounded-md min-w-[68px] text-center ${
+                  <span className={`text-xs font-mono font-bold select-none px-2 py-0.5 rounded-md min-w-[68px] text-center ${
                     AUTO_DOWNLOAD_SIZE_STEPS[currentDownloadSizeIndex]?.value === -1
-                      ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                      ? "bg-onicord-warning/15 text-onicord-warning border border-onicord-warning/30"
                       : "bg-onicord-accent/15 text-onicord-accent border border-onicord-accent/30"
                   }`}>
                     {currentDownloadSizeLabel}
@@ -695,7 +728,7 @@ export default function GeneralTab({ general, setGeneral }) {
                     <button
                       type="button"
                       onClick={handleResetDirectory}
-                      className="text-[11px] text-onicord-accent hover:underline hover:text-onicord-accent-hover transition-colors shrink-0 ml-2 cursor-pointer"
+                      className="text-xs text-onicord-accent hover:underline hover:text-onicord-accent-hover transition-colors shrink-0 ml-2 cursor-pointer"
                     >
                       {t("settings.general.resetDownloadDir", "Restablecer por defecto")}
                     </button>
@@ -711,7 +744,7 @@ export default function GeneralTab({ general, setGeneral }) {
                   <button
                     type="button"
                     onClick={handleSelectDirectory}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-onicord-base/80 hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 hover:border-onicord-tint/20 transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                    className="px-3 py-2 rounded-xl text-xs font-semibold bg-onicord-base/80 hover:bg-onicord-hover text-onicord-text border border-onicord-border-strong hover:border-onicord-border-strong transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                   >
                     <MaterialIcon name="folder_open" size={16} />
                     <span>{t("settings.general.chooseFolder", "Cambiar")}</span>
@@ -726,7 +759,7 @@ export default function GeneralTab({ general, setGeneral }) {
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.general.webCacheTitle", "Caché web de Chromium")}{" "}
-                <span className="text-[11px] font-mono text-onicord-accent ml-1">
+                <span className="text-xs font-mono text-onicord-accent ml-1">
                   ({formatWebCacheBytes(webCacheBytes)})
                 </span>
               </p>
@@ -741,7 +774,7 @@ export default function GeneralTab({ general, setGeneral }) {
               type="button"
               onClick={handleClearWebCache}
               disabled={clearingWebCache}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-onicord-base/80 hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 hover:border-onicord-tint/20 transition-all cursor-pointer flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-onicord-base/80 hover:bg-onicord-hover text-onicord-text border border-onicord-border-strong hover:border-onicord-border-strong transition-all cursor-pointer flex items-center gap-1.5 shrink-0 disabled:opacity-50"
             >
               <MaterialIcon name={clearingWebCache ? "sync" : webCacheClearedMsg ? "check_circle" : "cleaning_services"} size={15} className={clearingWebCache ? "animate-spin" : ""} />
               <span>
@@ -785,7 +818,7 @@ export default function GeneralTab({ general, setGeneral }) {
             </label>
           </div>
 
-          <div className={`onicord-settings-row transition-opacity duration-200 ${!general.openAtLogin ? "opacity-40" : ""}`}>
+          <div className={`onicord-settings-row transition-opacity duration-normal ${!general.openAtLogin ? "opacity-40" : ""}`}>
             <div className="min-w-0 pr-4">
               <p className="onicord-settings-row-title">
                 {t("settings.general.startMinimized", "Iniciar minimizado")}
@@ -850,28 +883,15 @@ export default function GeneralTab({ general, setGeneral }) {
                       <p className="onicord-settings-row-desc">{currentMeta.desc}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-onicord-base/40 rounded-xl border border-onicord-border">
-                    {closeOptions.map((opt) => {
-                      const isActive = opt.id === currentCloseBehavior;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => {
-                            handleChange("closeBehavior", opt.id);
-                            handleChange("minimizeToTray", opt.id !== "quit");
-                          }}
-                          className={`py-2 px-2 rounded-lg border text-center transition-all cursor-pointer ${
-                            isActive
-                              ? "bg-onicord-accent/15 border-onicord-accent/40 text-onicord-accent font-semibold text-xs shadow-sm"
-                              : "border-transparent text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/5 font-medium text-xs"
-                          }`}
-                        >
-                          <span className="truncate block">{opt.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <SegmentedControl
+                    options={closeOptions.map((opt) => ({ value: opt.id, label: opt.label }))}
+                    value={currentCloseBehavior}
+                    onChange={(val) => {
+                      handleChange("closeBehavior", val);
+                      handleChange("minimizeToTray", val !== "quit");
+                    }}
+                    ariaLabel={t("settings.general.closeBehaviorTitle", "Al cerrar la ventana")}
+                  />
                 </>
               );
             })()}
@@ -908,7 +928,7 @@ export default function GeneralTab({ general, setGeneral }) {
               <p className="onicord-settings-row-desc">
                 {t("settings.general.disableHardwareAccelDesc", "Desactiva la renderización mediante GPU.")}
               </p>
-              <p className="text-[10px] text-onicord-danger font-medium mt-1">
+              <p className="text-2xs text-onicord-danger font-medium mt-1">
                 {t("settings.general.restartWarning", "Requiere reiniciar la aplicación.")}
               </p>
             </div>
@@ -939,7 +959,7 @@ export default function GeneralTab({ general, setGeneral }) {
                   {t("settings.general.streamerModeSubtitle", "Oculta datos sensibles y enlaces de invitación durante tus transmisiones.")}
                 </p>
                 {isStreamerMode && (
-                  <p className="text-[10px] text-purple-400 font-semibold mt-1">
+                  <p className="text-2xs text-onicord-accent font-semibold mt-1">
                     {detectedApp
                       ? t("settings.general.streamerModeStreaming", { app: detectedApp, defaultValue: `Transmitiendo (${detectedApp})` })
                       : t("settings.general.streamerModeActive", "Modo Streamer activo")}

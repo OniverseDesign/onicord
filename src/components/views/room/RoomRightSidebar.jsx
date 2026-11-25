@@ -34,7 +34,7 @@ export default function RoomRightSidebar({
     >
       {/* Draggable Rich Presence island */}
       <div
-        className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
+        className={`w-full overflow-hidden transition-all duration-relaxed ease-in-out shrink-0 flex flex-col ${
           hasActiveGame
             ? "max-h-48 opacity-100 scale-100 pointer-events-auto"
             : "max-h-0 opacity-0 scale-95 pointer-events-none -mb-[calc(var(--gap)+3px)]"

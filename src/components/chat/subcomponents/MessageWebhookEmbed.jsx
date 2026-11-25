@@ -30,7 +30,7 @@ function SingleWebhookEmbed({ embed }) {
 
   return (
     <div
-      className="flex flex-col max-w-[520px] mt-2 rounded-onicord-inner overflow-hidden bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 p-3.5 gap-2 text-left transition-all duration-200 select-none shadow-none"
+      className="flex flex-col max-w-[520px] mt-2 rounded-onicord-inner overflow-hidden bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 p-3.5 gap-2 text-left transition-all duration-normal select-none shadow-none"
       style={
         accentColor
           ? { borderLeftWidth: "3px", borderLeftColor: accentColor }
@@ -38,7 +38,7 @@ function SingleWebhookEmbed({ embed }) {
       }
     >
       {/* 1. Header: Author / Site Label */}
-      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-onicord-muted truncate">
+      <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-onicord-muted truncate">
         {author?.icon_url ? (
           <img
             src={author.icon_url}
@@ -68,7 +68,7 @@ function SingleWebhookEmbed({ embed }) {
       <div className="flex justify-between items-start gap-3">
         <div className="flex flex-col min-w-0 flex-1 gap-1">
           {title && (
-            <h4 className="text-[14px] font-bold text-onicord-text leading-snug line-clamp-2">
+            <h4 className="text-sm font-bold text-onicord-text leading-snug line-clamp-2">
               {embed.url ? (
                 <a
                   href={embed.url}
@@ -86,7 +86,7 @@ function SingleWebhookEmbed({ embed }) {
           )}
 
           {description && (
-            <p className="text-[12px] text-onicord-subtext leading-relaxed whitespace-pre-wrap break-words -mt-0.5">
+            <p className="text-xs text-onicord-subtext leading-relaxed whitespace-pre-wrap break-words -mt-0.5">
               {description}
             </p>
           )}
@@ -121,10 +121,10 @@ function SingleWebhookEmbed({ embed }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-onicord-island/60">
           {fields.map((field, idx) => (
             <div key={idx} className={field.inline ? "min-w-0" : "col-span-full min-w-0"}>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted block truncate">
+              <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted block truncate">
                 {field.name}
               </span>
-              <p className="text-[12px] text-onicord-text leading-relaxed whitespace-pre-wrap break-words mt-0.5">
+              <p className="text-xs text-onicord-text leading-relaxed whitespace-pre-wrap break-words mt-0.5">
                 {field.value}
               </p>
             </div>

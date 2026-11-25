@@ -772,7 +772,7 @@ export default function HomeView({
 
       <div className="flex-1 min-w-0 h-full relative flex-shrink overflow-hidden">
         <div
-          className={`w-full h-full transition-opacity duration-200 ease-out ${
+          className={`w-full h-full transition-opacity duration-normal ease-out ${
             isServerActive
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none absolute inset-0 invisible"
@@ -796,7 +796,7 @@ export default function HomeView({
           />
         </div>
         <div
-          className={`w-full h-full pl-[var(--gap)] box-border overflow-hidden transition-opacity duration-200 ease-out ${
+          className={`w-full h-full pl-[var(--gap)] box-border overflow-hidden transition-opacity duration-normal ease-out ${
             isHomeActive
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none absolute inset-0 invisible"
@@ -820,7 +820,7 @@ export default function HomeView({
 
         {/* Native Discover View */}
         <div
-          className={`w-full h-full pl-[var(--gap)] box-border overflow-hidden transition-opacity duration-200 ease-out ${
+          className={`w-full h-full pl-[var(--gap)] box-border overflow-hidden transition-opacity duration-normal ease-out ${
             isDiscoverActive
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none absolute inset-0 invisible"

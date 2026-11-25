@@ -399,7 +399,7 @@ export default function DiscoverView({
                     className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate shrink-0 flex items-center gap-1.5 ${
                       !selectedTag
                         ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs"
-                        : "bg-onicord-surface/80 border-onicord-tint/10 text-onicord-muted hover:text-onicord-text hover:border-onicord-tint/20 hover:bg-onicord-surface"
+                        : "bg-onicord-surface/80 border-onicord-border-strong text-onicord-muted hover:text-onicord-text hover:border-onicord-border-strong hover:bg-onicord-surface"
                     }`}
                   >
                     <MaterialIcon name="apps" size={14} />
@@ -421,7 +421,7 @@ export default function DiscoverView({
                         className={`text-xs px-3 py-1 rounded-full border transition-all cursor-pointer truncate max-w-[200px] shrink-0 flex items-center gap-1 ${
                           isActive
                             ? "bg-onicord-accent/20 border-onicord-accent text-onicord-accent font-bold shadow-xs scale-[1.02]"
-                            : "bg-onicord-surface/80 border-onicord-tint/10 text-onicord-text hover:text-onicord-accent hover:border-onicord-accent/50 hover:bg-onicord-surface"
+                            : "bg-onicord-surface/80 border-onicord-border-strong text-onicord-text hover:text-onicord-accent hover:border-onicord-accent/50 hover:bg-onicord-surface"
                         }`}
                       >
                         <span className={`font-semibold ${isActive ? "text-onicord-accent" : "text-onicord-muted"}`}>
@@ -493,7 +493,7 @@ export default function DiscoverView({
           <div className="w-full max-w-md rounded-onicord-outer-p4 bg-onicord-surface border border-onicord-island shadow-2xl overflow-hidden onicord-animate-modal-in">
             <div className="p-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-full bg-onicord-warning/15 text-onicord-warning border border-onicord-warning/30 flex items-center justify-center shrink-0">
                   <MaterialIcon name="waving_hand" size={20} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -551,7 +551,7 @@ export default function DiscoverView({
                     type="button"
                     onClick={handleSendKnock}
                     disabled={busyServerCode !== null}
-                    className="px-4 h-9 rounded-onicord-button font-bold text-xs bg-amber-500 hover:bg-amber-600 text-black transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    className="px-4 h-9 rounded-onicord-button font-bold text-xs bg-onicord-warning hover:bg-onicord-warning text-black transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                   >
                     {busyServerCode ? (
                       <MaterialIcon name="sync" className="animate-spin text-sm" />

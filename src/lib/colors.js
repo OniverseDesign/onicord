@@ -192,10 +192,10 @@ const SEMANTIC_VAR_MAP = {
   mauve: ["--onicord-mauve", "--color-mauve-rgb"],
   maroon: ["--onicord-maroon", "--color-maroon-rgb"],
   peach: ["--onicord-peach", "--color-peach-rgb"],
-  yellow: ["--onicord-yellow", "--color-yellow-rgb"],
+  yellow: ["--onicord-warning", "--onicord-yellow", "--color-yellow-rgb"],
   teal: ["--onicord-teal", "--color-teal-rgb"],
   sky: ["--onicord-sky", "--color-sky-rgb"],
-  blue: ["--onicord-blue", "--color-blue-rgb"],
+  blue: ["--onicord-info", "--onicord-blue", "--color-blue-rgb"],
 };
 
 /**
@@ -375,8 +375,16 @@ export function applyDynamicTheme({
   // Apply adaptive interaction & border tokens
   root.style.setProperty("--onicord-tint-rgb", isLight ? "15 23 42" : "255 255 255");
   root.style.setProperty(
+    "--onicord-border-subtle",
+    isLight ? "rgb(15 23 42 / 0.05)" : "rgb(255 255 255 / 0.04)"
+  );
+  root.style.setProperty(
     "--onicord-border",
     isLight ? "rgb(15 23 42 / 0.09)" : "rgb(255 255 255 / 0.06)"
+  );
+  root.style.setProperty(
+    "--onicord-border-strong",
+    isLight ? "rgb(15 23 42 / 0.18)" : "rgb(255 255 255 / 0.14)"
   );
   root.style.setProperty(
     "--onicord-overlayer-bg",
@@ -404,6 +412,12 @@ export function applyDynamicTheme({
   const dangerRgb = parseRgb(activePalette.red);
   root.style.setProperty("--onicord-on-danger", getContrastTextColor(dangerRgb.r, dangerRgb.g, dangerRgb.b));
 
+  const warningRgb = parseRgb(activePalette.yellow);
+  root.style.setProperty("--onicord-on-warning", getContrastTextColor(warningRgb.r, warningRgb.g, warningRgb.b));
+
+  const infoRgb = parseRgb(activePalette.blue);
+  root.style.setProperty("--onicord-on-info", getContrastTextColor(infoRgb.r, infoRgb.g, infoRgb.b));
+
   let accentRawRgb = activePalette.lavender;
   if (accentKeyOrHex.startsWith("#")) {
     const { r, g, b } = parseRgb(accentKeyOrHex);
@@ -414,12 +428,24 @@ export function applyDynamicTheme({
 
   // Set active accent color variable & contrast-safe foreground
   root.style.setProperty("--onicord-lavender", accentRawRgb);
+  root.style.setProperty("--onicord-accent-rgb", accentRawRgb);
   root.style.setProperty("--onicord-accent", `rgb(${accentRawRgb})`);
 
   // Extract accent hue & contrast text color
   const { r, g, b } = parseRgb(accentRawRgb);
   root.style.setProperty("--onicord-on-accent", getContrastTextColor(r, g, b));
   const { h: accentHue } = rgbToHsl(r, g, b);
+
+  // Apply saturated vivid indicator tokens per mode + dynamic vivid accent
+  root.style.setProperty("--onicord-success-vivid", isLight ? "48 168 58" : "107 224 97");
+  root.style.setProperty("--onicord-warning-vivid", isLight ? "224 148 24" : "242 197 95");
+  root.style.setProperty("--onicord-danger-vivid", isLight ? "219 46 86" : "238 88 131");
+  root.style.setProperty("--onicord-info-vivid", isLight ? "46 118 235" : "95 153 242");
+  root.style.setProperty("--onicord-offline-vivid", isLight ? "148 163 184" : "134 140 166");
+  root.style.setProperty(
+    "--onicord-accent-vivid",
+    hslToRawRgb(accentHue, 76, isLight ? 52 : 68)
+  );
 
   // Saturation factor: 50% slider value = 1.0 multiplier (default subtle tint)
   const satFactor = Math.max(0, Number(saturationPercentage)) / 50;

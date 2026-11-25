@@ -56,6 +56,28 @@ function registerSystemDiagHandlers() {
     }
   });
 
+  ipcMain.handle("window:setBackgroundMaterial", (_event, material) => {
+    if (!global.mainWindow || global.mainWindow.isDestroyed()) {
+      return { ok: false, supported: false };
+    }
+    if (process.platform !== "win32") {
+      return { ok: false, supported: false };
+    }
+    try {
+      const target = material === "mica" ? "mica" : "none";
+      if (target === "mica") {
+        global.mainWindow.setBackgroundColor("#00000000");
+        global.mainWindow.setBackgroundMaterial("mica");
+      } else {
+        global.mainWindow.setBackgroundMaterial("none");
+        global.mainWindow.setBackgroundColor("#1e1e2e");
+      }
+      return { ok: true, supported: true, material: target };
+    } catch (err) {
+      return { ok: false, supported: false, error: err?.message };
+    }
+  });
+
   ipcMain.on("app:set-media-activity", (_event, partialState) => {
     global.setRendererMediaActivity?.(partialState);
   });

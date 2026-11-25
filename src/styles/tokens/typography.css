@@ -3,8 +3,9 @@
   --font-sans: "Roboto", "Noto Color Emoji", "Segoe UI Emoji", "Apple Color Emoji", "Segoe UI Symbol", "Segoe UI Historic", "Cambria Math", "Apple Symbols", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: monospace;
 
-  /* 📏 ESCALA ARMONIZADA ONICORD (8 NIVELES ESTÁNDAR) */
+  /* 📏 ESCALA ARMONIZADA ONICORD (9 NIVELES ESTÁNDAR) */
   --font-size-2xs: 10px;
+  --font-size-micro: 11px;
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-base: 15px;
@@ -15,6 +16,7 @@
 
   /* 📐 INTERLINEADOS CORRESPONDIENTES */
   --line-height-2xs: 14px;
+  --line-height-micro: 15px;
   --line-height-xs: 16px;
   --line-height-sm: 20px;
   --line-height-base: 22px;

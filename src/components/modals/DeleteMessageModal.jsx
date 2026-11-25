@@ -101,10 +101,10 @@ export default function DeleteMessageModal({
 
           {/* Consejo banner */}
           <div className="onicord-modal-warning-box shrink-0 text-left">
-            <strong className="block text-onicord-success text-[11px] uppercase font-bold tracking-wider mb-1">
+            <strong className="block text-onicord-success text-xs uppercase font-bold tracking-wider mb-1">
               {t("common.tip", "Consejo")}:
             </strong>
-            <span className="text-[12.5px] leading-relaxed text-onicord-muted">
+            <span className="text-xs leading-relaxed text-onicord-muted">
               {t(
                 "chat.shiftDeleteTip",
                 "Puedes mantener pulsado Shift al hacer clic en eliminar mensaje para omitir esta confirmación en el futuro."

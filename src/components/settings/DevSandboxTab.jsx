@@ -142,12 +142,12 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
   return (
     <div className="onicord-settings-container">
       {/* Developer sandbox banner */}
-      <div className="onicord-settings-card bg-amber-500/10 border-amber-500/30 flex items-center gap-3.5 p-4">
-        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+      <div className="onicord-settings-card bg-onicord-warning/10 border-onicord-warning/30 flex items-center gap-3.5 p-4">
+        <div className="w-10 h-10 rounded-xl bg-onicord-warning/20 flex items-center justify-center text-onicord-warning shrink-0">
           <MaterialIcon name="developer_mode" size={24} />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-amber-300">
+          <h3 className="text-sm font-bold text-onicord-warning">
             {t("settings.devSandbox.title", "Entorno Sandbox de Desarrollo")}
           </h3>
           <p className="text-xs text-onicord-muted leading-relaxed mt-0.5">
@@ -193,7 +193,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                 flameDays === d
                   ? "bg-onicord-accent text-onicord-on-accent border-onicord-accent font-bold"
-                  : "bg-onicord-base/60 text-onicord-text border-onicord-tint/10 hover:bg-onicord-tint/10"
+                  : "bg-onicord-base/60 text-onicord-text border-onicord-border-strong hover:bg-onicord-hover"
               }`}
             >
               {t("settings.devSandbox.set", "Fijar")} {d}d
@@ -217,13 +217,13 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
           </button>
           <button
             onClick={() => handleTriggerToast("info")}
-            className="px-3 py-2 rounded-xl bg-sky-500/20 text-sky-300 border border-sky-500/30 hover:bg-sky-500/30 text-xs font-bold transition-all cursor-pointer"
+            className="px-3 py-2 rounded-xl bg-onicord-info/20 text-onicord-info border border-onicord-info/30 hover:bg-onicord-info/30 text-xs font-bold transition-all cursor-pointer"
           >
             {t("common.info", "Información")}
           </button>
           <button
             onClick={() => handleTriggerToast("warning")}
-            className="px-3 py-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 text-xs font-bold transition-all cursor-pointer"
+            className="px-3 py-2 rounded-xl bg-onicord-warning/20 text-onicord-warning border border-onicord-warning/30 hover:bg-onicord-warning/30 text-xs font-bold transition-all cursor-pointer"
           >
             {t("common.warning", "Advertencia")}
           </button>
@@ -246,7 +246,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
           <button
             onClick={handleTriggerOSNotif}
             disabled={testingOSNotif}
-            className="px-3.5 py-2 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-2 active:scale-95 disabled:opacity-50"
+            className="px-3.5 py-2 rounded-xl bg-onicord-accent/20 text-onicord-accent border border-onicord-accent/30 hover:bg-onicord-accent/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-2 active:scale-95 disabled:opacity-50"
           >
             <MaterialIcon name="desktop_windows" size={16} />
             <span>
@@ -257,7 +257,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
           </button>
 
           <div className="pt-2 border-t border-onicord-border">
-            <span className="text-[11px] font-semibold text-onicord-muted block mb-2">
+            <span className="text-xs font-semibold text-onicord-muted block mb-2">
               {t("settings.devSandbox.soundTestTitle", "Prueba de Sonidos de Interfaz:")}
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -265,7 +265,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
                 <button
                   key={snd}
                   onClick={() => handlePlaySound(snd)}
-                  className="px-2.5 py-1.5 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-onicord-tint/10 text-xs font-mono text-onicord-muted transition-colors cursor-pointer capitalize"
+                  className="px-2.5 py-1.5 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-onicord-border-strong text-xs font-mono text-onicord-muted transition-colors cursor-pointer capitalize"
                 >
                   {snd}
                 </button>
@@ -347,7 +347,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
               window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 1 } }));
               notificationManager.showToast("Badge", "Insignia establecida en 1", "info");
             }}
-            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-onicord-hover text-onicord-text border border-onicord-border-strong text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
           >
             <span className="w-2 h-2 rounded-full bg-onicord-danger" />
             <span>Badge: 1</span>
@@ -360,7 +360,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
               window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 5 } }));
               notificationManager.showToast("Badge", "Insignia establecida en 5", "info");
             }}
-            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-onicord-hover text-onicord-text border border-onicord-border-strong text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
           >
             <span className="w-2 h-2 rounded-full bg-onicord-danger" />
             <span>Badge: 5</span>
@@ -373,7 +373,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
               window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { count: 9 } }));
               notificationManager.showToast("Badge", "Insignia establecida en 9", "info");
             }}
-            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-onicord-tint/10 text-onicord-text border border-onicord-tint/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-onicord-base hover:bg-onicord-hover text-onicord-text border border-onicord-border-strong text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
           >
             <span className="w-2 h-2 rounded-full bg-onicord-danger" />
             <span>Badge: 9</span>
@@ -403,7 +403,7 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
               window.dispatchEvent(new CustomEvent("onicord:test-unread", { detail: { reset: true } }));
               notificationManager.showToast("Badge", "Insignia limpiada (0)", "success");
             }}
-            className="px-3 py-1.5 rounded-xl bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text border border-onicord-border text-xs font-medium cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-onicord-tint/5 hover:bg-onicord-hover text-onicord-muted hover:text-onicord-text border border-onicord-border text-xs font-medium cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
           >
             <MaterialIcon name="cleaning_services" size={14} />
             <span>Limpiar (0)</span>

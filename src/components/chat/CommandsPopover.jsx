@@ -280,7 +280,7 @@ const CommandsPopover = memo(
         onMouseDown={(e) => e.preventDefault()}
         className="onicord-floating-menu bottom-[calc(100%+8px)] left-2 w-[calc(100%-32px)] max-w-md"
       >
-        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-onicord-muted border-b border-onicord-tint/[0.02] mb-1">
+        <div className="px-2 py-1 text-2xs font-bold uppercase tracking-wider text-onicord-muted border-b border-onicord-tint/[0.02] mb-1">
           {t("chat.roomCommands", "Comandos de la sala")}
         </div>
         <div className="space-y-0.5 max-h-56 overflow-y-auto minimal-scrollbar">
@@ -302,10 +302,10 @@ const CommandsPopover = memo(
                   <span className="font-bold font-mono">{item.command}</span>
                   {item.isPlugin && (
                     <span
-                      className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
+                      className={`inline-flex items-center gap-1 text-2xs font-semibold px-1.5 py-0.5 rounded-md ${
                         isSelected
                           ? "text-onicord-surface bg-onicord-surface/20 border border-onicord-surface/30"
-                          : "text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 group-hover:text-onicord-surface group-hover:bg-onicord-surface/20"
+                          : "text-onicord-accent bg-onicord-accent/10 border border-onicord-accent/20 group-hover:text-onicord-surface group-hover:bg-onicord-surface/20"
                       }`}
                     >
                       <span>{item.pluginName}</span>
@@ -317,14 +317,14 @@ const CommandsPopover = memo(
                         className={`shrink-0 ${
                           isSelected
                             ? "text-onicord-surface"
-                            : "text-indigo-400 group-hover:text-onicord-surface"
+                            : "text-onicord-accent group-hover:text-onicord-surface"
                         }`}
                       />
                     </span>
                   )}
                 </div>
                 <span
-                  className={`text-[11px] truncate max-w-[200px] ${
+                  className={`text-xs truncate max-w-[200px] ${
                     isSelected
                       ? "opacity-90 text-inherit"
                       : "opacity-70 text-onicord-muted"

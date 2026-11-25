@@ -123,7 +123,7 @@ export default function ContextMenu({ x, y, title, items, onClose }) {
             >
               <span>{item.label}</span>
               {item.icon && (
-                <span className="w-[25px] h-[25px] flex justify-center items-center text-[14px] opacity-70">{item.icon}</span>
+                <span className="w-[25px] h-[25px] flex justify-center items-center text-sm opacity-70">{item.icon}</span>
               )}
             </button>
           );

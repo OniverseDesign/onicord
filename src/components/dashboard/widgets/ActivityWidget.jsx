@@ -73,7 +73,7 @@ function GameCardItem({ game, isActive, activeStartTime }) {
     : `${t("widgets.gaming.totalTime", "Tiempo acumulado")}: ${formatPlaytime(game.totalSeconds)} • ${formatRelativeDate(game.lastPlayed, t)}`;
 
   return (
-    <div className="shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island py-3 w-full transition-all duration-200">
+    <div className="shrink-0 bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island py-3 w-full transition-all duration-normal">
       <div className="flex items-center gap-4 px-4">
         {/* Cover image */}
         <div className="w-14 h-14 shrink-0 rounded-[10px] overflow-hidden flex items-center justify-center bg-onicord-surface/30">
@@ -104,7 +104,7 @@ function GameCardItem({ game, isActive, activeStartTime }) {
             >
               <p
                 ref={textRef}
-                className={`text-[14px] font-bold text-onicord-text leading-tight shrink-0 ${
+                className={`text-sm font-bold text-onicord-text leading-tight shrink-0 ${
                   isOverflowing ? "pr-6" : ""
                 }`}
               >
@@ -112,7 +112,7 @@ function GameCardItem({ game, isActive, activeStartTime }) {
               </p>
               {isOverflowing && (
                 <p
-                  className="text-[14px] font-bold text-onicord-text leading-tight shrink-0 pr-6 group-hover:hidden"
+                  className="text-sm font-bold text-onicord-text leading-tight shrink-0 pr-6 group-hover:hidden"
                   aria-hidden="true"
                 >
                   {game.name}
@@ -121,7 +121,7 @@ function GameCardItem({ game, isActive, activeStartTime }) {
             </div>
           </div>
 
-          <p className="text-[12px] text-onicord-subtext truncate leading-snug mt-0.5">
+          <p className="text-xs text-onicord-subtext truncate leading-snug mt-0.5">
             {detailsText}
           </p>
 
@@ -137,11 +137,11 @@ function GameCardItem({ game, isActive, activeStartTime }) {
             ) : (
               <MaterialIcon name="sports_esports" size="lg" />
             )}
-            <span className="text-[12px] font-mono font-bold tracking-tight">
+            <span className="text-xs font-mono font-bold tracking-tight">
               {displayTime}
             </span>
             {isActive && (
-              <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded bg-onicord-success/20 text-onicord-success animate-pulse">
+              <span className="ml-auto text-2xs font-bold px-1.5 py-0.5 rounded bg-onicord-success/20 text-onicord-success animate-pulse">
                 {t("common.live", "EN VIVO")}
               </span>
             )}
@@ -233,7 +233,7 @@ export default function ActivityWidget({ activeGame = null }) {
             <p className="text-xs font-medium text-onicord-text">
               {t("widgets.gaming.empty", "No hay actividades registradas aún")}
             </p>
-            <p className="text-[11px] text-onicord-subtext/70 mt-1">
+            <p className="text-xs text-onicord-subtext/70 mt-1">
               {t(
                 "widgets.gaming.emptyHint",
                 "Inicia cualquier videojuego o programa registrado para registrar tu tiempo automáticamente.",

@@ -4,7 +4,7 @@
     @apply space-y-5 animate-fade-in text-left min-w-0 w-full select-none;
   }
   .onicord-settings-card {
-    @apply bg-onicord-surface/80 border border-onicord-island rounded-2xl p-5 space-y-1 hover:border-onicord-accent/40 transition-colors duration-200;
+    @apply bg-onicord-surface/80 border border-onicord-island rounded-2xl p-5 space-y-1 hover:border-onicord-accent/40 transition-colors duration-normal;
   }
   .onicord-settings-section-title {
     @apply text-xs font-bold text-onicord-muted uppercase tracking-wider mb-2 px-0.5 flex items-center gap-2 select-none;

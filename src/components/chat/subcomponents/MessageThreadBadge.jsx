@@ -25,7 +25,7 @@ export default function MessageThreadBadge({
         {threadParticipants.slice(0, 4).map((p, idx) => (
           <div
             key={idx}
-            className="w-5 h-5 rounded-full overflow-hidden bg-onicord-accent flex items-center justify-center text-[9px] font-bold text-white shrink-0"
+            className="w-5 h-5 rounded-full overflow-hidden bg-onicord-accent flex items-center justify-center text-2xs font-bold text-white shrink-0"
           >
             {p.avatar ? (
               <img src={p.avatar} alt="" className="w-full h-full object-cover" />

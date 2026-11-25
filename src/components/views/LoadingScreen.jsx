@@ -31,10 +31,10 @@ export default function LoadingScreen() {
         </div>
 
         <div className="flex flex-col items-center gap-2 text-center onicord-loading-delayed-info">
-          <p className="text-[13px] text-onicord-subtext font-medium leading-relaxed tracking-wide">
+          <p className="text-sm text-onicord-subtext font-medium leading-relaxed tracking-wide">
             {currentTip}
           </p>
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-onicord-accent animate-pulse [animation-duration:1.5s]">
+          <p className="text-2xs font-bold uppercase tracking-[0.3em] text-onicord-accent animate-pulse [animation-duration:1.5s]">
             {t("roomView.loadingServer")}
           </p>
         </div>

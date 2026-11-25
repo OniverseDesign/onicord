@@ -204,7 +204,11 @@ export function useChatComposer({ profile, peers }) {
     const targetHTML = renderHTMLForInput(input, allUsers);
 
     const hasFormattingSpans = targetHTML.includes("<span");
-    if (!hasFormattingSpans && el.textContent === input) {
+    if (
+      !hasFormattingSpans &&
+      el.textContent === input &&
+      (input !== "" || el.innerHTML === "")
+    ) {
       return;
     }
 
@@ -273,6 +277,14 @@ export function useChatComposer({ profile, peers }) {
           setShowMentionsPopup(false);
           setShowCommandsPopup(false);
           return replaced.newText;
+        }
+      }
+
+      // Strip browser-inserted <br> / empty wrappers so CSS :empty placeholder reappears
+      if (!rawText && el && el.innerHTML !== "") {
+        el.innerHTML = "";
+        if (document.activeElement === el) {
+          setSelectionOffsets(el, 0, 0);
         }
       }
 

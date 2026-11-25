@@ -52,18 +52,18 @@ function ServerIcon({
           <span
             className={`onicord-rail-indicator ${
               isVoiceActive
-                ? "h-10 opacity-100 bg-onicord-success shadow-[0_0_12px_rgba(34,197,94,0.7)]"
+                ? "h-10 opacity-100 bg-onicord-success shadow-onicord-glow-success"
                 : active
-                  ? "h-10 opacity-100 bg-white"
+                  ? "h-10 opacity-100 bg-onicord-text"
                   : hasUnread
-                    ? "h-2 opacity-100 bg-white"
+                    ? "h-2 opacity-100 bg-onicord-text"
                     : "h-0 opacity-0 group-hover:h-5 group-hover:opacity-100"
             }`}
           />
         )}
 
         <div
-          className={`relative flex items-center justify-center rounded-[18px] transition-transform duration-150 ${
+          className={`relative flex items-center justify-center rounded-[18px] transition-transform duration-fast ${
             isMergeTarget
               ? "scale-105 ring-2 ring-onicord-accent ring-offset-2 ring-offset-onicord-base"
               : ""
@@ -98,7 +98,7 @@ function ServerIcon({
           )}
 
           {hasUnread && (
-            <div className="absolute -bottom-1 -right-1 bg-onicord-danger text-onicord-on-danger text-[10px] font-bold px-1.5 min-w-[16px] h-4 rounded-full flex items-center justify-center border-2 border-onicord-base z-10 animate-scale-up shadow-md pointer-events-none">
+            <div className="absolute -bottom-1 -right-1 bg-onicord-danger text-onicord-on-danger text-2xs font-bold px-1.5 min-w-[16px] h-4 rounded-full flex items-center justify-center border-2 border-onicord-base z-10 animate-scale-up shadow-md pointer-events-none">
               {unreadCount > 99 ? "99+" : unreadCount}
             </div>
           )}
@@ -111,7 +111,7 @@ function ServerIcon({
 function FolderPreviewIcon({ folderServers, isMergeTarget = false }) {
   return (
     <div
-      className={`relative flex items-center justify-center rounded-[18px] transition-transform duration-150 ${
+      className={`relative flex items-center justify-center rounded-[18px] transition-transform duration-fast ${
         isMergeTarget
           ? "scale-105 ring-2 ring-onicord-accent ring-offset-2 ring-offset-onicord-base"
           : ""
@@ -122,7 +122,7 @@ function FolderPreviewIcon({ folderServers, isMergeTarget = false }) {
           {folderServers.slice(0, 4).map((srv) => (
             <div
               key={srv.id}
-              className="w-full h-full flex items-center justify-center overflow-hidden rounded-full bg-onicord-base/60 text-[9px] font-bold text-onicord-text"
+              className="w-full h-full flex items-center justify-center overflow-hidden rounded-full bg-onicord-base/60 text-2xs font-bold text-onicord-text"
             >
               {srv.icon ? (
                 <SmartAnimatedImage
@@ -131,7 +131,7 @@ function FolderPreviewIcon({ folderServers, isMergeTarget = false }) {
                   className="w-full h-full object-cover pointer-events-none"
                 />
               ) : (
-                <span className="text-[9px] font-extrabold uppercase select-none">
+                <span className="text-2xs font-extrabold uppercase select-none">
                   {srv.name?.slice(0, 1)}
                 </span>
               )}
@@ -225,11 +225,11 @@ function ServerFolderItem({
             <span
               className={`onicord-rail-indicator ${
                 isFolderVoiceActive
-                  ? "h-8 opacity-100 bg-onicord-success shadow-[0_0_10px_rgba(34,197,94,0.7)]"
+                  ? "h-8 opacity-100 bg-onicord-success shadow-onicord-glow-success"
                   : isFolderActive
                     ? "h-10 opacity-100"
                     : hasUnread
-                      ? "h-2 opacity-100 bg-white"
+                      ? "h-2 opacity-100 bg-onicord-text"
                       : "h-0 opacity-0 group-hover:h-5 group-hover:opacity-100"
               }`}
             />
@@ -304,11 +304,11 @@ function ServerFolderItem({
                   <span
                     className={`onicord-rail-indicator absolute -left-[9px] z-20 ${
                       isVoiceActive
-                        ? "h-8 opacity-100 bg-onicord-success shadow-[0_0_10px_rgba(34,197,94,0.7)]"
+                        ? "h-8 opacity-100 bg-onicord-success shadow-onicord-glow-success"
                         : active
-                          ? "h-8 opacity-100 bg-white"
+                          ? "h-8 opacity-100 bg-onicord-text"
                           : hasUnread
-                            ? "h-2 opacity-100 bg-white"
+                            ? "h-2 opacity-100 bg-onicord-text"
                             : "h-0 opacity-0 group-hover:h-4 group-hover:opacity-100"
                     }`}
                   />
@@ -531,7 +531,7 @@ export default function ServerRail({
               homeActive ? "onicord-rail-btn-active" : "text-onicord-accent"
             }`}
           >
-            <IconEstrella className="w-7 h-7 transition-transform duration-300 ease-in-out transform group-hover:rotate-180" />
+            <IconEstrella className="w-7 h-7 transition-transform duration-relaxed ease-in-out transform group-hover:rotate-180" />
           </span>
         </button>
       </Tooltip>
@@ -628,20 +628,7 @@ export default function ServerRail({
             }}
             className="group relative flex w-full justify-center outline-none focus:outline-none"
           >
-            <span
-              className={`onicord-rail-indicator ${
-                activeView === "discover"
-                  ? "h-10 opacity-100 bg-white"
-                  : "h-0 opacity-0 group-hover:h-5 group-hover:opacity-100"
-              }`}
-            />
-            <span
-              className={`onicord-rail-btn ${
-                activeView === "discover"
-                  ? "onicord-rail-btn-active bg-onicord-accent text-white border-transparent"
-                  : "onicord-rail-btn-accent text-onicord-accent hover:text-white"
-              }`}
-            >
+            <span className="onicord-rail-btn onicord-rail-btn-accent">
               <MaterialIcon name="explore" size={24} />
             </span>
           </button>
@@ -669,7 +656,7 @@ export default function ServerRail({
             className="group relative flex w-full justify-center outline-none focus:outline-none"
           >
             <span className="onicord-rail-btn onicord-rail-btn-accent">
-              <MaterialIcon name="settings" className="transition-transform duration-300 ease-in-out group-hover:rotate-180" />
+              <MaterialIcon name="settings" className="transition-transform duration-relaxed ease-in-out group-hover:rotate-180" />
             </span>
           </button>
         </Tooltip>
@@ -691,7 +678,7 @@ export default function ServerRail({
               zIndex: 9999,
               willChange: "transform",
             }}
-            className="flex justify-center py-1 drop-shadow-[0_10px_20px_rgba(0,0,0,0.45)]"
+            className="flex justify-center py-1 drop-shadow-md"
           >
             {draggedServer ? (
               <span className="onicord-rail-btn-server rounded-[16px] ring-2 ring-onicord-accent/80">

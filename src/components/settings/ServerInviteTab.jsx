@@ -96,7 +96,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
             </p>
 
             <div className="space-y-3 pt-1">
-              <div className="relative w-full bg-onicord-base/80 border border-onicord-tint/10 rounded-xl p-3 flex items-center justify-center font-mono text-lg font-bold tracking-widest text-onicord-accent shadow-inner select-all">
+              <div className="relative w-full bg-onicord-base/80 border border-onicord-border-strong rounded-xl p-3 flex items-center justify-center font-mono text-lg font-bold tracking-widest text-onicord-accent shadow-inner select-all">
                 <span>{displayedRoomCode}</span>
                 {isStreamerMode && (
                   <button
@@ -120,7 +120,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
                 <MaterialIcon
                   name={copiedCodeState ? "check" : "content_copy"}
                   size={16}
-                  className={copiedCodeState ? "text-emerald-400" : ""}
+                  className={copiedCodeState ? "text-onicord-success" : ""}
                 />
                 <span>
                   {copiedCodeState
@@ -149,7 +149,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
             </p>
 
             <div className="space-y-3 pt-1">
-              <div className="w-full bg-onicord-base/80 border border-onicord-tint/10 rounded-xl p-3 flex items-center justify-center font-mono text-xs font-semibold text-onicord-accent shadow-inner truncate select-all">
+              <div className="w-full bg-onicord-base/80 border border-onicord-border-strong rounded-xl p-3 flex items-center justify-center font-mono text-xs font-semibold text-onicord-accent shadow-inner truncate select-all">
                 {displayedWebLink}
               </div>
 
@@ -196,7 +196,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
         {/* RIGHT COLUMN: PREVIEW IDENTICAL TO ACTUAL INVITEMODAL CARD (7/12) */}
         <div className="md:col-span-7">
           <div className="onicord-settings-card flex flex-col items-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted mb-3 flex items-center gap-1.5 self-start">
+            <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted mb-3 flex items-center gap-1.5 self-start">
               <MaterialIcon name="visibility" size={14} />
               <span>{t("settings.theme.preview", "Vista Previa en Vivo")}</span>
             </span>
@@ -241,14 +241,14 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
                 <div className="flex items-center justify-center gap-2 mb-6 flex-wrap select-none">
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-onicord-success/10 border border-onicord-success/20 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-onicord-success shrink-0 animate-pulse" />
-                    <span className="text-[11px] font-semibold text-onicord-text leading-none">
+                    <span className="text-xs font-semibold text-onicord-text leading-none">
                       {onlineCount} {t("inviteModal.online", "En línea")}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-onicord-tint/10 border border-onicord-tint/60 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-onicord-tint/60 shrink-0" />
-                    <span className="text-[11px] font-semibold text-onicord-text leading-none">
+                    <span className="text-xs font-semibold text-onicord-text leading-none">
                       {memberCount}{" "}
                       {memberCount === 1
                         ? t("serverSettings.invites.member", "Miembro")
@@ -262,7 +262,7 @@ export default function ServerInviteTab({ server, copyCode, copied }) {
                   <button
                     type="button"
                     disabled
-                    className="w-full py-3 rounded-xl font-bold text-base transition-all duration-150 select-none cursor-default shadow-md pointer-events-none"
+                    className="w-full py-3 rounded-xl font-bold text-base transition-all duration-fast select-none cursor-default shadow-md pointer-events-none"
                     style={{
                       background: "rgba(var(--onicord-lavender)/0.85)",
                       color: "#fff",

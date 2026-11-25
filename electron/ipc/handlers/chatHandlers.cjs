@@ -2,6 +2,7 @@ const { app, ipcMain } = require("electron");
 const cryptoService = require("../../services/cryptoService.cjs");
 const serverService = require("../../services/serverService.cjs");
 const profileService = require("../../services/profileService.cjs");
+const suggestionService = require("../../services/suggestionService.cjs");
 const { ChatStore } = require("../../p2p/chatStore.cjs");
 
 const ensureActiveRoom = async (roomCode) => {
@@ -70,7 +71,18 @@ function registerChatHandlers() {
     if (!global.roomManager || !global.roomManager.roomCode) throw new Error("No active room found");
     const code = roomCode || global.roomManager.roomCode;
     const encryptedText = cryptoService.encrypt(code, text);
-    return await global.roomManager.sendChatMessage(channelId, encryptedText, code);
+    const sentMsg = await global.roomManager.sendChatMessage(channelId, encryptedText, code);
+    try {
+      suggestionService.recordOutgoingMessage({
+        roomCode: code,
+        channelId,
+        text,
+        timestamp: sentMsg?.timestamp || Date.now(),
+      });
+    } catch (err) {
+      console.warn("[Suggestions] Failed recording outgoing message:", err.message);
+    }
+    return sentMsg;
   });
 
   ipcMain.handle("chat:send-plugin-command", async (_event, roomCode, channelId, text) => {
@@ -129,6 +141,42 @@ function registerChatHandlers() {
     } catch (err) {
       console.error("[IPC Chat Search Error]:", err);
       return [];
+    }
+  });
+
+  ipcMain.handle("suggestions:getSnapshot", async (_event, roomCode, channelId) => {
+    try {
+      return suggestionService.getSnapshot({ roomCode, channelId });
+    } catch (err) {
+      console.error("[IPC Suggestions Snapshot Error]:", err);
+      return { scopeKey: "global", pinned: [], dismissed: [], phrases: [], words: [], indexing: false };
+    }
+  });
+
+  ipcMain.handle("suggestions:setPref", async (_event, payload) => {
+    try {
+      return suggestionService.setPreference(payload || {});
+    } catch (err) {
+      console.error("[IPC Suggestions Pref Error]:", err);
+      return { ok: false };
+    }
+  });
+
+  ipcMain.handle("suggestions:clearDismissed", async () => {
+    try {
+      return suggestionService.clearDismissed();
+    } catch (err) {
+      console.error("[IPC Suggestions Clear Dismissed Error]:", err);
+      return { ok: false };
+    }
+  });
+
+  ipcMain.handle("suggestions:reindex", async () => {
+    try {
+      return await suggestionService.reindexAll();
+    } catch (err) {
+      console.error("[IPC Suggestions Reindex Error]:", err);
+      return { ok: false };
     }
   });
 }

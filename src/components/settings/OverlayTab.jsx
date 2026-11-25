@@ -105,7 +105,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
             type="button"
             onClick={handleTestOverlay}
             disabled={!enabled || isTesting}
-            className="px-4 py-2 rounded-onicord-button bg-onicord-overlay hover:bg-onicord-tint/10 text-onicord-text text-xs font-semibold flex items-center gap-2 border border-onicord-tint/10 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+            className="px-4 py-2 rounded-onicord-button bg-onicord-overlay hover:bg-onicord-hover text-onicord-text text-xs font-semibold flex items-center gap-2 border border-onicord-border-strong transition-all cursor-pointer disabled:opacity-50 shrink-0"
           >
             <MaterialIcon name={isTesting ? "timer" : "visibility"} size={16} />
             <span>
@@ -117,7 +117,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
         </div>
 
         {/* Nota informativa */}
-        <div className="mt-3 p-2.5 rounded-xl bg-onicord-base/40 border border-onicord-border flex items-start gap-2 text-[11px] text-onicord-muted">
+        <div className="mt-3 p-2.5 rounded-xl bg-onicord-base/40 border border-onicord-border flex items-start gap-2 text-xs text-onicord-muted">
           <MaterialIcon
             name="info"
             size={15}
@@ -152,7 +152,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
 
         {/* Interactive 3x3 mockup */}
         <div className="flex flex-col items-center justify-center pt-2 pb-1">
-          <div className="relative w-[260px] h-[165px] bg-onicord-base/60 rounded-xl border border-onicord-tint/10 overflow-hidden shadow-inner">
+          <div className="relative w-[260px] h-[165px] bg-onicord-base/60 rounded-xl border border-onicord-border-strong overflow-hidden shadow-inner">
             {/* Grid background lines */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-[1px] h-full bg-onicord-tint/5 absolute left-1/3" />
@@ -174,10 +174,10 @@ export default function OverlayTab({ overlay, setOverlay }) {
                   key={pos.id}
                   type="button"
                   onClick={() => updateField("position", pos.id)}
-                  className={`absolute w-[40px] h-[30px] rounded-lg border transition-all duration-200 cursor-pointer flex items-center justify-center ${
+                  className={`absolute w-[40px] h-[30px] rounded-lg border transition-all duration-normal cursor-pointer flex items-center justify-center ${
                     isSelected
-                      ? "bg-onicord-accent/30 border-onicord-accent shadow-[0_0_10px_rgba(var(--onicord-accent),0.4)]"
-                      : "bg-onicord-tint/5 border-onicord-tint/10 hover:bg-onicord-tint/10 hover:border-onicord-tint/20"
+                      ? "bg-onicord-accent/30 border-onicord-accent shadow-onicord-glow-accent"
+                      : "bg-onicord-tint/5 border-onicord-border-strong hover:bg-onicord-hover hover:border-onicord-border-strong"
                   }`}
                   style={{ left, top }}
                   title={POSITION_LABELS[pos.id]}
@@ -190,7 +190,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
             })}
 
             {/* Center screen label */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] text-onicord-muted/40 font-bold uppercase tracking-widest pointer-events-none select-none">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xs text-onicord-muted/40 font-bold uppercase tracking-widest pointer-events-none select-none">
               {t("settings.overlay.screen", "Pantalla")}
             </div>
           </div>
@@ -281,7 +281,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
           </div>
 
           <div className="flex items-center gap-3 bg-onicord-base/40 p-2.5 rounded-xl border border-onicord-border mt-1">
-            <span className="text-[11px] text-onicord-muted font-mono font-bold select-none min-w-[32px]">
+            <span className="text-xs text-onicord-muted font-mono font-bold select-none min-w-[32px]">
               0%
             </span>
             <input
@@ -295,7 +295,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
               }
               className="onicord-range-input flex-1"
             />
-            <span className="text-[11px] text-onicord-accent font-mono font-bold select-none min-w-[36px] text-right">
+            <span className="text-xs text-onicord-accent font-mono font-bold select-none min-w-[36px] text-right">
               {Math.round(opacity * 100)}%
             </span>
           </div>
@@ -303,13 +303,13 @@ export default function OverlayTab({ overlay, setOverlay }) {
           {/* Dynamic Live Preview Box */}
           <div className="mt-4 flex justify-center">
             <div
-              className="rounded-xl p-2.5 flex flex-col gap-2 border border-onicord-tint/10 transition-all shadow-md min-w-[170px]"
+              className="rounded-xl p-2.5 flex flex-col gap-2 border border-onicord-border-strong transition-all shadow-md min-w-[170px]"
               style={{ background: `rgba(0, 0, 0, ${opacity})` }}
             >
               {/* Demo Member 1: Speaking (Green ring #a6e3a1) */}
               <div className="flex items-center gap-2">
                 <div
-                  className="w-7 h-7 rounded-full bg-onicord-accent flex items-center justify-center text-onicord-on-accent text-[11px] font-bold shrink-0"
+                  className="w-7 h-7 rounded-full bg-onicord-accent flex items-center justify-center text-onicord-on-accent text-xs font-bold shrink-0"
                   style={{ boxShadow: "0 0 0 2px #a6e3a1" }}
                 >
                   A
@@ -324,7 +324,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
               {/* Demo Member 2: Silent / Muted (Red ring #f38ba8) */}
               <div className="flex items-center gap-2">
                 <div
-                  className="w-7 h-7 rounded-full bg-onicord-faded flex items-center justify-center text-onicord-text text-[11px] font-bold shrink-0"
+                  className="w-7 h-7 rounded-full bg-onicord-faded flex items-center justify-center text-onicord-text text-xs font-bold shrink-0"
                   style={{ boxShadow: "0 0 0 2px #f38ba8" }}
                 >
                   S
@@ -334,7 +334,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
                     <span className="text-xs font-medium text-onicord-subtext">
                       Sam
                     </span>
-                    <span className="text-[#f38ba8] text-[10px]">🔇</span>
+                    <span className="text-[#f38ba8] text-2xs">🔇</span>
                   </div>
                 )}
               </div>

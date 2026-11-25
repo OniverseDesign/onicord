@@ -111,7 +111,7 @@ export default function ServerRolesTab({
               onDragStart={(e) => handleRoleDragStart(e, "role", role.id)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleRoleDrop(e, role.id)}
-              className="flex flex-col bg-onicord-base/40 border border-onicord-border p-3 rounded-2xl cursor-grab active:cursor-grabbing hover:border-onicord-tint/10 transition-colors group"
+              className="flex flex-col bg-onicord-base/40 border border-onicord-border p-3 rounded-2xl cursor-grab active:cursor-grabbing hover:border-onicord-border-strong transition-colors group"
             >
               <div className="flex gap-3 items-center w-full">
                 <div className="text-onicord-muted opacity-40 group-hover:opacity-80 px-1 py-1 select-none flex flex-col gap-[3px] shrink-0">
@@ -137,7 +137,7 @@ export default function ServerRolesTab({
                   >
                     <button
                       type="button"
-                      className="w-7 h-7 rounded-full border border-onicord-tint/20 hover:border-onicord-tint/45 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 shadow-sm"
+                      className="w-7 h-7 rounded-full border border-onicord-border-strong hover:border-onicord-tint/45 hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 shadow-sm"
                       style={{ backgroundColor: role.color || "#cba6f7" }}
                       aria-label={t(
                         "serverSettings.roles.roleColorTitle",
@@ -172,7 +172,7 @@ export default function ServerRolesTab({
                   className={`w-8 h-8 flex items-center justify-center rounded-xl transition-colors shrink-0 cursor-pointer ${
                     expandedRoleId === role.id
                       ? "bg-onicord-accent/20 text-onicord-accent"
-                      : "hover:bg-onicord-tint/10 text-onicord-muted"
+                      : "hover:bg-onicord-hover text-onicord-muted"
                   }`}
                   title={t("settings.roles.permissions", "Permisos del Rol")}
                 >
@@ -196,7 +196,7 @@ export default function ServerRolesTab({
                   onMouseDown={(e) => e.stopPropagation()}
                   className="w-full mt-3 p-4 bg-onicord-surface/80 border border-onicord-border rounded-xl animate-fade-in cursor-default space-y-3"
                 >
-                  <p className="font-bold text-onicord-accent uppercase tracking-wider text-[10px] select-none text-left flex items-center gap-1.5">
+                  <p className="font-bold text-onicord-accent uppercase tracking-wider text-2xs select-none text-left flex items-center gap-1.5">
                     <MaterialIcon name="lock_person" size={14} />
                     <span>
                       {t(

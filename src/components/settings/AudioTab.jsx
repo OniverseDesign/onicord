@@ -238,10 +238,10 @@ export default function AudioTab({
 
             <div data-setting-id="inputVolume" className="pt-2">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-[11px] font-semibold text-onicord-muted">
+                <span className="text-xs font-semibold text-onicord-muted">
                   {t("settings.voiceVideo.inputVolume", "Volumen de Entrada")}
                 </span>
-                <span className="text-[11px] font-mono font-bold text-onicord-accent">
+                <span className="text-xs font-mono font-bold text-onicord-accent">
                   {audio.inputVolume ?? 100}%
                 </span>
               </div>
@@ -284,10 +284,10 @@ export default function AudioTab({
 
             <div data-setting-id="outputVolume" className="pt-2">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-[11px] font-semibold text-onicord-muted">
+                <span className="text-xs font-semibold text-onicord-muted">
                   {t("settings.voiceVideo.outputVolume", "Volumen de Salida")}
                 </span>
-                <span className="text-[11px] font-mono font-bold text-onicord-accent">
+                <span className="text-xs font-mono font-bold text-onicord-accent">
                   {audio.outputVolume ?? 100}%
                 </span>
               </div>
@@ -354,12 +354,12 @@ export default function AudioTab({
           </div>
 
           {cameraError && (
-            <p className="text-[11px] text-onicord-danger font-medium">{cameraError}</p>
+            <p className="text-xs text-onicord-danger font-medium">{cameraError}</p>
           )}
 
           {isTestingCamera && (
             <div className="pt-2 flex justify-center">
-              <div className="w-full max-w-[320px] aspect-video rounded-xl overflow-hidden bg-black border border-onicord-tint/10 shadow-lg relative">
+              <div className="w-full max-w-[320px] aspect-video rounded-xl overflow-hidden bg-black border border-onicord-border-strong shadow-lg relative">
                 <video
                   ref={previewVideoRef}
                   autoPlay
@@ -387,7 +387,7 @@ export default function AudioTab({
             className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
               audio.inputMode === "vad"
                 ? "bg-onicord-accent/10 border-onicord-accent/50 text-onicord-text"
-                : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
+                : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-border-strong"
             }`}
           >
             <div className="flex items-center gap-2 mb-1.5">
@@ -400,7 +400,7 @@ export default function AudioTab({
                 {t("settings.voiceVideo.voiceActivity", "Actividad de Voz")}
               </span>
             </div>
-            <p className="text-[11px] leading-relaxed">
+            <p className="text-xs leading-relaxed">
               {t("settings.voiceVideo.voiceActivityDesc", "El micrófono se activará automáticamente cuando detecte sonido por encima del umbral.")}
             </p>
           </button>
@@ -412,7 +412,7 @@ export default function AudioTab({
             className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
               audio.inputMode === "ptt"
                 ? "bg-onicord-accent/10 border-onicord-accent/50 text-onicord-text"
-                : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
+                : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-border-strong"
             }`}
           >
             <div className="flex items-center gap-2 mb-1.5">
@@ -425,7 +425,7 @@ export default function AudioTab({
                 {t("settings.voiceVideo.pushToTalk", "Apretar para Hablar (PTT)")}
               </span>
             </div>
-            <p className="text-[11px] leading-relaxed">
+            <p className="text-xs leading-relaxed">
               {t("settings.voiceVideo.pushToTalkDesc", "Tu micrófono permanecerá silenciado hasta que presiones y mantengas tu atajo grabado.")}
             </p>
           </button>
@@ -441,7 +441,7 @@ export default function AudioTab({
                 <p className="text-xs font-semibold text-onicord-text">
                   {t("settings.voiceVideo.keybindingConfigHint", "Configuración de atajos de teclado y mouse")}
                 </p>
-                <p className="text-[11px] text-onicord-muted mt-0.5">
+                <p className="text-xs text-onicord-muted mt-0.5">
                   {t("settings.voiceVideo.keybindingConfigDesc", "Los atajos y botones para Apretar para Hablar (PTT) se configuran en la pestaña Atajos de Teclado.")}
                 </p>
               </div>
@@ -508,7 +508,7 @@ export default function AudioTab({
 
           {!audio.autoVad && (
             <div className="py-3">
-              <div className="flex justify-between text-[11px] text-onicord-muted mb-1 font-mono">
+              <div className="flex justify-between text-xs text-onicord-muted mb-1 font-mono">
                 <span>0dB</span>
                 <span className="text-onicord-accent font-bold">Umbral: {audio.vadThreshold || 50}%</span>
                 <span>100dB</span>
@@ -516,7 +516,7 @@ export default function AudioTab({
               <div className="relative w-full h-4 bg-onicord-base/60 rounded-full overflow-hidden border border-onicord-border shadow-inner group">
                 <div
                   className={`absolute top-0 left-0 h-full transition-all duration-75 ${
-                    micLevel > (audio.vadThreshold || 50) ? "bg-onicord-accent" : "bg-amber-500"
+                    micLevel > (audio.vadThreshold || 50) ? "bg-onicord-accent" : "bg-onicord-warning"
                   }`}
                   style={{ width: `${micLevel}%` }}
                 />
@@ -663,10 +663,10 @@ export default function AudioTab({
           {(audio.autoDucking ?? true) && (
             <div className="py-2.5 px-4 bg-onicord-base/30 rounded-lg mt-2 mb-1 border border-onicord-border">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-[11px] font-semibold text-onicord-muted">
+                <span className="text-xs font-semibold text-onicord-muted">
                   {t("settings.voiceVideo.autoDuckingAmount", "Nivel de atenuación")}
                 </span>
-                <span className="text-[11px] font-mono font-bold text-onicord-accent">
+                <span className="text-xs font-mono font-bold text-onicord-accent">
                   {audio.autoDuckingAmount ?? 50}%
                 </span>
               </div>

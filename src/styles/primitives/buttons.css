@@ -1,42 +1,42 @@
 @layer components {
   /* 🔘 ONICORD ATOMIC BUTTONS SYSTEM */
   .onicord-btn {
-    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
   }
 
   /* Variant: Primary */
   .onicord-btn-primary {
-    @apply inline-flex items-center justify-center font-semibold select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center font-semibold select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
     @apply h-9 px-4 text-xs sm:text-sm rounded-onicord-button bg-onicord-accent text-onicord-on-accent shadow-sm hover:opacity-90 box-border;
   }
 
   /* Variant: Secondary */
   .onicord-btn-secondary {
-    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
     @apply h-9 px-4 text-xs sm:text-sm rounded-onicord-button bg-transparent text-onicord-text hover:bg-onicord-overlay/40 box-border;
   }
 
   /* Variant: Secondary Outline */
   .onicord-btn-secondary-outline {
-    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
     @apply h-9 px-4 rounded-onicord-inner border border-onicord-border text-onicord-text hover:bg-onicord-overlay/40 flex-1 box-border text-xs sm:text-sm;
   }
 
   /* Variant: Danger */
   .onicord-btn-danger {
-    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
     @apply h-9 px-4 text-xs sm:text-sm rounded-onicord-button bg-onicord-danger text-onicord-on-danger shadow-sm hover:opacity-90 box-border;
   }
 
   /* Variant: Danger Soft */
   .onicord-btn-danger-soft {
-    @apply inline-flex items-center justify-center font-bold select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center font-bold select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
     @apply h-9 px-4 text-xs rounded-onicord-button bg-onicord-danger/10 text-onicord-danger border border-onicord-danger/20 hover:bg-onicord-danger/20 shadow-sm box-border;
   }
 
   /* Variant: Success */
   .onicord-btn-success {
-    @apply inline-flex items-center justify-center font-bold select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center font-bold select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
     @apply h-9 w-9 text-xs rounded-onicord-button bg-onicord-success/20 text-onicord-success border border-onicord-success/20 hover:bg-onicord-success/30 shadow-sm box-border;
   }
 
@@ -64,17 +64,28 @@
 
   /* 🔄 COMPATIBILIDAD CON CLASES VIEJAS ADICIONALES */
   .onicord-btn-destructive {
-    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center font-medium select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
     @apply h-9 px-4 text-xs sm:text-sm rounded-onicord-button bg-onicord-danger text-onicord-on-danger shadow-sm hover:opacity-90 box-border;
   }
   
   .onicord-btn-primary-lg {
-    @apply inline-flex items-center justify-center font-bold select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center font-bold select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
     @apply h-11 px-6 text-sm rounded-onicord-inner bg-onicord-accent text-onicord-on-accent shadow-sm hover:opacity-90 flex-1 box-border;
   }
   
   .onicord-btn-remove {
-    @apply inline-flex items-center justify-center select-none cursor-pointer transition-colors duration-150 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center select-none cursor-pointer transition-colors duration-fast active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
     @apply text-onicord-muted hover:bg-onicord-danger/10 hover:text-onicord-danger border border-transparent hover:border-onicord-danger/20 text-sm font-bold h-[42px] px-3.5 rounded-onicord-button;
+  }
+
+  /* 🎯 ICON BUTTON PRIMITIVES */
+  .onicord-icon-btn-sm {
+    @apply inline-flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface border border-onicord-border text-onicord-text hover:bg-onicord-overlay transition-colors duration-fast cursor-pointer shrink-0;
+  }
+  .onicord-icon-btn-md {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-full bg-onicord-surface border border-onicord-border text-onicord-text hover:bg-onicord-overlay transition-colors duration-fast cursor-pointer shrink-0;
+  }
+  .onicord-icon-btn-scrim {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-full bg-onicord-scrim hover:bg-onicord-scrim-heavy border border-onicord-on-scrim/10 text-onicord-on-scrim/80 hover:text-onicord-on-scrim backdrop-blur-onicord-popover transition-all duration-fast shadow-lg cursor-pointer shrink-0;
   }
 }

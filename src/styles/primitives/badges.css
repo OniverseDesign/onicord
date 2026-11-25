@@ -6,13 +6,13 @@
 
   /* 🔄 COMPATIBILIDAD CON CLASES VIEJAS (Legacy alias wrappers) */
   .onicord-live-badge {
-    @apply bg-onicord-danger text-onicord-on-danger text-2xs font-bold px-1 rounded uppercase tracking-wider animate-pulse;
+    @apply bg-onicord-danger-vivid text-onicord-on-scrim text-2xs font-bold px-1 rounded uppercase tracking-wider animate-pulse;
   }
   .onicord-live-badge-interactive {
-    @apply onicord-badge bg-onicord-danger text-onicord-on-danger hover:scale-105 active:scale-95 cursor-pointer animate-pulse transition shadow-sm;
+    @apply onicord-badge bg-onicord-danger-vivid text-onicord-on-scrim hover:scale-105 active:scale-95 cursor-pointer animate-pulse transition shadow-sm;
   }
   .onicord-chip-accent {
-    @apply text-2xs bg-onicord-overlay px-2 py-0.5 rounded-full text-onicord-text hover:bg-onicord-accent hover:text-onicord-on-accent transition-all duration-150 font-semibold cursor-pointer opacity-80;
+    @apply text-2xs bg-onicord-overlay px-2 py-0.5 rounded-full text-onicord-text hover:bg-onicord-accent hover:text-onicord-on-accent transition-all duration-fast font-semibold cursor-pointer opacity-80;
   }
   .onicord-widget-badge {
     @apply font-mono bg-black/10 px-2 py-0.5 rounded-full border border-black/10 font-bold uppercase tracking-tight text-2xs select-none;

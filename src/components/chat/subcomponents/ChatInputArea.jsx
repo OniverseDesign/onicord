@@ -12,6 +12,8 @@ import EmojiPickerPopover from "../../ui/EmojiPickerPopover";
 import StickerPopover from "../StickerPopover";
 import Tooltip from "../../ui/Tooltip";
 import { soundEngine } from "../../../lib/soundEngine";
+import { setSelectionOffsets } from "../../../lib/inputFormatter";
+import { getReadableSuggestionText } from "../composer/useQuickSuggestions";
 
 function formatBytes(bytes) {
   if (!bytes) return "0 Bytes";
@@ -96,6 +98,39 @@ export default function ChatInputArea({
   const mentionsPopoverRef = useRef(null);
   const emojiAutocompleteRef = useRef(null);
 
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+
+  useEffect(() => {
+    setSelectedSuggestionIndex(0);
+  }, [input, visibleSuggestions.length]);
+
+  const safeSuggestionIndex =
+    visibleSuggestions.length > 0
+      ? Math.min(selectedSuggestionIndex, visibleSuggestions.length - 1)
+      : 0;
+
+  const isSuggestionsHidden =
+    showCommandsPopup || showMentionsPopup || Boolean(emojiQuery);
+  const hasPartialInput = Boolean(input && input.trim().length > 0);
+  const canTabCompleteSuggestion =
+    visibleSuggestions.length > 0 &&
+    !selection &&
+    !isSuggestionsHidden &&
+    hasPartialInput;
+
+  const acceptSuggestion = (item) => {
+    if (!item) return;
+    const textToInsert = item.insertText ?? item.displayText ?? "";
+    setInput(textToInsert);
+    requestAnimationFrame(() => {
+      const el = tyrannyInputRef.current;
+      if (el) {
+        el.focus();
+        setSelectionOffsets(el, textToInsert.length, textToInsert.length);
+      }
+    });
+  };
+
   const handleContentKeyDown = (e) => {
     if (commandsPopoverRef.current?.handleKeyDown?.(e)) {
       return;
@@ -105,6 +140,28 @@ export default function ChatInputArea({
     }
     if (emojiAutocompleteRef.current?.handleKeyDown?.(e)) {
       return;
+    }
+    if (canTabCompleteSuggestion && !e.ctrlKey && !e.metaKey) {
+      if (e.key === "Tab" && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        acceptSuggestion(visibleSuggestions[safeSuggestionIndex]);
+        return;
+      }
+      if (
+        (e.key === "Tab" && e.shiftKey && !e.altKey) ||
+        (e.key === "ArrowRight" && e.altKey && !e.shiftKey)
+      ) {
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => (prev + 1) % visibleSuggestions.length);
+        return;
+      }
+      if (e.key === "ArrowLeft" && e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        setSelectedSuggestionIndex(
+          (prev) => (prev - 1 + visibleSuggestions.length) % visibleSuggestions.length
+        );
+        return;
+      }
     }
     handleKeyDown?.(e);
   };
@@ -181,7 +238,7 @@ export default function ChatInputArea({
     <div className="w-full relative shrink-0 px-2 pb-2 pt-0">
       {/* Typing indicator */}
       <div
-        className="w-full overflow-hidden transition-all duration-200 ease-in-out"
+        className="w-full overflow-hidden transition-all duration-normal ease-in-out"
         style={{
           height: Object.keys(typingUsers).length > 0 ? "20px" : "0px",
           opacity: Object.keys(typingUsers).length > 0 ? 1 : 0,
@@ -207,8 +264,19 @@ export default function ChatInputArea({
       <QuickSuggestions
         visibleSuggestions={visibleSuggestions}
         selection={selection}
-        setInput={setInput}
-        tyrannyInputRef={tyrannyInputRef}
+        isHidden={isSuggestionsHidden}
+        hasPartialInput={hasPartialInput}
+        selectedIndex={safeSuggestionIndex}
+        onSelectSuggestion={acceptSuggestion}
+        onContextMenuSuggestion={(e, item) => {
+          setContextMenu?.({
+            type: "quick-suggestion",
+            x: e.clientX,
+            y: e.clientY,
+            title: getReadableSuggestionText(item.displayText),
+            data: item,
+          });
+        }}
       />
 
       <FloatingFormattingBar
@@ -219,7 +287,7 @@ export default function ChatInputArea({
 
       {/* Replying banner */}
       <div
-        className="w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0"
+        className="w-full overflow-hidden transition-all duration-relaxed ease-in-out shrink-0"
         style={{
           height: replyTarget ? "32px" : "0px",
           marginBottom: replyTarget ? "4px" : "0px",
@@ -350,7 +418,7 @@ export default function ChatInputArea({
         }}
       >
         <div
-          className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 ${
+          className={`w-full overflow-hidden transition-all duration-relaxed ease-in-out shrink-0 ${
             (pendingFiles.length > 0 || pendingFile)
               ? "max-h-40 opacity-100 mb-2 pointer-events-auto"
               : "max-h-0 opacity-0 mb-0 pointer-events-none"
@@ -367,7 +435,7 @@ export default function ChatInputArea({
                 return (
                   <div
                     key={idx}
-                    className="relative flex items-center gap-2 bg-onicord-base border border-onicord-tint/10 rounded-lg p-1.5 shrink-0 pr-7 max-w-[230px] shadow"
+                    className="relative flex items-center gap-2 bg-onicord-base border border-onicord-border-strong rounded-lg p-1.5 shrink-0 pr-7 max-w-[230px] shadow"
                   >
                     <div className="w-10 h-10 rounded bg-black/50 overflow-hidden shrink-0 flex items-center justify-center relative">
                       {pf.previewUrl ? (
@@ -406,11 +474,11 @@ export default function ChatInputArea({
                                 ? t("chat.nsfwMarkTooltip", "Marcar archivo como contenido NSFW (+18)")
                                 : t("chat.nsfwNotAllowedInChannel", "Este canal no tiene permitido el envío de contenido NSFW.")
                             }
-                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors cursor-pointer shrink-0 ${
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-semibold border transition-colors cursor-pointer shrink-0 ${
                               isNsfw
-                                ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
+                                ? "bg-onicord-danger/20 text-onicord-danger border-onicord-danger/40"
                                 : channelAllowsNsfw
-                                  ? "bg-onicord-tint/5 text-onicord-muted border-onicord-tint/10 hover:text-onicord-text hover:bg-onicord-tint/10"
+                                  ? "bg-onicord-tint/5 text-onicord-muted border-onicord-border-strong hover:text-onicord-text hover:bg-onicord-hover"
                                   : "bg-onicord-tint/5 text-onicord-muted/50 border-onicord-border"
                             }`}
                           >
@@ -426,7 +494,7 @@ export default function ChatInputArea({
                     <button
                       type="button"
                       onClick={() => onRemovePendingFile(idx)}
-                      className="w-5 h-5 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-1 right-1"
+                      className="w-5 h-5 flex items-center justify-center rounded-full bg-onicord-danger/10 text-onicord-danger hover:bg-onicord-danger hover:text-white transition-colors absolute top-1 right-1"
                       title={t("chat.cancelSend")}
                     >
                       <span className="text-xs font-bold leading-none">✕</span>
@@ -486,9 +554,9 @@ export default function ChatInputArea({
                         }
                         className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
                           isNsfw
-                            ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
+                            ? "bg-onicord-danger/20 text-onicord-danger border-onicord-danger/40"
                             : channelAllowsNsfw
-                              ? "bg-onicord-surface/80 text-onicord-muted border-onicord-tint/10 hover:text-onicord-text hover:bg-onicord-tint/10"
+                              ? "bg-onicord-surface/80 text-onicord-muted border-onicord-border-strong hover:text-onicord-text hover:bg-onicord-hover"
                               : "bg-onicord-surface/40 text-onicord-muted/50 border-onicord-border"
                         }`}
                       >
@@ -512,7 +580,7 @@ export default function ChatInputArea({
                         setPendingFile?.(null);
                       }
                     }}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors absolute top-2 right-2"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-onicord-danger/10 text-onicord-danger hover:bg-onicord-danger hover:text-white transition-colors absolute top-2 right-2"
                     title={t("chat.cancelSend")}
                   >
                     <span className="text-sm font-bold leading-none">✕</span>
@@ -550,7 +618,7 @@ export default function ChatInputArea({
             {/* Forum post title expansion input */}
             {isForum && (
               <div
-                className={`w-full overflow-hidden transition-all duration-300 ease-out ${
+                className={`w-full overflow-hidden transition-all duration-relaxed ease-out ${
                   isForumExpanded
                     ? "max-h-24 opacity-100 pt-2 mb-0.5 pointer-events-auto"
                     : "max-h-0 opacity-0 py-0 mb-0 pointer-events-none"
@@ -643,7 +711,7 @@ export default function ChatInputArea({
                   !hasSendMessages
                     ? "opacity-35 cursor-not-allowed pointer-events-none"
                     : isEphemeralMode
-                      ? "!border-amber-500/50 bg-amber-500/15 !text-amber-400"
+                      ? "!border-onicord-warning/50 bg-onicord-warning/15 !text-onicord-warning"
                       : ""
                 }`}
                 disabled={!hasSendMessages}

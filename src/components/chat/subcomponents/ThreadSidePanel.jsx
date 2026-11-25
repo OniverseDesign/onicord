@@ -25,6 +25,7 @@ import { soundEngine } from "../../../lib/soundEngine";
 import { triggerServerFlameInteraction } from "../../../lib/flameService";
 import { normalizeChatMessage } from "../../../hooks/useChatMessages";
 import { useChatComposer } from "../composer/useChatComposer";
+import { useQuickSuggestions } from "../composer/useQuickSuggestions";
 import { replaceShortcodesInText } from "../../../lib/emojiData";
 
 export default function ThreadSidePanel({
@@ -621,60 +622,20 @@ export default function ThreadSidePanel({
     [onToggleReaction, profile, server, parentMessage.channelId]
   );
 
-  const suggestions = useMemo(() => {
-    const enableSuggestions = profile?.general?.enableQuickSuggestions ?? true;
-    if (!enableSuggestions || !Array.isArray(messages) || messages.length === 0) return [];
-    const last100 = messages.slice(-100);
-    const myMessages = last100.filter((m) => {
-      if (!m) return false;
-      const isMe = m.authorId === profile?.id || m.authorId === "self";
-      if (!isMe) return false;
-      if (!m.text) return false;
-      const text = m.text.trim();
-      if (text.length === 0 || text.length > 100) return false;
-      
-      // Filter out control patterns
-      if (text.startsWith("{") || text.includes('"type":"sticker"')) return false;
-      if (text.includes("[MUSIC_ACTION]") || text.startsWith("[MUSIC_ACTION]")) return false;
-      if (text.includes("[NUDGE_MESSAGE]") || text.startsWith("[NUDGE_MESSAGE]")) return false;
-      if (text.includes("[REACTION_ACTION]") || text.startsWith("[REACTION_ACTION]")) return false;
-      if (text.includes("[TTS_MESSAGE]") || text.startsWith("[TTS_MESSAGE]")) return false;
-      if (text.includes("[PIN_ACTION]") || text.startsWith("[PIN_ACTION]")) return false;
-      if (text.includes("[EDIT_MESSAGE]") || text.startsWith("[EDIT_MESSAGE]")) return false;
-      if (text.includes("[FORWARD_MESSAGE]") || text.startsWith("[FORWARD_MESSAGE]")) return false;
-      if (text.includes("[PLUGIN_ACTION]") || text.startsWith("[PLUGIN_ACTION]")) return false;
-      if (text.includes("[PLUGIN_EMBED]") || text.startsWith("[PLUGIN_EMBED]")) return false;
-      if (text.includes("[FILE_ATTACHMENT]") || text.startsWith("[FILE_ATTACHMENT]")) return false;
-      
-      return true;
-    }).map((m) => m.text.trim());
-
-    const freqMap = {};
-    const lastIndexMap = {};
-    myMessages.forEach((text, index) => {
-      freqMap[text] = (freqMap[text] || 0) + 1;
-      lastIndexMap[text] = index;
-    });
-
-    const uniqueTexts = Object.keys(freqMap);
-    uniqueTexts.sort((a, b) => {
-      if (freqMap[b] !== freqMap[a]) return freqMap[b] - freqMap[a];
-      return lastIndexMap[b] - lastIndexMap[a];
-    });
-
-    return uniqueTexts.slice(0, 6);
-  }, [messages, profile?.general?.enableQuickSuggestions, profile?.id]);
-
-  const visibleSuggestions = useMemo(() => {
-    if (!isInputFocused) return [];
-    if (!input) return suggestions;
-    const trimmedInput = input.trim().toLowerCase();
-    return suggestions.filter((text) => {
-      const trimmedText = text.trim().toLowerCase();
-      if (trimmedText === trimmedInput) return false;
-      return text.toLowerCase().includes(input.toLowerCase());
-    });
-  }, [suggestions, isInputFocused, input]);
+  const {
+    visibleSuggestions,
+    pinSuggestion,
+    unpinSuggestion,
+    dismissSuggestion,
+  } = useQuickSuggestions({
+    roomCode: server?.roomCode,
+    channelId: parentMessage?.channelId || "general",
+    messages,
+    profile,
+    peers,
+    isInputFocused,
+    input,
+  });
 
   const handleReplyClick = useCallback((target) => {
     setReplyTarget(target);
@@ -756,7 +717,7 @@ export default function ThreadSidePanel({
         <button
           type="button"
           onClick={onClose}
-          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-text transition-colors cursor-pointer"
+          className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-onicord-hover text-onicord-muted hover:text-onicord-text transition-colors cursor-pointer"
           title={t("common.close", "Cerrar")}
         >
           <MaterialIcon name="close" size={18} />
@@ -773,7 +734,7 @@ export default function ThreadSidePanel({
             <div
               className={`w-full ${
                 isThreadSkeletonFadingOut
-                  ? "absolute inset-0 z-10 pointer-events-none transition-opacity duration-200 opacity-0 bg-onicord-base"
+                  ? "absolute inset-0 z-10 pointer-events-none transition-opacity duration-normal opacity-0 bg-onicord-base"
                   : "min-h-full"
               }`}
             >
@@ -922,6 +883,7 @@ export default function ThreadSidePanel({
         handleAttachFileClick={() => fileInputRef.current?.click()}
         handleSelectEmoji={handleSelectEmoji}
         onSelectSticker={handleSendSticker}
+        setContextMenu={setContextMenu}
         isEphemeralMode={isEphemeralMode}
         onToggleEphemeralMode={() => setIsEphemeralMode((v) => !v)}
       />
@@ -1091,6 +1053,35 @@ export default function ThreadSidePanel({
                 const text = await readTextFromClipboard();
                 if (text) setInput((prev) => prev + text);
                 tyrannyInputRef.current?.focus();
+              },
+            });
+          }
+
+          if (contextMenu.type === "quick-suggestion" && contextMenu.data) {
+            const item = contextMenu.data;
+            if (item.kind === "phrase") {
+              menuItems.push({
+                label: item.isPinned
+                  ? t("chat.unpinSuggestion", "Desfijar sugerencia")
+                  : t("chat.pinSuggestion", "Fijar sugerencia"),
+                icon: (
+                  <MaterialIcon
+                    name={item.isPinned ? "keep_off" : "push_pin"}
+                    size="base"
+                  />
+                ),
+                onClick: () => {
+                  if (item.isPinned) unpinSuggestion(item.normKey);
+                  else pinSuggestion(item);
+                },
+              });
+            }
+            menuItems.push({
+              label: t("chat.hideSuggestion", "Ocultar esta sugerencia"),
+              icon: <MaterialIcon name="visibility_off" size="base" />,
+              variant: "danger",
+              onClick: () => {
+                dismissSuggestion(item.normKey);
               },
             });
           }

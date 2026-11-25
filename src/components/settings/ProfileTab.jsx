@@ -385,6 +385,8 @@ export default function ProfileTab({
                 onSelectColor={(key, info) => {
                   if (key === "default") {
                     handleColorChange("");
+                  } else if (info.isStructure) {
+                    handleColorChange(`rgb(${info.rawRgb})`);
                   } else {
                     handleColorChange(info.colorVar);
                   }
@@ -407,7 +409,7 @@ export default function ProfileTab({
                 <button
                   type="button"
                   onClick={() => onResetServerProfile?.(activeScopeKey)}
-                  className="text-[10px] font-bold text-onicord-accent bg-onicord-tint/5 hover:bg-onicord-tint/10 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                  className="text-2xs font-bold text-onicord-accent bg-onicord-tint/5 hover:bg-onicord-hover px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                 >
                   {t(
                     "profileTab.resetToServerDefault",
@@ -427,7 +429,7 @@ export default function ProfileTab({
 
           {/* Live Preview Card */}
           <div className="onicord-settings-card flex flex-col items-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted mb-3 flex items-center gap-1.5 self-start">
+            <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted mb-3 flex items-center gap-1.5 self-start">
               <MaterialIcon name="visibility" size={14} />
               <span>
                 {isServerScope

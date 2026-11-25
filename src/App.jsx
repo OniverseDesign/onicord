@@ -8,6 +8,7 @@ const InviteModal = lazy(() => import("./components/modals/InviteModal"));
 import { notificationManager } from "./lib/notificationManager";
 import { soundEngine } from "./lib/soundEngine";
 import { ACCENT_PALETTE, applyDynamicTheme } from "./lib/colors";
+import { getCustomCSSState, applyCustomCSS, getWindowMicaEnabled, applyWindowMica } from "./lib/customCss";
 import { VoiceProvider, useGlobalVoice } from "./context/VoiceContext";
 import { MusicProvider, useMusicSession } from "./context/MusicContext";
 import { WatchPartyProvider, useWatchParty } from "./context/WatchPartyContext";
@@ -174,7 +175,7 @@ function TitleBar() {
 
   if (!api || isFullscreen) return null;
   return (
-    <div className="titlebar-drag flex h-[22px] w-full items-center justify-between bg-onicord-mantle px-2 text-[12px] font-medium text-onicord-text select-none z-titlebar">
+    <div className="titlebar-drag flex h-[22px] w-full items-center justify-between bg-onicord-mantle px-2 text-xs font-medium text-onicord-text select-none z-titlebar">
       <div className="flex items-center gap-2 p-3 mt-4 pointer-events-none">
         <IconOnicord className="w-16 text-onicord-accent" />
       </div>
@@ -464,15 +465,13 @@ export default function App() {
         mode: savedMode,
       });
 
-      const savedCSS = localStorage.getItem("onicord_theme_custom_css") || "";
+      const { css: savedCSS, enabled: cssEnabled } = getCustomCSSState();
       if (savedCSS) {
-        let styleTag = document.getElementById("onicord-runtime-styles");
-        if (!styleTag) {
-          styleTag = document.createElement("style");
-          styleTag.id = "onicord-runtime-styles";
-          document.head.appendChild(styleTag);
-        }
-        styleTag.innerHTML = savedCSS;
+        applyCustomCSS(savedCSS, cssEnabled);
+      }
+
+      if (getWindowMicaEnabled()) {
+        applyWindowMica(true);
       }
 
       const savedLineHeight = localStorage.getItem("onicord_chat_line_height") || "1.5";
@@ -761,7 +760,7 @@ export default function App() {
               {/* Startup splash overlay: smoothly dissolves over pre-mounted app */}
               {showSplash && (
                 <div
-                  className={`fixed inset-0 z-[100] bg-onicord-base flex items-center justify-center transition-opacity duration-400 ease-out ${
+                  className={`fixed inset-0 z-overlay-top bg-onicord-base flex items-center justify-center transition-opacity duration-400 ease-out ${
                     isFadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
                   }`}
                 >

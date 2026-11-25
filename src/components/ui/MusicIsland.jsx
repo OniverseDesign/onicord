@@ -129,7 +129,7 @@ export default function MusicIsland({ musicState }) {
 
   return (
     <div
-      className={`w-full overflow-hidden transition-all duration-300 ease-in-out shrink-0 flex flex-col ${
+      className={`w-full overflow-hidden transition-all duration-relaxed ease-in-out shrink-0 flex flex-col ${
         isVisible
           ? "max-h-[500px] opacity-100 scale-100 pointer-events-auto"
           : "max-h-0 opacity-0 scale-95 pointer-events-none -mb-[calc(var(--gap)+3px)]"
@@ -137,9 +137,9 @@ export default function MusicIsland({ musicState }) {
     >
       {displayTrack && (
         hasJoinedMusic !== true ? (
-        <div className="w-full shrink-0 bg-onicord-surface/30 rounded-onicord-outer-p4 border border-onicord-island flex flex-col overflow-hidden select-none relative backdrop-blur-md p-4 gap-3 z-10 text-left">
+        <div className="w-full shrink-0 bg-onicord-surface/30 rounded-onicord-outer-p4 border border-onicord-island flex flex-col overflow-hidden select-none relative backdrop-blur-onicord-popover p-4 gap-3 z-10 text-left">
           <div
-            className="absolute inset-0 z-0 pointer-events-none opacity-30 scale-110 blur-2xl transition-all duration-500"
+            className="absolute inset-0 z-0 pointer-events-none opacity-30 scale-110 blur-2xl transition-all duration-slow"
             style={{
               backgroundImage: `url(${displayTrack?.thumbnail})`,
               backgroundPosition: "center",
@@ -152,7 +152,7 @@ export default function MusicIsland({ musicState }) {
                 {t("music.playingInServer", "Música en la sala")}
               </h4>
             </div>
-            <p className="text-[11px] text-onicord-subtext font-medium leading-relaxed">
+            <p className="text-xs text-onicord-subtext font-medium leading-relaxed">
               {t(
                 "music.joinPromptText",
                 "¿Deseas unirte a la reproducción de música en el servidor?",
@@ -169,7 +169,7 @@ export default function MusicIsland({ musicState }) {
                 onClick={() => {
                   setHasJoinedMusic("ignored");
                 }}
-                className="px-3 py-1.5 rounded-lg bg-onicord-tint/5 hover:bg-onicord-tint/10 text-onicord-text text-xs font-bold transition-all cursor-pointer shadow-sm text-center"
+                className="px-3 py-1.5 rounded-lg bg-onicord-tint/5 hover:bg-onicord-hover text-onicord-text text-xs font-bold transition-all cursor-pointer shadow-sm text-center"
               >
                 {t("common.ignore", "Ignorar")}
               </button>
@@ -177,9 +177,9 @@ export default function MusicIsland({ musicState }) {
           </div>
         </div>
       ) : (
-        <div className="w-full shrink-0 bg-onicord-surface/90 rounded-onicord-outer-p4 border border-onicord-island flex flex-col overflow-hidden select-none relative backdrop-blur-md">
+        <div className="w-full shrink-0 bg-onicord-surface/90 rounded-onicord-outer-p4 border border-onicord-island flex flex-col overflow-hidden select-none relative backdrop-blur-onicord-popover">
           <div
-            className="absolute inset-0 z-0 pointer-events-none opacity-70 scale-110 blur-lg transition-all duration-500"
+            className="absolute inset-0 z-0 pointer-events-none opacity-70 scale-110 blur-lg transition-all duration-slow"
             style={{
               backgroundImage: `url(${displayTrack?.thumbnail})`,
               backgroundPosition: "center",
@@ -190,7 +190,7 @@ export default function MusicIsland({ musicState }) {
           <div className="p-3 flex flex-col gap-3 z-10 w-full">
             {/* Top section: Thumbnail on left, track info on right */}
             <div className="flex items-center gap-4 w-full">
-              <div className="w-24 h-24 shrink-0 rounded-onicord-button overflow-hidden bg-black/40 border border-onicord-border relative shadow-md">
+              <div className="w-24 h-24 shrink-0 rounded-onicord-button overflow-hidden bg-onicord-scrim border border-onicord-border relative shadow-md">
                 <img
                   src={displayTrack?.thumbnail}
                   className="w-full h-full object-cover"
@@ -296,13 +296,13 @@ export default function MusicIsland({ musicState }) {
           <div className="flex items-center gap-4">
             <button
               onClick={() => handleTabClick("queue", showQueue, setShowQueue)}
-              className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === "queue" && showQueue ? "text-onicord-accent" : "text-onicord-muted hover:text-onicord-text"}`}
+              className={`text-2xs font-bold uppercase tracking-widest transition-colors ${activeTab === "queue" && showQueue ? "text-onicord-accent" : "text-onicord-muted hover:text-onicord-text"}`}
             >
               Playlist {playlist.length > 0 && `(${playlist.length})`}
             </button>
             <button
               onClick={() => handleTabClick("history", showQueue, setShowQueue)}
-              className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === "history" && showQueue ? "text-onicord-accent" : "text-onicord-muted hover:text-onicord-text"}`}
+              className={`text-2xs font-bold uppercase tracking-widest transition-colors ${activeTab === "history" && showQueue ? "text-onicord-accent" : "text-onicord-muted hover:text-onicord-text"}`}
             >
               Historial {playHistory.length > 0 && `(${playHistory.length})`}
             </button>
@@ -332,12 +332,12 @@ export default function MusicIsland({ musicState }) {
         {showQueue && (
           <div className="space-y-2.5 max-h-40 overflow-y-auto minimal-scrollbar animate-fade-in">
             {activeTab === "queue" && playlist.length === 0 && (
-              <p className="text-[10px] text-white/30 text-center py-2">
+              <p className="text-2xs text-onicord-muted text-center py-2">
                 Queue is empty
               </p>
             )}
             {activeTab === "history" && playHistory.length === 0 && (
-              <p className="text-[10px] text-white/30 text-center py-2">
+              <p className="text-2xs text-onicord-muted text-center py-2">
                 No songs listened to yet
               </p>
             )}
@@ -378,22 +378,22 @@ export default function MusicIsland({ musicState }) {
                   className={`flex items-center justify-between group px-1 rounded-lg hover:bg-onicord-tint/[0.02] py-1 transition-colors relative cursor-pointer select-none ${draggedIdx === i ? "opacity-30 border border-dashed border-onicord-accent" : ""}`}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-black/40 border border-onicord-border shrink-0 relative">
+                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-onicord-scrim border border-onicord-border shrink-0 relative">
                       <img
                         src={track.thumbnail}
                         className="w-full h-full object-cover"
                         alt=""
                       />
                       {}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <MaterialIcon name="play_arrow" size="sm" className="text-white" />
+                      <div className="absolute inset-0 bg-onicord-scrim opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <MaterialIcon name="play_arrow" size="sm" className="text-onicord-on-scrim" />
                       </div>
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-onicord-text truncate group-hover:text-onicord-accent transition-colors pr-2">
                         {track.title}
                       </p>
-                      <p className="text-[10px] text-onicord-muted truncate mt-0.5">
+                      <p className="text-2xs text-onicord-muted truncate mt-0.5">
                         {track.author}
                       </p>
                     </div>
@@ -401,14 +401,14 @@ export default function MusicIsland({ musicState }) {
 
                   <div className="flex items-center shrink-0 ml-2 min-w-[40px] justify-end relative h-8">
                     <span
-                      className={`text-[10px] font-mono text-onicord-muted transition-all duration-200 absolute ${activeTab === "queue" || activeTab === "history" ? "group-hover:opacity-0 group-hover:pointer-events-none" : ""}`}
+                      className={`text-2xs font-mono text-onicord-muted transition-all duration-normal absolute ${activeTab === "queue" || activeTab === "history" ? "group-hover:opacity-0 group-hover:pointer-events-none" : ""}`}
                     >
                       {track.duration}
                     </span>
                     {activeTab === "queue" && canManageMusic && (
                       <button
                         onClick={(e) => handleRemoveTrack(track.trackId, e)}
-                        className="opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 p-1.5 rounded-md text-onicord-muted hover:text-onicord-danger bg-onicord-tint/[0.04] hover:bg-onicord-danger/10 border border-onicord-border flex items-center justify-center absolute"
+                        className="opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-normal p-1.5 rounded-md text-onicord-muted hover:text-onicord-danger bg-onicord-tint/[0.04] hover:bg-onicord-danger/10 border border-onicord-border flex items-center justify-center absolute"
                         title={t("widgets.music.removeFromQueue")}
                       >
                         <MaterialIcon name="close" size="base" />
@@ -419,7 +419,7 @@ export default function MusicIsland({ musicState }) {
                     {activeTab === "history" && (
                       <button
                         onClick={(e) => handleAddToQueue(track, e)}
-                        className="opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-200 p-1.5 rounded-md text-onicord-muted hover:text-onicord-success bg-onicord-tint/[0.04] hover:bg-onicord-success/10 border border-onicord-border flex items-center justify-center absolute"
+                        className="opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-normal p-1.5 rounded-md text-onicord-muted hover:text-onicord-success bg-onicord-tint/[0.04] hover:bg-onicord-success/10 border border-onicord-border flex items-center justify-center absolute"
                         title={t("widgets.music.addToQueue")}
                       >
                         <MaterialIcon name="add" size="base" />
@@ -432,7 +432,7 @@ export default function MusicIsland({ musicState }) {
         )}
       </div>
 
-        <div className="border-t border-onicord-tint/[0.04] bg-onicord-mantle"></div>
+        <div className="border-t border-onicord-border-subtle bg-onicord-mantle"></div>
       </div>
     ))}
   </div>

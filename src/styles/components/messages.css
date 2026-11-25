@@ -12,7 +12,7 @@
     @apply mt-0.5 h-11 w-11 shrink-0 cursor-pointer overflow-hidden rounded-full bg-onicord-accent hover:opacity-80;
   }
   .onicord-message-toolbar {
-    @apply absolute right-2 top-3 z-30 opacity-0 flex items-center rounded-onicord-inner bg-onicord-base border border-onicord-island h-7 overflow-hidden transition-all duration-150 pointer-events-auto;
+    @apply absolute right-2 top-3 z-30 opacity-0 flex items-center rounded-onicord-inner bg-onicord-base border border-onicord-island h-7 overflow-hidden transition-all duration-fast pointer-events-auto;
   }
   .group:hover .onicord-message-toolbar {
     opacity: 1;

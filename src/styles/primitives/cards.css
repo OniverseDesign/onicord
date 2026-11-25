@@ -31,13 +31,13 @@
   }
 
   .onicord-sticker-card {
-    @apply bg-onicord-surface p-1 rounded-onicord-button flex flex-col items-center justify-center overflow-hidden transition-colors duration-150 select-none aspect-square;
+    @apply bg-onicord-surface p-1 rounded-onicord-button flex flex-col items-center justify-center overflow-hidden transition-colors duration-fast select-none aspect-square;
     position: relative !important;
     border: 1px solid var(--onicord-border) !important;
   }
 
   .onicord-isla-shell {
-    @apply h-full w-full rounded-onicord-outer-p4 border p-5 flex flex-col justify-between shadow-md relative overflow-hidden transition-all duration-300 select-none;
+    @apply h-full w-full rounded-onicord-outer-p4 border p-5 flex flex-col justify-between shadow-md relative overflow-hidden transition-all duration-relaxed select-none;
   }
 
   .onicord-media-preview-card {
@@ -45,6 +45,6 @@
   }
 
   .onicord-popover-card {
-    @apply fixed z-popover bg-onicord-mantle/95 backdrop-blur-md rounded-onicord-outer-p4 border border-onicord-island onicord-animate-popup-in select-none text-onicord-text;
+    @apply fixed z-popover bg-onicord-mantle/95 backdrop-blur-onicord-popover rounded-onicord-outer-p4 border border-onicord-island onicord-animate-popup-in select-none text-onicord-text;
   }
 }

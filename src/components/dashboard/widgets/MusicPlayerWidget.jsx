@@ -149,7 +149,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
               <MaterialIcon name="play_arrow" size="lg" />
             </div>
             <p
-              className={`text-[11px] font-medium max-w-[200px] leading-relaxed transition-colors ${textColor}`}
+              className={`text-xs font-medium max-w-[200px] leading-relaxed transition-colors ${textColor}`}
             >
               {t("widgets.music.pasteUrlHint", "Paste a URL in chat")}
             </p>
@@ -157,7 +157,7 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
         ) : (
           <div className="w-full flex flex-col gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-24 h-24 rounded-onicord-button overflow-hidden bg-black/40 border border-onicord-border shrink-0 shadow-md">
+              <div className="w-24 h-24 rounded-onicord-button overflow-hidden bg-onicord-scrim border border-onicord-border shrink-0 shadow-md">
                 <img
                   src={currentTrack.thumbnail}
                   className="w-full h-full object-cover"
@@ -271,17 +271,17 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 z-10 bg-onicord-tint/[0.03] rounded-xl border border-onicord-border mt-4 overflow-hidden">
-        <div className="px-3 py-2 flex items-center gap-4 shrink-0 border-b border-onicord-tint/[0.04]">
+        <div className="px-3 py-2 flex items-center gap-4 shrink-0 border-b border-onicord-border-subtle">
           <button
             onClick={() => setActiveTab("queue")}
-            className={`text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer ${activeTab === "queue" ? "text-onicord-accent" : `${textColor} opacity-50 hover:opacity-100`}`}
+            className={`text-2xs font-bold uppercase tracking-widest transition-colors cursor-pointer ${activeTab === "queue" ? "text-onicord-accent" : `${textColor} opacity-50 hover:opacity-100`}`}
           >
             {t("widgets.music.playlist", "Playlist")}{" "}
             {playlist.length > 0 && `(${playlist.length})`}
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`text-[10px] font-bold uppercase tracking-widest transition-colors cursor-pointer ${activeTab === "history" ? "text-onicord-accent" : `${textColor} opacity-50 hover:opacity-100`}`}
+            className={`text-2xs font-bold uppercase tracking-widest transition-colors cursor-pointer ${activeTab === "history" ? "text-onicord-accent" : `${textColor} opacity-50 hover:opacity-100`}`}
           >
             {t("widgets.music.history", "History")}{" "}
             {playHistory.length > 0 && `(${playHistory.length})`}
@@ -291,14 +291,14 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
         <div className="flex-1 overflow-y-auto minimal-scrollbar p-1.5 space-y-1">
           {activeTab === "queue" && playlist.length === 0 && (
             <p
-              className={`text-[9px] text-center py-4 transition-colors ${textColor}`}
+              className={`text-2xs text-center py-4 transition-colors ${textColor}`}
             >
               {t("widgets.music.queueEmpty", "Queue empty")}
             </p>
           )}
           {activeTab === "history" && playHistory.length === 0 && (
             <p
-              className={`text-[9px] text-center py-4 transition-colors ${textColor}`}
+              className={`text-2xs text-center py-4 transition-colors ${textColor}`}
             >
               {t("widgets.music.noHistory", "No history")}
             </p>
@@ -339,19 +339,19 @@ export default function MusicPlayerWidget({ musicState, setCustomBackground }) {
                 onClick={() => handlePlayTrack(track)}
                 className={`flex items-center gap-2.5 p-1.5 rounded-lg group/item hover:bg-onicord-tint/[0.04] transition-colors cursor-pointer select-none ${draggedIdx === idx ? "opacity-30 border border-dashed border-onicord-accent" : ""}`}
               >
-                <div className="relative w-7 h-7 rounded-lg overflow-hidden bg-black/40 border border-onicord-border shrink-0">
+                <div className="relative w-7 h-7 rounded-lg overflow-hidden bg-onicord-scrim border border-onicord-border shrink-0">
                   <img
                     src={track.thumbnail}
                     className="w-full h-full object-cover"
                     alt=""
                   />
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/item:opacity-100 flex items-center justify-center transition-opacity">
-                    <MaterialIcon name="play_arrow" size="sm" className="text-white" />
+                  <div className="absolute inset-0 bg-onicord-scrim opacity-0 group-hover/item:opacity-100 flex items-center justify-center transition-opacity">
+                    <MaterialIcon name="play_arrow" size="sm" className="text-onicord-on-scrim" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p
-                    className={`text-[11px] truncate font-medium group-hover/item:text-[#c3a9ff] transition-colors ${textColor}`}
+                    className={`text-xs truncate font-medium group-hover/item:text-[#c3a9ff] transition-colors ${textColor}`}
                   >
                     {track.title}
                   </p>

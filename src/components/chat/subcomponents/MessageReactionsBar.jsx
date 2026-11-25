@@ -73,7 +73,7 @@ export default function MessageReactionsBar({
                   <span className="font-mono text-xs text-onicord-text font-semibold">
                     {shortcodeLabel}
                   </span>
-                  <span className="text-[11px] font-normal text-onicord-muted truncate max-w-[200px]">
+                  <span className="text-xs font-normal text-onicord-muted truncate max-w-[200px]">
                     {t("chat.reactedBy")}: {userNames.join(", ")}
                   </span>
                 </div>
@@ -83,10 +83,10 @@ export default function MessageReactionsBar({
             <button
               type="button"
               onClick={() => onToggleReaction?.(msgId, emoji)}
-              className={`onicord-reaction-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all duration-150 cursor-pointer active:scale-95 hover:scale-105 ${
+              className={`onicord-reaction-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all duration-fast cursor-pointer active:scale-95 hover:scale-105 ${
                 hasMyReaction
                   ? "bg-onicord-accent/20 text-onicord-accent border-onicord-accent/40"
-                  : "bg-onicord-tint/5 text-onicord-subtext border-onicord-tint/10 hover:bg-onicord-tint/10 hover:text-white"
+                  : "bg-onicord-tint/5 text-onicord-subtext border-onicord-border-strong hover:bg-onicord-hover hover:text-white"
               }`}
             >
               {customEmoji ? (
@@ -99,9 +99,9 @@ export default function MessageReactionsBar({
                   showTooltip={false}
                 />
               ) : (
-                <span className="text-sm leading-none transition-transform duration-150">{emoji}</span>
+                <span className="text-sm leading-none transition-transform duration-fast">{emoji}</span>
               )}
-              <span className="text-[11px] font-mono leading-none">
+              <span className="text-xs font-mono leading-none">
                 {users.length}
               </span>
             </button>
@@ -121,7 +121,7 @@ export default function MessageReactionsBar({
               setPickerTargetRect(e.currentTarget.getBoundingClientRect());
             }
           }}
-          className="inline-flex items-center justify-center w-7 h-[26px] rounded-xl bg-onicord-tint/5 border border-onicord-tint/10 hover:bg-onicord-tint/10 hover:border-onicord-tint/20 text-onicord-muted hover:text-white transition-all duration-150 cursor-pointer active:scale-95"
+          className="inline-flex items-center justify-center w-7 h-[26px] rounded-xl bg-onicord-tint/5 border border-onicord-border-strong hover:bg-onicord-hover hover:border-onicord-border-strong text-onicord-muted hover:text-white transition-all duration-fast cursor-pointer active:scale-95"
         >
           <MaterialIcon name="add_reaction" size={15} />
         </button>

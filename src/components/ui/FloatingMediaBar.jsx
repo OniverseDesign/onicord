@@ -38,7 +38,7 @@ export default function FloatingMediaBar({
       onPointerDown={(e) => e.stopPropagation()}
       style={{ zIndex: 45, transform: "translate3d(0, 0, 50px)", ...style }}
       className={cn(
-        "onicord-media-control-bar-wrapper transition-all duration-300",
+        "onicord-media-control-bar-wrapper transition-all duration-relaxed",
         !visible
           ? "opacity-0 translate-y-6 pointer-events-none"
           : "opacity-100 translate-y-0 pointer-events-auto",
@@ -299,7 +299,7 @@ FloatingMediaBar.Timeline = function FloatingTimeline({
         onTouchEnd={(e) => onSeekEnd && onSeekEnd(Number(e.target.value))}
         className="w-20 @[480px]:w-36 h-1.5 bg-black/40 rounded-full appearance-none cursor-pointer accent-onicord-accent hover:h-2 transition-all"
       />
-      <span className="text-[11px] font-mono text-onicord-subtext tabular-nums shrink-0 select-none">
+      <span className="text-xs font-mono text-onicord-subtext tabular-nums shrink-0 select-none">
         {format(currentTime)} / {format(duration)}
       </span>
     </div>
@@ -371,12 +371,12 @@ FloatingMediaBar.Menu = function FloatingMenu({
             msOverflowStyle: "none",
           }}
           className={cn(
-            "onicord-party-popup absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-onicord-surface/95 backdrop-blur-2xl border border-onicord-island rounded-2xl p-1.5 z-50 flex flex-col gap-0.5 text-xs select-none max-h-60 overflow-y-auto overscroll-contain no-scrollbar shadow-2xl [&::-webkit-scrollbar]:hidden",
+            "onicord-party-popup absolute bottom-full mb-3 left-1/2 -translate-x-1/2 bg-onicord-surface/95 backdrop-blur-onicord-island border border-onicord-island rounded-2xl p-1.5 z-50 flex flex-col gap-0.5 text-xs select-none max-h-60 overflow-y-auto overscroll-contain no-scrollbar shadow-2xl [&::-webkit-scrollbar]:hidden",
             widthClass
           )}
         >
           {showTitle && menuTitle && (
-            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-onicord-muted border-b border-onicord-border flex items-center justify-between mb-1">
+            <div className="px-2 py-1 text-2xs font-bold uppercase tracking-wider text-onicord-muted border-b border-onicord-border flex items-center justify-between mb-1">
               <span>{menuTitle}</span>
               {onClose && (
                 <button

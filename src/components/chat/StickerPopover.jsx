@@ -288,7 +288,7 @@ export default function StickerPopover({
           key={`${keyPrefix}-${stk.id}`}
           type="button"
           onClick={() => handleStickerClick(stk)}
-          className="w-full aspect-square flex items-center justify-center p-1.5 hover:bg-onicord-tint/10 rounded-xl transition-transform duration-100 active:scale-125 hover:scale-105 cursor-pointer"
+          className="w-full aspect-square flex items-center justify-center p-1.5 hover:bg-onicord-hover rounded-xl transition-transform duration-instant active:scale-125 hover:scale-105 cursor-pointer"
           title={stk.id}
         >
           <img
@@ -315,7 +315,7 @@ export default function StickerPopover({
       className="onicord-floating-menu w-80 h-96 flex flex-col !p-0 overflow-hidden z-popover"
     >
       {/* Search Header */}
-      <div className="p-2.5 border-b border-onicord-tint/10 bg-onicord-mantle/50 flex items-center gap-2">
+      <div className="p-2.5 border-b border-onicord-border-strong bg-onicord-mantle/50 flex items-center gap-2">
         <MaterialIcon name="search" size="lg" className="text-onicord-muted pl-1" />
         <input
           type="text"
@@ -343,7 +343,7 @@ export default function StickerPopover({
               <button
                 type="button"
                 onClick={() => handleTabClick("top")}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0 cursor-pointer ${
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-fast shrink-0 cursor-pointer ${
                   activeTab === "top"
                     ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold"
                     : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent"
@@ -361,7 +361,7 @@ export default function StickerPopover({
                 <button
                   type="button"
                   onClick={() => handleTabClick(`pack-${idx}`)}
-                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0 cursor-pointer overflow-hidden ${
+                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-fast shrink-0 cursor-pointer overflow-hidden ${
                     activeTab === `pack-${idx}`
                       ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold border-2 border-onicord-accent"
                       : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent hover:border-2 border-onicord-accent/50"
@@ -388,7 +388,7 @@ export default function StickerPopover({
               <button
                 type="button"
                 onClick={() => handleTabClick("loose")}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-150 shrink-0 cursor-pointer ${
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-fast shrink-0 cursor-pointer ${
                   activeTab === "loose"
                     ? "bg-onicord-accent text-onicord-on-accent scale-110 font-bold"
                     : "hover:bg-onicord-accent/50 text-onicord-text hover:text-onicord-on-accent"
@@ -404,7 +404,7 @@ export default function StickerPopover({
       {/* Main Content Area */}
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <p className="font-mono text-[11px] text-onicord-muted animate-pulse">
+          <p className="font-mono text-xs text-onicord-muted animate-pulse">
             Cargando stickers...
           </p>
         </div>

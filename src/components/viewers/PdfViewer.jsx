@@ -110,7 +110,7 @@ const PdfPageItem = memo(function PdfPageItem({
 
   if (pageError) {
     return (
-      <div className="flex items-center justify-center bg-black/40 text-xs text-red-400 p-4 rounded-lg min-h-[300px] w-full">
+      <div className="flex items-center justify-center bg-black/40 text-xs text-onicord-danger p-4 rounded-lg min-h-[300px] w-full">
         Error al renderizar página {pageNum}
       </div>
     );
@@ -335,7 +335,7 @@ export default function PdfViewer({ filePath, className = "" }) {
   if (error) {
     return (
       <div className={`flex flex-col items-center justify-center p-12 bg-onicord-mantle rounded-2xl border border-onicord-island gap-3 w-full h-[40vh] ${className}`}>
-        <MaterialIcon name="error" size="xl" className="text-red-400" />
+        <MaterialIcon name="error" size="xl" className="text-onicord-danger" />
         <p className="text-sm font-semibold text-onicord-text">{t("pdf.error", "Error al cargar PDF")}</p>
         <p className="text-xs text-onicord-muted">{error}</p>
       </div>
@@ -345,7 +345,7 @@ export default function PdfViewer({ filePath, className = "" }) {
   return (
     <div className={`flex flex-col items-center gap-3 w-full h-full min-h-0 ${className}`}>
       {/* Controls */}
-      <div className="flex items-center gap-2 bg-onicord-crust/90 backdrop-blur-md rounded-full px-4 py-2 border border-onicord-island shadow-lg select-none z-10 shrink-0">
+      <div className="flex items-center gap-2 bg-onicord-crust/90 backdrop-blur-onicord-popover rounded-full px-4 py-2 border border-onicord-island shadow-lg select-none z-10 shrink-0">
         <button
           type="button"
           onClick={() => goToPage(Math.max(1, visiblePage - 1))}
@@ -418,7 +418,7 @@ export default function PdfViewer({ filePath, className = "" }) {
         ref={scrollContainerRef}
         onScroll={handleScroll}
         onWheel={handleWheel}
-        className="w-full flex-1 min-h-[300px] overflow-auto rounded-2xl border border-onicord-tint/10 bg-neutral-900/90 shadow-2xl relative select-text"
+        className="w-full flex-1 min-h-[300px] overflow-auto rounded-2xl border border-onicord-border-strong bg-neutral-900/90 shadow-2xl relative select-text"
       >
         <div
           style={{

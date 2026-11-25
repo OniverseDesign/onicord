@@ -704,19 +704,19 @@ export default function WatchPartyStage() {
   const renderTopBadge = () => (
     <div
       style={{ zIndex: 45, transform: "translate3d(0, 0, 50px)" }}
-      className={`absolute top-4 left-4 z-30 flex items-center gap-2 bg-black/80 border border-white/10 px-3.5 py-1.5 rounded-full text-xs shadow-2xl backdrop-blur-md select-none transition-all duration-300 pointer-events-auto ${
+      className={`absolute top-4 left-4 z-30 flex items-center gap-2 bg-onicord-scrim-heavy border border-onicord-on-scrim/10 px-3.5 py-1.5 rounded-full text-xs shadow-2xl backdrop-blur-onicord-popover select-none transition-all duration-relaxed pointer-events-auto ${
         !showControls
           ? "opacity-0 -translate-y-4 pointer-events-none"
           : "opacity-100 translate-y-0 pointer-events-auto"
       }`}
     >
-      <span className="flex items-center justify-center w-5 h-5 rounded-md bg-red-600 text-white shrink-0">
+      <span className="flex items-center justify-center w-5 h-5 rounded-md bg-onicord-danger text-onicord-on-scrim shrink-0">
         <MaterialIcon name="smart_display" size={14} />
       </span>
-      <span className="font-semibold text-white truncate max-w-[260px]">
+      <span className="font-semibold text-onicord-on-scrim truncate max-w-[260px]">
         {session.title || t("watchParty.title", "Watch Party")}
       </span>
-      <span className="onicord-live-badge text-[10px]">
+      <span className="onicord-live-badge text-2xs">
         {isHost ? t("watchParty.host", "Anfitrión") : session.hostNickname}
       </span>
     </div>
@@ -896,7 +896,7 @@ export default function WatchPartyStage() {
     <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/70 flex flex-col justify-between p-2 pointer-events-none z-20 select-none">
       {/* Top row in PiP */}
       <div className="flex items-center justify-between w-full">
-        <span className="bg-black/75 px-2 py-0.5 rounded text-[10px] text-white font-semibold select-none pointer-events-none truncate max-w-[220px]">
+        <span className="bg-onicord-scrim-heavy px-2 py-0.5 rounded text-2xs text-onicord-on-scrim font-semibold select-none pointer-events-none truncate max-w-[220px]">
           {session.title || t("watchParty.title", "Watch Party")}
         </span>
 
@@ -907,7 +907,7 @@ export default function WatchPartyStage() {
               e.stopPropagation();
               setIsFloating(false);
             }}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-onicord-surface border border-white/5 text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 cursor-pointer"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-onicord-surface border border-onicord-border text-onicord-text hover:bg-onicord-overlay hover:text-onicord-text transition duration-fast cursor-pointer"
             title={t("watchParty.expandToStage", "Expandir a escenario")}
           >
             <MaterialIcon name="fullscreen" size={16} />
@@ -919,7 +919,7 @@ export default function WatchPartyStage() {
               e.stopPropagation();
               stopWatchParty();
             }}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-onicord-surface border border-onicord-danger/30 text-onicord-danger hover:bg-onicord-danger hover:text-white transition duration-150 cursor-pointer"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-onicord-surface border border-onicord-danger/30 text-onicord-danger hover:bg-onicord-danger hover:text-onicord-on-danger transition duration-fast cursor-pointer"
             title={t("watchParty.closeWatchParty", "Cerrar Watch Party")}
           >
             <MaterialIcon name="close" size={14} />
@@ -936,7 +936,7 @@ export default function WatchPartyStage() {
               e.stopPropagation();
               handleTogglePlayPause();
             }}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-black/75 hover:bg-black text-white transition cursor-pointer"
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-onicord-scrim-heavy hover:bg-black text-onicord-on-scrim transition cursor-pointer"
             title={session?.isPlaying ? t("watchParty.pause", "Pausar") : t("watchParty.play", "Reproducir")}
           >
             <MaterialIcon
@@ -944,7 +944,7 @@ export default function WatchPartyStage() {
               size={14}
             />
           </button>
-          <span className="text-[10px] font-mono text-white/90 tabular-nums">
+          <span className="text-2xs font-mono text-onicord-on-scrim/90 tabular-nums">
             {formatTime(currentPlaybackTime)} / {formatTime(videoDuration)}
           </span>
         </div>
@@ -955,7 +955,7 @@ export default function WatchPartyStage() {
             e.stopPropagation();
             setIsMuted(!isMuted);
           }}
-          className="flex h-6 w-6 items-center justify-center rounded-full bg-black/75 hover:bg-black text-white transition cursor-pointer"
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-onicord-scrim-heavy hover:bg-black text-onicord-on-scrim transition cursor-pointer"
           title={isMuted || volume === 0 ? t("watchParty.unmute", "Activar sonido") : t("watchParty.mute", "Silenciar")}
         >
           <MaterialIcon
@@ -990,7 +990,7 @@ export default function WatchPartyStage() {
           isFullscreen
             ? "fixed inset-0 z-50 bg-black flex flex-col justify-center items-center overflow-hidden select-none"
             : isFloating
-            ? "fixed top-0 left-0 bg-onicord-surface rounded-onicord-inner overflow-hidden border-2 border-onicord-accent shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-transform duration-150 touch-none select-none flex flex-col"
+            ? "fixed top-0 left-0 bg-onicord-surface rounded-onicord-inner overflow-hidden border-2 border-onicord-accent shadow-2xl z-50 cursor-move group hover:scale-[1.01] transition-transform duration-fast touch-none select-none flex flex-col"
             : "relative flex-1 w-full h-full min-h-0 min-w-0 flex flex-col bg-black select-none overflow-hidden rounded-onicord-inner border border-onicord-island group/stage"
         }
       >

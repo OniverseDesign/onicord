@@ -182,7 +182,7 @@ const EmojiAutocompletePopover = memo(
           <span>
             {t ? t("chat.emojiAutocompleteTitle", "Emojis") : "Emojis"}
           </span>
-          <span className="text-[10px] opacity-60 font-mono truncate max-w-[160px]">
+          <span className="text-2xs opacity-60 font-mono truncate max-w-[160px]">
             :{emojiQuery.query}
           </span>
         </div>
@@ -219,7 +219,7 @@ const EmojiAutocompletePopover = memo(
                   </span>
                 </div>
                 <span
-                  className={`text-[10px] shrink-0 ml-2 ${
+                  className={`text-2xs shrink-0 ml-2 ${
                     isSelected
                       ? "text-inherit opacity-85"
                       : "text-onicord-muted opacity-70"

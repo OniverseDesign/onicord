@@ -346,7 +346,7 @@ export default function AboutTab() {
         <div className="absolute -top-12 -right-12 w-36 h-36 bg-onicord-accent/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="cursor-pointer group py-1" onClick={() => handleOpenLink(OFFICIAL_SITE_URL)}>
-          <OnicordLogo className="h-8 w-auto text-onicord-text group-hover:text-onicord-accent transition duration-300 drop-shadow-[0_0_12px_rgba(168,85,247,0.3)]" />
+          <OnicordLogo className="h-8 w-auto text-onicord-text group-hover:text-onicord-accent transition duration-relaxed drop-shadow-[0_0_12px_rgba(168,85,247,0.3)]" />
         </div>
         <p className="text-xs text-onicord-muted font-medium mt-1.5">
           {t("settings.about.tagline", "Chat de Voz y Texto P2P Abierto y Descentralizado")}
@@ -359,7 +359,7 @@ export default function AboutTab() {
           <div className="flex items-top gap-3.5 min-w-0">
             <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
               updateState.status === "available" || updateState.status === "downloaded"
-                ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                ? "bg-onicord-success/20 border-onicord-success/30 text-onicord-success"
                 : "bg-onicord-accent/15 border-onicord-accent/30 text-onicord-accent"
             }`}>
               <MaterialIcon
@@ -385,7 +385,7 @@ export default function AboutTab() {
               <h3 className="text-sm font-bold text-onicord-text flex items-center gap-2">
                 <span>{t("settings.about.updateTitle", "Actualizaciones del Sistema")}</span>
                 {updateState.isPortable && (
-                  <span className="px-2 py-0.5 text-2xs uppercase font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-md">
+                  <span className="px-2 py-0.5 text-2xs uppercase font-mono font-bold bg-onicord-accent/20 text-onicord-accent border border-onicord-accent/30 rounded-md">
                     Portable
                   </span>
                 )}
@@ -411,7 +411,7 @@ export default function AboutTab() {
                 <button
                   type="button"
                   onClick={() => handleOpenChangelog(APP_VERSION, false)}
-                  className="h-9 px-3.5 rounded-onicord-button bg-onicord-tint/5 hover:bg-onicord-tint/10 border border-onicord-tint/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  className="h-9 px-3.5 rounded-onicord-button bg-onicord-tint/5 hover:bg-onicord-hover border border-onicord-border-strong text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
                   title={t("settings.about.viewCurrentNotesTooltip", "Ver las notas de lanzamiento de la versión instalada")}
                 >
                   <MaterialIcon name="history_edu" size={16} />
@@ -434,7 +434,7 @@ export default function AboutTab() {
               <button
                 type="button"
                 onClick={() => handleOpenChangelog(updateState.version, true)}
-                className="h-9 px-3.5 rounded-onicord-button bg-onicord-tint/5 hover:bg-onicord-tint/10 border border-onicord-tint/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                className="h-9 px-3.5 rounded-onicord-button bg-onicord-tint/5 hover:bg-onicord-hover border border-onicord-border-strong text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
                 title={t("settings.about.viewNewNotesTooltip", "Ver notas de la nueva versión")}
               >
                 <MaterialIcon name="article" size={16} />
@@ -446,7 +446,7 @@ export default function AboutTab() {
               <button
                 type="button"
                 onClick={handleStartDownload}
-                className="h-9 px-4 rounded-onicord-button bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                className="h-9 px-4 rounded-onicord-button bg-onicord-success/20 hover:bg-onicord-success/30 border border-onicord-success/40 text-onicord-success text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
               >
                 <MaterialIcon name="download" size={16} />
                 <span>{t("settings.about.downloadBtn", "Descargar e Instalar")}</span>
@@ -457,7 +457,7 @@ export default function AboutTab() {
               <button
                 type="button"
                 onClick={() => handleOpenLink(`https://github.com/OniverseDesign/onicord/releases/tag/v${updateState.version}`)}
-                className="h-9 px-4 rounded-onicord-button bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                className="h-9 px-4 rounded-onicord-button bg-onicord-accent/20 hover:bg-onicord-accent/30 border border-onicord-accent/40 text-onicord-accent text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1.5"
               >
                 <span>{t("settings.about.getPortableBtn", "Obtener EXE Portable")}</span>
                 <MaterialIcon name="open_in_new" size={14} />
@@ -468,7 +468,7 @@ export default function AboutTab() {
               <button
                 type="button"
                 onClick={handleInstallNow}
-                className="h-9 px-4 rounded-onicord-button bg-emerald-500 text-black hover:bg-emerald-400 font-extrabold text-xs transition active:scale-95 cursor-pointer shadow-lg shadow-emerald-500/20 flex items-center gap-1.5"
+                className="h-9 px-4 rounded-onicord-button bg-onicord-success text-black hover:bg-onicord-success font-extrabold text-xs transition active:scale-95 cursor-pointer shadow-lg shadow-emerald-500/20 flex items-center gap-1.5"
               >
                 <MaterialIcon name="restart_alt" size={16} />
                 <span>{t("settings.about.restartBtn", "Reiniciar y Aplicar")}</span>
@@ -482,7 +482,7 @@ export default function AboutTab() {
           <div className="mt-4 space-y-1.5 animate-fade-in">
             <div className="w-full h-2 rounded-full bg-onicord-base overflow-hidden border border-onicord-border">
               <div
-                className="h-full bg-gradient-to-r from-onicord-accent to-emerald-400 transition-all duration-300 rounded-full"
+                className="h-full bg-gradient-to-r from-onicord-accent to-emerald-400 transition-all duration-relaxed rounded-full"
                 style={{ width: `${updateState.percent}%` }}
               />
             </div>
@@ -495,10 +495,10 @@ export default function AboutTab() {
       </div>
 
       {/* Donations and support section */}
-      <div className="onicord-settings-card relative overflow-hidden bg-gradient-to-r from-purple-950/20 via-indigo-950/15 to-amber-950/20 border border-amber-500/20 rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div className="onicord-settings-card relative overflow-hidden bg-gradient-to-r from-onicord-accent-vivid/15 via-onicord-info-vivid/10 to-onicord-warning-vivid/15 border border-onicord-warning-vivid/35 rounded-2xl p-4 sm:p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-top gap-3.5 min-w-0">
-            <div className="w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-300 shrink-0 shadow-sm">
+            <div className="w-10 h-10 min-w-[40px] min-h-[40px] aspect-square rounded-xl bg-onicord-warning-vivid/20 border border-onicord-warning-vivid/40 flex items-center justify-center text-onicord-warning-vivid shrink-0 shadow-sm">
               <MaterialIcon name="coffee" size={22} className="leading-none" />
             </div>
             <div className="min-w-0">
@@ -517,9 +517,9 @@ export default function AboutTab() {
           <button
             type="button"
             onClick={() => handleOpenLink(KOFI_URL)}
-            className="h-10 flex items-center justify-center gap-2 px-5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold transition duration-150 active:scale-95 cursor-pointer shrink-0 shadow-sm hover:shadow-amber-500/10"
+            className="h-10 flex items-center justify-center gap-2 px-5 rounded-xl bg-onicord-warning-vivid/20 hover:bg-onicord-warning-vivid/30 border border-onicord-warning-vivid/50 text-onicord-warning-vivid text-xs font-bold transition duration-fast active:scale-95 cursor-pointer shrink-0 shadow-sm hover:shadow-onicord-glow-warning"
           >
-            <MaterialIcon name="coffee" size={18} className="shrink-0 text-amber-300" />
+            <MaterialIcon name="coffee" size={18} className="shrink-0 text-onicord-warning-vivid" />
             <span>{t("settings.about.buyMeACoffee", "Cómprame un café")}</span>
             <MaterialIcon name="open_in_new" size={14} className="opacity-70" />
           </button>
@@ -699,12 +699,12 @@ export default function AboutTab() {
           <button
             type="button"
             onClick={handleCopyDebugInfo}
-            className="h-8 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-onicord-tint/10 text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer"
+            className="h-8 inline-flex items-center justify-center gap-1.5 px-3 rounded-lg bg-onicord-base hover:bg-onicord-overlay border border-onicord-border-strong text-onicord-text text-xs font-semibold transition active:scale-95 cursor-pointer"
           >
             <MaterialIcon
               name={copiedDebug ? "check" : "content_copy"}
               size={14}
-              className={copiedDebug ? "text-emerald-400 shrink-0" : "shrink-0"}
+              className={copiedDebug ? "text-onicord-success shrink-0" : "shrink-0"}
             />
             <span>
               {copiedDebug

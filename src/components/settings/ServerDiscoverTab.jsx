@@ -187,7 +187,7 @@ export default function ServerDiscoverTab({
                 className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                   accessMode === "public"
                     ? "bg-onicord-accent/10 border-onicord-accent/50 text-onicord-text"
-                    : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
+                    : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-border-strong"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1.5">
@@ -200,7 +200,7 @@ export default function ServerDiscoverTab({
                     {t("discover.modePublicTitle", "Acceso Libre")}
                   </span>
                 </div>
-                <p className="text-[11px] leading-relaxed text-onicord-muted">
+                <p className="text-xs leading-relaxed text-onicord-muted">
                   {t(
                     "discover.modePublicDesc",
                     "Cualquier usuario de la red puede ver el servidor y unirse inmediatamente con un solo clic."
@@ -215,7 +215,7 @@ export default function ServerDiscoverTab({
                 className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
                   accessMode === "approval"
                     ? "bg-onicord-accent/10 border-onicord-accent/50 text-onicord-text"
-                    : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-tint/10"
+                    : "bg-onicord-base/40 border-onicord-border text-onicord-muted hover:border-onicord-border-strong"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1.5">
@@ -228,7 +228,7 @@ export default function ServerDiscoverTab({
                     {t("discover.modeApprovalTitle", "Por Aprobación (Knocking)")}
                   </span>
                 </div>
-                <p className="text-[11px] leading-relaxed text-onicord-muted">
+                <p className="text-xs leading-relaxed text-onicord-muted">
                   {t(
                     "discover.modeApprovalDesc",
                     "Los interesados envían una solicitud con un mensaje opcional y un administrador debe aceptarla."
@@ -258,7 +258,7 @@ export default function ServerDiscoverTab({
                     <label className="text-xs font-semibold text-onicord-text">
                       {t("discover.descriptionLabel", "Descripción Pública")}
                     </label>
-                    <span className="text-[10px] text-onicord-muted font-mono">
+                    <span className="text-2xs text-onicord-muted font-mono">
                       {description.length}/160
                     </span>
                   </div>
@@ -271,7 +271,7 @@ export default function ServerDiscoverTab({
                       "discover.descPlaceholder",
                       "Escribe una breve presentación de tu comunidad para los exploradores..."
                     )}
-                    className="onicord-input w-full p-3 rounded-onicord-button bg-onicord-base text-onicord-text border border-onicord-border outline-none ring-onicord-accent focus:ring-2 placeholder:text-onicord-faded text-xs sm:text-sm transition-all duration-150 resize-none min-h-[100px] leading-relaxed"
+                    className="onicord-input w-full p-3 rounded-onicord-button bg-onicord-base text-onicord-text border border-onicord-border outline-none ring-onicord-accent focus:ring-2 placeholder:text-onicord-faded text-xs sm:text-sm transition-all duration-fast resize-none min-h-[100px] leading-relaxed"
                   />
                 </div>
 
@@ -312,7 +312,7 @@ export default function ServerDiscoverTab({
                     disabled={tags.length >= 6}
                     className="text-xs"
                   />
-                  <p className="text-[11px] text-onicord-muted mt-1.5">
+                  <p className="text-xs text-onicord-muted mt-1.5">
                     {t("discover.tagsHint", "Presiona Enter o coma para añadir etiquetas (hasta 6 etiquetas).")}
                   </p>
 
@@ -340,7 +340,7 @@ export default function ServerDiscoverTab({
                 </div>
 
                 {/* Helpful tip card to optimize space balance */}
-                <div className="p-3 rounded-xl bg-onicord-base/30 border border-onicord-border flex items-start gap-2.5 text-onicord-muted text-[11px] leading-relaxed">
+                <div className="p-3 rounded-xl bg-onicord-base/30 border border-onicord-border flex items-start gap-2.5 text-onicord-muted text-xs leading-relaxed">
                   <MaterialIcon name="tips_and_updates" size={16} className="text-onicord-accent shrink-0 mt-0.5" />
                   <span>
                     {t(
@@ -354,7 +354,7 @@ export default function ServerDiscoverTab({
               {/* Preview (5 cols) */}
               <div className="lg:col-span-5 flex flex-col items-center">
                 <div className="w-full">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted mb-2 flex items-center gap-1.5">
+                  <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted mb-2 flex items-center gap-1.5">
                     <MaterialIcon name="visibility" size={14} />
                     <span>{t("discover.previewLabel", "Vista Previa en Discover")}</span>
                   </span>
@@ -380,7 +380,7 @@ export default function ServerDiscoverTab({
                   <MaterialIcon name="inbox" size={16} className="text-onicord-accent" />
                   {t("discover.pendingRequestsTitle", "Solicitudes de Acceso")}
                   {pendingRequests.length > 0 && (
-                    <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    <span className="ml-1.5 px-2 py-0.5 rounded-full text-2xs font-bold bg-onicord-warning/20 text-onicord-warning border border-onicord-warning/30">
                       {pendingRequests.length}/25
                     </span>
                   )}
@@ -389,7 +389,7 @@ export default function ServerDiscoverTab({
             </div>
 
             {pendingRequests.length >= 25 && (
-              <div className="p-3 mb-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+              <div className="p-3 mb-3 rounded-xl bg-onicord-warning/10 border border-onicord-warning/30 text-onicord-warning text-xs flex items-center gap-2">
                 <MaterialIcon name="warning" size={16} className="shrink-0" />
                 <span>
                   {t(
@@ -408,12 +408,12 @@ export default function ServerDiscoverTab({
             </p>
 
             {pendingRequests.length === 0 ? (
-              <div className="p-6 rounded-xl border border-dashed border-onicord-tint/10 bg-onicord-base/20 text-center flex flex-col items-center justify-center">
+              <div className="p-6 rounded-xl border border-dashed border-onicord-border-strong bg-onicord-base/20 text-center flex flex-col items-center justify-center">
                 <MaterialIcon name="mark_email_read" size={28} className="text-onicord-muted mb-2 opacity-60" />
                 <p className="text-xs font-semibold text-onicord-subtext">
                   {t("discover.noPendingRequests", "No hay solicitudes de acceso pendientes.")}
                 </p>
-                <p className="text-[11px] text-onicord-muted mt-0.5">
+                <p className="text-xs text-onicord-muted mt-0.5">
                   {t("discover.noPendingDesc", "Cuando alguien solicite unirse, aparecerá listado aquí para que puedas admitirlo o rechazarlo.")}
                 </p>
               </div>
@@ -428,7 +428,7 @@ export default function ServerDiscoverTab({
                     >
                       {/* Avatar + User info */}
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-onicord-base border border-onicord-tint/10 shrink-0 flex items-center justify-center font-bold text-xs text-onicord-accent">
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-onicord-base border border-onicord-border-strong shrink-0 flex items-center justify-center font-bold text-xs text-onicord-accent">
                           {applicant.avatar ? (
                             <img src={applicant.avatar} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -441,11 +441,11 @@ export default function ServerDiscoverTab({
                             {applicant.nickname || applicant.username || "Usuario P2P"}
                           </h5>
                           {req.message && (
-                            <p className="text-[11px] text-onicord-subtext truncate mt-0.5 italic">
+                            <p className="text-xs text-onicord-subtext truncate mt-0.5 italic">
                               "{req.message}"
                             </p>
                           )}
-                          <span className="text-[10px] text-onicord-muted block mt-0.5">
+                          <span className="text-2xs text-onicord-muted block mt-0.5">
                             {new Date(req.timestamp || Date.now()).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",

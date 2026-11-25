@@ -7,7 +7,7 @@ import SmartAnimatedImage from "./SmartAnimatedImage";
 import { cn } from "../../lib/cn";
 
 const SIZES = {
-  sm: "h-6 w-6 text-[10px]",
+  sm: "h-6 w-6 text-2xs",
   md: "h-8 w-8 text-xs",
 };
 
@@ -72,20 +72,20 @@ export function UserAvatarWithStatus({
     switch (status) {
       case "offline":
       case "invisible":
-        return "bg-onicord-overlay";
+        return "bg-onicord-status-offline";
       case "idle":
-        return "bg-amber-500";
+        return "bg-onicord-status-idle";
       case "dnd":
       case "muted":
       case "deafened":
-        return "bg-onicord-danger";
+        return "bg-onicord-status-dnd";
       case "streamer":
       case "streaming":
-        return "bg-purple-500";
+        return "bg-onicord-status-streaming";
       case "online":
       case "voice":
       default:
-        return "bg-onicord-success";
+        return "bg-onicord-status-online";
     }
   })();
 
@@ -155,7 +155,7 @@ export default function UserListItem({
     );
   } else if ((status === "streamer" || status === "streaming") && showStatusDot) {
     subtitle = (
-      <span className="text-purple-400 font-medium">{t("settings.general.streamerMode", "Modo Streamer")}</span>
+      <span className="text-onicord-accent font-medium">{t("settings.general.streamerMode", "Modo Streamer")}</span>
     );
   } else if (activity?.name) {
     const isApp = activity.type === "app";
@@ -178,7 +178,7 @@ export default function UserListItem({
             : t("userPanel.playing", "Jugando a");
 
     subtitle = (
-      <span className="text-onicord-subtext group-hover:text-onicord-text transition-colors duration-150 truncate block">
+      <span className="text-onicord-subtext group-hover:text-onicord-text transition-colors duration-fast truncate block">
         {isClient ? (
           <strong className="font-semibold text-onicord-text">{prefix}</strong>
         ) : (
@@ -208,8 +208,8 @@ export default function UserListItem({
           ? "text-onicord-muted"
           : "text-onicord-muted group-hover:text-onicord-text";
 
-  const textSize = avatarSize === "sm" ? "text-[14px]" : "text-[15px]";
-  const subTextSize = avatarSize === "sm" ? "text-[10px]" : "text-[11px]";
+  const textSize = avatarSize === "sm" ? "text-sm" : "text-base";
+  const subTextSize = avatarSize === "sm" ? "text-2xs tracking-normal" : "text-micro";
 
   return (
     <Component
@@ -229,7 +229,7 @@ export default function UserListItem({
       {showBanner && (
         <div
           aria-hidden="true"
-          className="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none z-0 opacity-80 group-hover:opacity-100 transition-opacity duration-200"
+          className="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none z-0 opacity-80 group-hover:opacity-100 transition-opacity duration-normal"
           style={{
             maskImage:
               "linear-gradient(to left, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 24%, rgba(0,0,0,0.16) 44%, rgba(0,0,0,0) 60%)",
@@ -275,7 +275,7 @@ export default function UserListItem({
         <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
           <div className="flex flex-col min-w-0 justify-center">
             <span
-              className={`truncate font-medium leading-tight transition-colors duration-100 ${textColor} ${textSize} flex items-center gap-1`}
+              className={`truncate font-medium leading-tight transition-colors duration-instant ${textColor} ${textSize} flex items-center gap-1`}
               style={nameColor && !isOffline ? { color: nameColor } : undefined}
             >
               <span className="truncate">{name}</span>

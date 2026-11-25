@@ -35,7 +35,7 @@ const MaterialIcon = memo(function MaterialIcon({
     'inline-flex',
     'items-center',
     'justify-center',
-    onClick ? 'cursor-pointer hover:opacity-80 active:scale-95 transition duration-150' : '',
+    onClick ? 'cursor-pointer hover:opacity-80 active:scale-95 transition duration-fast' : '',
     className
   ].filter(Boolean).join(' ')
 

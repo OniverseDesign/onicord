@@ -12,12 +12,6 @@
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* 🎛️ TRANSICIONES PREDEFINIDAS */
-  --transition-default: all var(--duration-fast) var(--ease-out);
-  --transition-slide: all var(--duration-relaxed) var(--ease-in-out);
-  --transition-bounce: transform var(--duration-fast) var(--ease-spring);
-  --transition-fade: opacity var(--duration-fast) var(--ease-out);
-
   /* 📏 DISTANCIAS Y DESPLAZAMIENTOS */
   --hover-slide-amount: 8px;
 }

@@ -38,7 +38,7 @@ export default function DiscoverServerCard({
   };
 
   return (
-    <div className="flex flex-col w-full max-w-[340px] mx-auto sm:max-w-none rounded-onicord-inner bg-onicord-surface hover:bg-onicord-surface/75 border border-onicord-border hover:border-onicord-tint/10 overflow-hidden transition-all duration-200 group text-left select-none relative">
+    <div className="flex flex-col w-full max-w-[340px] mx-auto sm:max-w-none rounded-onicord-inner bg-onicord-surface hover:bg-onicord-surface/75 border border-onicord-border hover:border-onicord-border-strong overflow-hidden transition-all duration-normal group text-left select-none relative">
       {/* 1. Header Banner (Same design as server: rounded corners, no gradient) */}
       <div className="p-2.5 pb-0">
         <div className="w-full h-32 rounded-xl relative overflow-hidden bg-onicord-mantle border border-onicord-border">
@@ -57,12 +57,12 @@ export default function DiscoverServerCard({
           {/* Access Badge (Top Right) */}
           <div className="absolute top-2 right-2 z-10">
             {isPublic ? (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-onicord-success/20 text-onicord-success border border-onicord-success/30 flex items-center gap-1 backdrop-blur-sm">
+              <span className="px-2 py-0.5 rounded-full text-2xs font-bold tracking-wide uppercase bg-onicord-success/20 text-onicord-success border border-onicord-success/30 flex items-center gap-1 backdrop-blur-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-onicord-success animate-pulse" />
                 {t("discover.badgePublic", "Público")}
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 backdrop-blur-sm">
+              <span className="px-2 py-0.5 rounded-full text-2xs font-bold tracking-wide uppercase bg-onicord-warning/20 text-onicord-warning border border-onicord-warning/30 flex items-center gap-1 backdrop-blur-sm">
                 <MaterialIcon name="lock" size={11} />
                 {t("discover.badgeApproval", "Por Aprobación")}
               </span>
@@ -117,7 +117,7 @@ export default function DiscoverServerCard({
               {tags.slice(0, 4).map((tag, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-0.5 rounded-onicord-button text-[10px] font-medium bg-onicord-base text-onicord-subtext border border-onicord-island hover:border-onicord-accent/40 transition-colors"
+                  className="px-2 py-0.5 rounded-onicord-button text-2xs font-medium bg-onicord-base text-onicord-subtext border border-onicord-island hover:border-onicord-accent/40 transition-colors"
                 >
                   #{tag.replace(/^#/, "")}
                 </span>
@@ -143,7 +143,7 @@ export default function DiscoverServerCard({
                 <span>{t("discover.visitBtn", "Ir al servidor")}</span>
               </button>
             ) : requestSent ? (
-              <div className="bg-amber-500/20 text-amber-300 border border-amber-500/30 h-8 px-3 text-xs rounded-onicord-button font-bold flex items-center gap-1.5">
+              <div className="bg-onicord-warning/20 text-onicord-warning border border-onicord-warning/30 h-8 px-3 text-xs rounded-onicord-button font-bold flex items-center gap-1.5">
                 <MaterialIcon name="schedule" size={14} />
                 <span>{t("discover.requestSentBtn", "Solicitud Enviada")}</span>
               </div>
@@ -160,7 +160,7 @@ export default function DiscoverServerCard({
               <button
                 type="button"
                 onClick={handleActionClick}
-                className="bg-amber-500 hover:bg-amber-600 text-black font-bold h-8 px-3 text-xs rounded-onicord-button flex items-center gap-1.5 cursor-pointer"
+                className="bg-onicord-warning hover:bg-onicord-warning text-black font-bold h-8 px-3 text-xs rounded-onicord-button flex items-center gap-1.5 cursor-pointer"
               >
                 <MaterialIcon name="waving_hand" size={14} />
                 <span>{t("discover.requestAccessBtn", "Solicitar Ingreso")}</span>

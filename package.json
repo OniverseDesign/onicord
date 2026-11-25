@@ -1,6 +1,6 @@
 {
   "name": "onicord",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Onicord",
   "main": "electron/main.cjs",
   "type": "module",
@@ -27,6 +27,7 @@
     "dist": "npm run pack",
     "export:github": "node scripts/export-to-github.cjs",
     "check:i18n": "node check-i18n.js",
+    "audit:tokens": "node scripts/audit-theme-classes.cjs",
     "tools:backup": "node scripts/restore-local-tools.cjs backup",
     "tools:restore": "node scripts/restore-local-tools.cjs restore",
     "postinstall": "node scripts/install-better-sqlite3.cjs"

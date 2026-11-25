@@ -68,7 +68,7 @@ export default function PluginBannerNotice({ serverPlugins = [] }) {
   };
 
   return (
-    <div className="mx-4 my-2.5 p-3.5 rounded-onicord-button bg-onicord-mantle/80 backdrop-blur-md border border-onicord-accent/30 shadow-onicord-elevated flex items-center justify-between gap-4 text-xs animate-fade-in select-none">
+    <div className="mx-4 my-2.5 p-3.5 rounded-onicord-button bg-onicord-mantle/80 backdrop-blur-onicord-popover border border-onicord-accent/30 shadow-onicord-elevated flex items-center justify-between gap-4 text-xs animate-fade-in select-none">
       <div className="flex items-center gap-3.5 min-w-0">
         {/* Addon icon badge */}
         <div className="w-10 h-10 rounded-xl bg-onicord-accent/15 border border-onicord-accent/25 text-onicord-accent flex items-center justify-center shrink-0 shadow-inner">
@@ -77,10 +77,10 @@ export default function PluginBannerNotice({ serverPlugins = [] }) {
 
         {/* Notice description */}
         <div className="flex flex-col min-w-0">
-          <h4 className="font-bold text-[13px] text-onicord-text flex items-center gap-1.5 truncate leading-snug">
+          <h4 className="font-bold text-sm text-onicord-text flex items-center gap-1.5 truncate leading-snug">
             Este servidor sugiere {missingPlugins.length} complemento{missingPlugins.length > 1 ? "s" : ""}
           </h4>
-          <p className="text-onicord-subtext text-[11px] leading-relaxed truncate">
+          <p className="text-onicord-subtext text-xs leading-relaxed truncate">
             Puedes ingresar libremente. Instálalos si deseas acceder a sus funciones y widgets especiales.
           </p>
         </div>
@@ -91,7 +91,7 @@ export default function PluginBannerNotice({ serverPlugins = [] }) {
         <button
           onClick={handleInstallClick}
           disabled={installing}
-          className="px-3.5 py-1.5 rounded-onicord-button bg-onicord-accent text-onicord-on-accent font-semibold text-[12px] hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+          className="px-3.5 py-1.5 rounded-onicord-button bg-onicord-accent text-onicord-on-accent font-semibold text-xs hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           <MaterialIcon name={installing ? "sync" : "download"} size={16} className={installing ? "animate-spin" : ""} />
           <span>{installing ? t("plugins.installing", "Instalando...") : t("plugins.installPlugin", "Instalar complemento")}</span>
@@ -99,7 +99,7 @@ export default function PluginBannerNotice({ serverPlugins = [] }) {
 
         <button
           onClick={() => setDismissed(true)}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-onicord-muted hover:text-onicord-text hover:bg-onicord-tint/10 transition-colors cursor-pointer"
+          className="w-7 h-7 rounded-full flex items-center justify-center text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover transition-colors cursor-pointer"
           title={t("common.dismissNotice", "Descartar aviso")}
         >
           <MaterialIcon name="close" size={18} />

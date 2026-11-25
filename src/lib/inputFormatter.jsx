@@ -379,19 +379,19 @@ export function renderHTMLForInput(text, allUsers) {
       .map((token) => {
         switch (token.type) {
           case "code":
-            return `<span class="bg-black/35 border border-onicord-tint/10 rounded px-1 text-[14px] text-onicord-accent font-semibold mx-0.5"><span class="opacity-30">\`</span>${escapeHTML(token.content)}<span class="opacity-30">\`</span></span>`;
+            return `<span class="bg-black/35 border border-onicord-border-strong rounded px-1 text-sm text-onicord-accent font-semibold mx-0.5"><span class="opacity-30">\`</span>${escapeHTML(token.content)}<span class="opacity-30">\`</span></span>`;
           case "custom_emoji":
-            return `<span class="bg-onicord-accent/15 border border-onicord-accent/30 text-onicord-accent rounded px-1 text-[13px] font-mono font-semibold"><span class="opacity-35">&lt;${token.animated ? "a" : ""}:</span>${escapeHTML(token.shortcode)}<span class="opacity-35">:${escapeHTML(token.id)}:${escapeHTML(token.ext)}&gt;</span></span>`;
+            return `<span class="bg-onicord-accent/15 border border-onicord-accent/30 text-onicord-accent rounded px-1 text-sm font-mono font-semibold"><span class="opacity-35">&lt;${token.animated ? "a" : ""}:</span>${escapeHTML(token.shortcode)}<span class="opacity-35">:${escapeHTML(token.id)}:${escapeHTML(token.ext)}&gt;</span></span>`;
           case "bold_italic":
             return `<span class="font-bold italic text-white underline decoration-onicord-accent/40 decoration-1 underline-offset-2"><span class="opacity-30">***</span>${escapeHTML(token.content)}<span class="opacity-30">***</span></span>`;
           case "bold":
             return `<span class="font-bold text-white underline decoration-onicord-accent/40 decoration-1 underline-offset-2"><span class="opacity-30">**</span>${renderTokens([{ type: "text", content: token.content }])}<span class="opacity-30">**</span></span>`;
           case "italic":
-            return `<span class="italic text-[var(--onicord-lavender)]"><span class="opacity-30">*</span>${escapeHTML(token.content)}<span class="opacity-30">*</span></span>`;
+            return `<span class="italic text-onicord-accent"><span class="opacity-30">*</span>${escapeHTML(token.content)}<span class="opacity-30">*</span></span>`;
           case "strike":
             return `<span class="line-through text-onicord-muted/70"><span class="opacity-30">~~</span>${escapeHTML(token.content)}<span class="opacity-30">~~</span></span>`;
           case "mention":
-            return `<span class="bg-onicord-accent/10 border border-onicord-accent/20 text-onicord-accent rounded px-1 text-[14px] font-semibold">${escapeHTML(token.raw)}</span>`;
+            return `<span class="bg-onicord-accent/10 border border-onicord-accent/20 text-onicord-accent rounded px-1 text-sm font-semibold">${escapeHTML(token.raw)}</span>`;
           case "text":
           default:
             return escapeHTML(token.content);

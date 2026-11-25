@@ -228,7 +228,7 @@ export default function WeatherWidget() {
           {}
           <div className="flex-1 min-h-0 flex flex-col @md:flex-row justify-center items-center @md:justify-evenly overflow-hidden my-auto w-full gap-y-2 @md:gap-x-4 py-2">
             {}
-            <div className="flex items-center justify-center shrink-0 transition-all duration-500 ease-out">
+            <div className="flex items-center justify-center shrink-0 transition-all duration-slow ease-out">
               <MaterialIcon
                 name={weatherIconName}
                 weight={200}

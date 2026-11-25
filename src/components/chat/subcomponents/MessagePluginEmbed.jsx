@@ -70,8 +70,8 @@ export default function MessagePluginEmbed({
     };
 
     return (
-      <div className="w-full max-w-md my-2 p-4 rounded-onicord-inner bg-onicord-mantle border border-onicord-island select-none text-onicord-text font-sans transition-all duration-200">
-        <div className="text-[15px] font-bold text-onicord-text leading-snug mb-1 break-words">
+      <div className="w-full max-w-md my-2 p-4 rounded-onicord-inner bg-onicord-mantle border border-onicord-island select-none text-onicord-text font-sans transition-all duration-normal">
+        <div className="text-base font-bold text-onicord-text leading-snug mb-1 break-words">
           {pollData.question}
         </div>
 
@@ -91,14 +91,14 @@ export default function MessagePluginEmbed({
               <div
                 key={option.id}
                 onClick={() => handleOptionClick(option.id)}
-                className={`relative flex flex-col p-3 rounded-xl border transition-all duration-200 cursor-pointer overflow-hidden group ${
+                className={`relative flex flex-col p-3 rounded-xl border transition-all duration-normal cursor-pointer overflow-hidden group ${
                   isSelected
                     ? "bg-onicord-accent/15 border-onicord-accent"
                     : "bg-onicord-tint/[0.02] border border-onicord-island hover:bg-onicord-tint/[0.05]"
                 }`}
               >
                 <div
-                  className="absolute inset-y-0 left-0 bg-onicord-accent/25 transition-all duration-500 ease-out pointer-events-none rounded-xl"
+                  className="absolute inset-y-0 left-0 bg-onicord-accent/25 transition-all duration-slow ease-out pointer-events-none rounded-xl"
                   style={{ width: `${percentage}%` }}
                 />
 
@@ -153,7 +153,7 @@ export default function MessagePluginEmbed({
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-onicord-text uppercase">
+                                <div className="w-full h-full flex items-center justify-center text-2xs font-bold text-onicord-text uppercase">
                                   {(display.nickname || "?").charAt(0)}
                                 </div>
                               )}

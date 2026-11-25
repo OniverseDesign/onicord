@@ -86,7 +86,7 @@ export default function InlineCustomEmoji({
 
   const node = !src ? (
     <span
-      className={`inline-flex items-center px-1 py-0.5 rounded bg-onicord-tint/10 text-onicord-muted font-mono text-[11px] align-baseline ${className}`}
+      className={`inline-flex items-center px-1 py-0.5 rounded bg-onicord-tint/10 text-onicord-muted font-mono text-xs align-baseline ${className}`}
     >
       {shortcodeLabel}
     </span>

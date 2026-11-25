@@ -126,7 +126,7 @@ export default function WhiteboardToolbar({
               ))}
             </div>
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px] text-onicord-muted">
+              <div className="flex items-center justify-between text-xs text-onicord-muted">
                 <span>Grosor</span>
                 <span className="font-mono font-semibold text-onicord-accent">{penWidth}px</span>
               </div>
@@ -149,7 +149,7 @@ export default function WhiteboardToolbar({
                 setActiveTool("pen");
               }}
               className={cn(
-                "w-full py-1 px-2 rounded-lg text-[11px] font-medium cursor-pointer transition-colors flex items-center justify-between",
+                "w-full py-1 px-2 rounded-lg text-xs font-medium cursor-pointer transition-colors flex items-center justify-between",
                 isHighlighter
                   ? "bg-onicord-accent/20 text-onicord-accent border border-onicord-accent/30"
                   : "bg-onicord-tint/10 hover:bg-onicord-tint/20 text-onicord-text"
@@ -231,7 +231,7 @@ export default function WhiteboardToolbar({
           widthClass="w-64"
         >
           <div className="p-1.5 space-y-2">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted px-1">
+            <div className="text-2xs font-bold uppercase tracking-wider text-onicord-muted px-1">
               Figuras
             </div>
             <div className="grid grid-cols-6 gap-1">
@@ -256,7 +256,7 @@ export default function WhiteboardToolbar({
                 </button>
               ))}
             </div>
-            <div className="text-[10px] font-bold uppercase tracking-wider text-onicord-muted px-1 pt-1">
+            <div className="text-2xs font-bold uppercase tracking-wider text-onicord-muted px-1 pt-1">
               Conectores
             </div>
             <div className="grid grid-cols-3 gap-1">

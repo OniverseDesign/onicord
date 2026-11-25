@@ -196,7 +196,7 @@ export default function Tooltip({
             }}
             className={cn(
               "onicord-tooltip select-none px-2.5 py-1.5 text-xs font-semibold text-onicord-text",
-              "bg-onicord-mantle/95 backdrop-blur-md border border-onicord-island rounded-onicord-button shadow-2xl",
+              "bg-onicord-mantle/95 backdrop-blur-onicord-popover border border-onicord-island rounded-onicord-button shadow-2xl",
               "onicord-animate-popup-in max-w-xs break-words tracking-wide flex items-center gap-1.5",
               className
             )}

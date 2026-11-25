@@ -95,7 +95,7 @@ export function getScopeBadgeInfo(scope, t = (key, fallback) => fallback) {
         label: t("plugins.scope.server", "Servidor"),
         description: t("plugins.scope.serverDesc", "Pensado para salas y servidores colaborativos"),
         icon: "groups",
-        badgeClass: "bg-sky-500/15 border-sky-500/30 text-sky-300",
+        badgeClass: "bg-onicord-info/15 border-onicord-info/30 text-onicord-info",
       };
     case "hybrid":
       return {
@@ -103,7 +103,7 @@ export function getScopeBadgeInfo(scope, t = (key, fallback) => fallback) {
         label: t("plugins.scope.hybrid", "Híbrido"),
         description: t("plugins.scope.hybridDesc", "Combina widgets personales con funciones para servidores"),
         icon: "hub",
-        badgeClass: "bg-amber-500/15 border-amber-500/30 text-amber-300",
+        badgeClass: "bg-onicord-warning/15 border-onicord-warning/30 text-onicord-warning",
       };
     case "client":
     default:
@@ -112,7 +112,7 @@ export function getScopeBadgeInfo(scope, t = (key, fallback) => fallback) {
         label: t("plugins.scope.client", "Personal"),
         description: t("plugins.scope.clientDesc", "Funciona de forma local e independiente en tu equipo"),
         icon: "dashboard",
-        badgeClass: "bg-purple-500/15 border-purple-500/30 text-purple-300",
+        badgeClass: "bg-onicord-accent/15 border-onicord-accent/30 text-onicord-accent",
       };
   }
 }

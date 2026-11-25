@@ -47,14 +47,14 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
         top: `${y}px`,
         transform: placement === "bottom" ? "translate(-50%, 0)" : "translate(-50%, -100%)",
       }}
-      className="z-[9999] pointer-events-auto select-none"
+      className="z-overlay-top pointer-events-auto select-none"
     >
-      <div className="flex items-center gap-1 p-1 bg-onicord-mantle/95 border border-onicord-tint/10 rounded-full shadow-2xl backdrop-blur-md animate-scale-up">
+      <div className="flex items-center gap-1 p-1 bg-onicord-mantle/95 border border-onicord-border-strong rounded-full shadow-2xl backdrop-blur-onicord-popover animate-scale-up">
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => applyFormatting("**", "**")}
-          className="p-1 px-2.5 rounded-full text-xs font-bold text-onicord-text hover:bg-onicord-tint/10 transition-colors cursor-pointer"
+          className="p-1 px-2.5 rounded-full text-xs font-bold text-onicord-text hover:bg-onicord-hover transition-colors cursor-pointer"
           title={t("chat.formatBold")}
         >
           B
@@ -63,7 +63,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => applyFormatting("*", "*")}
-          className="p-1 px-2.5 rounded-full text-xs italic text-onicord-text hover:bg-onicord-tint/10 transition-colors cursor-pointer"
+          className="p-1 px-2.5 rounded-full text-xs italic text-onicord-text hover:bg-onicord-hover transition-colors cursor-pointer"
           title={t("chat.formatItalic")}
         >
           I
@@ -72,7 +72,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => applyFormatting("~~", "~~")}
-          className="p-1 px-2.5 rounded-full text-xs line-through text-onicord-text hover:bg-onicord-tint/10 transition-colors cursor-pointer"
+          className="p-1 px-2.5 rounded-full text-xs line-through text-onicord-text hover:bg-onicord-hover transition-colors cursor-pointer"
           title={t("chat.formatStrike")}
         >
           S
@@ -81,7 +81,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => applyFormatting("`", "`")}
-          className="p-1 px-2.5 rounded-full text-xs font-mono text-onicord-text hover:bg-onicord-tint/10 transition-colors cursor-pointer"
+          className="p-1 px-2.5 rounded-full text-xs font-mono text-onicord-text hover:bg-onicord-hover transition-colors cursor-pointer"
           title={t("chat.formatCode")}
         >
           {"</>"}
@@ -90,7 +90,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => applyFormatting("```\n", "\n```")}
-          className="p-1 px-2.5 rounded-full text-xs font-mono font-bold text-onicord-text hover:bg-onicord-tint/10 transition-colors cursor-pointer"
+          className="p-1 px-2.5 rounded-full text-xs font-mono font-bold text-onicord-text hover:bg-onicord-hover transition-colors cursor-pointer"
           title={t("chat.formatCodeBlock")}
         >
           pre
@@ -99,7 +99,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => applyFormatting("> ", "")}
-          className="p-1 px-2.5 rounded-full text-xs text-onicord-text hover:bg-onicord-tint/10 transition-colors cursor-pointer"
+          className="p-1 px-2.5 rounded-full text-xs text-onicord-text hover:bg-onicord-hover transition-colors cursor-pointer"
           title={t("chat.formatQuote")}
         >
           ”
@@ -108,7 +108,7 @@ const FloatingFormattingBar = memo(({ selection, applyFormatting, t }) => {
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => applyFormatting("### ", "")}
-          className="p-1 px-2.5 rounded-full text-xs font-bold text-onicord-text hover:bg-onicord-tint/10 transition-colors cursor-pointer"
+          className="p-1 px-2.5 rounded-full text-xs font-bold text-onicord-text hover:bg-onicord-hover transition-colors cursor-pointer"
           title={t("chat.formatHeading")}
         >
           H

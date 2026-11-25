@@ -156,27 +156,27 @@ export default function MessageMediaGallery({
     if (!diskPath || !url) {
       return (
         <div
-          className="relative w-full h-full flex flex-col items-center justify-center p-3 text-center bg-black/40 text-onicord-muted select-none group/placeholder cursor-pointer"
+          className="relative w-full h-full flex flex-col items-center justify-center p-3 text-center bg-onicord-scrim text-onicord-muted select-none group/placeholder cursor-pointer"
           onClick={() => handleImageClick(index)}
         >
           {isNsfw && (
-            <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/40 text-[10px] font-bold uppercase tracking-wider">
+            <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-onicord-danger/20 text-onicord-danger border border-onicord-danger/40 text-2xs font-bold uppercase tracking-wider">
               {t("chat.nsfwBadge", "NSFW")}
             </span>
           )}
-          <MaterialIcon name="image" size="md" className="text-white/40 mb-1" />
-          <span className="text-[11px] truncate max-w-[90%] text-white/70 font-mono">
+          <MaterialIcon name="image" size="md" className="text-onicord-on-scrim/40 mb-1" />
+          <span className="text-xs truncate max-w-[90%] text-onicord-on-scrim/70 font-mono">
             {img.name || t("chat.imageLabel", "Imagen")}
           </span>
           {isDownloading ? (
             <div className="w-16 h-1.5 bg-onicord-tint/10 rounded-full mt-2 overflow-hidden">
               <div
-                className="h-full bg-onicord-accent transition-all duration-150"
+                className="h-full bg-onicord-accent transition-all duration-fast"
                 style={{ width: `${status?.progress || 0}%` }}
               />
             </div>
           ) : (
-            <span className="text-[10px] text-onicord-accent mt-1 hover:underline">
+            <span className="text-2xs text-onicord-accent mt-1 hover:underline">
               {t("chat.clickToDownloadShort", "Clic para descargar")}
             </span>
           )}
@@ -186,7 +186,7 @@ export default function MessageMediaGallery({
 
     return (
       <div
-        className="relative w-full h-full cursor-pointer group/tile overflow-hidden bg-black/40"
+        className="relative w-full h-full cursor-pointer group/tile overflow-hidden bg-onicord-scrim"
         onClick={(e) => {
           if (isBlurred) {
             e.stopPropagation();
@@ -201,7 +201,7 @@ export default function MessageMediaGallery({
           alt={img.name || "Photo"}
           loading="lazy"
           decoding="async"
-          className={`w-full h-full object-cover transition-all duration-200 ${
+          className={`w-full h-full object-cover transition-all duration-normal ${
             isBlurred
               ? "blur-2xl scale-110 brightness-50 select-none pointer-events-none"
               : "group-hover/tile:scale-[1.02]"
@@ -210,9 +210,9 @@ export default function MessageMediaGallery({
 
         {isBlurred ? (
           <div className="absolute inset-0 flex items-center justify-center p-2 z-10 pointer-events-none">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-rose-500/40 text-rose-300 text-xs font-semibold shadow-lg select-none">
-              <MaterialIcon name="visibility_off" size={15} className="text-rose-400" />
-              <span className="font-bold uppercase tracking-wider text-rose-400">{t("chat.nsfwBadge", "NSFW")}</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-onicord-scrim-heavy backdrop-blur-onicord-popover border border-onicord-danger/40 text-onicord-danger text-xs font-semibold shadow-lg select-none">
+              <MaterialIcon name="visibility_off" size={15} className="text-onicord-danger" />
+              <span className="font-bold uppercase tracking-wider text-onicord-danger">{t("chat.nsfwBadge", "NSFW")}</span>
             </div>
           </div>
         ) : (
@@ -227,24 +227,24 @@ export default function MessageMediaGallery({
                       hideImage(img.id);
                     }}
                     title={t("chat.nsfwHideAgain", "Ocultar contenido NSFW")}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-onicord-base/85 backdrop-blur-md border border-rose-500/40 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold uppercase tracking-wider shadow transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-onicord-base/85 backdrop-blur-onicord-popover border border-onicord-danger/40 text-onicord-danger hover:bg-onicord-danger/20 text-2xs font-bold uppercase tracking-wider shadow transition-colors cursor-pointer"
                   >
                     <MaterialIcon name="visibility_off" size={12} />
                     <span>{t("chat.nsfwBadge", "NSFW")}</span>
                   </button>
                 ) : (
-                  <span className="px-1.5 py-0.5 rounded bg-onicord-base/85 backdrop-blur-md border border-rose-500/40 text-rose-400 text-[10px] font-bold uppercase tracking-wider shadow">
+                  <span className="px-1.5 py-0.5 rounded bg-onicord-base/85 backdrop-blur-onicord-popover border border-onicord-danger/40 text-onicord-danger text-2xs font-bold uppercase tracking-wider shadow">
                     {t("chat.nsfwBadge", "NSFW")}
                   </span>
                 )}
               </div>
             )}
             {hasOverlay ? (
-              <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px] flex items-center justify-center font-bold text-white text-2xl sm:text-3xl tracking-wide select-none group-hover/tile:bg-black/55 transition-colors">
+              <div className="absolute inset-0 bg-onicord-scrim backdrop-blur-onicord-backdrop flex items-center justify-center font-bold text-onicord-on-scrim text-2xl sm:text-3xl tracking-wide select-none group-hover/tile:bg-onicord-scrim transition-colors">
                 +{remainingCount}
               </div>
             ) : (
-              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover/tile:opacity-100 transition-opacity pointer-events-none" />
+              <div className="absolute inset-0 bg-onicord-tint/5 opacity-0 group-hover/tile:opacity-100 transition-opacity pointer-events-none" />
             )}
           </>
         )}
@@ -273,7 +273,7 @@ export default function MessageMediaGallery({
 
     return (
       <div
-        className={`mt-2 relative rounded-xl overflow-hidden max-w-xl cursor-pointer group bg-black/20 border border-onicord-border hover:border-onicord-accent/40 transition-all duration-200 inline-block ${
+        className={`mt-2 relative rounded-xl overflow-hidden max-w-xl cursor-pointer group bg-onicord-scrim-soft border border-onicord-border hover:border-onicord-accent/40 transition-all duration-normal inline-block ${
           isBlurred ? "min-w-[220px] min-h-[140px]" : ""
         } ${className}`}
         onClick={(e) => {
@@ -290,15 +290,15 @@ export default function MessageMediaGallery({
           alt={singleImg.name || "Photo"}
           loading="lazy"
           decoding="async"
-          className={`w-auto h-auto max-w-full max-h-[380px] object-contain rounded-xl block animate-fade-in transition-all duration-200 ${
+          className={`w-auto h-auto max-w-full max-h-[380px] object-contain rounded-xl block animate-fade-in transition-all duration-normal ${
             isBlurred ? "blur-2xl scale-110 brightness-50 select-none pointer-events-none" : ""
           }`}
         />
         {isBlurred ? (
           <div className="absolute inset-0 flex items-center justify-center p-3 z-10 pointer-events-none">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-rose-500/40 text-rose-300 text-xs font-semibold select-none">
-              <MaterialIcon name="visibility_off" size={16} className="text-rose-400" />
-              <span className="font-bold uppercase tracking-wider text-rose-400">{t("chat.nsfwBadge", "NSFW")}</span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-onicord-scrim-heavy backdrop-blur-onicord-popover border border-onicord-danger/40 text-onicord-danger text-xs font-semibold select-none">
+              <MaterialIcon name="visibility_off" size={16} className="text-onicord-danger" />
+              <span className="font-bold uppercase tracking-wider text-onicord-danger">{t("chat.nsfwBadge", "NSFW")}</span>
             </div>
           </div>
         ) : (
@@ -313,19 +313,19 @@ export default function MessageMediaGallery({
                       hideImage(singleImg.id);
                     }}
                     title={t("chat.nsfwHideAgain", "Ocultar contenido NSFW")}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-onicord-base/85 backdrop-blur-md border border-rose-500/40 text-rose-400 hover:bg-rose-500/20 text-[10px] font-bold uppercase tracking-wider shadow transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-onicord-base/85 backdrop-blur-onicord-popover border border-onicord-danger/40 text-onicord-danger hover:bg-onicord-danger/20 text-2xs font-bold uppercase tracking-wider shadow transition-colors cursor-pointer"
                   >
                     <MaterialIcon name="visibility_off" size={12} />
                     <span>{t("chat.nsfwBadge", "NSFW")}</span>
                   </button>
                 ) : (
-                  <span className="px-1.5 py-0.5 rounded bg-onicord-base/85 backdrop-blur-md border border-rose-500/40 text-rose-400 text-[10px] font-bold uppercase tracking-wider shadow">
+                  <span className="px-1.5 py-0.5 rounded bg-onicord-base/85 backdrop-blur-onicord-popover border border-onicord-danger/40 text-onicord-danger text-2xs font-bold uppercase tracking-wider shadow">
                     {t("chat.nsfwBadge", "NSFW")}
                   </span>
                 )}
               </div>
             )}
-            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            <div className="absolute inset-0 bg-onicord-tint/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
           </>
         )}
       </div>
@@ -336,7 +336,7 @@ export default function MessageMediaGallery({
   if (total === 2) {
     return (
       <div
-        className={`mt-2 grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/9] max-h-[320px] max-w-2xl bg-black/20 border border-onicord-border ${className}`}
+        className={`mt-2 grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/9] max-h-[320px] max-w-2xl bg-onicord-scrim-soft border border-onicord-border ${className}`}
       >
         {renderTileContent(images[0], 0)}
         {renderTileContent(images[1], 1)}
@@ -348,7 +348,7 @@ export default function MessageMediaGallery({
   if (total === 3) {
     return (
       <div
-        className={`mt-2 grid grid-cols-2 grid-rows-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/10] max-h-[360px] max-w-2xl bg-black/20 border border-onicord-border ${className}`}
+        className={`mt-2 grid grid-cols-2 grid-rows-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/10] max-h-[360px] max-w-2xl bg-onicord-scrim-soft border border-onicord-border ${className}`}
       >
         <div className="row-span-2 col-span-1 w-full h-full overflow-hidden">
           {renderTileContent(images[0], 0)}
@@ -367,7 +367,7 @@ export default function MessageMediaGallery({
   if (total === 4) {
     return (
       <div
-        className={`mt-2 grid grid-cols-2 grid-rows-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/10] max-h-[360px] max-w-2xl bg-black/20 border border-onicord-border ${className}`}
+        className={`mt-2 grid grid-cols-2 grid-rows-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/10] max-h-[360px] max-w-2xl bg-onicord-scrim-soft border border-onicord-border ${className}`}
       >
         {images.slice(0, 4).map((img, idx) => (
           <div key={img.id || idx} className="w-full h-full overflow-hidden">
@@ -382,7 +382,7 @@ export default function MessageMediaGallery({
   const remainingCount = total - 5;
   return (
     <div
-      className={`mt-2 grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/9] max-h-[380px] max-w-2xl bg-black/20 border border-onicord-border ${className}`}
+      className={`mt-2 grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden aspect-[16/9] max-h-[380px] max-w-2xl bg-onicord-scrim-soft border border-onicord-border ${className}`}
     >
       {/* Left Column: 1 Large Image */}
       <div className="w-full h-full overflow-hidden">

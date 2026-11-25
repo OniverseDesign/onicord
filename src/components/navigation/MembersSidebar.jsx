@@ -129,7 +129,7 @@ export default function MembersSidebar({
 
     return (
       <div
-        className={`shrink-0 flex items-center justify-center transition-all duration-200 ease-out ${
+        className={`shrink-0 flex items-center justify-center transition-all duration-normal ease-out ${
           isAlwaysVisible
             ? "w-7 opacity-100 ml-1 scale-100 pointer-events-auto"
             : "w-0 opacity-0 ml-0 scale-75 overflow-hidden pointer-events-none group-hover:w-7 group-hover:opacity-100 group-hover:ml-1 group-hover:scale-100 group-hover:pointer-events-auto focus-within:w-7 focus-within:opacity-100 focus-within:ml-1 focus-within:scale-100 focus-within:pointer-events-auto"
@@ -143,15 +143,15 @@ export default function MembersSidebar({
               e.stopPropagation();
               onMessageUser?.(member);
             }}
-            className={`h-7 w-7 min-w-[28px] flex items-center justify-center relative rounded-onicord-button text-onicord-text transition-colors duration-150 cursor-pointer shrink-0 ${
+            className={`h-7 w-7 min-w-[28px] flex items-center justify-center relative rounded-onicord-button text-onicord-text transition-colors duration-fast cursor-pointer shrink-0 ${
               hasVisibleBanner
                 ? "bg-onicord-base/75 hover:bg-onicord-base/95 backdrop-blur-sm"
-                : "hover:bg-onicord-tint/10"
+                : "hover:bg-onicord-hover"
             }`}
           >
             <MaterialIcon name="chat" size={16} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-onicord-danger text-white text-[9px] font-bold px-1 rounded-full min-w-[12px] h-3.5 flex items-center justify-center animate-scale-up shadow-sm">
+              <span className="absolute -top-1 -right-1 bg-onicord-danger text-white text-2xs font-bold px-1 rounded-full min-w-[12px] h-3.5 flex items-center justify-center animate-scale-up shadow-sm">
                 {unreadCount}
               </span>
             )}

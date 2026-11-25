@@ -224,7 +224,7 @@ export function NormalChatSkeleton() {
 export function ThreadLoadingSkeleton({ isForum = false, isFadingOut = false, className = "" }) {
   return (
     <div
-      className={`w-full h-full select-none animate-fade-in transition-opacity duration-200 ease-out ${
+      className={`w-full h-full select-none animate-fade-in transition-opacity duration-normal ease-out ${
         isFadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
       } ${className}`}
     >
@@ -312,7 +312,7 @@ export function TopHistoryLoadingSkeleton() {
 export default function ChatLoadingSkeleton({ isForum = false, isFadingOut = false, className = "" }) {
   return (
     <div
-      className={`w-full h-full transition-opacity duration-200 ease-out ${
+      className={`w-full h-full transition-opacity duration-normal ease-out ${
         isFadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
       } ${className}`}
     >

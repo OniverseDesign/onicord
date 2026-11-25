@@ -36,7 +36,7 @@ export function VoiceChannelTimer({ startTime }) {
       : `${m}:${s.toString().padStart(2, "0")}`;
 
   return (
-    <span className="text-[12px] font-mono font-semibold text-onicord-success ml-auto shrink-0 select-none tracking-tight">
+    <span className="text-xs font-mono font-semibold text-onicord-success ml-auto shrink-0 select-none tracking-tight">
       {formatted}
     </span>
   );
@@ -97,7 +97,7 @@ export function ChannelButton({
 
         {/* Unread badge */}
         {hasUnread && !active && (
-          <div className="bg-onicord-danger text-white text-[10px] font-bold px-1.5 h-4 rounded-full flex items-center justify-center animate-scale-up">
+          <div className="bg-onicord-danger text-white text-2xs font-bold px-1.5 h-4 rounded-full flex items-center justify-center animate-scale-up">
             {unreadCount > 99 ? "99+" : unreadCount}
           </div>
         )}
@@ -505,7 +505,7 @@ export default function ChannelsSidebar({
               </div>
               {/* Server Name and Flame Badge row */}
               <div className="flex items-center justify-between px-5 pt-2 pb-3">
-                <h2 className="truncate text-left text-[15px] font-semibold text-onicord-text">
+                <h2 className="truncate text-left text-base font-semibold text-onicord-text">
                   {server?.name || t("roomView.loadingServer")}
                 </h2>
                 {!server?.disableFlameSystem && (
@@ -520,7 +520,7 @@ export default function ChannelsSidebar({
                     }
                     className={
                       serverFlame?.isAtRisk
-                        ? "animate-pulse ring-1 ring-red-500/50"
+                        ? "animate-pulse ring-1 ring-onicord-danger/50"
                         : ""
                     }
                   />
@@ -545,7 +545,7 @@ export default function ChannelsSidebar({
                 </div>
               )}
               <div className="min-w-0 flex-1 flex items-center justify-between gap-1.5">
-                <h2 className="truncate text-left text-[15px] font-semibold text-onicord-text">
+                <h2 className="truncate text-left text-base font-semibold text-onicord-text">
                   {server?.name || t("roomView.loadingServer")}
                 </h2>
                 {!server?.disableFlameSystem && (
@@ -560,7 +560,7 @@ export default function ChannelsSidebar({
                     }
                     className={
                       serverFlame?.isAtRisk
-                        ? "animate-pulse ring-1 ring-red-500/50"
+                        ? "animate-pulse ring-1 ring-onicord-danger/50"
                         : ""
                     }
                   />
@@ -627,7 +627,7 @@ export default function ChannelsSidebar({
                         {cat.name}
                       </p>
                       <span
-                        className={`transition-transform duration-200 ease-out flex items-center justify-center text-onicord-muted group-hover:text-onicord-text ${
+                        className={`transition-transform duration-normal ease-out flex items-center justify-center text-onicord-muted group-hover:text-onicord-text ${
                           isCollapsed ? "rotate-0" : "rotate-90"
                         }`}
                       >
@@ -636,7 +636,7 @@ export default function ChannelsSidebar({
                     </div>
 
                     <div
-                      className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                      className={`grid transition-[grid-template-rows,opacity] duration-normal ease-out ${
                         isCollapsed
                           ? "grid-rows-[0fr] opacity-0 pointer-events-none"
                           : "grid-rows-[1fr] opacity-100 pointer-events-auto"
@@ -645,7 +645,7 @@ export default function ChannelsSidebar({
                       <div className="overflow-hidden">
                         <div className="mt-1 space-y-[2px]">
                           {catChannels.length === 0 ? (
-                            <p className="text-[10px] text-onicord-faded italic px-6 py-1">
+                            <p className="text-2xs text-onicord-faded italic px-6 py-1">
                               {t("common.offline")}
                             </p>
                           ) : (

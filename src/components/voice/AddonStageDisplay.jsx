@@ -2014,7 +2014,7 @@ export default function AddonStageDisplay({
 
   if (isMini) {
     containerClasses =
-      "fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-40 cursor-move group hover:scale-[1.01] transition-transform duration-150 touch-none select-none flex flex-col";
+      "fixed bg-onicord-surface w-[340px] h-[190px] rounded-onicord-inner overflow-hidden border-2 border-[var(--accent-purple)] shadow-2xl z-40 cursor-move group hover:scale-[1.01] transition-transform duration-fast touch-none select-none flex flex-col";
     containerStyles = {
       top: 0,
       left: 0,
@@ -2259,9 +2259,9 @@ export default function AddonStageDisplay({
 
             {/* Dedicated High-Visibility React Subtitle Overlay */}
             {currentSubtitle !== "off" && activeCueText && (
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-20 md:bottom-24 z-20 pointer-events-none max-w-[85%] text-center select-none transition-all duration-150">
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-20 md:bottom-24 z-20 pointer-events-none max-w-[85%] text-center select-none transition-all duration-fast">
                 <span
-                  className="inline-block px-4 py-2 rounded-xl bg-black/85 text-white font-bold text-xl md:text-3xl leading-snug tracking-wide shadow-2xl border border-white/10"
+                  className="inline-block px-4 py-2 rounded-xl bg-onicord-scrim-heavy text-onicord-on-scrim font-bold text-xl md:text-3xl leading-snug tracking-wide shadow-2xl border border-onicord-on-scrim/10"
                   style={{
                     textShadow: "0 2px 4px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.9)",
                   }}
@@ -2285,7 +2285,7 @@ export default function AddonStageDisplay({
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/85 pointer-events-none" />
 
                 {/* Central cinematic container (logo or title) */}
-                <div className="relative z-10 flex items-center justify-center max-w-4xl p-10 text-center overflow-visible animate-scale-up duration-300">
+                <div className="relative z-10 flex items-center justify-center max-w-4xl p-10 text-center overflow-visible animate-scale-up duration-relaxed">
                   {activeGame.logo && !logoLoadFailed ? (
                     <div className="relative inline-flex items-center justify-center max-w-[85vw] md:max-w-xl max-h-[160px] md:max-h-[200px] overflow-visible">
                       {/* Layer 1: Base muted/background logo */}
@@ -2318,7 +2318,7 @@ export default function AddonStageDisplay({
                   ) : (
                     <div className="relative inline-block max-w-full overflow-visible">
                       {/* Layer 1: Base hollow/dim title */}
-                      <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-wider text-white/15 select-none leading-tight">
+                      <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-wider text-onicord-on-scrim/15 select-none leading-tight">
                         {activeGame.title}
                       </h1>
 
@@ -2335,7 +2335,7 @@ export default function AddonStageDisplay({
                             clipPath: `inset(0 ${Math.max(0, 100 - loadingProgress)}% 0 0)`,
                             transition: "clip-path 220ms ease-out",
                           }}
-                          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-wider text-white select-none leading-tight"
+                          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-wider text-onicord-on-scrim select-none leading-tight"
                         >
                           {activeGame.title}
                         </h1>
@@ -2348,9 +2348,9 @@ export default function AddonStageDisplay({
 
             {/* Error Overlay */}
             {mediaError && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 p-6 text-center select-text">
-                <MaterialIcon name="error_outline" size={48} className="text-red-500 mb-3" />
-                <h3 className="text-lg font-bold text-white mb-2">{t("stage.playbackErrorTitle")}</h3>
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-onicord-scrim-heavy p-6 text-center select-text">
+                <MaterialIcon name="error_outline" size={48} className="text-onicord-danger mb-3" />
+                <h3 className="text-lg font-bold text-onicord-on-scrim mb-2">{t("stage.playbackErrorTitle")}</h3>
                 <p className="text-sm text-gray-300 max-w-md mb-6">{mediaError}</p>
                 <button
                   type="button"
@@ -2358,7 +2358,7 @@ export default function AddonStageDisplay({
                     e.stopPropagation();
                     handleReturnToCatalog();
                   }}
-                  className="px-5 py-2.5 bg-onicord-accent hover:bg-red-600 text-white font-semibold text-sm rounded-xl transition cursor-pointer shadow-lg"
+                  className="px-5 py-2.5 bg-onicord-accent hover:bg-onicord-danger text-onicord-on-accent hover:text-onicord-on-danger font-semibold text-sm rounded-xl transition cursor-pointer shadow-lg"
                 >
                   {t("stage.returnAndChooseSource")}
                 </button>
@@ -2367,9 +2367,9 @@ export default function AddonStageDisplay({
 
             {/* Buffering Indicator */}
             {mediaBuffering && !mediaLoading && !mediaError && mediaPlaybackTime > 0 && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40 pointer-events-none">
-                <div className="w-12 h-12 border-4 border-white/20 border-t-red-500 rounded-full animate-spin mb-3"></div>
-                <span className="text-xs text-white/80 font-medium">{t("stage.buffering")}</span>
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-onicord-scrim pointer-events-none">
+                <div className="w-12 h-12 border-4 border-onicord-on-scrim/20 border-t-red-500 rounded-full animate-spin mb-3"></div>
+                <span className="text-xs text-onicord-on-scrim/80 font-medium">{t("stage.buffering")}</span>
               </div>
             )}
           </div>
@@ -2404,7 +2404,7 @@ export default function AddonStageDisplay({
             className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/70 flex flex-col justify-between p-2.5 z-20 cursor-move pointer-events-auto touch-none select-none"
           >
             <div className="flex items-center justify-between w-full pointer-events-none">
-              <span className="bg-black/75 px-2.5 py-1 rounded-md text-[11px] text-white font-semibold select-none truncate max-w-[200px] flex items-center gap-1.5 backdrop-blur-sm border border-white/10 shadow-sm pointer-events-none">
+              <span className="bg-onicord-scrim-heavy px-2.5 py-1 rounded-md text-xs text-onicord-on-scrim font-semibold select-none truncate max-w-[200px] flex items-center gap-1.5 backdrop-blur-sm border border-onicord-on-scrim/10 shadow-sm pointer-events-none">
                 <MaterialIcon name={stageData?.icon || "sports_esports"} size={14} className="text-onicord-accent shrink-0" />
                 <span className="truncate">{stageTitle}</span>
               </span>
@@ -2418,7 +2418,7 @@ export default function AddonStageDisplay({
                       e.preventDefault();
                       handleReturnToCatalog();
                     }}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-emerald-400 hover:bg-onicord-overlay hover:text-emerald-300 transition duration-150 shadow-md cursor-pointer border border-emerald-500/30"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-onicord-success hover:bg-onicord-overlay hover:text-onicord-success transition duration-fast shadow-md cursor-pointer border border-onicord-success/30"
                     title={isCurrentMedia ? t("stage.returnToCatalog") : t("stage.returnToGamesCatalog")}
                   >
                     <MaterialIcon name="apps" size={16} />
@@ -2432,7 +2432,7 @@ export default function AddonStageDisplay({
                       e.preventDefault();
                       if (!hasMoved.current && onToggleSize) onToggleSize();
                     }}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-onicord-text hover:bg-onicord-overlay hover:text-white transition duration-150 shadow-md cursor-pointer border border-white/10"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-onicord-text hover:bg-onicord-overlay hover:text-onicord-text transition duration-fast shadow-md cursor-pointer border border-onicord-border"
                     title={t("stage.expandToStage")}
                   >
                     <MaterialIcon name="fullscreen" size="lg" />
@@ -2449,7 +2449,7 @@ export default function AddonStageDisplay({
                   e.preventDefault();
                   handleTerminate();
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-onicord-text hover:bg-red-500/80 hover:text-white transition duration-150 shadow-md cursor-pointer border border-white/10"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-onicord-surface text-onicord-text hover:bg-onicord-danger hover:text-onicord-on-danger transition duration-fast shadow-md cursor-pointer border border-onicord-border"
                 title={isCurrentMedia ? t("stage.closePlayback") : t("stage.closeGame")}
               >
                 <MaterialIcon name="close" size={16} />
@@ -2462,21 +2462,21 @@ export default function AddonStageDisplay({
       {/* 3. Top Left Badge (visible only in normal or fullscreen mode) */}
       {!isMini && (
         <div
-          className={`absolute top-4 left-4 z-30 flex items-center gap-2 bg-black/80 border border-white/10 px-3.5 py-1.5 rounded-full text-xs shadow-2xl backdrop-blur-md select-none transition-all duration-300 pointer-events-auto ${
+          className={`absolute top-4 left-4 z-30 flex items-center gap-2 bg-onicord-scrim-heavy border border-onicord-on-scrim/10 px-3.5 py-1.5 rounded-full text-xs shadow-2xl backdrop-blur-onicord-popover select-none transition-all duration-relaxed pointer-events-auto ${
             isFullscreen && !showControls
               ? "opacity-0 -translate-y-4 pointer-events-none"
               : "opacity-100 translate-y-0 pointer-events-auto"
           }`}
         >
           <MaterialIcon name={isCinemaWatchParty ? "movie" : (stageData?.icon || "sports_esports")} size={16} className="text-onicord-accent" />
-          <span className="font-semibold text-white truncate max-w-[200px]">{stageTitle}</span>
+          <span className="font-semibold text-onicord-on-scrim truncate max-w-[200px]">{stageTitle}</span>
           {isCinemaWatchParty && (
-            <span className="onicord-live-badge text-[10px]">
+            <span className="onicord-live-badge text-2xs">
               {isSyncHost ? t("stage.host", "Anfitrión") : (watchPartySession?.hostNickname || t("stage.synced", "Sincronizado"))}
             </span>
           )}
           {hasGamepad && (
-            <span className="flex items-center gap-1 text-[11px] text-green-400 bg-green-950/60 border border-green-500/30 px-2 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-xs text-onicord-success bg-green-950/60 border border-onicord-success/30 px-2 py-0.5 rounded-full">
               <MaterialIcon name="gamepad" size={12} />
               {t("stage.gamepadReady")}
             </span>
@@ -2487,7 +2487,7 @@ export default function AddonStageDisplay({
       {/* 3b. Top Right Controls (discreet in catalog/launcher mode: Dynamic Addon Actions, fullscreen, and close) */}
       {!isMini && isCatalogLauncher && (
         <div
-          className={`absolute top-4 right-4 z-30 flex items-center gap-2 select-none transition-all duration-300 pointer-events-auto ${
+          className={`absolute top-4 right-4 z-30 flex items-center gap-2 select-none transition-all duration-relaxed pointer-events-auto ${
             isFullscreen && !showControls
               ? "opacity-0 -translate-y-4 pointer-events-none"
               : "opacity-100 translate-y-0 pointer-events-auto"
@@ -2507,13 +2507,13 @@ export default function AddonStageDisplay({
                   "*"
                 );
               }}
-              className={`flex h-8 w-8 items-center justify-center rounded-full bg-black/60 hover:bg-black/90 ${
+              className={`flex h-8 w-8 items-center justify-center rounded-full bg-onicord-scrim hover:bg-onicord-scrim-heavy ${
                 act.danger
-                  ? "hover:text-red-400"
+                  ? "hover:text-onicord-danger"
                   : act.icon === "star"
-                  ? "hover:text-amber-400"
-                  : "hover:text-emerald-400"
-              } border border-white/10 text-white/80 transition-all shadow-lg backdrop-blur-md cursor-pointer`}
+                  ? "hover:text-onicord-warning"
+                  : "hover:text-onicord-success"
+              } border border-onicord-on-scrim/10 text-onicord-on-scrim/80 transition-all shadow-lg backdrop-blur-onicord-popover cursor-pointer`}
               title={act.title}
             >
               <MaterialIcon name={act.icon} size={18} />
@@ -2524,7 +2524,7 @@ export default function AddonStageDisplay({
             <button
               type="button"
               onClick={onToggleFullscreen}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 hover:bg-black/90 border border-white/10 text-white/80 hover:text-white transition-all shadow-lg backdrop-blur-md cursor-pointer"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-onicord-scrim hover:bg-onicord-scrim-heavy border border-onicord-on-scrim/10 text-onicord-on-scrim/80 hover:text-onicord-on-scrim transition-all shadow-lg backdrop-blur-onicord-popover cursor-pointer"
               title={isFullscreen ? t("voice.exitFullScreen") : t("voice.fullScreen")}
             >
               {isFullscreen ? <MaterialIcon name="fullscreen_exit" size="sm" /> : <MaterialIcon name="fullscreen" size="sm" />}
@@ -2533,7 +2533,7 @@ export default function AddonStageDisplay({
           <button
             type="button"
             onClick={handleTerminate}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 hover:bg-red-500/80 border border-white/10 text-white/80 hover:text-white transition-all shadow-lg backdrop-blur-md cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-onicord-scrim hover:bg-onicord-danger/80 border border-onicord-on-scrim/10 text-onicord-on-scrim/80 hover:text-onicord-on-scrim transition-all shadow-lg backdrop-blur-onicord-popover cursor-pointer"
             title={t("stage.closeCatalog")}
           >
             <MaterialIcon name="close" size={16} />

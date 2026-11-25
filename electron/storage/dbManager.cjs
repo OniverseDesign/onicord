@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
 
-const PROFILE_GLOBAL_DBS = ["app_config", "profile", "activity", "dashboard", "servers_list", "discover"];
+const PROFILE_GLOBAL_DBS = ["app_config", "profile", "activity", "dashboard", "servers_list", "discover", "suggestions"];
 const CATEGORY_GLOBAL_DBS = {
   addons: "addons",
   stickers: "stickers",
@@ -222,6 +222,53 @@ const GLOBAL_SCHEMAS = {
       size_bytes INTEGER NOT NULL,
       created_at INTEGER NOT NULL,
       last_accessed_at INTEGER NOT NULL
+    );
+  `,
+  suggestions: `
+    CREATE TABLE IF NOT EXISTS suggestion_phrases (
+      scope_key TEXT NOT NULL,
+      norm_key TEXT NOT NULL,
+      best_text TEXT NOT NULL,
+      best_variant_count INTEGER NOT NULL DEFAULT 1,
+      total_count INTEGER NOT NULL DEFAULT 1,
+      ewma_score REAL NOT NULL DEFAULT 1.0,
+      ewma_updated_at INTEGER NOT NULL,
+      after_question_count INTEGER NOT NULL DEFAULT 0,
+      first_used_at INTEGER NOT NULL,
+      last_used_at INTEGER NOT NULL,
+      variants_json TEXT NOT NULL DEFAULT '{}',
+      PRIMARY KEY (scope_key, norm_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sp_scope_recent
+      ON suggestion_phrases(scope_key, last_used_at DESC);
+
+    CREATE TABLE IF NOT EXISTS suggestion_words (
+      scope_key TEXT NOT NULL,
+      norm_word TEXT NOT NULL,
+      best_word TEXT NOT NULL,
+      total_count INTEGER NOT NULL DEFAULT 1,
+      ewma_score REAL NOT NULL DEFAULT 1.0,
+      ewma_updated_at INTEGER NOT NULL,
+      last_used_at INTEGER NOT NULL,
+      PRIMARY KEY (scope_key, norm_word)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sw_scope_recent
+      ON suggestion_words(scope_key, last_used_at DESC);
+
+    CREATE TABLE IF NOT EXISTS suggestion_prefs (
+      norm_key TEXT PRIMARY KEY,
+      status TEXT NOT NULL CHECK (status IN ('pinned', 'dismissed')),
+      display_text TEXT,
+      pin_order INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS suggestion_index_state (
+      source_key TEXT PRIMARY KEY,
+      last_indexed_timestamp INTEGER NOT NULL DEFAULT 0,
+      last_indexed_message_id TEXT,
+      messages_scanned INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL
     );
   `,
 };
@@ -625,7 +672,7 @@ class DbManager {
 
   /**
    * Opens or returns a cached personal/global database from `userData/db/<name>.db`.
-   * Valid names: 'app_config', 'profile', 'activity', 'stickers', 'emojis', 'addons', 'dashboard', 'servers_list', 'discover'
+   * Valid names: 'app_config', 'profile', 'activity', 'stickers', 'emojis', 'addons', 'dashboard', 'servers_list', 'discover', 'suggestions'
    */
   getGlobalDb(rawName) {
     const name = String(rawName || "").replace(/\.db$/i, "");

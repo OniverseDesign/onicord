@@ -147,7 +147,7 @@ export default function Select({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={cn(
-          "w-full flex items-center justify-between border font-medium transition-all duration-150 outline-none box-border",
+          "w-full flex items-center justify-between border font-medium transition-all duration-fast outline-none box-border",
           "bg-onicord-mantle/80 hover:bg-onicord-mantle border-onicord-island",
           "text-onicord-text placeholder:text-onicord-faded",
           "focus-visible:border-onicord-accent/60 focus-visible:ring-2 focus-visible:ring-onicord-accent/20",
@@ -186,7 +186,7 @@ export default function Select({
         {/* Animated rotation chevron */}
         <span
           className={cn(
-            "text-onicord-muted shrink-0 flex items-center transition-transform duration-200",
+            "text-onicord-muted shrink-0 flex items-center transition-transform duration-normal",
             isOpen && "rotate-180 text-onicord-accent"
           )}
         >
@@ -226,10 +226,10 @@ export default function Select({
                   disabled={opt.disabled}
                   onClick={() => handleSelect(opt)}
                   className={cn(
-                    "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-left text-xs transition-all duration-150 cursor-pointer",
+                    "w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-left text-xs transition-all duration-fast cursor-pointer",
                     isSelected
                       ? "bg-onicord-accent/15 text-onicord-accent font-semibold"
-                      : "text-onicord-text hover:bg-onicord-tint/5 hover:text-white",
+                      : "text-onicord-text hover:bg-onicord-hover hover:text-white",
                     opt.disabled && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-inherit",
                     optionClassName
                   )}
@@ -247,7 +247,7 @@ export default function Select({
                     <div className="flex flex-col min-w-0">
                       <span className="truncate">{opt.label}</span>
                       {opt.description && (
-                        <span className="text-[10px] text-onicord-muted font-normal truncate">
+                        <span className="text-2xs text-onicord-muted font-normal truncate">
                           {opt.description}
                         </span>
                       )}

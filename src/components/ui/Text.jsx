@@ -3,6 +3,7 @@ import { cn } from "../../lib/cn";
 
 const VARIANT_CLASSES = {
   "2xs": "text-2xs",
+  micro: "text-micro",
   badge: "text-2xs font-bold uppercase tracking-wider",
   xs: "text-xs",
   caption: "text-xs text-onicord-muted",

@@ -1,7 +1,7 @@
 @layer components {
   /* 📝 ONICORD ATOMIC INPUTS SYSTEM (Control Heights: sm=32px, md=36px, lg=44px) */
   .onicord-input-base {
-    @apply h-9 px-3.5 text-xs sm:text-sm rounded-onicord-button bg-onicord-base text-onicord-text outline-none ring-onicord-accent focus:ring-2 border border-onicord-border placeholder:text-onicord-faded transition-all duration-150 box-border;
+    @apply h-9 px-3.5 text-xs sm:text-sm rounded-onicord-button bg-onicord-base text-onicord-text outline-none ring-onicord-accent focus:ring-2 border border-onicord-border placeholder:text-onicord-faded transition-all duration-fast box-border;
   }
 
   /* Modificadores de altura para inputs */
@@ -32,7 +32,7 @@
     @apply w-8 h-8 rounded-md bg-transparent border-0 cursor-pointer shrink-0;
   }
   .onicord-file-upload-label {
-    @apply inline-block px-5 py-2.5 border border-onicord-border text-sm font-semibold text-onicord-text rounded-onicord-button transition-opacity shadow-sm bg-onicord-overlay hover:bg-onicord-tint/5 cursor-pointer active:scale-95;
+    @apply inline-block px-5 py-2.5 border border-onicord-border text-sm font-semibold text-onicord-text rounded-onicord-button transition-opacity shadow-sm bg-onicord-overlay hover:bg-onicord-hover cursor-pointer active:scale-95;
   }
   .onicord-file-upload-label-disabled {
     @apply bg-onicord-tint/10 opacity-50 cursor-wait;
@@ -41,7 +41,7 @@
     @apply flex min-w-0 flex-1 items-center justify-center rounded-onicord-button bg-onicord-overlay px-4 py-3 border border-onicord-border shadow-onicord-elevated;
   }
   .onicord-toggle-slider {
-    @apply w-9 h-5 bg-onicord-tint/15 rounded-full transition-colors duration-150 relative;
+    @apply w-9 h-5 bg-onicord-tint/15 rounded-full transition-colors duration-fast relative;
   }
   .peer:focus ~ .onicord-toggle-slider {
     @apply outline-none;
@@ -58,6 +58,29 @@
   }
   .onicord-range-input {
     @apply w-full accent-onicord-accent bg-onicord-tint/15 h-1.5 rounded-lg appearance-none cursor-pointer;
+  }
+
+  /* 🎛️ ONICORD SEGMENTED CONTROL PRIMITIVE */
+  .onicord-segmented {
+    @apply p-1 gap-1.5 bg-onicord-base/40 rounded-xl border border-onicord-border select-none;
+  }
+  .onicord-segmented-item {
+    @apply inline-flex items-center justify-center gap-1.5 min-w-0 rounded-lg border text-center text-xs transition-all duration-fast cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-onicord-accent/30 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none;
+  }
+  .onicord-segmented-item-inactive {
+    @apply border-transparent text-onicord-muted hover:text-onicord-text hover:bg-onicord-hover font-medium;
+  }
+  .onicord-segmented-item-active {
+    @apply bg-onicord-accent/15 border-onicord-accent/40 text-onicord-accent font-semibold shadow-sm;
+  }
+  .onicord-segmented-badge {
+    @apply text-2xs px-1.5 py-0.5 rounded-full font-bold leading-none shrink-0;
+  }
+  .onicord-segmented-badge-inactive {
+    @apply bg-onicord-tint/10 text-onicord-muted;
+  }
+  .onicord-segmented-badge-active {
+    @apply bg-onicord-accent/20 text-onicord-accent;
   }
 }
 

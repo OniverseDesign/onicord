@@ -236,7 +236,7 @@ function WhiteboardImage({ el, autoDownload = true }) {
   }, [el.fileId, el.roomCode, el.fileName, el.fileSize, autoDownload]);
 
   return (
-    <div className="w-full h-full rounded-xl overflow-hidden bg-onicord-surface/60 border border-white/10 shadow-lg flex items-center justify-center relative">
+    <div className="w-full h-full rounded-xl overflow-hidden bg-onicord-surface/60 border border-white/10 flex items-center justify-center relative">
       {src ? (
         <img
           src={src}
@@ -308,7 +308,7 @@ function WhiteboardSticker({ el }) {
           timestamp={el.updatedAt}
         />
       ) : (
-        <span className="text-[11px] text-onicord-muted px-2 text-center truncate">
+        <span className="text-xs text-onicord-muted px-2 text-center truncate">
           {el.stickerName || "Sticker..."}
         </span>
       )}
@@ -392,13 +392,13 @@ export default function WhiteboardElement({
       {isSelected && el.locked && (
         <div
           title="Bloqueado"
-          className="absolute -top-3 -right-3 w-5 h-5 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center shadow-md z-40 pointer-events-none"
+          className="absolute -top-3 -right-3 w-5 h-5 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center z-40 pointer-events-none"
         >
           <Lock size={11} />
         </div>
       )}
       {editingBy && !isEditing && (
-        <div className="absolute -top-6 left-0 px-2 py-0.5 rounded-full bg-sky-500 text-zinc-950 text-[10px] font-bold shadow-md z-40 pointer-events-none whitespace-nowrap">
+        <div className="absolute -top-6 left-0 px-2 py-0.5 rounded-full bg-sky-500 text-zinc-950 text-2xs font-bold z-40 pointer-events-none whitespace-nowrap">
           {editingBy.nickname} editando…
         </div>
       )}
@@ -406,7 +406,7 @@ export default function WhiteboardElement({
       {el.type === "sticky" && (
         <div
           style={{ backgroundColor: el.style?.fill || "#FEF08A" }}
-          className="w-full h-full rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.35)] p-3 flex flex-col justify-between border border-black/10"
+          className="w-full h-full rounded-xl p-3 flex flex-col justify-between border border-onicord-border"
         >
           {isEditing ? (
             <textarea
@@ -435,7 +435,7 @@ export default function WhiteboardElement({
           {el.authorName && (
             <div
               style={{ color: textColor }}
-              className="text-[10px] font-semibold opacity-50 truncate pt-1"
+              className="text-2xs font-semibold opacity-50 truncate pt-1"
             >
               {el.authorName}
             </div>
@@ -547,7 +547,7 @@ export default function WhiteboardElement({
           style={{
             fontSize: `${Math.max(20, Math.round(Math.min(el.w || 48, el.h || 48) * 0.72))}px`,
           }}
-          className="w-full h-full flex items-center justify-center leading-none drop-shadow-md select-none"
+          className="w-full h-full flex items-center justify-center leading-none select-none"
         >
           {el.text || "👍"}
         </div>
@@ -604,7 +604,7 @@ export default function WhiteboardElement({
 
       {/* TABLE */}
       {el.type === "table" && (
-        <div className="w-full h-full rounded-xl overflow-hidden bg-onicord-surface border border-onicord-border shadow-xl flex flex-col">
+        <div className="w-full h-full rounded-xl overflow-hidden bg-onicord-surface border border-onicord-border flex flex-col">
           <div
             style={{
               gridTemplateColumns: `repeat(${Math.max(1, el.cols || el.cells?.[0]?.length || 3)}, minmax(0, 1fr))`,
@@ -682,7 +682,7 @@ export default function WhiteboardElement({
                     onResizeStart(e, el, dir);
                   }}
                   className={cn(
-                    "absolute w-3 h-3 rounded-full bg-white border-2 border-sky-500 shadow-sm z-40",
+                    "absolute w-3 h-3 rounded-full bg-white border-2 border-sky-500 z-40",
                     posClass
                   )}
                 />
@@ -709,7 +709,7 @@ export default function WhiteboardElement({
               top: `${Math.min(el.h / 2 - 6, 8 + (el.style?.borderRadius ?? 0) * 0.55)}px`,
             }}
             title="Arrastrar para redondear esquinas"
-            className="absolute w-2.5 h-2.5 rounded-full bg-white border-2 border-sky-500 shadow-sm z-40 cursor-nwse-resize hover:scale-125 transition-transform"
+            className="absolute w-2.5 h-2.5 rounded-full bg-white border-2 border-sky-500 z-40 cursor-nwse-resize hover:scale-125 transition-transform"
           />
         )}
 
@@ -738,7 +738,7 @@ export default function WhiteboardElement({
                 }}
                 title="Arrastrar para conectar"
                 className={cn(
-                  "absolute w-3 h-3 rounded-full bg-sky-400/85 hover:bg-sky-300 border-2 border-[#1E1F22] shadow-md z-40 cursor-crosshair hover:scale-125 transition-transform",
+                  "absolute w-3 h-3 rounded-full bg-sky-400/85 hover:bg-sky-300 border-2 border-[#1E1F22] z-40 cursor-crosshair hover:scale-125 transition-transform",
                   anc.cls
                 )}
               />

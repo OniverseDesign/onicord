@@ -12,7 +12,7 @@
   --color-teal-rgb: 148 226 213;
   --color-sky-rgb: 137 220 235;
   --color-blue-rgb: 137 180 250;
-  --color-lavender-rgb: 203 166 247;
+  --color-lavender-rgb: 180 190 254;
   --color-sapphire-rgb: 116 199 236;
 
   --color-text-raw: #cdd6f4;
@@ -44,10 +44,21 @@
 
   /* Acentos (Heredamos el mismo esquema para compatibilidad) */
   --onicord-lavender: var(--color-lavender-rgb);
-  --onicord-accent: rgb(var(--onicord-lavender));
+  --onicord-accent-rgb: var(--onicord-lavender);
+  --onicord-accent: rgb(var(--onicord-accent-rgb));
   --onicord-danger: var(--color-red-rgb);
   --onicord-success: var(--color-green-rgb);
+  --onicord-warning: var(--color-yellow-rgb);
+  --onicord-info: var(--color-blue-rgb);
   --onicord-sapphire: var(--color-sapphire-rgb);
+
+  /* Indicadores saturados (estados, toasts, badges, alertas destacadas — mismos tonos Mocha, más claros y balanceados) */
+  --onicord-success-vivid: 107 224 97;
+  --onicord-warning-vivid: 242 197 95;
+  --onicord-danger-vivid: 238 88 131;
+  --onicord-info-vivid: 95 153 242;
+  --onicord-accent-vivid: 111 131 236;
+  --onicord-offline-vivid: 134 140 166;
 
   /* Escala pastel Mocha V2 heredada */
   --onicord-rosewater: var(--color-rosewater-rgb);
@@ -64,10 +75,23 @@
 
   /* Interacciones y bordes adaptativos */
   --onicord-tint-rgb: 255 255 255;
+  --onicord-border-subtle: rgb(var(--onicord-tint-rgb) / 0.04);
   --onicord-border: rgb(var(--onicord-tint-rgb) / 0.06);
+  --onicord-border-strong: rgb(var(--onicord-tint-rgb) / 0.14);
+  --onicord-border-island: rgb(var(--onicord-bg-overlay));
   --onicord-on-accent: #11111b;
   --onicord-on-danger: #11111b;
+  --onicord-on-warning: #11111b;
+  --onicord-on-info: #11111b;
   --onicord-overlayer-bg: rgba(17, 17, 27, 0.92);
+
+  /* Scrims para overlays sobre video/imagen (invariantes entre Dark y Light) */
+  --onicord-scrim-soft: rgb(0 0 0 / 0.25);
+  --onicord-scrim: rgb(0 0 0 / 0.55);
+  --onicord-scrim-heavy: rgb(0 0 0 / 0.85);
+  --onicord-on-scrim-rgb: 255 255 255;
+  --onicord-on-scrim: #ffffff;
+  --onicord-on-light-rgb: 15 23 42;
 
   --hover: rgba(255, 255, 255, 0.06);
   --active: rgba(255, 255, 255, 0.12);
@@ -87,12 +111,45 @@
   --onicord-faded: #898ea3;
 
   --onicord-tint-rgb: 15 23 42;
+  --onicord-border-subtle: rgb(var(--onicord-tint-rgb) / 0.05);
   --onicord-border: rgb(var(--onicord-tint-rgb) / 0.09);
+  --onicord-border-strong: rgb(var(--onicord-tint-rgb) / 0.18);
   --onicord-on-accent: #ffffff;
   --onicord-on-danger: #ffffff;
+  --onicord-on-warning: #ffffff;
+  --onicord-on-info: #ffffff;
   --onicord-overlayer-bg: rgba(248, 250, 252, 0.94);
+
+  /* Indicadores saturados en Light Mode */
+  --onicord-success-vivid: 48 168 58;
+  --onicord-warning-vivid: 224 148 24;
+  --onicord-danger-vivid: 219 46 86;
+  --onicord-info-vivid: 46 118 235;
+  --onicord-accent-vivid: 122 140 245;
+  --onicord-offline-vivid: 148 163 184;
 
   --hover: rgba(15, 23, 42, 0.05);
   --active: rgba(15, 23, 42, 0.10);
   --message-hover: rgba(15, 23, 42, 0.035);
+}
+
+/* Windows 11 Mica translucency layer */
+:root[data-window-mica="true"],
+:root[data-window-mica="true"] body,
+:root[data-window-mica="true"] #root {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+:root[data-window-mica="true"] .bg-onicord-mantle {
+  background-color: rgb(var(--onicord-bg-mantle) / 0.56);
+}
+
+:root[data-window-mica="true"] .bg-onicord-base {
+  background-color: rgb(var(--onicord-bg-base) / 0.72);
+}
+
+:root[data-window-mica="true"] .bg-onicord-surface,
+:root[data-window-mica="true"] .onicord-settings-card {
+  background-color: rgb(var(--onicord-bg-surface) / 0.68);
 }

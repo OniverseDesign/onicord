@@ -108,7 +108,7 @@ export default function RoomHeader({
         {isSearchFocused && !inputValue && (
           <div
             onMouseDown={(e) => e.preventDefault()}
-            className="absolute top-full left-0 right-0 mt-2 p-3 bg-onicord-base/95 backdrop-blur-md rounded-2xl border border-onicord-island shadow-2xl z-50 onicord-animate-popup-in origin-top"
+            className="absolute top-full left-0 right-0 mt-2 p-3 bg-onicord-base/95 backdrop-blur-onicord-popover rounded-2xl border border-onicord-island shadow-2xl z-50 onicord-animate-popup-in origin-top"
           >
             <div className="text-2xs font-semibold text-onicord-muted uppercase tracking-wider px-2 mb-2">
               {t("chat.searchFilterOptions", "Filtros de búsqueda disponibles")}
@@ -120,7 +120,7 @@ export default function RoomHeader({
                   setInputValue("from:");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-hover transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">from:</code>
                 <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterFrom", "Filtrar por autor o apodo")}</span>
@@ -132,7 +132,7 @@ export default function RoomHeader({
                   setInputValue("has:image ");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-hover transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">has:image</code>
                 <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterImage", "Solo fotos e imágenes")}</span>
@@ -144,7 +144,7 @@ export default function RoomHeader({
                   setInputValue("has:file ");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-hover transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">has:file</code>
                 <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterFile", "Archivos y documentos")}</span>
@@ -156,7 +156,7 @@ export default function RoomHeader({
                   setInputValue("has:link ");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-hover transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">has:link</code>
                 <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterLink", "Mensajes con enlaces web")}</span>
@@ -168,7 +168,7 @@ export default function RoomHeader({
                   setInputValue("in:");
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-hover transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">in:</code>
                 <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterIn", "Buscar en canal específico")}</span>
@@ -180,7 +180,7 @@ export default function RoomHeader({
                   setInputValue('""');
                   searchInputRef.current?.focus();
                 }}
-                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-tint/5 transition-colors text-left group cursor-pointer"
+                className="flex items-center gap-2 p-2 rounded-xl hover:bg-onicord-hover transition-colors text-left group cursor-pointer"
               >
                 <code className="text-onicord-accent font-semibold bg-onicord-accent/10 px-1.5 py-0.5 rounded text-xs">&quot;frase&quot;</code>
                 <span className="text-onicord-text text-xs group-hover:text-onicord-accent truncate">{t("chat.searchFilterPhrase", "Coincidencia exacta")}</span>
@@ -194,7 +194,7 @@ export default function RoomHeader({
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent("onicord:open-pinned-modal"))}
-          className="h-12 w-12 rounded-full bg-onicord-base border border-onicord-island hover:bg-onicord-tint/10 text-onicord-muted hover:text-onicord-accent transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+          className="h-12 w-12 rounded-full bg-onicord-base border border-onicord-island hover:bg-onicord-hover text-onicord-muted hover:text-onicord-accent transition-colors cursor-pointer shrink-0 flex items-center justify-center"
         >
           <MaterialIcon name="push_pin" size="lg" />
         </button>

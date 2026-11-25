@@ -113,29 +113,29 @@ export default function ToastContainer() {
     switch (type) {
       case "success":
         return {
-          border: "border-onicord-success/80 shadow-md",
-          iconBg: "bg-onicord-success/20 text-onicord-success",
-          actionHover: isClickable ? "hover:border-onicord-success" : "",
+          border: "border-onicord-success-vivid/80 shadow-onicord-glow-success",
+          iconBg: "bg-onicord-success-vivid/20 text-onicord-success-vivid",
+          actionHover: isClickable ? "hover:border-onicord-success-vivid" : "",
         };
       case "danger":
       case "error":
         return {
-          border: "border-onicord-danger/80 shadow-md",
-          iconBg: "bg-onicord-danger/20 text-onicord-danger",
-          actionHover: isClickable ? "hover:border-onicord-danger" : "",
+          border: "border-onicord-danger-vivid/80 shadow-onicord-glow-danger",
+          iconBg: "bg-onicord-danger-vivid/20 text-onicord-danger-vivid",
+          actionHover: isClickable ? "hover:border-onicord-danger-vivid" : "",
         };
       case "warning":
         return {
-          border: "border-amber-500/80 shadow-[0_0_20px_rgba(245,158,11,0.2)]",
-          iconBg: "bg-amber-500/20 text-amber-400",
-          actionHover: isClickable ? "hover:border-amber-400" : "",
+          border: "border-onicord-warning-vivid/80 shadow-onicord-glow-warning",
+          iconBg: "bg-onicord-warning-vivid/20 text-onicord-warning-vivid",
+          actionHover: isClickable ? "hover:border-onicord-warning-vivid" : "",
         };
       case "info":
       default:
         return {
-          border: "border-onicord-accent/80 shadow-[0_0_20px_rgb(var(--onicord-lavender)/0.25)]",
-          iconBg: "bg-onicord-accent/20 text-onicord-accent",
-          actionHover: isClickable ? "hover:border-onicord-accent" : "",
+          border: "border-onicord-accent-vivid/80 shadow-onicord-glow-accent",
+          iconBg: "bg-onicord-accent-vivid/20 text-onicord-accent-vivid",
+          actionHover: isClickable ? "hover:border-onicord-accent-vivid" : "",
         };
     }
   };
@@ -171,7 +171,7 @@ export default function ToastContainer() {
           >
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {toast.avatar ? (
-                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 shadow-sm border border-onicord-tint/10 flex items-center justify-center bg-onicord-surface">
+                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 shadow-sm border border-onicord-border-strong flex items-center justify-center bg-onicord-surface">
                   <SmartAnimatedImage
                     src={toast.avatar}
                     alt={toast.senderName || ""}
@@ -224,7 +224,7 @@ export default function ToastContainer() {
                   e.stopPropagation();
                   handleDismiss(toast.id);
                 }}
-                className="text-onicord-muted hover:text-onicord-text text-xs p-1 rounded-md hover:bg-onicord-tint/10 transition cursor-pointer"
+                className="text-onicord-muted hover:text-onicord-text text-xs p-1 rounded-md hover:bg-onicord-hover transition cursor-pointer"
                 aria-label="Cerrar notificación"
               >
                 ✕
