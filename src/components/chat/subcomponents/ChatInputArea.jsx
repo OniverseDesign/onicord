@@ -12,7 +12,11 @@ import EmojiPickerPopover from "../../ui/EmojiPickerPopover";
 import StickerPopover from "../StickerPopover";
 import Tooltip from "../../ui/Tooltip";
 import { soundEngine } from "../../../lib/soundEngine";
-import { setSelectionOffsets } from "../../../lib/inputFormatter";
+import {
+  setSelectionOffsets,
+  getSelectionCharacterOffsets,
+  extractTextFromInput,
+} from "../../../lib/inputFormatter";
 import { getReadableSuggestionText } from "../composer/useQuickSuggestions";
 
 function formatBytes(bytes) {
@@ -169,6 +173,18 @@ export default function ChatInputArea({
   const handleInputFocus = () => {
     if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
     setIsInputFocused?.(true);
+  };
+
+  const handleCopy = (e) => {
+    const el = tyrannyInputRef.current;
+    if (!el || !e.clipboardData) return;
+    const { start, end } = getSelectionCharacterOffsets(el);
+    if (start === end) return;
+    const selectedText = extractTextFromInput(el).slice(start, end);
+    if (/<a?:[a-zA-Z0-9_-]{2,32}:[a-zA-Z0-9_-]{1,64}:(?:webp|png|gif|jpg|jpeg)>/i.test(selectedText)) {
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", selectedText);
+    }
   };
 
   const handleInputBlur = () => {
@@ -656,6 +672,7 @@ export default function ChatInputArea({
               onInput={hasSendMessages ? handleInputChange : undefined}
               onKeyDown={hasSendMessages ? handleContentKeyDown : undefined}
               onPaste={hasSendMessages ? handlePaste : undefined}
+              onCopy={hasSendMessages ? handleCopy : undefined}
               onSelect={hasSendMessages ? handleInputSelection : undefined}
               onKeyUp={hasSendMessages ? handleInputSelection : undefined}
               onMouseUp={hasSendMessages ? handleInputSelection : undefined}

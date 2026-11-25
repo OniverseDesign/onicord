@@ -20,6 +20,7 @@ import {
   setSelectionOffsets,
   renderHTMLForInput,
   applyMarkdownFormat,
+  extractTextFromInput,
 } from "../../../lib/inputFormatter";
 import { soundEngine } from "../../../lib/soundEngine";
 import { triggerServerFlameInteraction } from "../../../lib/flameService";
@@ -321,7 +322,7 @@ export default function ThreadSidePanel({
   };
 
   const handleInputChange = (e) => {
-    const rawVal = e.currentTarget.textContent || "";
+    const rawVal = extractTextFromInput(e.currentTarget);
     processComposerInput(rawVal);
   };
 

@@ -13,6 +13,7 @@ import {
   setSelectionOffsets,
   getSelectionCharacterOffsets,
   renderHTMLForInput,
+  extractTextFromInput,
 } from "../../lib/inputFormatter";
 
 const MentionsPopover = memo(
@@ -148,7 +149,7 @@ const MentionsPopover = memo(
         let newCursorPos = 0;
 
         const offsets = getSelectionCharacterOffsets(el);
-        const currentText = input || el?.textContent || "";
+        const currentText = input || (el ? extractTextFromInput(el) : "");
         const cursor = offsets.start > 0 ? offsets.start : currentText.length;
 
         const textBeforeCursor = currentText.slice(0, cursor);

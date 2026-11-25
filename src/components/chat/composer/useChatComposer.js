@@ -4,12 +4,15 @@ import {
   setSelectionOffsets,
   renderHTMLForInput,
   applyMarkdownFormat,
+  extractTextFromInput,
+  areCustomEmojisSyncedInDom,
 } from "../../../lib/inputFormatter";
 import {
   getActiveEmojiQuery,
   replaceCompletedShortcodeAtCursor,
   searchEmojis,
   addRecentEmoji,
+  subscribeCustomEmojis,
 } from "../../../lib/emojiData";
 
 export function useChatComposer({ profile, peers }) {
@@ -21,6 +24,11 @@ export function useChatComposer({ profile, peers }) {
   const [emojiQuery, setEmojiQuery] = useState(null);
   const [stickersTargetRect, setStickersTargetRect] = useState(null);
   const [emojisTargetRect, setEmojisTargetRect] = useState(null);
+  const [customEmojiVersion, setCustomEmojiVersion] = useState(0);
+
+  useEffect(() => {
+    return subscribeCustomEmojis(() => setCustomEmojiVersion((v) => v + 1));
+  }, []);
 
   const tyrannyInputRef = useRef(null);
   const isLocalTypingRef = useRef(false);
@@ -148,7 +156,7 @@ export function useChatComposer({ profile, peers }) {
         if (activeEmoji) {
           const offsets = getSelectionCharacterOffsets(inputEl);
           const currentActive = getActiveEmojiQuery(
-            inputEl.textContent || "",
+            extractTextFromInput(inputEl),
             offsets.start
           );
           if (
@@ -197,16 +205,22 @@ export function useChatComposer({ profile, peers }) {
     const isLocalTyping = isLocalTypingRef.current;
     isLocalTypingRef.current = false;
 
-    if (isLocalTyping && el.textContent !== input) {
+    const currentDomText = extractTextFromInput(el);
+    if (isLocalTyping && currentDomText !== input) {
       return;
     }
 
     const targetHTML = renderHTMLForInput(input, allUsers);
 
-    const hasFormattingSpans = targetHTML.includes("<span");
+    const hasFormattingSpans = /<span(?![^>]*data-emoji-token=)/.test(targetHTML);
+    const domHasFormattingSpans = Boolean(
+      el.querySelector("span:not([data-emoji-token])")
+    );
     if (
       !hasFormattingSpans &&
-      el.textContent === input &&
+      !domHasFormattingSpans &&
+      currentDomText === input &&
+      areCustomEmojisSyncedInDom(el, input) &&
       (input !== "" || el.innerHTML === "")
     ) {
       return;
@@ -215,9 +229,11 @@ export function useChatComposer({ profile, peers }) {
     if (el.innerHTML !== targetHTML) {
       const offsets = getSelectionCharacterOffsets(el);
       el.innerHTML = targetHTML;
-      setSelectionOffsets(el, offsets.start, offsets.end);
+      if (document.activeElement === el) {
+        setSelectionOffsets(el, offsets.start, offsets.end);
+      }
     }
-  }, [input, allUsers]);
+  }, [input, allUsers, customEmojiVersion]);
 
   // Track /commands and @mentions trigger
   useEffect(() => {
@@ -304,32 +320,45 @@ export function useChatComposer({ profile, peers }) {
   );
 
   // Insert emoji at caret
-  const handleSelectEmoji = useCallback((emoji) => {
-    const el = tyrannyInputRef.current;
-    if (!el) return;
-    el.focus();
-
-    const sel = window.getSelection();
-    if (sel.getRangeAt && sel.rangeCount) {
-      const range = sel.getRangeAt(0);
-      if (el.contains(range.commonAncestorContainer)) {
-        range.deleteContents();
-        const textNode = document.createTextNode(emoji);
-        range.insertNode(textNode);
-        range.setStartAfter(textNode);
-        range.setEndAfter(textNode);
-        sel.removeAllRanges();
-        sel.addRange(range);
-      } else {
-        el.innerText += emoji;
+  const handleSelectEmoji = useCallback(
+    (emoji) => {
+      const el = tyrannyInputRef.current;
+      if (!el) {
+        setInput((prev) => `${prev || ""}${emoji}`);
+        setEmojiQuery(null);
+        return;
       }
-    } else {
-      el.innerText += emoji;
-    }
 
-    setEmojiQuery(null);
-    setInput(el.textContent || "");
-  }, []);
+      const currentText = extractTextFromInput(el);
+      const offsets = getSelectionCharacterOffsets(el);
+      const hasSelInside =
+        document.activeElement === el ||
+        offsets.start > 0 ||
+        offsets.end > 0;
+      const start = hasSelInside
+        ? Math.max(0, Math.min(offsets.start, currentText.length))
+        : currentText.length;
+      const end = hasSelInside
+        ? Math.max(start, Math.min(offsets.end, currentText.length))
+        : currentText.length;
+
+      const newText = currentText.slice(0, start) + emoji + currentText.slice(end);
+      const newCursorPos = start + emoji.length;
+
+      el.innerHTML = renderHTMLForInput(newText, allUsers);
+      el.focus();
+      setSelectionOffsets(el, newCursorPos, newCursorPos);
+      requestAnimationFrame(() => {
+        el.focus();
+        setSelectionOffsets(el, newCursorPos, newCursorPos);
+      });
+
+      setEmojiQuery(null);
+      isLocalTypingRef.current = false;
+      setInput(newText);
+    },
+    [allUsers]
+  );
 
   // Apply markdown formatting (bold, italic, strike, spoiler, etc.)
   const applyFormatting = useCallback((prefix, suffix = prefix) => {
@@ -350,7 +379,7 @@ export function useChatComposer({ profile, peers }) {
       end = offsets.end;
     }
 
-    const text = inputEl.textContent || input || "";
+    const text = extractTextFromInput(inputEl) || input || "";
     const { newText, newStart, newEnd } = applyMarkdownFormat(
       text,
       { start, end },

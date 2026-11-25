@@ -11,6 +11,7 @@ import React, {
 import {
   setSelectionOffsets,
   renderHTMLForInput,
+  extractTextFromInput,
 } from "../../lib/inputFormatter";
 import {
   searchEmojis,
@@ -84,7 +85,7 @@ const EmojiAutocompletePopover = memo(
         if (!item || !emojiQuery) return;
 
         const el = tyrannyInputRef?.current;
-        const currentText = el?.textContent ?? input ?? "";
+        const currentText = el ? extractTextFromInput(el) : input ?? "";
         const start = Math.max(
           0,
           Math.min(emojiQuery.startIndex, currentText.length)

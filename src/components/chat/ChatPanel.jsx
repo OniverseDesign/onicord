@@ -6,7 +6,7 @@ import MaterialIcon from "../icons/MaterialIcon";
 import ContextMenu from "../ui/ContextMenu";
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 import { ONICORD_COMMANDS } from "../../lib/commands";
-import { getSelectionCharacterOffsets, setSelectionOffsets, renderHTMLForInput, applyMarkdownFormat } from "../../lib/inputFormatter";
+import { getSelectionCharacterOffsets, setSelectionOffsets, renderHTMLForInput, applyMarkdownFormat, extractTextFromInput } from "../../lib/inputFormatter";
 import { checkPermission, canSpeakInChannel } from "../../lib/permissionsHelper";
 import { copyTextToClipboard, readTextFromClipboard } from "../../lib/clipboard";
 const ForwardMessageModal = lazy(() => import("../modals/ForwardMessageModal"));
@@ -321,7 +321,7 @@ export default function ChatPanel({
   }, [visibleSuggestions.length, replyTarget, scrollToBottom, isAtBottomRef]);
 
   const handleInputChange = (e) => {
-    const rawVal = e.currentTarget.textContent || "";
+    const rawVal = extractTextFromInput(e.currentTarget);
     const val = processComposerInput(rawVal);
 
     const partes = val.split(" ");

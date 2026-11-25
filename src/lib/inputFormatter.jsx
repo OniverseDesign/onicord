@@ -1,4 +1,81 @@
 import React from "react";
+import { getCustomEmojiById } from "./emojiData";
+import { getMediaUrl } from "./media";
+
+const CUSTOM_EMOJI_INPUT_REGEX =
+  /<(a?):([a-zA-Z0-9_-]{2,32}):([a-zA-Z0-9_-]{1,64}):(webp|png|gif|jpg|jpeg)>/gi;
+
+function getNodeSerializedLength(node) {
+  if (!node) return 0;
+  if (node.nodeType === 3) {
+    return (node.textContent || "").length;
+  }
+  if (node.nodeType === 1) {
+    if (node.hasAttribute && node.hasAttribute("data-emoji-token")) {
+      return (node.getAttribute("data-emoji-token") || "").length;
+    }
+    let sum = 0;
+    for (let i = 0; i < node.childNodes.length; i += 1) {
+      sum += getNodeSerializedLength(node.childNodes[i]);
+    }
+    return sum;
+  }
+  return 0;
+}
+
+/**
+ * Serializes a contentEditable input element back into raw message text,
+ * converting atomic `[data-emoji-token]` elements back to `<a?:shortcode:id:ext>`.
+ */
+export function extractTextFromInput(element) {
+  if (!element) return "";
+  let out = "";
+  const walk = (node) => {
+    for (let i = 0; i < node.childNodes.length; i += 1) {
+      const child = node.childNodes[i];
+      if (child.nodeType === 3) {
+        out += child.textContent || "";
+      } else if (child.nodeType === 1) {
+        if (child.hasAttribute && child.hasAttribute("data-emoji-token")) {
+          out += child.getAttribute("data-emoji-token") || "";
+        } else {
+          walk(child);
+        }
+      }
+    }
+  };
+  walk(element);
+  return out;
+}
+
+/**
+ * Verifies whether every custom emoji token in `input` is currently rendered
+ * in `element` (and upgraded to `<img>` once localPath is resolved).
+ */
+export function areCustomEmojisSyncedInDom(element, input) {
+  if (!element) return false;
+  const expected = [];
+  if (typeof input === "string" && input.length > 0) {
+    for (const match of input.matchAll(CUSTOM_EMOJI_INPUT_REGEX)) {
+      expected.push({ raw: match[0], id: match[3] });
+    }
+  }
+
+  const domNodes = element.querySelectorAll("[data-emoji-token]");
+  if (domNodes.length !== expected.length) return false;
+
+  for (let i = 0; i < expected.length; i += 1) {
+    const node = domNodes[i];
+    if (node.getAttribute("data-emoji-token") !== expected[i].raw) {
+      return false;
+    }
+    const local = getCustomEmojiById(expected[i].id);
+    if (local?.localPath && node.tagName !== "IMG") {
+      return false;
+    }
+  }
+  return true;
+}
 
 export function parseRegexToken(tokens, regex, factory) {
   const result = [];
@@ -44,6 +121,56 @@ export function parseRegexToken(tokens, regex, factory) {
   return result;
 }
 
+function computeOffsetToPoint(root, targetNode, targetOffset) {
+  let offset = 0;
+  let found = false;
+
+  function walk(node) {
+    if (found) return;
+
+    if (node === targetNode) {
+      if (node.nodeType === 3) {
+        offset += Math.min(targetOffset, (node.textContent || "").length);
+      } else {
+        const limit = Math.min(targetOffset, node.childNodes.length);
+        for (let i = 0; i < limit; i += 1) {
+          offset += getNodeSerializedLength(node.childNodes[i]);
+        }
+      }
+      found = true;
+      return;
+    }
+
+    if (node.nodeType === 3) {
+      offset += (node.textContent || "").length;
+      return;
+    }
+
+    if (
+      node.nodeType === 1 &&
+      node.hasAttribute &&
+      node.hasAttribute("data-emoji-token")
+    ) {
+      const tokenLen = (node.getAttribute("data-emoji-token") || "").length;
+      if (node.contains && node.contains(targetNode)) {
+        offset += targetOffset > 0 ? tokenLen : 0;
+        found = true;
+      } else {
+        offset += tokenLen;
+      }
+      return;
+    }
+
+    for (let i = 0; i < node.childNodes.length; i += 1) {
+      walk(node.childNodes[i]);
+      if (found) return;
+    }
+  }
+
+  walk(root);
+  return offset;
+}
+
 export function getSelectionCharacterOffsets(element) {
   let start = 0;
   let end = 0;
@@ -55,12 +182,15 @@ export function getSelectionCharacterOffsets(element) {
     try {
       const range = sel.getRangeAt(0);
       if (element.contains(range.startContainer) && element.contains(range.endContainer)) {
-        const preCaretRange = range.cloneRange();
-        preCaretRange.selectNodeContents(element);
-        preCaretRange.setEnd(range.startContainer, range.startOffset);
-        start = preCaretRange.toString().length;
-        preCaretRange.setEnd(range.endContainer, range.endOffset);
-        end = preCaretRange.toString().length;
+        const totalLen = getNodeSerializedLength(element);
+        start = Math.max(
+          0,
+          Math.min(totalLen, computeOffsetToPoint(element, range.startContainer, range.startOffset))
+        );
+        end = Math.max(
+          0,
+          Math.min(totalLen, computeOffsetToPoint(element, range.endContainer, range.endOffset))
+        );
       }
     } catch (_) {
       // Range detached or outside bounds
@@ -71,10 +201,12 @@ export function getSelectionCharacterOffsets(element) {
 
 export function setSelectionOffsets(element, start, end) {
   if (!element) return;
-  const range = document.createRange();
-  const sel = window.getSelection();
+  const doc = element.ownerDocument || element.document || document;
+  const win = doc ? (doc.defaultView || doc.parentWindow || window) : window;
+  const range = doc.createRange();
+  const sel = win.getSelection ? win.getSelection() : null;
   if (!sel) return;
-  
+
   let currentOffset = 0;
   let startNode = null;
   let startOffset = 0;
@@ -82,13 +214,13 @@ export function setSelectionOffsets(element, start, end) {
   let endOffset = 0;
   let lastTextNode = null;
   let lastTextLen = 0;
-  
+
   function traverse(el) {
-    for (let i = 0; i < el.childNodes.length; i++) {
+    for (let i = 0; i < el.childNodes.length; i += 1) {
       const child = el.childNodes[i];
-      if (child.nodeType === Node.TEXT_NODE) {
+      if (child.nodeType === 3) {
         lastTextNode = child;
-        const len = child.textContent.length;
+        const len = (child.textContent || "").length;
         lastTextLen = len;
         if (!startNode && currentOffset + len >= start) {
           startNode = child;
@@ -99,17 +231,32 @@ export function setSelectionOffsets(element, start, end) {
           endOffset = Math.max(0, Math.min(end - currentOffset, len));
         }
         currentOffset += len;
+      } else if (
+        child.nodeType === 1 &&
+        child.hasAttribute &&
+        child.hasAttribute("data-emoji-token")
+      ) {
+        const len = (child.getAttribute("data-emoji-token") || "").length;
+        if (!startNode && currentOffset + len >= start) {
+          startNode = el;
+          startOffset = start === currentOffset ? i : i + 1;
+        }
+        if (!endNode && currentOffset + len >= end) {
+          endNode = el;
+          endOffset = end === currentOffset ? i : i + 1;
+        }
+        currentOffset += len;
       } else {
         traverse(child);
       }
     }
   }
-  
+
   traverse(element);
-  
+
   // Safe fallbacks: clamp out-of-range offsets to the end of content instead of dropping caret to 0
   if (!startNode) {
-    if (lastTextNode && start > 0) {
+    if (lastTextNode && start > 0 && currentOffset <= lastTextLen) {
       startNode = lastTextNode;
       startOffset = lastTextLen;
     } else {
@@ -118,7 +265,7 @@ export function setSelectionOffsets(element, start, end) {
     }
   }
   if (!endNode) {
-    if (lastTextNode && end > 0) {
+    if (lastTextNode && end > 0 && currentOffset <= lastTextLen) {
       endNode = lastTextNode;
       endOffset = lastTextLen;
     } else {
@@ -126,7 +273,7 @@ export function setSelectionOffsets(element, start, end) {
       endOffset = element.childNodes.length > 0 && end > 0 ? element.childNodes.length : 0;
     }
   }
-  
+
   try {
     range.setStart(startNode, startOffset);
     range.setEnd(endNode, endOffset);
@@ -298,6 +445,14 @@ export function renderHTMLForInput(text, allUsers) {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
+  const escapeAttr = (str) =>
+    String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
   let tokens = [{ type: "text", content: text }];
 
   tokens = parseRegexToken(tokens, /`([^`]+)`/g, (match) => ({
@@ -380,8 +535,14 @@ export function renderHTMLForInput(text, allUsers) {
         switch (token.type) {
           case "code":
             return `<span class="bg-black/35 border border-onicord-border-strong rounded px-1 text-sm text-onicord-accent font-semibold mx-0.5"><span class="opacity-30">\`</span>${escapeHTML(token.content)}<span class="opacity-30">\`</span></span>`;
-          case "custom_emoji":
-            return `<span class="bg-onicord-accent/15 border border-onicord-accent/30 text-onicord-accent rounded px-1 text-sm font-mono font-semibold"><span class="opacity-35">&lt;${token.animated ? "a" : ""}:</span>${escapeHTML(token.shortcode)}<span class="opacity-35">:${escapeHTML(token.id)}:${escapeHTML(token.ext)}&gt;</span></span>`;
+          case "custom_emoji": {
+            const local = getCustomEmojiById(token.id);
+            const src = local?.localPath ? getMediaUrl(local.localPath) : null;
+            if (src) {
+              return `<img src="${escapeAttr(src)}" alt=":${escapeAttr(token.shortcode)}:" title=":${escapeAttr(token.shortcode)}:" data-emoji-token="${escapeAttr(token.raw)}" draggable="false" class="inline-block w-5 h-5 align-text-bottom object-contain select-none mx-0.5">`;
+            }
+            return `<span contenteditable="false" data-emoji-token="${escapeAttr(token.raw)}" class="inline-flex items-center px-1 py-0.5 mx-0.5 rounded bg-onicord-accent/15 border border-onicord-accent/30 text-onicord-accent font-mono text-xs align-baseline select-none">:${escapeHTML(token.shortcode)}:</span>`;
+          }
           case "bold_italic":
             return `<span class="font-bold italic text-white underline decoration-onicord-accent/40 decoration-1 underline-offset-2"><span class="opacity-30">***</span>${escapeHTML(token.content)}<span class="opacity-30">***</span></span>`;
           case "bold":
