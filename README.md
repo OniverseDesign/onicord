@@ -43,7 +43,6 @@
 
   <h4>
     <a href="https://github.com/OniverseDesign/onicord/releases/latest">Download</a> ·
-    <a href="#highlights">Features</a> ·
     <a href="docs/guides/architecture.md">Architecture</a> ·
     <a href="docs/guides/features.md">Full Feature Guide</a> ·
     <a href="docs/guides/mcp-server.md">MCP Server</a> ·
