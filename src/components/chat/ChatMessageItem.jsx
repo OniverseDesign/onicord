@@ -502,10 +502,10 @@ const ChatMessageItem = memo(
             title={t("chat.jumpToOriginal")}
           >
             <div className="w-8 h-3.5 border-l-2 border-t-2 border-onicord-accent rounded-tl-[6px] mt-3 shrink-0 ml-[-28px] mr-0.5 opacity-25 group-hover/reply:opacity-80 transition-opacity" />
-            <div className="h-4 w-4 rounded-full bg-onicord-accent overflow-hidden shrink-0 flex items-center justify-center text-2xs font-bold text-white">
+            <div className="h-4 w-4 rounded-full bg-onicord-accent overflow-hidden shrink-0 flex items-center justify-center text-2xs font-bold text-onicord-on-accent">
               {usuarioCitado.avatar === "bot-star" ||
               (usuarioCitado.isComplement && !usuarioCitado.avatar) ? (
-                <IconEstrella className="w-2.5 h-2.5 text-white" />
+                <IconEstrella className="w-2.5 h-2.5 text-onicord-on-accent" />
               ) : usuarioCitado.avatar ? (
                 <img
                   src={usuarioCitado.avatar}

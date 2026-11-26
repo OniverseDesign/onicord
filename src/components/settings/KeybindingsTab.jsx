@@ -231,7 +231,7 @@ export default function KeybindingsTab({
                   <button
                     type="button"
                     onClick={() => setRecordingId(kb.id)}
-                    className={`h-9 flex items-center justify-center px-3 rounded-lg border text-xs font-mono font-bold min-w-[120px] text-center select-none shadow-inner uppercase cursor-pointer transition-colors box-border ${
+                    className={`h-9 flex items-center justify-center px-3 rounded-lg border text-xs font-mono font-bold min-w-[120px] text-center select-none uppercase cursor-pointer transition-colors box-border ${
                       recordingId === kb.id
                         ? "bg-onicord-danger/10 border-onicord-danger/50 text-onicord-danger animate-pulse"
                         : "bg-onicord-base border-onicord-tint/15 text-onicord-accent hover:border-onicord-tint/25"

@@ -285,8 +285,8 @@ export default function RoomOverlays({
           }
           message={
             moderationConfirm.type === "ban"
-              ? t("settings.members.confirmBan", `¿Estás seguro de que deseas banear a ${moderationConfirm.nickname}?`)
-              : t("settings.members.confirmKick", `¿Estás seguro de que deseas expulsar a ${moderationConfirm.nickname}?`)
+              ? t("settings.members.confirmBan", { name: moderationConfirm.nickname, defaultValue: `¿Estás seguro de que deseas banear a ${moderationConfirm.nickname}?` })
+              : t("settings.members.confirmKick", { name: moderationConfirm.nickname, defaultValue: `¿Estás seguro de que deseas expulsar a ${moderationConfirm.nickname}?` })
           }
           warningMessage={
             moderationConfirm.type === "ban"

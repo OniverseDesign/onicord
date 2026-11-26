@@ -4,14 +4,14 @@
     @apply absolute left-0 top-1/2 h-2 w-1 -translate-y-1/2 rounded-r-full bg-onicord-text transition-all duration-normal;
   }
   .onicord-rail-btn-server {
-    @apply flex h-12 w-12 items-center justify-center overflow-hidden text-sm font-semibold transition-all duration-normal rounded-[24px] bg-onicord-base text-onicord-text hover:rounded-[16px] hover:bg-onicord-accent hover:text-white border-none outline-none ring-0;
+    @apply flex h-12 w-12 items-center justify-center overflow-hidden text-sm font-semibold transition-all duration-normal rounded-[24px] bg-onicord-base text-onicord-text hover:rounded-[16px] hover:bg-onicord-accent hover:text-onicord-on-accent border-none outline-none ring-0;
   }
   .onicord-rail-btn-server svg {
     transform-origin: center !important;
     transform-box: fill-box !important;
   }
   .onicord-rail-btn-active {
-    @apply rounded-[16px] bg-onicord-accent text-white border-none outline-none ring-0;
+    @apply rounded-[16px] bg-onicord-accent text-onicord-on-accent border-none outline-none ring-0;
   }
   .onicord-rail-dnd-item {
     transition: transform 180ms cubic-bezier(0.2, 0, 0, 1), opacity 150ms ease;
@@ -35,7 +35,7 @@
     @apply bg-onicord-base rounded-onicord-outer-p4 border border-onicord-island p-5 flex items-center justify-between shadow-md shrink-0;
   }
   .onicord-bento-grid {
-    @apply grid flex-1 min-h-0 bg-onicord-mantle/10 rounded-onicord-outer-p4 border border-onicord-border-subtle;
+    @apply grid flex-1 min-h-0 bg-onicord-mantle/10 rounded-onicord-outer-p4;
   }
 
   .onicord-rail-btn {

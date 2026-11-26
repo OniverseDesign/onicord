@@ -67,14 +67,14 @@ export default function PluginsTab({ profile, onSaved }) {
 
     try {
       if (!window.electronAPI?.downloadAndInstallPlugin) {
-        throw new Error("API de instalación no disponible");
+        throw new Error(t("settings.plugins.installApiUnavailable", "API de instalación no disponible"));
       }
       const res = await window.electronAPI.downloadAndInstallPlugin(pluginId);
       if (res && res.error) {
         throw new Error(res.error);
       }
       if (res && res.success === false) {
-        throw new Error("No se pudo instalar el complemento.");
+        throw new Error(t("settings.plugins.installFailed", "No se pudo instalar el complemento."));
       }
 
       await loadPlugins();
@@ -87,7 +87,7 @@ export default function PluginsTab({ profile, onSaved }) {
       console.error("Error al instalar complemento:", err);
       notificationManager.showToast(
         t("common.error", "Error"),
-        err.message || "Error al instalar complemento.",
+        err.message || t("settings.plugins.installError", "Error al instalar complemento."),
         "danger"
       );
     } finally {

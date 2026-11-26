@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import SmartAnimatedImage from "./SmartAnimatedImage";
 import { soundEngine } from "../../lib/soundEngine";
 
 export default function ToastContainer() {
+  const { t } = useTranslation();
   const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
@@ -180,7 +182,7 @@ export default function ToastContainer() {
                   />
                 </div>
               ) : toast.senderName && toast.action?.type === "navigate_channel" ? (
-                <div className="w-8 h-8 rounded-full shrink-0 shadow-sm flex items-center justify-center bg-onicord-accent text-white font-bold text-xs select-none">
+                <div className="w-8 h-8 rounded-full shrink-0 shadow-sm flex items-center justify-center bg-onicord-accent text-onicord-on-accent font-bold text-xs select-none">
                   {(toast.senderName || "?").charAt(0).toUpperCase()}
                 </div>
               ) : (
@@ -212,7 +214,7 @@ export default function ToastContainer() {
               {isClickable && (
                 <div
                   className="text-onicord-muted/60 group-hover:text-onicord-accent group-hover:translate-x-0.5 transition-all flex items-center justify-center"
-                  title="Abrir"
+                  title={t("common.open", "Abrir")}
                 >
                   <MaterialIcon name="chevron_right" size={20} />
                 </div>
@@ -225,7 +227,7 @@ export default function ToastContainer() {
                   handleDismiss(toast.id);
                 }}
                 className="text-onicord-muted hover:text-onicord-text text-xs p-1 rounded-md hover:bg-onicord-hover transition cursor-pointer"
-                aria-label="Cerrar notificación"
+                aria-label={t("common.closeNotification", "Cerrar notificación")}
               >
                 ✕
               </button>

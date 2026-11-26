@@ -290,7 +290,7 @@ export default function ThemeManagerTab({ profile }) {
             onClick={() => handleModeSelect("dark")}
             className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer ${
               themeMode === "dark"
-                ? "border-onicord-accent bg-onicord-surface shadow-md ring-1 ring-onicord-accent/30"
+                ? "border-onicord-accent bg-onicord-surface ring-1 ring-onicord-accent/30"
                 : "border-onicord-border bg-onicord-base/40 hover:border-onicord-border-strong"
             }`}
           >
@@ -312,7 +312,7 @@ export default function ThemeManagerTab({ profile }) {
             onClick={() => handleModeSelect("light")}
             className={`p-3.5 rounded-xl border flex items-center gap-3 transition-all cursor-pointer ${
               themeMode === "light"
-                ? "border-onicord-accent bg-onicord-surface shadow-md ring-1 ring-onicord-accent/30"
+                ? "border-onicord-accent bg-onicord-surface ring-1 ring-onicord-accent/30"
                 : "border-onicord-border bg-onicord-base/40 hover:border-onicord-border-strong"
             }`}
           >

@@ -57,7 +57,22 @@
     "searchSettings": "Pesquisar configurações...",
     "clearSearch": "Limpar pesquisa (Esc)",
     "noResultsFor": "Nenhum resultado encontrado para",
-    "select": "Selecionar..."
+    "select": "Selecionar...",
+    "done": "Concluído",
+    "ok": "Entendi",
+    "tip": "Dica",
+    "errorLoadingText": "Não foi possível carregar o arquivo de texto.",
+    "previous": "Anterior (←)",
+    "next": "Próximo (→)",
+    "plugin": "Plugin",
+    "refresh": "Atualizar",
+    "reload": "Recarregar",
+    "join": "Entrar",
+    "ignore": "Ignorar",
+    "optional": "Opcional",
+    "inactive": "Inativo",
+    "open": "Abrir",
+    "closeNotification": "Fechar notificação"
   },
   "sidebar": {
     "voiceChannel": "No canal de voz",
@@ -170,7 +185,9 @@
     "muteChannel": "Silenciar canal",
     "unmuteChannel": "Ativar som do canal",
     "markAsRead": "Marcar como lido",
-    "markServerAsRead": "Marcar como lido"
+    "markServerAsRead": "Marcar como lido",
+    "viewProfile": "Ver perfil",
+    "sendDirectMessage": "Mensagem direta"
   },
   "userPanel": {
     "playing": "Jogando",
@@ -191,7 +208,9 @@
     "disconnect": "Desconectar",
     "listeningTo": "Ouvindo",
     "playingTogether": "Jogando com outros membros do servidor",
-    "party": "Grupo"
+    "party": "Grupo",
+    "noShareVideoPermission": "Sem permissão para transmitir tela neste servidor",
+    "setStatus": "Alterar Status"
   },
   "screenShare": {
     "title": "Compartilhar tela",
@@ -295,7 +314,8 @@
       "queueEmpty": "Fila vazia",
       "noHistory": "Nenhum histórico",
       "removeFromQueue": "Remover da fila",
-      "addToQueue": "Adicionar à fila"
+      "addToQueue": "Adicionar à fila",
+      "repeatMode": "Modo de repetição"
     },
     "gaming": {
       "title": "Atividade",
@@ -389,8 +409,13 @@
         "updateRole": "Cargo Modificado",
         "assignRole": "Cargo de Membro",
         "default": "Ação",
-        "updatePlugin": "Complemento"
-      }
+        "updatePlugin": "Complemento",
+        "createRole": "Cargo Criado",
+        "deleteRole": "Cargo Excluído"
+      },
+      "log": "Registro de auditoria do servidor",
+      "loading": "Carregando registros...",
+      "loadingHelp": "Obtendo o histórico de eventos do servidor..."
     },
     "members": {
       "assignRoleTitle": "Atribuir Cargo ao Membro",
@@ -399,7 +424,9 @@
       "unbanButton": "Desbanir",
       "noMembersFound": "Nenhum membro encontrado.",
       "bannedTitle": "Membros Banidos",
-      "searchPlaceholder": "Pesquisar membro..."
+      "searchPlaceholder": "Pesquisar membro...",
+      "list": "Membros sincronizados P2P",
+      "kickBan": "Expulsar ou banir membros"
     },
     "channels": {
       "orphanChannels": "Canais Órfãos",
@@ -462,7 +489,10 @@
       "afkDisableOption": "Desativar como canal AFK",
       "allowNsfw": "Permitir conteúdo NSFW (+18) neste canal",
       "disallowNsfw": "Desativar conteúdo NSFW neste canal",
-      "nsfwBadge": "NSFW"
+      "nsfwBadge": "NSFW",
+      "categories": "Categorias de canais",
+      "changeToForum": "Canal de texto (clique para mudar para fórum)",
+      "changeToText": "Canal de fórum (clique para mudar para texto)"
     },
     "invites": {
       "title": "Convites do Servidor",
@@ -524,7 +554,8 @@
       "duration7dShort": "7d",
       "epochStatus": "Época atual: #{{epoch}}",
       "inactivePreviewHint": "Nenhum convite ativo no momento. Crie um novo para compartilhar este servidor novamente.",
-      "upgradeToExpiring": "Definir validade"
+      "upgradeToExpiring": "Definir validade",
+      "webLinkHint": "Abre o Onicord automaticamente ou direciona para o download."
     },
     "webhooks": {
       "title": "Webhooks do Servidor",
@@ -584,7 +615,8 @@
       "deleteConfirmMsg": "Tem certeza de que deseja excluir o webhook \"{{name}}\"? Os serviços externos que enviam solicitações para este URL deixarão de funcionar.",
       "regenerateConfirmTitle": "Regenerar Token do Webhook",
       "regenerateConfirmMsg": "Deseja regenerar o token para \"{{name}}\"? O token anterior será invalidado imediatamente.",
-      "feedUrlPlaceholder": "https://news.google.com/rss/search?q=Worlds+LoL..."
+      "feedUrlPlaceholder": "https://news.google.com/rss/search?q=Worlds+LoL...",
+      "selectChannelPlaceholder": "Selecionar canal..."
     },
     "overview": {
       "title": "Visão Geral do Servidor",
@@ -619,7 +651,10 @@
       "restoreDefaultTemplate": "Restaurar modelo padrão",
       "multilingualNotice": "Modelo padrão ativo: cada membro verá a mensagem traduzida em seu próprio idioma.",
       "multilingualBadge": "Multilíngue",
-      "serverNamePlaceholder": "Meu Servidor"
+      "serverNamePlaceholder": "Meu Servidor",
+      "deleteServer": "Excluir Servidor permanentemente",
+      "allowExecutableFiles": "Permitir arquivos executáveis (.exe, .bat, .js)",
+      "allowExecutableFilesHint": "Permite o envio e download de executáveis. Serão exibidos avisos de segurança preventivos."
     },
     "roles": {
       "defaultRoleTitle": "Atribuir Cargo Automático a Novos Membros",
@@ -648,7 +683,8 @@
       "moveMembers": "Mover membros",
       "moveMembersDesc": "Permite mover outros usuários entre canais de voz arrastando-os.",
       "viewAdvancedSettings": "Ver configurações avançadas",
-      "viewAdvancedSettingsDesc": "Ver e editar canais, cargos, complementos, descobrimento e rede do servidor."
+      "viewAdvancedSettingsDesc": "Ver e editar canais, cargos, complementos, descobrimento e rede do servidor.",
+      "list": "Cargos e hierarquia"
     },
     "network": {
       "title": "Configurações de Rede e Backup ICE",
@@ -697,7 +733,9 @@
       "iceBackupTitle": "Servidores ICE de Backup (STUN/TURN)",
       "iceBackupDesc": "Se os membros do servidor não conseguirem se conectar às salas de voz (devido a firewalls restritivos ou NAT simétrico), configure servidores STUN/TURN de relay aqui. Caso contrário, o Onicord usará os nós públicos padrão.",
       "configuredServers": "Servidores Configurados",
-      "noTurnWarning": "Sua lista personalizada inclui apenas servidores STUN sem TURN. Membros com Always Relay ativado usarão os relays TURN públicos padrão para conectar."
+      "noTurnWarning": "Sua lista personalizada inclui apenas servidores STUN sem TURN. Membros com Always Relay ativado usarão os relays TURN públicos padrão para conectar.",
+      "p2p": "Status da rede Hyperswarm DHT",
+      "webrtc": "Diagnóstico de canais WebRTC"
     },
     "plugins": {
       "title": "Complementos do Servidor ({{count}})",
@@ -757,7 +795,13 @@
       "textTitle": "Texto: {{size}}",
       "docsTitle": "Documentos: {{size}}",
       "clearCacheTooltip": "Limpa a lista de arquivos registrados no app para este servidor. Nenhum arquivo físico do seu computador será apagado.",
-      "text": "Texto"
+      "text": "Texto",
+      "stats": "Espaço em disco e mensagens",
+      "clear": "Limpar cache de arquivos locais"
+    },
+    "invite": {
+      "roomCode": "Código da sala P2P (roomCode)",
+      "webInvite": "Link de convite web"
     }
   },
   "profileTab": {
@@ -804,7 +848,8 @@
     "blurNsfwTitle": "Desfocar automaticamente conteúdo NSFW",
     "blurNsfwDesc": "Exibe mídias marcadas como NSFW (+18) desfocadas até que você clique para revelá-las.",
     "identityFingerprintTitle": "Impressão Digital Criptográfica",
-    "identityFingerprintDesc": "Identificador único derivado da sua chave pública Ed25519 persistente. Compartilhe fora de banda para que seus contatos verifiquem sua identidade."
+    "identityFingerprintDesc": "Identificador único derivado da sua chave pública Ed25519 persistente. Compartilhe fora de banda para que seus contatos verifiquem sua identidade.",
+    "deleteAccount": "Excluir Conta"
   },
   "server": {
     "newMemberJoined": "Novo Membro",
@@ -937,7 +982,58 @@
     "nsfwNotAllowedInChannel": "Este canal não permite o envio de conteúdo NSFW. Ative-o em Configurações do Servidor > Canais ou desmarque a opção NSFW.",
     "ephemeralToggle": "Mensagem efêmera (apaga em 60s)",
     "ephemeralActiveHint": "Modo efêmero ativo (60s)",
-    "ephemeralRemaining": "Será apagada em {{seconds}}s"
+    "ephemeralRemaining": "Será apagada em {{seconds}}s",
+    "forwardedFromChannel": "Encaminhado de",
+    "editMessageTitle": "Editar Mensagem",
+    "replyInThread": "Responder no tópico",
+    "threadReply": "Responder no tópico",
+    "forwardMessage": "Encaminhar mensagem",
+    "unpinMessage": "Desafixar mensagem",
+    "pinMessage": "Fixar mensagem",
+    "editMessage": "Editar mensagem",
+    "fileRestrictedTitle": "Tipo de arquivo restrito",
+    "execSendTitle": "Aviso de Segurança",
+    "fileRestrictedMsg": "Este servidor desativou o envio de arquivos executáveis e scripts (.exe, .bat, .js) por políticas de segurança.",
+    "execSendMsg": "Você está prestes a anexar um arquivo executável ({{name}}). Arquivos desse tipo podem conter código executável.",
+    "execSendWarning": "Certifique-se de confiar nos membros deste servidor antes de enviar um arquivo executável.",
+    "sendAnyway": "Enviar mesmo assim",
+    "emoji": "Emoji",
+    "forumWelcomeTitle": "Boas-vindas ao fórum #{{name}}!",
+    "forumWelcomeDesc": "Crie a primeira publicação ou discussão usando o compositor abaixo.",
+    "jumpToTop": "Voltar ao topo",
+    "edited": "editado",
+    "forwarded": "Encaminhado",
+    "clickToDownloadPlay": "Clique para baixar e reproduzir",
+    "execDownloadTitle": "Aviso de Download",
+    "execDownloadMsg": "Você está prestes a baixar ou abrir um arquivo executável ({{name}}). Certifique-se de confiar no remetente antes de abri-lo no seu computador.",
+    "execDownloadWarning": "Arquivos executáveis podem conter scripts ou código que modifiquem o seu sistema.",
+    "downloadAnyway": "Baixar mesmo assim",
+    "imageLabel": "Imagem",
+    "clickToDownloadShort": "Clique para baixar",
+    "viewRepliesCount": "Ver {{count}} respostas",
+    "viewRepliesCount_one": "Ver {{count}} resposta",
+    "sendInThread": "Para enviar no tópico",
+    "thread": "Tópico de conversa",
+    "singleReplyCount": "1 resposta",
+    "pluralReplyCount": "{{count}} respostas",
+    "threadRootMessage": "Mensagem Principal",
+    "noRepliesYet": "Ainda não há respostas neste tópico.",
+    "repliesSeparator": "{{count}} respostas",
+    "selectDestinationChannel": "Selecionar canal de destino (mesmo servidor)",
+    "noOtherChannels": "Não há outros canais de texto neste servidor.",
+    "forward": "Encaminhar",
+    "shiftDeleteTip": "Você pode segurar Shift ao clicar em excluir mensagem para pular esta confirmação no futuro.",
+    "storedLocally": "Armazenado localmente",
+    "openLocation": "Abrir pasta",
+    "pinnedModalTitle": "Mensagens Fixadas",
+    "noPinnedMessages": "Não há mensagens fixadas neste canal.",
+    "pinMessageTip": "Clique com o botão direito em uma mensagem para fixá-la aqui.",
+    "jumpToMessage": "Ir para a mensagem",
+    "unpin": "Desafixar",
+    "pinnedMessages": "Mensagens Fixadas",
+    "directMessage": "Mensagem direta",
+    "watchPartyRoom": "Assistir na Watch Party com a sala",
+    "threadShort": "Tópico"
   },
   "voice": {
     "screenOf": "Tela de {{name}}",
@@ -981,7 +1077,12 @@
     "disableWebcam": "Desativar webcam",
     "webcamSettings": "Ajustes da Webcam",
     "alwaysRelayChangedTitle": "Modo Always Relay atualizado",
-    "alwaysRelayChangedDesc": "Reconecte ao canal de voz para aplicar a nova política de relay às conexões ativas."
+    "alwaysRelayChangedDesc": "Reconecte ao canal de voz para aplicar a nova política de relay às conexões ativas.",
+    "noConnectPermission": "Sem permissão para conectar à voz neste servidor",
+    "userVolume": "Volume do usuário",
+    "closePiP": "Fechar PiP",
+    "micReclaimedTitle": "Microfone Restaurado",
+    "micReclaimedDesc": "A captura do microfone foi reativada."
   },
   "flame": {
     "title": "Chama",
@@ -1067,7 +1168,13 @@
         "tailwindDesc": "Framework de utilitários e sistema de componentes para a interface.",
         "i18nDesc": "Estrutura internacional de localização e gerenciamento de traduções em tempo real."
       },
-      "buyMeACoffee": "Pague-me um café"
+      "buyMeACoffee": "Pague-me um café",
+      "version": "Versão do Onicord e atualizações",
+      "diag": "Diagnósticos de rede P2P e WebRTC",
+      "viewCurrentNotesTooltip": "Ver notas de lançamento da versão instalada",
+      "viewChangelogBtn": "Ver Novidades",
+      "viewNewNotesTooltip": "Ver notas da nova versão",
+      "viewNewChangelogBtn": "Ver Novidades"
     },
     "sfx": {
       "levelTitle": "Nível de Efeitos Sonoros",
@@ -1169,7 +1276,20 @@
       "clearingWebCache": "Limpando...",
       "webCacheCleared": "Cache web limpo",
       "alwaysRelayVoiceTitle": "Forçar Relay TURN em chamadas (Always Relay)",
-      "alwaysRelayVoiceDesc": "Roteia áudio e vídeo WebRTC exclusivamente por servidores TURN para ocultar seu IP em chamadas ao custo de maior latência. O chat P2P (Hyperswarm) continua direto; use uma VPN do sistema para ocultar seu IP completamente."
+      "alwaysRelayVoiceDesc": "Roteia áudio e vídeo WebRTC exclusivamente por servidores TURN para ocultar seu IP em chamadas ao custo de maior latência. O chat P2P (Hyperswarm) continua direto; use uma VPN do sistema para ocultar seu IP completamente.",
+      "confirmOnExit": "Confirmar antes de sair",
+      "clearCache": "Limpar cache de mídia e arquivos",
+      "unlimited": "Sem limite",
+      "downloadsFolderShort": "Downloads",
+      "closeBehaviorTitle": "Ao fechar a janela",
+      "closeBehaviorQuit": "Fechar app",
+      "closeBehaviorQuitDesc": "Ao fechar a janela, o aplicativo é encerrado completamente e desconecta dos servidores.",
+      "closeBehaviorTray": "Minimizar",
+      "closeBehaviorTrayDesc": "Oculta a janela na bandeja do sistema mantendo a interface e as chamadas de voz ativas.",
+      "closeBehaviorHeadless": "Modo Nó",
+      "closeBehaviorHeadlessDesc": "Fecha a interface para economizar recursos, define você como invisível e mantém servidores, Discover, webhooks e recepção de mensagens ativos.",
+      "autoDownloadUpdates": "Download automático de atualizações",
+      "autoDownloadUpdatesDesc": "Baixa novas versões do Onicord em segundo plano e as instala ao reiniciar."
     },
     "voiceVideo": {
       "inputDevice": "Dispositivo de entrada (Microfone)",
@@ -1208,7 +1328,11 @@
       "dynamicsCompressionDesc": "Evita distorção e saturação digital amortecendo picos repentinos de volume quando múltiplos usuários falam ou gritam ao mesmo tempo.",
       "autoDucking": "Atenuação Automática (Auto-Ducking)",
       "autoDuckingDesc": "Atenua suavemente o áudio do jogo ou transmissão enquanto algum colega estiver falando.",
-      "autoDuckingAmount": "Nível de atenuação"
+      "autoDuckingAmount": "Nível de atenuação",
+      "micTest": "Teste de microfone",
+      "vadSensitivity": "Sensibilidade de entrada e VAD",
+      "sfxSettings": "Efeitos sonoros da interface (SFX)",
+      "keybindingConfigDesc": "Os atalhos e botões para Apertar para Falar (PTT) são configurados na aba Atalhos de Teclado."
     },
     "appearance": {
       "theme": "Tema visual",
@@ -1283,10 +1407,38 @@
       "uninstallSuccess": "Complemento '{{name}}' removido do seu computador.",
       "loadingPackage": "Carregando pacote...",
       "loadLocalPackage": "Carregar pacote local (.onipkg)",
-      "searchPlaceholder": "Pesquisar complementos..."
+      "searchPlaceholder": "Pesquisar complementos...",
+      "installed": "Plugins e addons instalados",
+      "community": "Explorar catálogo da comunidade",
+      "updateAllSuccess": "{{count}} plugin(s) atualizado(s) com sucesso.",
+      "updatesAvailableTitle": "Atualizações de plugins disponíveis",
+      "oneUpdateDesc": "Há 1 plugin com uma versão mais recente.",
+      "multipleUpdatesDesc": "Há {{count}} plugins com versões mais recentes.",
+      "updateAllBtn": "Atualizar Todos",
+      "title": "Plugins",
+      "installApp": "Instalar plugin",
+      "preferencesTitle": "Preferências",
+      "autoUpdateTitle": "Atualização automática de plugins",
+      "autoUpdateDesc": "Mantém seus plugins atualizados em segundo plano e os recarrega sem reiniciar.",
+      "unifiedSubtitle": "Explore, instale e gerencie seus plugins",
+      "notInstalledBadge": "Disponível no catálogo",
+      "installApiUnavailable": "API de instalação indisponível",
+      "installFailed": "Não foi possível instalar o plugin.",
+      "installError": "Erro ao instalar o plugin.",
+      "updatedTitle": "Plugins atualizados",
+      "autoUpdatedMsg": "{{count}} plugin(s) foram atualizados automaticamente para a versão mais recente.",
+      "updatesTitle": "Atualização de plugins",
+      "updatesAvailableMsg": "Há {{count}} plugin(s) com atualizações disponíveis."
     },
     "profile": {
-      "vipMember": "Membro VIP"
+      "vipMember": "Membro VIP",
+      "nickname": "Nome de usuário e apelido",
+      "avatar": "Foto de perfil / Avatar",
+      "banner": "Capa de perfil",
+      "customStatus": "Mensagem de status personalizada",
+      "profileColor": "Cor de destaque do perfil",
+      "customLink": "Rede social ou link personalizado",
+      "deleteAccount": "Excluir ou redefinir conta local"
     },
     "stickers": {
       "importTitle": "Importe suas Figurinhas",
@@ -1320,7 +1472,13 @@
       "loadLocalOpk": "Carregar pacote local (.onipkg) ou imagens",
       "noStickersFound": "Nenhuma figurinha encontrada neste pacote.",
       "exportSuccessTitle": "Pacote Exportado",
-      "exportSuccessMsg": "Salvo em: {{path}}"
+      "exportSuccessMsg": "Salvo em: {{path}}",
+      "packs": "Coleção de pacotes de figurinhas",
+      "import": "Importar pacote de figurinhas (.onipkg)",
+      "installSuccessTitle": "Instalação Concluída",
+      "installSuccessMsg": "Pacote '{{name}}' com {{count}} figurinhas instalado com sucesso da loja.",
+      "downloadErrorTitle": "Erro de download",
+      "downloadErrorMsg": "Não foi possível baixar o pacote de figurinhas do GitHub."
     },
     "emojis": {
       "packsFeature": "Coleção de pacotes de emojis",
@@ -1404,7 +1562,13 @@
       "unbanButton": "Desbanir",
       "noBannedMembers": "Nenhum membro banido neste servidor.",
       "noMembersFound": "Nenhum membro encontrado.",
-      "removeRoleHint": "Clique para remover cargo"
+      "removeRoleHint": "Clique para remover cargo",
+      "banTitle": "Banir membro",
+      "kickTitle": "Expulsar membro",
+      "confirmBan": "Tem certeza de que deseja banir {{name}}?",
+      "confirmKick": "Tem certeza de que deseja expulsar {{name}}?",
+      "banWarning": "O usuário não poderá entrar novamente até ser desbanido.",
+      "kickWarning": "O usuário será desconectado imediatamente do servidor."
     },
     "unsavedChangesTitle": "Alterações não salvas",
     "unsavedChangesPrompt": "Você tem alterações não salvas. Tem certeza de que deseja descartá-las?",
@@ -1477,7 +1641,9 @@
       "cssTabHint": "Pressione Tab para recuar (2 espaços).",
       "cssBraceWarning": "Chaves desbalanceadas detectadas no CSS.",
       "windowMicaTitle": "Janela Translúcida (Mica)",
-      "windowMicaDesc": "Aplica o material Mica do Windows 11 para refletir sutilmente o papel de parede da área de trabalho atrás do aplicativo."
+      "windowMicaDesc": "Aplica o material Mica do Windows 11 para refletir sutilmente o papel de parede da área de trabalho atrás do aplicativo.",
+      "select": "Temas visuais instalados (.onipkg)",
+      "accent": "Cor de destaque do aplicativo"
     },
     "network": {
       "ipPlaceholder": "ex: 201.242.10.15 ou meuservidor.ddns.net",
@@ -1580,8 +1746,29 @@
       "opacity": "Opacidade do Fundo",
       "opacityDesc": "Ajuste a transparência do contêiner do overlay. Você pode definir como 0% para um fundo totalmente transparente.",
       "autoHide": "Ocultar quando ninguém falar",
-      "autoHideDesc": "O overlay desaparece automaticamente após 5 segundos sem atividade de voz e reaparece quando alguém falar."
-    }
+      "autoHideDesc": "O overlay desaparece automaticamente após 5 segundos sem atividade de voz e reaparece quando alguém falar.",
+      "enable": "Ativar Overlay em jogos",
+      "position": "Posição do Overlay na tela"
+    },
+    "keybindings": {
+      "mute": "Atalho: Silenciar microfone (Toggle Mute)",
+      "deafen": "Atalho: Ensurdecer áudio (Toggle Deafen)",
+      "disconnect": "Atalho: Desconectar da chamada",
+      "overlay": "Atalho: Abrir / Fechar In-Game Overlay"
+    },
+    "games": {
+      "detection": "Detecção de jogos e programas",
+      "rpc": "Servidor local Discord RPC",
+      "custom": "Adicionar programa ou jogo personalizado",
+      "playtime": "Horas e estatísticas de jogo"
+    },
+    "widgets": {
+      "layout": "Organização da grade do Dashboard",
+      "music": "Widget de Música P2P",
+      "sketchpad": "Widget de Quadro Branco / Sketchpad"
+    },
+    "deleteAccount": "Excluir conta",
+    "deleteAccountConfirmMessage": "Tem certeza de que deseja excluir sua conta? Isso apagará permanentemente seu perfil, servidores e chats."
   },
   "welcome": {
     "browserMode": "Modo navegador (sem rede P2P)",
@@ -1653,7 +1840,9 @@
   },
   "time": {
     "daysAgo": "Há {{count}} dias",
-    "weeksAgo": "Há {{count}} sem"
+    "weeksAgo": "Há {{count}} sem",
+    "today": "Hoje",
+    "yesterday": "Ontem"
   },
   "commands": {
     "clear": {
@@ -1712,7 +1901,15 @@
       "openSettings": "Configurações do App",
       "openServerSettings": "Configurações do Servidor",
       "switchServerUp": "Servidor Anterior",
-      "switchServerDown": "Próximo Servidor"
+      "switchServerDown": "Próximo Servidor",
+      "wbSelect": "Quadro: Selecionar",
+      "wbHand": "Quadro: Mover tela (Mão)",
+      "wbPen": "Quadro: Caneta / Marcador",
+      "wbEraser": "Quadro: Borracha",
+      "wbSticky": "Quadro: Nota adesiva",
+      "wbShape": "Quadro: Formas",
+      "wbText": "Quadro: Texto",
+      "wbSection": "Quadro: Seção / Quadro"
     },
     "infoTitle": "Atalhos de Teclado e Botões do Mouse",
     "infoDesc": "Os atalhos que usam teclas do teclado (ex: Ctrl+Shift+M ou F8) funcionam de forma global em todo o sistema operacional, mesmo enquanto você estiver jogando em tela cheia ou com o Onicord em segundo plano. Atalhos que incluem botões do mouse (ex: Mouse 4, Mouse 5) são ativados quando o aplicativo está em uso."
@@ -1774,7 +1971,9 @@
     "userMentionedYou": "@{{name}} mencionou você",
     "userMentionedYouFallback": "Você foi mencionado no chat do Onicord.",
     "updateAvailableTitle": "Atualização disponível",
-    "updateAvailableMsg": "Uma nova versão do Onicord está disponível (v{{version}})."
+    "updateAvailableMsg": "Uma nova versão do Onicord está disponível (v{{version}}).",
+    "updateDownloadedTitle": "Atualização pronta",
+    "updateDownloadedMsg": "Onicord v{{version}} foi baixado e será instalado ao reiniciar. Clique para ver as novidades ou reiniciar agora."
   },
   "gamesTab": {
     "masterTitle": "Atividade e Presença",
@@ -1824,7 +2023,9 @@
     "viewChat": "Ver chat",
     "viewChatPip": "Ver chat (PiP)",
     "fullScreen": "Tela cheia",
-    "exitFullScreen": "Sair da tela cheia"
+    "exitFullScreen": "Sair da tela cheia",
+    "autoSpanish": "Espanhol (Auto)",
+    "autoEnglish": "Inglês (Auto)"
   },
   "stage": {
     "defaultTitle": "Palco de Complemento",
@@ -1878,7 +2079,9 @@
     "joinGame": "Entrar na partida",
     "joinCinema": "Assistir junto",
     "returnToActivity": "Voltar para a atividade",
-    "activity": "Atividade"
+    "activity": "Atividade",
+    "host": "Anfitrião",
+    "synced": "Sincronizado"
   },
   "activityInvite": {
     "accessDenied": "Acesso negado",
@@ -1894,7 +2097,76 @@
     "searchPlaceholder": "Pesquisar comunidades ou tags...",
     "knockPlaceholder": "Olá, gostaria de entrar porque...",
     "descPlaceholder": "Descreva sobre o que é seu servidor...",
-    "tagsPlaceholder": "Digite uma tag e pressione Enter ou vírgula..."
+    "tagsPlaceholder": "Digite uma tag e pressione Enter ou vírgula...",
+    "heroTitle": "Explorar Servidores",
+    "heroDesc": "Encontre e entre em salas e comunidades da rede Onicord",
+    "badgeName": "Onicord Discover",
+    "categoryAll": "Todas",
+    "categoryGaming": "Jogos",
+    "categoryTech": "Tecnologia",
+    "categoryMusic": "Música",
+    "categoryArt": "Arte",
+    "categoryCommunity": "Comunidade",
+    "categoryGeneral": "Geral",
+    "serverFoundSingle": "comunidade disponível",
+    "serverFoundPlural": "comunidades disponíveis",
+    "loading": "Explorando a rede...",
+    "loadingView": "Carregando Discover...",
+    "noResultsTitle": "Nenhum servidor encontrado",
+    "noResultsSearchDesc": "Nenhum servidor corresponde à sua pesquisa ou filtros atuais.",
+    "noResultsGeneralDesc": "Ainda não há servidores anunciados neste canal. Crie o seu e ative o Discover nas configurações do servidor!",
+    "noDescription": "Comunidade do Onicord sem descrição pública.",
+    "badgePublic": "Público",
+    "badgeApproval": "Por Aprovação",
+    "memberSingle": "Membro",
+    "memberPlural": "Membros",
+    "visitBtn": "Ir para o servidor",
+    "joinBtn": "Entrar",
+    "requestAccessBtn": "Solicitar Entrada",
+    "requestSentBtn": "Solicitação Enviada",
+    "knockModalTitle": "Solicitar Entrada",
+    "knockModalDesc": "Este servidor requer autorização prévia para entrar. Você pode adicionar uma mensagem opcional para os administradores:",
+    "sendKnockBtn": "Enviar Solicitação",
+    "knockSentSuccess": "Solicitação enviada com sucesso!",
+    "knockWaitAdmin": "Os moderadores receberão sua solicitação e poderão aprová-lo.",
+    "joinedSuccessTitle": "Você entrou!",
+    "joinedSuccessDesc": "Bem-vindo(a) a",
+    "joinErrorTitle": "Erro ao entrar",
+    "joinErrorDesc": "Não foi possível conectar ao servidor.",
+    "knockSentTitle": "Solicitação Enviada",
+    "knockSentDesc": "Sua solicitação foi enviada aos administradores de",
+    "knockErrorTitle": "Erro ao solicitar",
+    "knockErrorDesc": "Não foi possível enviar a solicitação.",
+    "queueFullNotice": "A fila de solicitações está cheia (máximo 25). Você precisa responder às solicitações atuais para permitir que novos usuários enviem pedidos.",
+    "toastKnockTitle": "Solicitação de Entrada",
+    "toastKnockMsg": "{{applicant}} solicitou entrada em {{server}}",
+    "previewDesc": "Descrição de exemplo do seu servidor no Discover.",
+    "approvedSuccessTitle": "Solicitação Aprovada",
+    "approvedSuccessDesc": "A entrada foi autorizada para",
+    "rejectedTitle": "Solicitação Recusada",
+    "enableTitle": "Publicação no Onicord Discover",
+    "enableRowTitle": "Tornar Servidor Visível na Rede P2P",
+    "enableDesc": "Ao ativar esta opção, seu servidor emitirá periodicamente um anúncio seguro na rede P2P para que outros peers possam encontrá-lo no menu Discover.",
+    "accessPolicyTitle": "Modalidade de Entrada",
+    "accessPolicyDesc": "Define como os exploradores da rede podem entrar na sua comunidade.",
+    "modePublicTitle": "Acesso Livre",
+    "modePublicDesc": "Qualquer usuário da rede pode ver o servidor e entrar imediatamente com um único clique.",
+    "modeApprovalTitle": "Por Aprovação (Knocking)",
+    "modeApprovalDesc": "Os interessados enviam uma solicitação com uma mensagem opcional e um administrador deve aceitá-la.",
+    "metadataTitle": "Ficha Pública do Servidor",
+    "metadataDesc": "Personalize como o cartão do seu servidor será exibido no diretório Discover.",
+    "descriptionLabel": "Descrição Pública",
+    "tagsLabel": "Etiquetas",
+    "tagsMaxReached": "Limite de 6 etiquetas atingido",
+    "tagsHint": "Pressione Enter ou vírgula para adicionar etiquetas (até 6 etiquetas).",
+    "tagsTip": "Use etiquetas descritivas como jogo principal, tema ou idioma para que sua comunidade se destaque nas buscas.",
+    "previewLabel": "Pré-visualização no Discover",
+    "pendingRequestsTitle": "Solicitações de Acesso",
+    "pendingRequestsDesc": "Gerencie os pedidos de entrada recebidos quando o servidor está no modo de aprovação.",
+    "noPendingRequests": "Não há solicitações de acesso pendentes.",
+    "noPendingDesc": "Quando alguém solicitar entrada, aparecerá listado aqui para que você possa aceitar ou recusar.",
+    "rejectBtn": "Recusar",
+    "approveBtn": "Aprovar"
   },
   "colorPicker": {
     "eyedropper": "Conta-gotas",
@@ -1938,5 +2210,62 @@
     "dmKeyRequiredBanner": "Você precisa estar online ao menos uma vez junto com este contato para estabelecer a criptografia E2EE ponto a ponto antes de enviar DMs.",
     "dmLegacyPeerBanner": "Este contato usa uma versão antiga do Onicord e precisa atualizar o app para ler novas mensagens diretas E2EE (o histórico anterior continua legível).",
     "roomCompatBanner": "Sala em modo de compatibilidade: há usuários com uma versão antiga conectados; a criptografia v2 da sala será ativada automaticamente quando todos atualizarem."
+  },
+  "roles": {
+    "role": "Cargo",
+    "roles": "cargos"
+  },
+  "invite": {
+    "visitButton": "Ir para o servidor",
+    "joinButton": "Entrar"
+  },
+  "music": {
+    "noPermission": "Você não tem permissão para controlar a música",
+    "listeningInChannel": "Ouvindo: {{title}}",
+    "joinIndicatorTooltip": "Entrar na reprodução de música",
+    "playingInServer": "Música na sala",
+    "joinPromptText": "Deseja entrar na reprodução de música no servidor?",
+    "stopForAll": "Parar música para todos",
+    "leaveListening": "Parar de ouvir"
+  },
+  "changelog": {
+    "title": "Novidades da versão",
+    "newSubtitle": "Descubra as novidades e melhorias incluídas nesta atualização.",
+    "currentSubtitle": "Registro de alterações e melhorias introduzidas nesta versão.",
+    "loading": "Carregando notas de lançamento...",
+    "viewOnGitHub": "Ver no GitHub",
+    "loadError": "Não foi possível carregar as notas de lançamento",
+    "notFound": "Nenhuma nota de lançamento encontrada para esta versão."
+  },
+  "status": {
+    "online": "Online",
+    "idle": "Ausente",
+    "dnd": "Não perturbe",
+    "invisible": "Invisível"
+  },
+  "whiteboard": {
+    "readOnlyMode": "Modo somente leitura neste canal de quadro branco",
+    "thickness": "Espessura",
+    "highlighterMode": "Modo marca-texto",
+    "table": "Tabela",
+    "emojis": "Emojis",
+    "stickers": "Figurinhas",
+    "undo": "Desfazer (Ctrl+Z)",
+    "redo": "Refazer (Ctrl+Shift+Z)",
+    "zoomOut": "Diminuir zoom",
+    "resetView": "Redefinir visualização (100%)",
+    "zoomIn": "Aumentar zoom",
+    "exportPng": "Exportar quadro completo para PNG",
+    "clearBoard": "Limpar quadro",
+    "locked": "Bloqueado",
+    "userEditing": "{{name}} editando…",
+    "writeNote": "Escreva uma nota...",
+    "doubleClickToEdit": "Clique duas vezes para editar",
+    "writeShort": "Escreva...",
+    "writeSomething": "Escreva algo...",
+    "emptyText": "Texto vazio",
+    "dragToRotate": "Arraste para girar (Shift: passos de 45°)",
+    "dragToRound": "Arraste para arredondar cantos",
+    "dragToConnect": "Arraste para conectar"
   }
 }

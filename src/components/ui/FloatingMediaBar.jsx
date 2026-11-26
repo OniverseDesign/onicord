@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
 import { cn } from "../../lib/cn";
 import Tooltip from "./Tooltip";
@@ -170,12 +171,14 @@ FloatingMediaBar.PillButton = function FloatingPillButton({
  */
 FloatingMediaBar.StopButton = function FloatingStopButton({
   icon = "close",
-  title = "Cerrar",
+  title,
   onClick,
   className,
   type = "button",
   ...props
 }) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("common.close", "Cerrar");
   const buttonEl = (
     <button
       type={type}
@@ -187,8 +190,8 @@ FloatingMediaBar.StopButton = function FloatingStopButton({
     </button>
   );
 
-  return title ? (
-    <Tooltip content={title} side="top">
+  return resolvedTitle ? (
+    <Tooltip content={resolvedTitle} side="top">
       {buttonEl}
     </Tooltip>
   ) : (

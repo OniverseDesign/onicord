@@ -198,8 +198,12 @@ export default function StickerManagerTab() {
 
           setAlertModal({
             isOpen: true,
-            title: "Instalación Exitosa",
-            msg: `Pack '${res.name}' con ${res.count} stickers instalado con éxito desde la tienda.`,
+            title: t("settings.stickers.installSuccessTitle", "Instalación Exitosa"),
+            msg: t("settings.stickers.installSuccessMsg", {
+              name: res.name,
+              count: res.count,
+              defaultValue: `Pack '${res.name}' con ${res.count} stickers instalado con éxito desde la tienda.`,
+            }),
           });
         }
       }
@@ -207,8 +211,8 @@ export default function StickerManagerTab() {
       console.error("Error al descargar pack de stickers de la tienda:", err);
       setAlertModal({
         isOpen: true,
-        title: "Error de descarga",
-        msg: "No se pudo descargar el pack de stickers desde GitHub.",
+        title: t("settings.stickers.downloadErrorTitle", "Error de descarga"),
+        msg: t("settings.stickers.downloadErrorMsg", "No se pudo descargar el pack de stickers desde GitHub."),
       });
     } finally {
       setDownloadingPackId(null);

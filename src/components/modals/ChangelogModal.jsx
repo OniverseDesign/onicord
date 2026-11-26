@@ -240,7 +240,7 @@ export default function ChangelogModal({
             <div className="p-4 rounded-onicord-inner bg-onicord-danger/10 text-onicord-danger text-xs space-y-2">
               <div className="flex items-center gap-2 font-bold">
                 <MaterialIcon name="error" size={16} />
-                <span>No se pudieron cargar las notas de lanzamiento</span>
+                <span>{t("changelog.loadError", "No se pudieron cargar las notas de lanzamiento")}</span>
               </div>
               <p className="text-onicord-danger/80">{error}</p>
             </div>
@@ -252,7 +252,7 @@ export default function ChangelogModal({
 
           {!loading && !error && !notes && (
             <div className="text-center py-10 text-onicord-muted text-xs">
-              <p>No se encontraron notas de lanzamiento para esta versión.</p>
+              <p>{t("changelog.notFound", "No se encontraron notas de lanzamiento para esta versión.")}</p>
             </div>
           )}
         </div>

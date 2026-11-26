@@ -3,6 +3,7 @@ import { notificationManager } from "../lib/notificationManager";
 import { updateAppBadge } from "../lib/badgeIconGenerator";
 import { hasChannelAccess } from "../lib/permissionsHelper";
 import { getNotificationAuthor } from "../lib/profileUtils";
+import i18n from "../i18n/config";
 
 /**
  * Resolves whether an incoming message should increment unread counts and returns
@@ -219,9 +220,9 @@ export function useUnreadTracker(activeRoomCode, activeChannelId, profileOrId, s
         let channelName = targetChannel?.name || null;
         if (!channelName) {
           if (rawChannelId && rawChannelId.startsWith("dm_")) {
-            channelName = "Mensaje directo";
+            channelName = i18n.t("chat.directMessage", "Mensaje directo");
           } else if (rawChannelId && rawChannelId.startsWith("thread_")) {
-            channelName = msg.title || "Hilo";
+            channelName = msg.title || i18n.t("chat.threadShort", "Hilo");
           }
         }
         const serverName = targetServer?.name;

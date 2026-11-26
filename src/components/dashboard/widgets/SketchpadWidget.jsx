@@ -572,7 +572,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
 
       {/* Drawing board canvas container */}
       <div
-        className="flex-1 w-full relative min-h-[90px] rounded-2xl bg-onicord-mantle border border-onicord-island overflow-hidden shadow-inner"
+        className="flex-1 w-full relative min-h-[90px] rounded-2xl bg-onicord-mantle border border-onicord-island overflow-hidden"
         onPointerDown={(e) => e.stopPropagation()} // Stop dragging card
       >
         <canvas
@@ -628,7 +628,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
               {/* Name badge */}
               <span
                 style={{ backgroundColor: c.color }}
-                className="px-1.5 py-0.5 rounded text-2xs font-black text-black shadow-lg mt-1 truncate max-w-[70px]"
+                className="px-1.5 py-0.5 rounded text-2xs font-black text-black mt-1 truncate max-w-[70px]"
               >
                 {c.nickname}
               </span>
@@ -637,7 +637,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
         })}
 
         {/* Floating Zoom & Reiniciar controls */}
-        <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-onicord-surface/90 border border-onicord-island p-1.5 px-3 rounded-xl backdrop-blur-onicord-popover z-20 pointer-events-auto shadow-xl select-none">
+        <div className="absolute bottom-4 left-4 flex items-center gap-1.5 bg-onicord-surface/90 border border-onicord-island p-1.5 px-3 rounded-xl backdrop-blur-onicord-popover z-20 pointer-events-auto select-none">
           <button
             type="button"
             onClick={handleZoomOut}
@@ -668,7 +668,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
 
       {/* Control Tools Footer Bar */}
       <div
-        className="onicord-widget-footer-sep flex justify-center items-center z-10 shrink-0 gap-2 flex-wrap transition-all duration-relaxed ease-in-out opacity-0 max-h-0 overflow-hidden pointer-events-none mt-0 group-hover:opacity-100 group-hover:max-h-[100px] group-hover:pointer-events-auto group-hover:mt-2 group-hover:pt-3"
+        className="flex justify-center items-center z-10 shrink-0 gap-2 flex-wrap transition-all duration-relaxed ease-in-out opacity-0 max-h-0 overflow-hidden pointer-events-none mt-0 group-hover:opacity-100 group-hover:max-h-[100px] group-hover:pointer-events-auto group-hover:mt-2 group-hover:pt-3"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-between">
@@ -676,7 +676,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
           <SegmentedControl
             fullWidth={false}
             size="sm"
-            className="shrink-0 shadow-inner"
+            className="shrink-0"
             value={activeTool}
             onChange={setActiveTool}
             options={[
@@ -709,7 +709,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
                   }}
                   className={`w-5 h-5 rounded-full border shrink-0 transition-all ${
                     currentColor === c && activeTool === "brush"
-                      ? "border-white scale-110 shadow-lg shadow-white/10"
+                      ? "border-white scale-110"
                       : "border-transparent hover:opacity-100 hover:scale-110"
                   }`}
                   style={{ backgroundColor: c }}
@@ -728,7 +728,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
                   }}
                   className={`w-5 h-5 rounded-full border shrink-0 transition-all ${
                     currentColor === c && activeTool === "brush"
-                      ? "border-white scale-110 shadow-lg shadow-white/10"
+                      ? "border-white scale-110"
                       : "border-transparent hover:opacity-100 hover:scale-110"
                   }`}
                   style={{ backgroundColor: c }}
@@ -741,7 +741,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
         {/* Slider & Actions Container */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-between">
           {/* Brush thickness container */}
-          <div className="flex items-center bg-onicord-surface/80 border border-onicord-island rounded-xl px-3 py-1.5 gap-3 shrink-0 shadow-inner h-[38px]">
+          <div className="flex items-center bg-onicord-surface/80 border border-onicord-island rounded-xl px-3 py-1.5 gap-3 shrink-0 h-[38px]">
             <span className="text-2xs font-mono font-bold text-onicord-muted text-right uppercase">
               {brushWidth}PX
             </span>
@@ -768,7 +768,7 @@ export default function SketchpadWidget({ connectedServer, profile }) {
           </div>
 
           {/* Undo/Redo actions group */}
-          <div className="flex items-center bg-onicord-surface/80 border border-onicord-island rounded-xl p-1 shrink-0 shadow-inner h-[38px]">
+          <div className="flex items-center bg-onicord-surface/80 border border-onicord-island rounded-xl p-1 shrink-0 h-[38px]">
             <button
               type="button"
               onClick={handleUndo}

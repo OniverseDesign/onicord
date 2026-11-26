@@ -1,3 +1,12 @@
+# Onicord v0.3.8
+
+## Changes
+
+- **Complete Multi-Language Localization & 100% Locale Parity**: Replaced remaining hardcoded strings across Whiteboard (`WhiteboardElement.jsx`, `WhiteboardStage.jsx`, `WhiteboardToolbar.jsx`), Settings (`GeneralTab.jsx`, `PluginsTab.jsx`, `StickerManagerTab.jsx`, `ServerMembersTab.jsx`), modals and overlays (`ChangelogModal.jsx`, `RoomOverlays.jsx`), chat/media UI (`MessageEmbedCard.jsx`, `FloatingMediaBar.jsx`, `ToastContainer.jsx`), and notification hooks (`useAppUpdater.js`, `useChatMessages.js`, `useUnreadTracker.js`). Added over 260 missing translation keys across English, Spanish, and Portuguese (`en.json`, `es.json`, `pt.json`) to reach full 3-way parity (2,037 keys each) and fixed moderation confirmation interpolation.
+- **Light Mode Palette & Accent Contrast Standardization**: Unified dynamic accent theme generation in `src/lib/colors.js` onto the Catppuccin Mocha palette (`ACCENT_PALETTE` and `--onicord-accent-vivid`) across Dark and Light modes and refined `ACCENT_PALETTE_LIGHT` tones. Replaced hardcoded `text-white` with semantic `text-onicord-on-accent` and `text-onicord-on-scrim` tokens across `ChatMessageItem.jsx`, `MessageAvatar.jsx`, `MessagePluginEmbed.jsx`, `MessageThreadBadge.jsx`, `ToastContainer.jsx`, `UserProfilePopout.jsx`, `FlameBadge.jsx`, and server rail buttons (`dashboard.css`).
+- **RoomManager Profile Sync Optimization**: Added `{ skipP2PSync }` guarding between `setProfile` and `onServerProfileUpdated` in `electron/p2p/roomManager.cjs` to avoid redundant `p2pService.setProfile` broadcasts during global profile updates while ensuring per-server profile changes still sync properly.
+- **UI Polish & FloatingMediaBar Tooltip Fix**: Removed redundant shadows and inner borders across `SketchpadWidget.jsx`, `ThemeManagerTab.jsx`, `KeybindingsTab.jsx`, and `.onicord-bento-grid` (`dashboard.css`), adjusted layout spacing in `AddServerModal.jsx` and `OverlayTab.jsx`, and fixed an undefined `resolvedTitle` reference in `FloatingMediaBar.IconButton`.
+
 # Onicord v0.3.7
 
 ## Changes

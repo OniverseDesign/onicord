@@ -277,7 +277,7 @@ export default function UserProfilePopout({
             "absolute w-7 h-7 rounded-full flex items-center justify-center shrink-0 p-0 transition-all z-20 cursor-pointer group",
             hasBanner
               ? "top-4 right-4 bg-onicord-scrim hover:bg-onicord-scrim-heavy backdrop-blur-sm text-onicord-on-scrim"
-              : "top-2.5 right-2.5 bg-onicord-scrim-soft hover:bg-onicord-scrim text-onicord-text"
+              : "top-2.5 right-2.5 bg-onicord-scrim hover:bg-onicord-scrim-heavy text-onicord-on-scrim"
           )}
           title={t("profileTab.editServerProfile", "Editar perfil del servidor")}
         >

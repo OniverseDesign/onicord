@@ -42,7 +42,7 @@ export default function FlameBadge({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         className={cn(
-          "inline-flex items-center justify-center align-middle font-bold rounded-full border transition-all duration-relaxed select-none cursor-help text-slate-950 [.light-mode_&]:text-white",
+          "inline-flex items-center justify-center align-middle font-bold rounded-full border transition-all duration-relaxed select-none cursor-help text-slate-950",
           tier.badgeBg,
           tier.glow,
           sizeClasses[size] || sizeClasses.sm,

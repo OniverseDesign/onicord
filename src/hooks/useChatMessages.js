@@ -3,6 +3,7 @@ import { notificationManager } from "../lib/notificationManager";
 import { soundEngine } from "../lib/soundEngine";
 import { getStoredGeneralSettings, normalizeGeneralSettings } from "../lib/generalSettings";
 import { getNotificationAuthor } from "../lib/profileUtils";
+import i18n from "../i18n/config";
 
 export function extractAttachmentsFromText(rawText) {
   if (typeof rawText !== "string" || !rawText.includes("[FILE_ATTACHMENT]:")) {
@@ -837,9 +838,9 @@ export function useChatMessages({
         let channelName = currentChannel?.name || null;
         if (!channelName) {
           if (channelId && channelId.startsWith("dm_")) {
-            channelName = "Mensaje directo";
+            channelName = i18n.t("chat.directMessage", "Mensaje directo");
           } else if (channelId && channelId.startsWith("thread_")) {
-            channelName = msg.title || "Hilo";
+            channelName = msg.title || i18n.t("chat.threadShort", "Hilo");
           }
         }
         const serverName = currentServer?.name;

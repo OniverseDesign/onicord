@@ -342,7 +342,7 @@ export default function MessageEmbedCard({ url }) {
                 {Boolean(inVoice) && (
                   <button
                     type="button"
-                    title="Ver en Watch Party con la sala"
+                    title={t("chat.watchPartyRoom", "Ver en Watch Party con la sala")}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

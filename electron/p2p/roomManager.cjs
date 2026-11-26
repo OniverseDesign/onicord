@@ -989,7 +989,7 @@ class RoomManager {
   setProfile(profile) {
     this.p2pService.setProfile(profile, this.fileService.fileServerPort);
     if (this.roomCode) {
-      this.onServerProfileUpdated(this.roomCode, profile).catch(console.error);
+      this.onServerProfileUpdated(this.roomCode, profile, { skipP2PSync: true }).catch(console.error);
     }
     if (this.voiceService.localVoice?.channelId) {
       this.voiceService._broadcastLocalVoiceState(this._getEffectiveVoiceProfile());
@@ -1000,12 +1000,12 @@ class RoomManager {
     }
   }
 
-  async onServerProfileUpdated(targetRoomCode, updatedFullProfile) {
-    if (updatedFullProfile) {
-      this.profile = updatedFullProfile;
+  async onServerProfileUpdated(targetRoomCode, updatedFullProfile, { skipP2PSync = false } = {}) {
+    if (!this.p2pService) return;
+    if (updatedFullProfile && !skipP2PSync) {
+      this.p2pService.setProfile(updatedFullProfile, this.fileService?.fileServerPort);
     }
     const code = String(targetRoomCode).trim().toUpperCase();
-    if (!this.p2pService) return;
     const currentCode = this.roomCode ? String(this.roomCode).trim().toUpperCase() : null;
 
     if (currentCode === code || (this.rooms && this.rooms.has(code))) {

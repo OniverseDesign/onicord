@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Lock } from "lucide-react";
 import WhiteboardElement, { ShapeSvg } from "./WhiteboardElement";
 import WhiteboardToolbar from "./WhiteboardToolbar";
@@ -26,6 +27,7 @@ export default function WhiteboardStage({
   canEdit = true,
   onFlameInteraction,
 }) {
+  const { t } = useTranslation();
   const roomCode = server?.roomCode || server?.id || "local";
   const channelId = channel?.id || "default-board";
   const myId = profile?.id || "self";
@@ -1509,7 +1511,7 @@ export default function WhiteboardStage({
       {!canEdit && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium flex items-center gap-1.5 pointer-events-none">
           <Lock size={14} />
-          <span>Modo solo lectura en este canal de pizarra</span>
+          <span>{t("whiteboard.readOnlyMode", "Modo solo lectura en este canal de pizarra")}</span>
         </div>
       )}
 

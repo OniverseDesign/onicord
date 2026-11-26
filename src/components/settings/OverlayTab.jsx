@@ -151,7 +151,7 @@ export default function OverlayTab({ overlay, setOverlay }) {
         </div>
 
         {/* Interactive 3x3 mockup */}
-        <div className="flex flex-col items-center justify-center pt-2 pb-1">
+        <div className="flex flex-col items-center justify-center pt-8 pb-1">
           <div className="relative w-[260px] h-[165px] bg-onicord-base/60 rounded-xl border border-onicord-border-strong overflow-hidden shadow-inner">
             {/* Grid background lines */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

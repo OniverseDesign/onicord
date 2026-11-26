@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { notificationManager } from "../lib/notificationManager";
+import i18n from "../i18n/config";
 
 export function useAppUpdater() {
   const hasNotifiedAppRef = useRef(false);
@@ -72,8 +73,11 @@ export function useAppUpdater() {
             const updateRes = await api.updateAllPlugins();
             if (updateRes?.success && updateRes.updatedCount > 0) {
               notificationManager.showToast(
-                "Complementos actualizados",
-                `Se han actualizado automáticamente ${updateRes.updatedCount} complemento(s) a su última versión.`,
+                i18n.t("settings.plugins.updatedTitle", "Complementos actualizados"),
+                i18n.t("settings.plugins.autoUpdatedMsg", {
+                  count: updateRes.updatedCount,
+                  defaultValue: `Se han actualizado automáticamente ${updateRes.updatedCount} complemento(s) a su última versión.`,
+                }),
                 "info",
                 10000,
                 { type: "open_settings", section: "plugins" }
@@ -81,8 +85,11 @@ export function useAppUpdater() {
             }
           } else {
             notificationManager.showToast(
-              "Actualización de complementos",
-              `Hay ${result.updates.length} complemento(s) con actualizaciones disponibles.`,
+              i18n.t("settings.plugins.updatesTitle", "Actualización de complementos"),
+              i18n.t("settings.plugins.updatesAvailableMsg", {
+                count: result.updates.length,
+                defaultValue: `Hay ${result.updates.length} complemento(s) con actualizaciones disponibles.`,
+              }),
               "info",
               10000,
               { type: "open_settings", section: "plugins" }

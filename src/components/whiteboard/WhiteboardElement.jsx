@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Lock } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { getMediaUrl } from "../../lib/media";
@@ -336,6 +337,7 @@ export default function WhiteboardElement({
   onRotateStart,
   onConnectStart,
 }) {
+  const { t } = useTranslation();
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -391,7 +393,7 @@ export default function WhiteboardElement({
     >
       {isSelected && el.locked && (
         <div
-          title="Bloqueado"
+          title={t("whiteboard.locked", "Bloqueado")}
           className="absolute -top-3 -right-3 w-5 h-5 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center z-40 pointer-events-none"
         >
           <Lock size={11} />
@@ -399,7 +401,7 @@ export default function WhiteboardElement({
       )}
       {editingBy && !isEditing && (
         <div className="absolute -top-6 left-0 px-2 py-0.5 rounded-full bg-sky-500 text-zinc-950 text-2xs font-bold z-40 pointer-events-none whitespace-nowrap">
-          {editingBy.nickname} editando…
+          {t("whiteboard.userEditing", { name: editingBy.nickname, defaultValue: `${editingBy.nickname} editando…` })}
         </div>
       )}
       {/* STICKY NOTE */}
@@ -419,7 +421,7 @@ export default function WhiteboardElement({
                 if (e.key === "Escape") onFinishEdit();
               }}
               style={{ color: textColor }}
-              placeholder="Escribe una nota..."
+              placeholder={t("whiteboard.writeNote", "Escribe una nota...")}
               className="w-full h-full bg-transparent resize-none outline-none text-sm font-medium leading-snug placeholder:text-black/40"
             />
           ) : (
@@ -428,7 +430,7 @@ export default function WhiteboardElement({
               className="w-full flex-1 text-sm font-medium leading-snug whitespace-pre-wrap break-words overflow-hidden"
             >
               {el.text || (
-                <span className="opacity-40 italic">Doble clic para editar</span>
+                <span className="opacity-40 italic">{t("whiteboard.doubleClickToEdit", "Doble clic para editar")}</span>
               )}
             </div>
           )}
@@ -466,7 +468,7 @@ export default function WhiteboardElement({
                     if (e.key === "Escape") onFinishEdit();
                   }}
                   style={{ color: textColor }}
-                  placeholder="Escribe..."
+                  placeholder={t("whiteboard.writeShort", "Escribe...")}
                   className="col-start-1 row-start-1 w-full h-full bg-transparent resize-none outline-none text-center text-sm font-semibold leading-snug overflow-hidden placeholder:text-black/35"
                 />
               </div>
@@ -495,7 +497,7 @@ export default function WhiteboardElement({
               onKeyDown={(e) => {
                 if (e.key === "Escape") onFinishEdit();
               }}
-              placeholder="Escribe algo..."
+              placeholder={t("whiteboard.writeSomething", "Escribe algo...")}
               style={{
                 color: textColor,
                 fontSize: `${el.style?.fontSize || 18}px`,
@@ -511,7 +513,7 @@ export default function WhiteboardElement({
               className="w-full h-full font-semibold leading-snug whitespace-pre-wrap break-words"
             >
               {el.text || (
-                <span className="opacity-40 italic text-sm">Texto vacío</span>
+                <span className="opacity-40 italic text-sm">{t("whiteboard.emptyText", "Texto vacío")}</span>
               )}
             </div>
           )}
@@ -669,7 +671,7 @@ export default function WhiteboardElement({
                       e.stopPropagation();
                       onRotateStart(e, el);
                     }}
-                    title="Arrastrar para rotar (Shift: pasos de 45°)"
+                    title={t("whiteboard.dragToRotate", "Arrastrar para rotar (Shift: pasos de 45°)")}
                     className={cn(
                       "absolute w-3.5 h-3.5 rounded-full cursor-grab active:cursor-grabbing z-35 hover:bg-sky-400/30 transition-colors",
                       rotClass
@@ -708,7 +710,7 @@ export default function WhiteboardElement({
               left: `${Math.min(el.w / 2 - 6, 8 + (el.style?.borderRadius ?? 0) * 0.55)}px`,
               top: `${Math.min(el.h / 2 - 6, 8 + (el.style?.borderRadius ?? 0) * 0.55)}px`,
             }}
-            title="Arrastrar para redondear esquinas"
+            title={t("whiteboard.dragToRound", "Arrastrar para redondear esquinas")}
             className="absolute w-2.5 h-2.5 rounded-full bg-white border-2 border-sky-500 z-40 cursor-nwse-resize hover:scale-125 transition-transform"
           />
         )}
@@ -736,7 +738,7 @@ export default function WhiteboardElement({
                   e.stopPropagation();
                   onConnectStart(e, el, anc.side);
                 }}
-                title="Arrastrar para conectar"
+                title={t("whiteboard.dragToConnect", "Arrastrar para conectar")}
                 className={cn(
                   "absolute w-3 h-3 rounded-full bg-sky-400/85 hover:bg-sky-300 border-2 border-[#1E1F22] z-40 cursor-crosshair hover:scale-125 transition-transform",
                   anc.cls

@@ -8,7 +8,7 @@ export default function MessageAvatar({ src, avatar, name, nickname, nameColor, 
 
   if (finalSrc === "bot-star" || (isComplement && !finalSrc)) {
     return (
-      <div className="mt-0.5 h-10 w-10 shrink-0 flex items-center justify-center rounded-full bg-onicord-accent text-white">
+      <div className="mt-0.5 h-10 w-10 shrink-0 flex items-center justify-center rounded-full bg-onicord-accent text-onicord-on-accent">
         <IconEstrella
           className="w-5 h-5"
           style={{

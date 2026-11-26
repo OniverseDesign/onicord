@@ -374,7 +374,7 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
         </button>
 
         {/* Mode Switcher */}
-        <div className="mb-5 pr-8 flex justify-center">
+        <div className="mb-5 pt-5 flex justify-center">
           <SegmentedControl
             role="tablist"
             fullWidth={false}

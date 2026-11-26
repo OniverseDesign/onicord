@@ -179,8 +179,11 @@ export default function GeneralTab({ general, setGeneral }) {
     return closestIdx;
   }, [general?.autoDownloadMaxSizeMB]);
 
+  const currentDownloadSizeStep = AUTO_DOWNLOAD_SIZE_STEPS[currentDownloadSizeIndex];
   const currentDownloadSizeLabel =
-    AUTO_DOWNLOAD_SIZE_STEPS[currentDownloadSizeIndex]?.label || "500 MB";
+    currentDownloadSizeStep?.value === -1
+      ? t("settings.general.unlimited", "Sin límite")
+      : currentDownloadSizeStep?.label || "500 MB";
 
   const handleDownloadSizeIndexChange = (e) => {
     const idx = parseInt(e.target.value, 10);
@@ -766,7 +769,7 @@ export default function GeneralTab({ general, setGeneral }) {
                 <div className="w-full flex items-center gap-2 mt-1">
                   <div className="flex-1 min-w-0 bg-onicord-base/60 px-3 py-2 rounded-xl border border-onicord-border text-xs text-onicord-text font-mono truncate select-all flex items-center gap-2">
                     <MaterialIcon name="folder" size={16} className="text-onicord-muted shrink-0" />
-                    <span className="truncate" title={general.downloadDirectory || defaultDownloadDir || "Descargas"}>
+                    <span className="truncate" title={general.downloadDirectory || defaultDownloadDir || t("settings.general.downloadsFolderShort", "Descargas")}>
                       {general.downloadDirectory || defaultDownloadDir || t("settings.general.defaultDownloadsFolder", "Carpeta de Descargas del sistema")}
                     </span>
                   </div>

@@ -163,23 +163,24 @@ export const ACCENT_PALETTE = Object.fromEntries(
 );
 
 /**
- * Catppuccin Latte palette for Light Mode (higher contrast on light surfaces).
+ * Balanced vibrant palette for Light Mode (brighter than Catppuccin Latte,
+ * while preserving readable contrast on light surfaces).
  */
 export const ACCENT_PALETTE_LIGHT = {
-  lavender: "114 135 253",
-  rosewater: "220 138 120",
-  flamingo: "221 120 120",
-  pink: "234 118 203",
-  mauve: "136 57 239",
-  red: "210 15 57",
-  maroon: "230 69 83",
-  peach: "254 100 11",
-  yellow: "223 142 29",
-  green: "64 160 43",
-  teal: "23 146 153",
-  sky: "4 165 229",
-  sapphire: "32 159 181",
-  blue: "30 102 245",
+  lavender: "126 146 254",
+  rosewater: "224 148 134",
+  flamingo: "228 130 134",
+  pink: "236 124 206",
+  mauve: "158 92 246",
+  red: "228 58 88",
+  maroon: "235 86 102",
+  peach: "249 122 44",
+  yellow: "232 162 42",
+  green: "74 184 72",
+  teal: "38 172 174",
+  sky: "32 180 235",
+  sapphire: "46 174 198",
+  blue: "62 128 248",
 };
 
 const SEMANTIC_VAR_MAP = {
@@ -400,8 +401,8 @@ export function applyDynamicTheme({
     root.style.setProperty(varName, val);
   });
 
-  // Update semantic & pastel palette for current mode (Mocha vs Latte)
-  const activePalette = isLight ? ACCENT_PALETTE_LIGHT : ACCENT_PALETTE;
+  // Use Catppuccin Mocha palette for both dark and light modes
+  const activePalette = ACCENT_PALETTE;
   Object.entries(SEMANTIC_VAR_MAP).forEach(([key, varNames]) => {
     const val = activePalette[key];
     if (val) {
@@ -444,7 +445,7 @@ export function applyDynamicTheme({
   root.style.setProperty("--onicord-offline-vivid", isLight ? "148 163 184" : "134 140 166");
   root.style.setProperty(
     "--onicord-accent-vivid",
-    hslToRawRgb(accentHue, 76, isLight ? 52 : 68)
+    hslToRawRgb(accentHue, 76, 68)
   );
 
   // Saturation factor: 50% slider value = 1.0 multiplier (default subtle tint)

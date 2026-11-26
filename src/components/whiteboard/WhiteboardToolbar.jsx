@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   MousePointer2,
   Hand,
@@ -61,6 +62,7 @@ export default function WhiteboardToolbar({
   onExportBoard,
   onClearBoard,
 }) {
+  const { t } = useTranslation();
   const [emojisTargetRect, setEmojisTargetRect] = useState(null);
   const [stickersTargetRect, setStickersTargetRect] = useState(null);
   const emojiBtnRef = useRef(null);
@@ -127,7 +129,7 @@ export default function WhiteboardToolbar({
             </div>
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-onicord-muted">
-                <span>Grosor</span>
+                <span>{t("whiteboard.thickness", "Grosor")}</span>
                 <span className="font-mono font-semibold text-onicord-accent">{penWidth}px</span>
               </div>
               <input
@@ -155,8 +157,8 @@ export default function WhiteboardToolbar({
                   : "bg-onicord-tint/10 hover:bg-onicord-tint/20 text-onicord-text"
               )}
             >
-              <span>Modo resaltador</span>
-              <span>{isHighlighter ? "Activo" : "Inactivo"}</span>
+              <span>{t("whiteboard.highlighterMode", "Modo resaltador")}</span>
+              <span>{isHighlighter ? t("common.active", "Activo") : t("common.inactive", "Inactivo")}</span>
             </button>
           </div>
         </FloatingMediaBar.Menu>
@@ -312,7 +314,7 @@ export default function WhiteboardToolbar({
             setActiveTool("table");
             setOpenMenu(null);
           }}
-          title="Tabla"
+          title={t("whiteboard.table", "Tabla")}
         />
 
         {/* Emojis */}
@@ -332,7 +334,7 @@ export default function WhiteboardToolbar({
                 if (rect) setEmojisTargetRect(rect);
               }
             }}
-            title="Emojis"
+            title={t("whiteboard.emojis", "Emojis")}
           />
         </div>
 
@@ -353,7 +355,7 @@ export default function WhiteboardToolbar({
                 if (rect) setStickersTargetRect(rect);
               }
             }}
-            title="Stickers"
+            title={t("whiteboard.stickers", "Stickers")}
           />
         </div>
 
@@ -363,13 +365,13 @@ export default function WhiteboardToolbar({
           icon={<Undo2 size={18} />}
           disabled={!canEdit || undoDisabled}
           onClick={onUndo}
-          title="Deshacer (Ctrl+Z)"
+          title={t("whiteboard.undo", "Deshacer (Ctrl+Z)")}
         />
         <FloatingMediaBar.IconButton
           icon={<Redo2 size={18} />}
           disabled={!canEdit || redoDisabled}
           onClick={onRedo}
-          title="Rehacer (Ctrl+Shift+Z)"
+          title={t("whiteboard.redo", "Rehacer (Ctrl+Shift+Z)")}
         />
 
         <FloatingMediaBar.Divider />
@@ -377,7 +379,7 @@ export default function WhiteboardToolbar({
         <FloatingMediaBar.IconButton
           icon={<ZoomOut size={18} />}
           onClick={() => setZoom((z) => Math.max(0.2, +(z - 0.15).toFixed(2)))}
-          title="Alejar"
+          title={t("whiteboard.zoomOut", "Alejar")}
         />
         <FloatingMediaBar.PillButton
           label={`${Math.round(zoom * 100)}%`}
@@ -385,12 +387,12 @@ export default function WhiteboardToolbar({
             setZoom(1);
             setPan({ x: 0, y: 0 });
           }}
-          title="Restablecer vista (100%)"
+          title={t("whiteboard.resetView", "Restablecer vista (100%)")}
         />
         <FloatingMediaBar.IconButton
           icon={<ZoomIn size={18} />}
           onClick={() => setZoom((z) => Math.min(4, +(z + 0.15).toFixed(2)))}
-          title="Acercar"
+          title={t("whiteboard.zoomIn", "Acercar")}
         />
 
         <FloatingMediaBar.Divider />
@@ -398,13 +400,13 @@ export default function WhiteboardToolbar({
         <FloatingMediaBar.IconButton
           icon={<Download size={18} />}
           onClick={onExportBoard}
-          title="Exportar tablero completo a PNG"
+          title={t("whiteboard.exportPng", "Exportar tablero completo a PNG")}
         />
         {canEdit && (
           <FloatingMediaBar.IconButton
             icon={<Trash2 size={18} />}
             onClick={onClearBoard}
-            title="Limpiar pizarra"
+            title={t("whiteboard.clearBoard", "Limpiar pizarra")}
           />
         )}
       </FloatingMediaBar>
