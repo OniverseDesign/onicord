@@ -115,6 +115,16 @@ class RoomMetaStore {
       directIP: "",
       directPort: 7777,
       ownerId: null,
+      ownerPublicKey: null,
+      adminPublicKeys: {},
+      metaSignature: null,
+      signedByPublicKey: null,
+      roomSecretMigration: null,
+      enforceV2Encryption: false,
+      currentKeyEpoch: 1,
+      lastKeyRotationAt: null,
+      lastKeyRotationBy: null,
+      activeInvite: null,
       savedMembers: {},
       bannedUsers: [],
       kickedUsers: {},
@@ -311,6 +321,16 @@ class RoomMetaStore {
         directIP: cfg.direct_ip || "",
         directPort: cfg.direct_port || 7777,
         ownerId: cfg.owner_id || null,
+        ownerPublicKey: cfg.owner_public_key || null,
+        adminPublicKeys: safeParse(cfg.admin_public_keys_json, {}),
+        metaSignature: cfg.meta_signature || null,
+        signedByPublicKey: cfg.signed_by_public_key || null,
+        roomSecretMigration: safeParse(cfg.room_secret_migration_json, null),
+        enforceV2Encryption: Boolean(cfg.enforce_v2_encryption),
+        currentKeyEpoch: Math.max(1, Number(cfg.current_key_epoch) || 1),
+        lastKeyRotationAt: cfg.last_key_rotation_at || null,
+        lastKeyRotationBy: cfg.last_key_rotation_by || null,
+        activeInvite: safeParse(cfg.active_invite_json, null),
         savedMembers,
         bannedUsers,
         kickedUsers,
@@ -399,8 +419,11 @@ class RoomMetaStore {
             disable_flame_system, group_by_roles, allow_executable_files,
             ice_servers_json, direct_connection_enabled, direct_ip, direct_port,
             default_role_settings_json, welcome_settings_json, afk_settings_json, music_json,
-            version, updated_by, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            version, updated_by, updated_at,
+            owner_public_key, admin_public_keys_json, meta_signature, signed_by_public_key,
+            room_secret_migration_json, enforce_v2_encryption,
+            current_key_epoch, last_key_rotation_at, last_key_rotation_by, active_invite_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         .run(
           safeCode,
@@ -428,7 +451,17 @@ class RoomMetaStore {
           musicCfg ? JSON.stringify(musicCfg) : null,
           Number(meta.version) || 0,
           meta.updatedBy || null,
-          Number(meta.updatedAt) || now
+          Number(meta.updatedAt) || now,
+          meta.ownerPublicKey || null,
+          JSON.stringify(meta.adminPublicKeys || {}),
+          meta.metaSignature || null,
+          meta.signedByPublicKey || null,
+          meta.roomSecretMigration ? JSON.stringify(meta.roomSecretMigration) : null,
+          meta.enforceV2Encryption ? 1 : 0,
+          Math.max(1, Number(meta.currentKeyEpoch) || 1),
+          meta.lastKeyRotationAt ? Number(meta.lastKeyRotationAt) : null,
+          meta.lastKeyRotationBy || null,
+          meta.activeInvite ? JSON.stringify(meta.activeInvite) : null
         );
 
       // Replace channels
@@ -476,14 +509,15 @@ class RoomMetaStore {
       `);
       roles.forEach((r, idx) => {
         if (!r || !r.id) return;
+        const normalizedRole = { ...r, position: idx };
         insertRole.run(
-          String(r.id),
-          String(r.name || "Rol"),
-          String(r.color || "#99aab5"),
-          r.position !== undefined ? Number(r.position) : idx,
-          r.hoist ? 1 : 0,
-          JSON.stringify(r.permissions || {}),
-          JSON.stringify(r),
+          String(normalizedRole.id),
+          String(normalizedRole.name || "Rol"),
+          String(normalizedRole.color || "#99aab5"),
+          idx,
+          normalizedRole.hoist ? 1 : 0,
+          JSON.stringify(normalizedRole.permissions || {}),
+          JSON.stringify(normalizedRole),
           now
         );
       });
@@ -661,7 +695,7 @@ class RoomMetaStore {
     return this._withLock(safeCode, () => this._saveUnlocked(safeCode, meta));
   }
 
-  merge(roomCode, remote, senderUserId) {
+  merge(roomCode, remote, senderUserId, options = {}) {
     if (!remote?.version) return Promise.resolve({ applied: false, meta: null });
     const safeCode = this._safeCode(roomCode);
     return this._withLock(safeCode, async () => {
@@ -670,6 +704,71 @@ class RoomMetaStore {
       const remoteCreator = remote.creatorID || remote.creatorId;
       const isLocalUninitialized =
         (!local.ownerId && !localCreator) || local.version === 0 || (!local.name && !local.icon);
+
+      const cryptoService = require("../services/cryptoService.cjs");
+      const localOwnerPub =
+        typeof local.ownerPublicKey === "string" && /^[0-9a-f]{64}$/i.test(local.ownerPublicKey.trim())
+          ? local.ownerPublicKey.trim().toLowerCase()
+          : null;
+      const remoteOwnerPub =
+        typeof remote.ownerPublicKey === "string" && /^[0-9a-f]{64}$/i.test(remote.ownerPublicKey.trim())
+          ? remote.ownerPublicKey.trim().toLowerCase()
+          : null;
+
+      let verifiedSignerPub = null;
+      if (localOwnerPub) {
+        // Governance is locked to Ed25519 signatures from owner or designated admins
+        const signerPub =
+          typeof remote.signedByPublicKey === "string" && /^[0-9a-f]{64}$/i.test(remote.signedByPublicKey.trim())
+            ? remote.signedByPublicKey.trim().toLowerCase()
+            : null;
+        if (!signerPub || typeof remote.metaSignature !== "string") {
+          console.warn(`[RoomMeta] Rejected unsigned meta update for Ed25519-protected room ${safeCode}`);
+          return { applied: false, meta: local };
+        }
+        const allowedAdminPubs = new Set(
+          Object.values(local.adminPublicKeys || {})
+            .map((k) => String(k || "").trim().toLowerCase())
+            .filter((k) => /^[0-9a-f]{64}$/.test(k))
+        );
+        if (signerPub !== localOwnerPub && !allowedAdminPubs.has(signerPub)) {
+          console.warn(`[RoomMeta] Rejected meta update from unauthorized public key ${signerPub} in room ${safeCode}`);
+          return { applied: false, meta: local };
+        }
+        if (!cryptoService.verifyPayload(buildSignableMeta(remote), remote.metaSignature, signerPub)) {
+          console.warn(`[RoomMeta] Rejected invalid Ed25519 signature in meta update for room ${safeCode}`);
+          return { applied: false, meta: local };
+        }
+        // Only the owner may transfer ownerId/ownerPublicKey or modify adminPublicKeys
+        if (signerPub !== localOwnerPub) {
+          if (
+            (remote.ownerId && remote.ownerId !== local.ownerId) ||
+            (remoteOwnerPub && remoteOwnerPub !== localOwnerPub) ||
+            JSON.stringify(remote.adminPublicKeys || {}) !== JSON.stringify(local.adminPublicKeys || {})
+          ) {
+            console.warn(`[RoomMeta] Rejected non-owner governance escalation in room ${safeCode}`);
+            return { applied: false, meta: local };
+          }
+        }
+        verifiedSignerPub = signerPub;
+      } else if (remoteOwnerPub) {
+        // First Ed25519 anchor (new v2 room or auto-migration from v1 -> v2)
+        const signerPub =
+          typeof remote.signedByPublicKey === "string" ? remote.signedByPublicKey.trim().toLowerCase() : null;
+        if (
+          signerPub !== remoteOwnerPub ||
+          !cryptoService.verifyPayload(buildSignableMeta(remote), remote.metaSignature, remoteOwnerPub)
+        ) {
+          console.warn(`[RoomMeta] Rejected invalid Ed25519 anchor signature for room ${safeCode}`);
+          return { applied: false, meta: local };
+        }
+        if (!isLocalUninitialized && local.ownerId && remote.ownerId !== local.ownerId) {
+          console.warn(`[RoomMeta] Rejected ownerPublicKey anchor attempting to hijack ownerId in room ${safeCode}`);
+          return { applied: false, meta: local };
+        }
+        verifiedSignerPub = remoteOwnerPub;
+      }
+
       let isAuthorized = false;
 
       const isSenderOwnerOrCreator =
@@ -684,7 +783,9 @@ class RoomMetaStore {
           (localCreator && localCreator === remote.updatedBy) ||
           checkAdminPermission(local, remote.updatedBy));
 
-      if (isLocalUninitialized) {
+      if (verifiedSignerPub) {
+        isAuthorized = true;
+      } else if (isLocalUninitialized) {
         isAuthorized = Boolean(remote.ownerId || remoteCreator || remote.version);
       } else if (localCreator && remoteCreator && localCreator !== remoteCreator) {
         isAuthorized = false;
@@ -709,7 +810,7 @@ class RoomMetaStore {
       const localAuth = getAuthorityLevel(local, localAuthorId);
 
       let newer = false;
-      if (isLocalUninitialized) {
+      if (isLocalUninitialized || (!localOwnerPub && remoteOwnerPub && remote.version >= local.version)) {
         newer = true;
       } else if (remote.version > local.version) {
         newer = true;
@@ -719,7 +820,7 @@ class RoomMetaStore {
         newer = true;
       } else if (remoteAuth < localAuth) {
         newer = false;
-      } else if (isSenderOwnerOrCreator || isSenderAdmin) {
+      } else if (isSenderOwnerOrCreator || isSenderAdmin || verifiedSignerPub) {
         newer = (remote.updatedAt || 0) > (local.updatedAt || 0);
       } else {
         newer = false;
@@ -750,7 +851,7 @@ class RoomMetaStore {
 
       const mergedSavedMembers = {};
       const isRemoteAuthoritative = Boolean(
-        isSenderOwnerOrCreator || isSenderAdmin || isLocalUninitialized
+        isSenderOwnerOrCreator || isSenderAdmin || isLocalUninitialized || verifiedSignerPub
       );
       if (
         isRemoteAuthoritative &&
@@ -863,6 +964,49 @@ class RoomMetaStore {
         directIP: remote.directIP ?? local.directIP ?? "",
         directPort: remote.directPort ?? local.directPort ?? 7777,
         ownerId: remote.ownerId ?? local.ownerId ?? null,
+        ownerPublicKey: remoteOwnerPub || localOwnerPub || null,
+        adminPublicKeys: remote.adminPublicKeys ?? local.adminPublicKeys ?? {},
+        metaSignature: remote.metaSignature ?? local.metaSignature ?? null,
+        signedByPublicKey: remote.signedByPublicKey ?? local.signedByPublicKey ?? null,
+        roomSecretMigration: remote.roomSecretMigration ?? local.roomSecretMigration ?? null,
+        enforceV2Encryption:
+          remote.enforceV2Encryption !== undefined
+            ? Boolean(remote.enforceV2Encryption)
+            : Boolean(local.enforceV2Encryption),
+        currentKeyEpoch: Math.max(
+          1,
+          Number(local.currentKeyEpoch) || 1,
+          Number(remote.currentKeyEpoch) || 1
+        ),
+        lastKeyRotationAt:
+          remote.lastKeyRotationAt !== undefined && remote.lastKeyRotationAt !== null
+            ? Math.max(Number(local.lastKeyRotationAt) || 0, Number(remote.lastKeyRotationAt) || 0) || null
+            : (local.lastKeyRotationAt || null),
+        lastKeyRotationBy:
+          (Number(remote.lastKeyRotationAt) || 0) >= (Number(local.lastKeyRotationAt) || 0)
+            ? (remote.lastKeyRotationBy ?? local.lastKeyRotationBy ?? null)
+            : (local.lastKeyRotationBy ?? null),
+        activeInvite: (() => {
+          if (remote.activeInvite === undefined) return local.activeInvite ?? null;
+          if (!remote.activeInvite) return null;
+          const inv = remote.activeInvite;
+          const governancePub = remoteOwnerPub || localOwnerPub;
+          if (governancePub) {
+            const govMeta = {
+              ownerPublicKey: governancePub,
+              adminPublicKeys: remote.adminPublicKeys ?? local.adminPublicKeys ?? {},
+            };
+            const invSigner = typeof inv.signedByPublicKey === "string" ? inv.signedByPublicKey.trim().toLowerCase() : null;
+            if (
+              !invSigner ||
+              !isAuthorizedSignerKey(govMeta, invSigner) ||
+              !cryptoService.verifyPayload(buildSignableActiveInvite(safeCode, inv), inv.signature, invSigner)
+            ) {
+              return local.activeInvite ?? null;
+            }
+          }
+          return inv;
+        })(),
         savedMembers: mergedSavedMembers,
         bannedUsers: remote.bannedUsers ?? local.bannedUsers ?? [],
         kickedUsers: remote.kickedUsers ?? local.kickedUsers ?? {},
@@ -897,7 +1041,7 @@ class RoomMetaStore {
     });
   }
 
-  async bump(roomCode, patch, updatedByUserId) {
+  async bump(roomCode, patch, updatedByUserId, signingKeyPair = null) {
     const safeCode = this._safeCode(roomCode);
     return this._withLock(safeCode, async () => {
       const local = await this._loadUnlocked(safeCode, false);
@@ -919,6 +1063,10 @@ class RoomMetaStore {
         updatedAt: Date.now(),
         updatedBy: updatedByUserId || null,
       };
+      const kp = signingKeyPair || global.roomManager?.p2pService?.swarm?.keyPair || null;
+      if (kp?.secretKey && kp?.publicKey) {
+        signMeta(next, kp.secretKey, kp.publicKey);
+      }
       await this._saveUnlocked(safeCode, next);
       return next;
     });
@@ -1094,4 +1242,102 @@ function getAuthorityLevel(meta, userId) {
   return 0; // Guest
 }
 
-module.exports = { RoomMetaStore, checkAdminPermission, getAuthorityLevel, DEFAULT_CHANNELS };
+function isAuthorizedSignerKey(meta = {}, pubKeyHex = "") {
+  const cleanPub = typeof pubKeyHex === "string" ? pubKeyHex.trim().toLowerCase() : "";
+  if (!/^[0-9a-f]{64}$/.test(cleanPub)) return false;
+  const ownerPub =
+    typeof meta?.ownerPublicKey === "string" ? meta.ownerPublicKey.trim().toLowerCase() : "";
+  if (ownerPub && cleanPub === ownerPub) return true;
+  if (meta?.adminPublicKeys && typeof meta.adminPublicKeys === "object") {
+    for (const k of Object.values(meta.adminPublicKeys)) {
+      if (typeof k === "string" && k.trim().toLowerCase() === cleanPub) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function buildSignableActiveInvite(roomCode, inv = {}) {
+  return {
+    roomCode: String(roomCode || "").trim().toUpperCase(),
+    inviteId: String(inv.inviteId || ""),
+    inviteSecret: String(inv.inviteSecret || ""),
+    createdAt: Number(inv.createdAt) || 0,
+    expiresAt: inv.expiresAt !== undefined && inv.expiresAt !== null ? Number(inv.expiresAt) : null,
+    createdBy: inv.createdBy || null,
+    revoked: Boolean(inv.revoked),
+    revokedAt: inv.revokedAt !== undefined && inv.revokedAt !== null ? Number(inv.revokedAt) : null,
+  };
+}
+
+function buildSignableKeyEnvelope(roomCode, env = {}) {
+  return {
+    roomCode: String(roomCode || "").trim().toUpperCase(),
+    epoch: Number(env.epoch) || 0,
+    secret: String(env.secret || ""),
+    rotatedAt: Number(env.rotatedAt) || 0,
+    rotatedBy: env.rotatedBy || null,
+    reason: env.reason || "manual",
+  };
+}
+
+function buildSignableMeta(meta = {}) {
+  return {
+    roomCode: String(meta.roomCode || "").trim().toUpperCase(),
+    version: Number(meta.version) || 0,
+    updatedAt: Number(meta.updatedAt) || 0,
+    ownerId: meta.ownerId || null,
+    ownerPublicKey: meta.ownerPublicKey ? String(meta.ownerPublicKey).toLowerCase() : null,
+    adminPublicKeys: meta.adminPublicKeys || {},
+    name: meta.name ?? null,
+    icon: meta.icon ?? null,
+    banner: meta.banner ?? null,
+    channels: Array.isArray(meta.channels) ? meta.channels : [],
+    roles: Array.isArray(meta.roles) ? meta.roles : [],
+    userRoles: meta.userRoles || {},
+    bannedUsers: Array.isArray(meta.bannedUsers) ? meta.bannedUsers : [],
+    kickedUsers: meta.kickedUsers || {},
+    plugins: Array.isArray(meta.plugins) ? meta.plugins : [],
+    webhooks: Array.isArray(meta.webhooks) ? meta.webhooks : [],
+    iceServers: Array.isArray(meta.iceServers) ? meta.iceServers : [],
+    directConnectionEnabled: Boolean(meta.directConnectionEnabled),
+    directIP: meta.directIP || "",
+    directPort: Number(meta.directPort) || 7777,
+    discoverConfig: meta.discoverConfig ?? null,
+    defaultRoleSettings: meta.defaultRoleSettings ?? { enabled: false, roleId: null },
+    welcomeSettings: meta.welcomeSettings ?? null,
+    afkSettings: meta.afkSettings ?? null,
+    disableFlameSystem: Boolean(meta.disableFlameSystem),
+    groupByRoles: Boolean(meta.groupByRoles),
+    allowExecutableFiles: Boolean(meta.allowExecutableFiles),
+    enforceV2Encryption: Boolean(meta.enforceV2Encryption),
+    currentKeyEpoch: Math.max(1, Number(meta.currentKeyEpoch) || 1),
+    lastKeyRotationAt: meta.lastKeyRotationAt ? Number(meta.lastKeyRotationAt) : null,
+    lastKeyRotationBy: meta.lastKeyRotationBy || null,
+    activeInvite: meta.activeInvite ?? null,
+  };
+}
+
+function signMeta(meta, secretKeyBuf, publicKey) {
+  if (!meta || !secretKeyBuf || !publicKey) return meta;
+  const cryptoService = require("../services/cryptoService.cjs");
+  const pubHex = Buffer.isBuffer(publicKey) || publicKey instanceof Uint8Array
+    ? Buffer.from(publicKey).toString("hex").toLowerCase()
+    : String(publicKey).trim().toLowerCase();
+  meta.signedByPublicKey = pubHex;
+  meta.metaSignature = cryptoService.signPayload(buildSignableMeta(meta), secretKeyBuf);
+  return meta;
+}
+
+module.exports = {
+  RoomMetaStore,
+  checkAdminPermission,
+  getAuthorityLevel,
+  isAuthorizedSignerKey,
+  buildSignableActiveInvite,
+  buildSignableKeyEnvelope,
+  buildSignableMeta,
+  signMeta,
+  DEFAULT_CHANNELS,
+};

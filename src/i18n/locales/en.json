@@ -89,6 +89,12 @@
     "joinInviteInstruction": "Server settings → Invites",
     "createButton": "Create Server",
     "joinButton": "Join a Server",
+    "inviteExpired": "This invite has expired. Ask an administrator for a new invite.",
+    "inviteRevoked": "This invite was revoked or replaced by a newer one.",
+    "inviteBanned": "Your account is banned from this server.",
+    "inviteNoPeers": "No room member is currently online to validate your invite.",
+    "inviteInvalid": "This invite is invalid or no longer active.",
+    "waitingPeerValidation": "Waiting for an online member to validate your invite...",
     "haveInviteTitle": "Already have an invite?",
     "invitePlaceholder": "A1B2C3D4 or invite link",
     "codePlaceholder": "A1B2C3D4",
@@ -462,7 +468,7 @@
       "title": "Server Invites",
       "hint": "Share the alphanumeric code or the direct P2P link to invite new members.",
       "codeTitle": "Room Invite Code",
-      "codeHint": "Unique 8-character code to join manually on the main screen.",
+      "codeHint": "Secure invite code to join manually from the main screen.",
       "codeCopied": "Code Copied!",
       "copyCodeOnly": "Copy Code Only",
       "linkTitle": "Direct P2P Link (Deep Link)",
@@ -473,7 +479,52 @@
       "member": "Member",
       "members": "Members",
       "hideCode": "Hide code",
-      "revealCode": "Temporarily reveal code"
+      "revealCode": "Temporarily reveal code",
+      "duration30m": "30 min",
+      "duration1h": "1 h",
+      "duration6h": "6 h",
+      "duration24h": "24 h",
+      "duration7d": "7 days",
+      "durationNever": "Never expires",
+      "neverExpires": "Never expires",
+      "expired": "Expired",
+      "revokedBadge": "Revoked",
+      "durationLabel": "Invite duration",
+      "generateNew": "Generate new invite",
+      "revoke": "Revoke",
+      "noActiveAdminHint": "The previous invite expired or was revoked. Generate a new one above.",
+      "noActiveMemberHint": "There is no active invite right now. Ask an administrator to create one.",
+      "keyEpochTitle": "Epoch Encryption Key",
+      "epochBadge": "Epoch #{{epoch}}",
+      "keyEpochDesc": "Rotates the AES-256-GCM key for future messages (also auto-rotates when banning a user). Authorized members keep reading prior history.",
+      "lastRotation": "Last rotation:",
+      "rotateKeyBtn": "Rotate encryption key",
+      "keyRotatedSuccess": "Key rotated to the new epoch!",
+      "rotateConfirmTitle": "Rotate server encryption key?",
+      "rotateConfirmMessage": "A new encryption epoch (#{{nextEpoch}}) will be created. New messages will use the new key while authorized members keep full history access.",
+      "adminKeyPending": "Your admin public key has not been synced with the server owner yet.",
+      "unauthorized": "Only the server owner or an authorized administrator can perform this action.",
+      "actionError": "Could not complete the operation.",
+      "activeInviteTitle": "Active Invite",
+      "createInviteTitle": "Create Invite",
+      "createInviteDesc": "Only one invite can be active at a time. Choose how long it remains valid before expiring.",
+      "createInviteBtn": "Create Invite",
+      "expiresIn": "Expires in {{time}}",
+      "formatWeb": "Web Link",
+      "formatCode": "Code",
+      "formatNative": "Native",
+      "nativeLinkHint": "Native onicord:// protocol link to open the app directly.",
+      "copySelected": "Copy",
+      "copiedGeneric": "Copied!",
+      "durationNeverShort": "Never",
+      "duration30mShort": "30m",
+      "duration1hShort": "1h",
+      "duration6hShort": "6h",
+      "duration24hShort": "24h",
+      "duration7dShort": "7d",
+      "epochStatus": "Current epoch: #{{epoch}}",
+      "inactivePreviewHint": "No invite is currently active. Create a new one to share this server again.",
+      "upgradeToExpiring": "Set expiration"
     },
     "webhooks": {
       "title": "Server Webhooks",
@@ -645,7 +696,8 @@
       "fixStep3": "Confirm you are not behind a restrictive symmetric NAT or CGNAT from your ISP.",
       "iceBackupTitle": "Backup ICE Servers (STUN/TURN)",
       "iceBackupDesc": "If server members fail to connect to voice lounges (due to restrictive firewalls or symmetric NAT), configure relay STUN/TURN servers here. Otherwise Onicord will use default public nodes.",
-      "configuredServers": "Configured Servers"
+      "configuredServers": "Configured Servers",
+      "noTurnWarning": "Your custom list only includes STUN servers without TURN. Members with Always Relay enabled will fall back to default public TURN relays to connect."
     },
     "plugins": {
       "title": "Server Addons ({{count}})",
@@ -750,7 +802,9 @@
     "editServerProfile": "Edit server profile",
     "contentPrivacySettings": "Content Privacy",
     "blurNsfwTitle": "Automatically blur NSFW content",
-    "blurNsfwDesc": "Displays media marked as NSFW (+18) blurred until you click to reveal them."
+    "blurNsfwDesc": "Displays media marked as NSFW (+18) blurred until you click to reveal them.",
+    "identityFingerprintTitle": "Cryptographic Identity Fingerprint",
+    "identityFingerprintDesc": "Unique identifier derived from your persistent Ed25519 public key. Share it out-of-band so contacts can verify they are talking to you."
   },
   "server": {
     "newMemberJoined": "New Member",
@@ -925,7 +979,9 @@
     "localStreamAudioMuted": "Your stream (locally muted)",
     "enableWebcam": "Enable webcam",
     "disableWebcam": "Disable webcam",
-    "webcamSettings": "Webcam Settings"
+    "webcamSettings": "Webcam Settings",
+    "alwaysRelayChangedTitle": "Always Relay mode updated",
+    "alwaysRelayChangedDesc": "Reconnect to the voice channel to apply the new relay policy to active connections."
   },
   "flame": {
     "title": "Flame",
@@ -1111,7 +1167,9 @@
       "webCacheDesc": "Temporary files for remote images, avatars, and embedded views (capped at 100 MB on disk).",
       "clearWebCache": "Clear web cache",
       "clearingWebCache": "Clearing...",
-      "webCacheCleared": "Web cache cleared"
+      "webCacheCleared": "Web cache cleared",
+      "alwaysRelayVoiceTitle": "Force TURN Relay in Calls (Always Relay)",
+      "alwaysRelayVoiceDesc": "Routes WebRTC voice and video exclusively through TURN servers to hide your IP in calls at the cost of higher latency. P2P chat (Hyperswarm) remains direct; use a system VPN to hide your IP completely."
     },
     "voiceVideo": {
       "inputDevice": "Input Device (Microphone)",
@@ -1550,7 +1608,8 @@
     "sfu": "Star (SFU / Star Host)",
     "noPeersConnected": "No other members in the call.",
     "topology": "TOPOLOGY",
-    "peerId": "PEER ID"
+    "peerId": "PEER ID",
+    "alwaysRelayBadge": "Always Relay"
   },
   "inviteModal": {
     "invited": "You've been invited to join",
@@ -1559,7 +1618,9 @@
     "accept": "Accept Invite",
     "cancel": "Cancel",
     "alreadyMember": "Already a member · Reconnect",
-    "connecting": "Connecting..."
+    "connecting": "Connecting...",
+    "expiresAt": "Expires:",
+    "joinedSuccess": "Joined {{name}}"
   },
   "plugins": {
     "pollsName": "Quick Polls",
@@ -1889,5 +1950,41 @@
     "saturationArea": "Saturation and brightness",
     "hueSlider": "Hue",
     "presets": "Quick colors"
+  },
+  "security": {
+    "modalTitle": "Verify Security",
+    "statusVerifiedTitle": "Identity verified",
+    "statusVerifiedDesc": "You have marked this contact's public key as verified.",
+    "statusKeyChangedTitle": "Security key changed",
+    "statusKeyChangedDesc": "This user connected with a different cryptographic key than previously seen. Re-verify the Safety Number out-of-band.",
+    "statusUnauthTitle": "Unauthenticated transport",
+    "statusUnauthDesc": "This connection did not complete a Noise XX handshake and cannot be marked as verified.",
+    "statusUnavailableTitle": "Key not yet available",
+    "statusUnavailableDesc": "No authenticated P2P session with this user has been observed on this device yet.",
+    "statusUnverifiedTitle": "Unverified",
+    "statusUnverifiedDesc": "Compare this Safety Number with your contact over a call or another trusted channel.",
+    "transportHyperswarm": "Noise XX · Hyperswarm",
+    "transportDirectTcp": "Noise XX · Direct TCP",
+    "transportOffline": "Offline (TOFU)",
+    "transportUnauthenticated": "Unauthenticated",
+    "transportUnknown": "Unknown",
+    "safetyNumberLabel": "Safety Number (60 digits)",
+    "transportLabel": "Transport authentication",
+    "peerFingerprintLabel": "Contact fingerprint",
+    "localFingerprintLabel": "Your local fingerprint",
+    "unmarkVerifiedBtn": "Remove verification",
+    "markVerifiedBtn": "Mark as verified",
+    "verifiedPeer": "Identity verified",
+    "keyChangedShort": "Key changed",
+    "verifyIdentity": "Verify security",
+    "keyChangedToastTitle": "Security key changed",
+    "keyChangedToastDesc": "{{name}}'s cryptographic key changed. Please re-verify their Safety Number.",
+    "diagConsentTitle": "Remote diagnostics request",
+    "diagConsentMessage": "{{name}} is requesting your local diagnostic logs (OniDiag). Sensitive fields are automatically scrubbed, but the logs include recent network events and errors.",
+    "diagConsentApprove": "Share logs",
+    "diagConsentReject": "Reject",
+    "dmKeyRequiredBanner": "You must be online at the same time as this contact at least once to establish peer-to-peer E2EE before sending DMs.",
+    "dmLegacyPeerBanner": "This contact is running an older version of Onicord and must update to read new E2EE direct messages (previous history remains readable).",
+    "roomCompatBanner": "Compatibility mode active: peers on an older client are connected; room v2 encryption will engage automatically once everyone updates."
   }
 }

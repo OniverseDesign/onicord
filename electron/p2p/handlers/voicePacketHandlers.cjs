@@ -38,7 +38,7 @@ async function handleVoicePacket(roomManager, peerId, type, payload) {
   }
 
   if (type === "voice-move-member" && payload) {
-    const { roomCode, targetUserId, targetPeerId, targetChannelId, operatorId, operatorNickname } = payload;
+    const { roomCode, targetUserId, targetPeerId, targetChannelId, operatorNickname } = payload;
     const myProfile = roomManager.profile || roomManager.p2pService.profile;
     const myId = myProfile?.id;
     const myLocalPeerId = roomManager.p2pService._resolveLocalPeerId();
@@ -50,18 +50,26 @@ async function handleVoicePacket(roomManager, peerId, type, payload) {
     if (!isTargetMe) return true;
 
     const safeCode = String(roomCode || roomManager.roomCode || "").trim().toUpperCase();
+    const senderPeer = roomManager.p2pService.peers.get(peerId);
+    const senderRooms = roomManager.p2pService.peerRooms.get(peerId);
+    const operatorId = senderPeer?.userId || null;
+
+    if (!safeCode || !operatorId || !senderRooms || !senderRooms.has(safeCode)) {
+      console.warn(`[voicePacketHandlers] Rejected voice-move-member: peer ${peerId} is not verified member of room ${safeCode}`);
+      return true;
+    }
+
     if (roomManager.roomMetaStore) {
       roomManager.roomMetaStore
         .load(safeCode)
         .then((meta) => {
           const { checkAdminPermission } = require("../roomMetaStore.cjs");
           const isOwner =
-            operatorId &&
-            (meta.ownerId === operatorId || meta.creatorID === operatorId || meta.creatorId === operatorId);
-          const hasAdmin = isOwner || (operatorId && checkAdminPermission(meta, operatorId));
+            meta.ownerId === operatorId || meta.creatorID === operatorId || meta.creatorId === operatorId;
+          const hasAdmin = isOwner || checkAdminPermission(meta, operatorId);
 
           if (!hasAdmin) {
-            console.warn(`[voicePacketHandlers] Rejected unauthorized voice-move-member from ${operatorId}`);
+            console.warn(`[voicePacketHandlers] Rejected unauthorized voice-move-member from ${operatorId} (peer ${peerId})`);
             return;
           }
 
@@ -72,7 +80,7 @@ async function handleVoicePacket(roomManager, peerId, type, payload) {
             roomCode: safeCode,
             channelId: targetChannelId,
             channelName,
-            movedBy: operatorNickname || "Administrador",
+            movedBy: senderPeer?.nickname || operatorNickname || "Administrador",
           });
         })
         .catch((err) => {

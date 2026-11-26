@@ -95,6 +95,7 @@ export default function UserProfilePopout({
   onBannerClick = null,
   onRemoveBanner = null,
   onEditProfile = null,
+  onOpenSecurity = null,
 }) {
   const { t } = useTranslation();
   const popoutRef = useRef(null);
@@ -552,6 +553,51 @@ export default function UserProfilePopout({
               />
             </div>
           </div>
+        )}
+
+        {!isInlinePreview && !member.isSelf && onOpenSecurity && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose?.();
+              onOpenSecurity(member);
+            }}
+            className={cn(
+              "w-full mt-2.5 px-3 py-2 rounded-xl flex items-center justify-between gap-2 text-xs font-semibold transition-colors cursor-pointer",
+              sectionCardClass,
+              isLightBg ? "hover:bg-onicord-on-light/10" : "hover:bg-onicord-tint/10"
+            )}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <MaterialIcon
+                name={
+                  member.verificationStatus === "verified"
+                    ? "verified_user"
+                    : member.verificationStatus === "key_changed"
+                      ? "gpp_maybe"
+                      : "shield"
+                }
+                size={15}
+                className={cn(
+                  "shrink-0",
+                  member.verificationStatus === "verified"
+                    ? "text-onicord-success"
+                    : member.verificationStatus === "key_changed"
+                      ? "text-onicord-danger"
+                      : "text-onicord-accent"
+                )}
+              />
+              <span className={cn("truncate", textMainClass)}>
+                {member.verificationStatus === "verified"
+                  ? t("security.verifiedPeer", "Identidad verificada")
+                  : member.verificationStatus === "key_changed"
+                    ? t("security.keyChangedShort", "Clave cambiada")
+                    : t("security.verifyIdentity", "Verificar seguridad")}
+              </span>
+            </div>
+            <MaterialIcon name="chevron_right" size={16} className={cn("shrink-0", textMutedClass)} />
+          </button>
         )}
 
         {!member.isSelf && onVolumeChange && (

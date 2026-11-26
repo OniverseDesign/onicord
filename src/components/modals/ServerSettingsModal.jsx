@@ -20,6 +20,19 @@ const ServerPluginsTab = lazy(() => import("../settings/ServerPluginsTab"));
 const ServerWebhooksTab = lazy(() => import("../settings/ServerWebhooksTab"));
 const ServerDiscoverTab = lazy(() => import("../settings/ServerDiscoverTab"));
 
+const DEFAULT_DISCOVER_CONFIG = {
+  enabled: false,
+  accessMode: "public",
+  category: "General",
+  description: "",
+  tags: [],
+  pendingRequests: [],
+};
+
+const DEFAULT_ROLE_SETTINGS = { enabled: false, roleId: null };
+const DEFAULT_WELCOME_SETTINGS = { enabled: false, channelId: null, template: "" };
+const DEFAULT_AFK_SETTINGS = { channelId: null, timeout: 300 };
+
 function slugId(prefix, name) {
   const base = name
     .toLowerCase()
@@ -216,27 +229,20 @@ export default function ServerSettingsModal({
   const [kickedUsers, setKickedUsers] = useState(server?.kickedUsers ?? {});
   const [serverPlugins, setServerPlugins] = useState(server?.plugins ?? []);
   const [discoverConfig, setDiscoverConfig] = useState(
-    server?.discoverConfig ?? {
-      enabled: false,
-      accessMode: "public",
-      category: "General",
-      description: "",
-      tags: [],
-      pendingRequests: [],
-    }
+    server?.discoverConfig ?? DEFAULT_DISCOVER_CONFIG
   );
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
   const [defaultRoleSettings, setDefaultRoleSettings] = useState(
-    server?.defaultRoleSettings ?? { enabled: false, roleId: null }
+    server?.defaultRoleSettings ?? DEFAULT_ROLE_SETTINGS
   );
   const [welcomeSettings, setWelcomeSettings] = useState(
-    server?.welcomeSettings ?? { enabled: false, channelId: null, template: "" }
+    server?.welcomeSettings ?? DEFAULT_WELCOME_SETTINGS
   );
   const [afkSettings, setAfkSettings] = useState(
-    server?.afkSettings ?? { channelId: null, timeout: 300 }
+    server?.afkSettings ?? DEFAULT_AFK_SETTINGS
   );
 
   useEffect(() => {
@@ -257,19 +263,10 @@ export default function ServerSettingsModal({
       setBannedUsers(server.bannedUsers ?? []);
       setKickedUsers(server.kickedUsers ?? {});
       setServerPlugins(server.plugins ?? []);
-      setDefaultRoleSettings(server.defaultRoleSettings ?? { enabled: false, roleId: null });
-      setWelcomeSettings(server.welcomeSettings ?? { enabled: false, channelId: null, template: "" });
-      setAfkSettings(server.afkSettings ?? { channelId: null, timeout: 300 });
-      setDiscoverConfig(
-        server.discoverConfig ?? {
-          enabled: false,
-          accessMode: "public",
-          category: "General",
-          description: "",
-          tags: [],
-          pendingRequests: [],
-        }
-      );
+      setDefaultRoleSettings(server.defaultRoleSettings ?? DEFAULT_ROLE_SETTINGS);
+      setWelcomeSettings(server.welcomeSettings ?? DEFAULT_WELCOME_SETTINGS);
+      setAfkSettings(server.afkSettings ?? DEFAULT_AFK_SETTINGS);
+      setDiscoverConfig(server.discoverConfig ?? DEFAULT_DISCOVER_CONFIG);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server?.id]);
@@ -553,7 +550,17 @@ export default function ServerSettingsModal({
   };
 
   const copyCode = async () => {
-    await copyTextToClipboard(getWebInviteUrl(server.roomCode, server.name));
+    const activeInv = server?.activeInvite;
+    const isActiveManaged = Boolean(
+      activeInv &&
+      !activeInv.revoked &&
+      activeInv.inviteSecret &&
+      (!activeInv.expiresAt || Date.now() < Number(activeInv.expiresAt))
+    );
+    const targetUrl = isActiveManaged
+      ? getWebInviteUrl(server.roomCode, server.name, activeInv.inviteSecret, { isManagedInvite: true })
+      : getWebInviteUrl(server.roomCode, server.name, server.roomSecret);
+    await copyTextToClipboard(targetUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -570,7 +577,7 @@ export default function ServerSettingsModal({
         name: name.trim(),
         icon,
         banner,
-        roles,
+        roles: roles.map((r, idx) => ({ ...r, position: idx })),
         userRoles,
         disableFlameSystem,
         groupByRoles,
@@ -578,7 +585,7 @@ export default function ServerSettingsModal({
         iceServers,
         directConnectionEnabled,
         directIP,
-        directPort,
+        directPort: Number(directPort) || 7777,
         bannedUsers,
         kickedUsers,
         plugins: serverPlugins,
@@ -623,8 +630,55 @@ export default function ServerSettingsModal({
     }
   };
 
+  const hasUnsavedChanges = useMemo(() => {
+    if (!server) return false;
+    if (name !== (server.name || "")) return true;
+    if ((icon ?? null) !== (server.icon ?? null)) return true;
+    if ((banner ?? null) !== (server.banner ?? null)) return true;
+    if (Boolean(disableFlameSystem) !== Boolean(server.disableFlameSystem)) return true;
+    if (Boolean(groupByRoles) !== Boolean(server.groupByRoles)) return true;
+    if (Boolean(allowExecutableFiles) !== Boolean(server.allowExecutableFiles)) return true;
+    if (Boolean(directConnectionEnabled) !== Boolean(server.directConnectionEnabled)) return true;
+    if ((directIP ?? "") !== (server.directIP ?? "")) return true;
+    if (Number(directPort || 7777) !== Number(server.directPort || 7777)) return true;
+    if (JSON.stringify(channels) !== JSON.stringify(server.channels ?? [])) return true;
+    if (JSON.stringify(roles) !== JSON.stringify(server.roles ?? [])) return true;
+    if (JSON.stringify(userRoles) !== JSON.stringify(server.userRoles ?? {})) return true;
+    if (JSON.stringify(iceServers) !== JSON.stringify(server.iceServers ?? [])) return true;
+    if (JSON.stringify(bannedUsers) !== JSON.stringify(server.bannedUsers ?? [])) return true;
+    if (JSON.stringify(kickedUsers) !== JSON.stringify(server.kickedUsers ?? {})) return true;
+    if (JSON.stringify(serverPlugins) !== JSON.stringify(server.plugins ?? [])) return true;
+    if (JSON.stringify(discoverConfig) !== JSON.stringify(server.discoverConfig ?? DEFAULT_DISCOVER_CONFIG)) return true;
+    if (JSON.stringify(defaultRoleSettings) !== JSON.stringify(server.defaultRoleSettings ?? DEFAULT_ROLE_SETTINGS)) return true;
+    if (JSON.stringify(welcomeSettings) !== JSON.stringify(server.welcomeSettings ?? DEFAULT_WELCOME_SETTINGS)) return true;
+    if (JSON.stringify(afkSettings) !== JSON.stringify(server.afkSettings ?? DEFAULT_AFK_SETTINGS)) return true;
+    return false;
+  }, [
+    server,
+    name,
+    icon,
+    banner,
+    disableFlameSystem,
+    groupByRoles,
+    allowExecutableFiles,
+    directConnectionEnabled,
+    directIP,
+    directPort,
+    channels,
+    roles,
+    userRoles,
+    iceServers,
+    bannedUsers,
+    kickedUsers,
+    serverPlugins,
+    discoverConfig,
+    defaultRoleSettings,
+    welcomeSettings,
+    afkSettings,
+  ]);
+
   const renderFooter = () => {
-    if (!hasAdvanced || section === "invite" || section === "storage")
+    if (!hasAdvanced || !hasUnsavedChanges)
       return (
         <ModalButton key="btn-ready" variant="primary" onClick={onClose}>
           {t("common.confirm")}
@@ -632,7 +686,7 @@ export default function ServerSettingsModal({
       );
     return (
       <>
-        <ModalButton key="btn-cancel" variant="secondary" onClick={onClose}>
+        <ModalButton key="btn-cancel" variant="secondary" onClick={onClose} disabled={busy}>
           {t("common.cancel")}
         </ModalButton>
         <ModalButton key="btn-save" variant="primary" disabled={busy} onClick={handleSave}>
@@ -836,13 +890,18 @@ export default function ServerSettingsModal({
           server={server}
           copyCode={copyCode}
           copied={copied}
+          canManageInvites={Boolean(serverWithCopy?.isOwner || hasAdmin)}
+          onServerUpdated={onSaved || onSave}
         />
       )}
 
       {section === "plugins" && hasAdvanced && (
         <ServerPluginsTab
           server={{ ...serverWithCopy, plugins: serverPlugins }}
-          onUpdateServer={(updated) => setServerPlugins(updated.plugins || [])}
+          onUpdateServer={(updated) => {
+            setServerPlugins(updated.plugins || []);
+            (onSaved || onSave)?.(updated);
+          }}
           onCloseSettings={onClose}
         />
       )}
@@ -888,6 +947,7 @@ export default function ServerSettingsModal({
       {section === "audit" && (
         <ServerAuditTab
           server={serverWithCopy}
+          profile={profile}
         />
       )}
       </Suspense>

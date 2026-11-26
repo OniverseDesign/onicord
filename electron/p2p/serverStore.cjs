@@ -142,6 +142,23 @@ class ServerStore {
       },
       music: meta.music ?? null,
       savedMembers: meta.savedMembers || {},
+      roomSecret: joinedRow.room_secret || null,
+      currentKeyEpoch: Math.max(1, Number(joinedRow.current_key_epoch) || Number(meta.currentKeyEpoch) || 1),
+      keyRing: (() => {
+        const parsed = safeParse(joinedRow.key_ring_json, {});
+        const ring = parsed && typeof parsed === "object" ? { ...parsed } : {};
+        if (joinedRow.room_secret && !ring["1"]) {
+          ring["1"] = joinedRow.room_secret;
+        }
+        return ring;
+      })(),
+      keyEnvelopes: safeParse(joinedRow.key_envelopes_json, []),
+      lastKeyRotationAt: meta.lastKeyRotationAt || null,
+      lastKeyRotationBy: meta.lastKeyRotationBy || null,
+      activeInvite: meta.activeInvite || null,
+      ownerPublicKey: meta.ownerPublicKey || null,
+      adminPublicKeys: meta.adminPublicKeys || {},
+      enforceV2Encryption: Boolean(meta.enforceV2Encryption),
     };
   }
 
@@ -279,7 +296,20 @@ class ServerStore {
     return this.updateSettings(serverId, patch);
   }
 
-  async add({ name, roomCode, isOwner, ownerId, creatorId, creatorID, icon, banner }) {
+  async add({
+    name,
+    roomCode,
+    isOwner,
+    ownerId,
+    creatorId,
+    creatorID,
+    icon,
+    banner,
+    roomSecret = null,
+    currentKeyEpoch = null,
+    keyRing = null,
+    keyEnvelopes = null,
+  }) {
     return this._withLock(async () => {
       const code = String(roomCode).trim().toUpperCase();
       const now = Date.now();
@@ -294,6 +324,36 @@ class ServerStore {
       const existingRow = serversListDb
         .prepare("SELECT * FROM joined_servers WHERE room_code = ?")
         .get(code);
+
+      const resolvedRoomSecret =
+        typeof roomSecret === "string" && roomSecret.trim()
+          ? roomSecret.trim()
+          : (existingRow?.room_secret || null);
+
+      const existingRing = safeParse(existingRow?.key_ring_json, {});
+      const incomingRing = keyRing && typeof keyRing === "object" ? keyRing : {};
+      const mergedRing = {
+        ...(existingRing && typeof existingRing === "object" ? existingRing : {}),
+        ...incomingRing,
+      };
+      if (resolvedRoomSecret && !mergedRing["1"]) {
+        mergedRing["1"] = resolvedRoomSecret;
+      }
+      const existingEnvelopes = safeParse(existingRow?.key_envelopes_json, []);
+      const incomingEnvelopes = Array.isArray(keyEnvelopes) ? keyEnvelopes : [];
+      const envByEpoch = new Map();
+      for (const env of [...(Array.isArray(existingEnvelopes) ? existingEnvelopes : []), ...incomingEnvelopes]) {
+        if (env && Number(env.epoch) >= 2) {
+          envByEpoch.set(Number(env.epoch), env);
+        }
+      }
+      const mergedEnvelopes = Array.from(envByEpoch.values()).sort((a, b) => Number(a.epoch) - Number(b.epoch));
+      const resolvedEpoch = Math.max(
+        1,
+        Number(currentKeyEpoch) || 0,
+        Number(existingRow?.current_key_epoch) || 0,
+        ...Object.keys(mergedRing).map((k) => parseInt(k, 10) || 1)
+      );
 
       const localUserId = this._getLocalProfileId();
       const resolvedOwnerId = ownerId || existingMeta?.ownerId || existingRow?.owner_id || null;
@@ -342,8 +402,9 @@ class ServerStore {
         .prepare(`
           INSERT OR REPLACE INTO joined_servers (
             room_code, name, icon_ref, banner_ref, owner_id, creator_id, is_owner,
-            position, folder_id, muted, last_read_channel_id, joined_at, last_visited_at, extra_json
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            position, folder_id, muted, last_read_channel_id, joined_at, last_visited_at, extra_json, room_secret,
+            current_key_epoch, key_ring_json, key_envelopes_json
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
         .run(
           code,
@@ -359,7 +420,11 @@ class ServerStore {
           existingRow?.last_read_channel_id || "general",
           now,
           now,
-          JSON.stringify(extraObj)
+          JSON.stringify(extraObj),
+          resolvedRoomSecret,
+          resolvedEpoch,
+          Object.keys(mergedRing).length > 0 ? JSON.stringify(mergedRing) : null,
+          mergedEnvelopes.length > 0 ? JSON.stringify(mergedEnvelopes) : null
         );
 
       serversListDb
@@ -385,6 +450,73 @@ class ServerStore {
       const serverFilesDir = path.join(this.filesDir, code);
       await fs.mkdir(serverFilesDir, { recursive: true }).catch(() => {});
 
+      const all = this._loadAllServersSync();
+      return all.find((s) => s.roomCode === code) || null;
+    });
+  }
+
+  async setRoomSecret(roomCode, roomSecret) {
+    if (!roomCode || typeof roomSecret !== "string" || !roomSecret.trim()) return null;
+    return this._withLock(async () => {
+      const code = String(roomCode).trim().toUpperCase();
+      const cleanSecret = roomSecret.trim();
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const row = serversListDb.prepare("SELECT key_ring_json FROM joined_servers WHERE room_code = ?").get(code);
+      const existingRing = safeParse(row?.key_ring_json, {});
+      const ring = existingRing && typeof existingRing === "object" ? { ...existingRing } : {};
+      if (!ring["1"]) {
+        ring["1"] = cleanSecret;
+      }
+      serversListDb
+        .prepare("UPDATE joined_servers SET room_secret = ?, key_ring_json = ? WHERE room_code = ?")
+        .run(cleanSecret, JSON.stringify(ring), code);
+      const all = this._loadAllServersSync();
+      return all.find((s) => s.roomCode === code) || null;
+    });
+  }
+
+  async updateRoomKeyRing(roomCode, { currentKeyEpoch, keyRing, keyEnvelopes } = {}) {
+    if (!roomCode) return null;
+    return this._withLock(async () => {
+      const code = String(roomCode).trim().toUpperCase();
+      const serversListDb = this._dbMgr().getGlobalDb("servers_list");
+      const row = serversListDb
+        .prepare("SELECT room_secret, current_key_epoch, key_ring_json, key_envelopes_json FROM joined_servers WHERE room_code = ?")
+        .get(code);
+      if (!row) return null;
+
+      const existingRing = safeParse(row.key_ring_json, {});
+      const ring = {
+        ...(existingRing && typeof existingRing === "object" ? existingRing : {}),
+        ...(keyRing && typeof keyRing === "object" ? keyRing : {}),
+      };
+      if (row.room_secret && !ring["1"]) {
+        ring["1"] = row.room_secret;
+      }
+
+      const existingEnvelopes = safeParse(row.key_envelopes_json, []);
+      const envByEpoch = new Map();
+      for (const env of [...(Array.isArray(existingEnvelopes) ? existingEnvelopes : []), ...(Array.isArray(keyEnvelopes) ? keyEnvelopes : [])]) {
+        if (env && Number(env.epoch) >= 2) {
+          envByEpoch.set(Number(env.epoch), env);
+        }
+      }
+      const mergedEnvelopes = Array.from(envByEpoch.values()).sort((a, b) => Number(a.epoch) - Number(b.epoch));
+      const nextEpoch = Math.max(
+        1,
+        Number(currentKeyEpoch) || 0,
+        Number(row.current_key_epoch) || 0,
+        ...Object.keys(ring).map((k) => parseInt(k, 10) || 1)
+      );
+
+      serversListDb
+        .prepare("UPDATE joined_servers SET current_key_epoch = ?, key_ring_json = ?, key_envelopes_json = ? WHERE room_code = ?")
+        .run(
+          nextEpoch,
+          Object.keys(ring).length > 0 ? JSON.stringify(ring) : null,
+          mergedEnvelopes.length > 0 ? JSON.stringify(mergedEnvelopes) : null,
+          code
+        );
       const all = this._loadAllServersSync();
       return all.find((s) => s.roomCode === code) || null;
     });
@@ -511,6 +643,10 @@ class ServerStore {
         meta.defaultRoleSettings = settings.defaultRoleSettings;
       if (settings.welcomeSettings !== undefined) meta.welcomeSettings = settings.welcomeSettings;
       if (settings.afkSettings !== undefined) meta.afkSettings = settings.afkSettings;
+      if (settings.ownerPublicKey !== undefined) meta.ownerPublicKey = settings.ownerPublicKey;
+      if (settings.adminPublicKeys !== undefined) meta.adminPublicKeys = settings.adminPublicKeys;
+      if (settings.enforceV2Encryption !== undefined)
+        meta.enforceV2Encryption = Boolean(settings.enforceV2Encryption);
 
       if (Array.isArray(settings.channels)) {
         meta.channels = settings.channels.map((c) => {
@@ -555,8 +691,8 @@ class ServerStore {
         `)
         .run(
           meta.name || row.name,
-          meta.icon ?? row.icon_ref,
-          meta.banner ?? row.banner_ref,
+          settings.icon !== undefined ? meta.icon : row.icon_ref,
+          settings.banner !== undefined ? meta.banner : row.banner_ref,
           meta.ownerId || row.owner_id,
           JSON.stringify(extraObj),
           code

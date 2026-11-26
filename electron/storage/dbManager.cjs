@@ -25,6 +25,16 @@ const GLOBAL_SCHEMAS = {
       source_room_code TEXT,
       downloaded_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS trusted_peers (
+      user_id TEXT NOT NULL,
+      peer_public_key TEXT NOT NULL,
+      verified INTEGER NOT NULL DEFAULT 0,
+      first_seen_at INTEGER NOT NULL,
+      verified_at INTEGER,
+      last_seen_at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, peer_public_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_trusted_peers_user ON trusted_peers(user_id);
   `,
   profile: `
     CREATE TABLE IF NOT EXISTS main_profile (
@@ -187,7 +197,11 @@ const GLOBAL_SCHEMAS = {
       last_read_channel_id TEXT,
       joined_at INTEGER NOT NULL,
       last_visited_at INTEGER,
-      extra_json TEXT
+      extra_json TEXT,
+      room_secret TEXT,
+      current_key_epoch INTEGER NOT NULL DEFAULT 1,
+      key_ring_json TEXT,
+      key_envelopes_json TEXT
     );
     CREATE TABLE IF NOT EXISTS server_folders (
       folder_id TEXT PRIMARY KEY,
@@ -304,7 +318,17 @@ const SERVER_SCHEMAS = {
       music_json TEXT,
       version INTEGER NOT NULL DEFAULT 0,
       updated_by TEXT,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL,
+      owner_public_key TEXT,
+      admin_public_keys_json TEXT,
+      meta_signature TEXT,
+      signed_by_public_key TEXT,
+      room_secret_migration_json TEXT,
+      enforce_v2_encryption INTEGER NOT NULL DEFAULT 0,
+      current_key_epoch INTEGER NOT NULL DEFAULT 1,
+      last_key_rotation_at INTEGER,
+      last_key_rotation_by TEXT,
+      active_invite_json TEXT
     );
     CREATE TABLE IF NOT EXISTS channels (
       id TEXT PRIMARY KEY,
@@ -650,9 +674,28 @@ class DbManager {
     this._configurePragmas(db);
     if (schemaSql) {
       db.exec(schemaSql);
-      try {
-        db.exec("ALTER TABLE server_config ADD COLUMN afk_settings_json TEXT;");
-      } catch (_) {}
+      const safeAlterStatements = [
+        "ALTER TABLE joined_servers ADD COLUMN room_secret TEXT;",
+        "ALTER TABLE joined_servers ADD COLUMN current_key_epoch INTEGER NOT NULL DEFAULT 1;",
+        "ALTER TABLE joined_servers ADD COLUMN key_ring_json TEXT;",
+        "ALTER TABLE joined_servers ADD COLUMN key_envelopes_json TEXT;",
+        "ALTER TABLE server_config ADD COLUMN afk_settings_json TEXT;",
+        "ALTER TABLE server_config ADD COLUMN owner_public_key TEXT;",
+        "ALTER TABLE server_config ADD COLUMN admin_public_keys_json TEXT;",
+        "ALTER TABLE server_config ADD COLUMN meta_signature TEXT;",
+        "ALTER TABLE server_config ADD COLUMN signed_by_public_key TEXT;",
+        "ALTER TABLE server_config ADD COLUMN room_secret_migration_json TEXT;",
+        "ALTER TABLE server_config ADD COLUMN enforce_v2_encryption INTEGER NOT NULL DEFAULT 0;",
+        "ALTER TABLE server_config ADD COLUMN current_key_epoch INTEGER NOT NULL DEFAULT 1;",
+        "ALTER TABLE server_config ADD COLUMN last_key_rotation_at INTEGER;",
+        "ALTER TABLE server_config ADD COLUMN last_key_rotation_by TEXT;",
+        "ALTER TABLE server_config ADD COLUMN active_invite_json TEXT;",
+      ];
+      for (const stmt of safeAlterStatements) {
+        try {
+          db.exec(stmt);
+        } catch (_) {}
+      }
     }
     return db;
   }

@@ -286,6 +286,10 @@ class VoiceService {
 
   _recalculateLocalSfuScore() {
     if (!this.localVoice) return;
+    if (Boolean(this.p2p?.profile?.general?.alwaysRelayVoice)) {
+      this.localVoice.sfuScore = -1000000;
+      return;
+    }
     const cpuCount = os.cpus()?.length || 2;
     const totalRamGb = Math.round(os.totalmem() / (1024 * 1024 * 1024)) || 8;
     const hwScore = (cpuCount * 2) + totalRamGb;
@@ -381,6 +385,21 @@ class VoiceService {
   }
 
   handleSfuHostClaim(fromPeerId, payload) {
+    if (!this.localVoice?.channelId) {
+      console.warn(`[SFU Service] Rechazado sfu-host-claim de ${fromPeerId}: no estamos en un canal de voz.`);
+      return false;
+    }
+    const peer = this.p2p.peers.get(fromPeerId);
+    if (!peer || peer.voiceState?.channelId !== this.localVoice.channelId) {
+      console.warn(`[SFU Service] Rechazado sfu-host-claim de ${fromPeerId}: no pertenece al canal de voz activo (${this.localVoice.channelId}).`);
+      return false;
+    }
+    const activeRoom = this.localVoice.roomCode ? String(this.localVoice.roomCode).trim().toUpperCase() : null;
+    if (activeRoom && !this.p2p.peerRooms.get(fromPeerId)?.has(activeRoom)) {
+      console.warn(`[SFU Service] Rechazado sfu-host-claim de ${fromPeerId}: el peer no pertenece a la sala ${activeRoom}.`);
+      return false;
+    }
+
     console.log(`\n👑 [SFU Service] El peer ${fromPeerId} reclama ser el Servidor Central de Voz.`);
     this.currentSfuHostId = fromPeerId;
     this.networkTopology = "sfu";
@@ -388,6 +407,7 @@ class VoiceService {
       newHostId: fromPeerId,
       topology: "sfu",
     });
+    return true;
   }
 
   handlePing(fromPeerId, payload) {

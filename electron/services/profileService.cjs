@@ -254,6 +254,7 @@ class ProfileService {
           autoDownloadMaxSizeMB: 500,
           downloadDirectory: "",
           blurNsfwContent: true,
+          alwaysRelayVoice: false,
         },
         keybindings: normalizeKeybindings(settingsMap.keybindings || []),
         serverFolders,
@@ -586,6 +587,9 @@ class ProfileService {
         blurNsfwContent: profile.general?.blurNsfwContent !== undefined
           ? Boolean(profile.general.blurNsfwContent)
           : (existing?.general?.blurNsfwContent ?? true),
+        alwaysRelayVoice: profile.general?.alwaysRelayVoice !== undefined
+          ? Boolean(profile.general.alwaysRelayVoice)
+          : (existing?.general?.alwaysRelayVoice ?? false),
       },
 
       keybindings: normalizeKeybindings(
@@ -646,7 +650,8 @@ class ProfileService {
     if (typeof global.updateGlobalShortcuts === "function") {
       global.updateGlobalShortcuts(saved.keybindings);
     }
-    global.mainWindow?.webContents.send("profile:updated", saved);
+    const updatedPayload = profile?._isAutoAfk ? { ...saved, _isAutoAfk: true } : saved;
+    global.mainWindow?.webContents.send("profile:updated", updatedPayload);
     global.updateTrayMenu?.();
     return saved;
   }

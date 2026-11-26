@@ -62,7 +62,9 @@ function registerChatHandlers() {
 
     return history.map((msg) => ({
       ...msg,
-      text: cryptoService.decrypt(code, msg.text),
+      text: global.roomManager?.decryptChannelText
+        ? global.roomManager.decryptChannelText(code, msg.channelId || channelId || "general", msg.text)
+        : cryptoService.decrypt(code, msg.text),
     }));
   });
 
@@ -70,7 +72,9 @@ function registerChatHandlers() {
     await ensureActiveRoom(roomCode);
     if (!global.roomManager || !global.roomManager.roomCode) throw new Error("No active room found");
     const code = roomCode || global.roomManager.roomCode;
-    const encryptedText = cryptoService.encrypt(code, text);
+    const encryptedText = global.roomManager.encryptChannelText
+      ? global.roomManager.encryptChannelText(code, channelId, text)
+      : cryptoService.encrypt(code, text);
     const sentMsg = await global.roomManager.sendChatMessage(channelId, encryptedText, code);
     try {
       suggestionService.recordOutgoingMessage({
@@ -89,7 +93,9 @@ function registerChatHandlers() {
     await ensureActiveRoom(roomCode);
     if (!global.roomManager || !global.roomManager.roomCode) throw new Error("No active room found");
     const code = roomCode || global.roomManager.roomCode;
-    const encryptedText = cryptoService.encrypt(code, text);
+    const encryptedText = global.roomManager.encryptChannelText
+      ? global.roomManager.encryptChannelText(code, channelId, text)
+      : cryptoService.encrypt(code, text);
     return await global.roomManager.chatService.sendPluginCommand(channelId, encryptedText, code);
   });
 

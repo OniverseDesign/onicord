@@ -1,12 +1,20 @@
 const { app, ipcMain } = require("electron");
 const net = require("net");
+const crypto = require("crypto");
+const b4a = require("b4a");
+const Hyperswarm = require("hyperswarm");
+const SecretStream = require("@hyperswarm/secret-stream");
 const { RoomManager } = require("../../p2p/roomManager.cjs");
+const { encodeMessage, decodeMessages, safeWriteSocket } = require("../../network/p2pService.cjs");
+const profileService = require("../../services/profileService.cjs");
 const serverService = require("../../services/serverService.cjs");
 const discordImportService = require("../../services/discordImportService.cjs");
 const cryptoService = require("../../services/cryptoService.cjs");
+const peerTrustService = require("../../services/peerTrustService.cjs");
 const ytdlpService = require("../../services/ytdlpService.cjs");
 const { RoomMetaStore } = require("../../p2p/roomMetaStore.cjs");
 const { ServerStore } = require("../../p2p/serverStore.cjs");
+const { DbManager } = require("../../storage/dbManager.cjs");
 const discoverService = require("../../services/discoverService.cjs");
 
 const MAX_HEADLESS_UNREADS = 5000;
@@ -53,10 +61,13 @@ function createRoomManager() {
     onChatMessage: (message) => {
       const msgRoomCode = message?.roomCode || global.roomManager?.roomCode;
       if (message && msgRoomCode) {
+        const decryptedText = global.roomManager?.decryptChannelText
+          ? global.roomManager.decryptChannelText(msgRoomCode, message.channelId, message.text)
+          : cryptoService.decrypt(msgRoomCode, message.text);
         const decryptedMsg = {
           ...message,
           roomCode: msgRoomCode,
-          text: cryptoService.decrypt(msgRoomCode, message.text),
+          text: decryptedText,
         };
         if (global.mainWindow && !global.mainWindow.isDestroyed()) {
           global.mainWindow.webContents.send("chat:message", decryptedMsg);
@@ -88,9 +99,10 @@ function createRoomManager() {
         };
         global.mainWindow?.webContents.send("server:updated", enrichedServer);
 
-        // Invalidate moderation cache
+        // Invalidate moderation cache & sync invite DHT listener
         const normalizedCode = String(roomCode || "").trim().toUpperCase();
         if (global.roomManager) {
+          global.roomManager._syncRoomInviteListener?.(normalizedCode, meta);
           const roomEntry = global.roomManager.rooms?.get(normalizedCode);
           if (roomEntry) {
             roomEntry.moderationCache = {
@@ -147,6 +159,9 @@ function createRoomManager() {
     onPeerUpdated: (peer) => {
       global.mainWindow?.webContents.send("peer:updated", peer);
     },
+    onDiagConsentRequest: (reqData) => {
+      global.mainWindow?.webContents.send("diagnostics:consent-request", reqData);
+    },
     onVoiceSignal: (data) => {
       global.mainWindow?.webContents.send("voice:signal", data);
     },
@@ -170,7 +185,122 @@ function registerP2PServerHandlers() {
     return code;
   });
 
-  ipcMain.handle("deeplink:resolve-invite", async (event, roomCode, profile) => {
+  async function redeemOrPreviewTemporaryInvite(
+    roomCode,
+    inviteSecret,
+    profile,
+    mode = "redeem",
+    timeoutMs = 15000
+  ) {
+    const code = String(roomCode || "").trim().toUpperCase();
+    if (!/^[A-F0-9]{8}$/.test(code) || !cryptoService.isValidRoomSecret(inviteSecret)) {
+      return { ok: false, reason: "INVALID" };
+    }
+
+    const cleanInviteSecret = inviteSecret.trim();
+    const requestId = crypto.randomUUID();
+    const inviteSecretHash = cryptoService.hashInviteSecret(cleanInviteSecret);
+    const reqPayload = {
+      requestId,
+      roomCode: code,
+      inviteSecretHash,
+      mode: mode === "preview" ? "preview" : "redeem",
+      applicant: {
+        id: profile?.id || null,
+        nickname: profile?.nickname || "Usuario",
+      },
+    };
+
+    return await new Promise((resolve) => {
+      let settled = false;
+      let tempSwarm = null;
+      let fallbackTimer = null;
+      let invalidGraceTimer = null;
+      const buffers = new WeakMap();
+
+      const finish = async (result) => {
+        if (settled) return;
+        settled = true;
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        if (invalidGraceTimer) clearTimeout(invalidGraceTimer);
+        global.roomManager?.unregisterInviteRedeemWaiter?.(requestId);
+        if (tempSwarm) {
+          try {
+            await tempSwarm.destroy();
+          } catch {}
+          tempSwarm = null;
+        }
+        resolve(result);
+      };
+
+      const handleRes = (res) => {
+        if (settled || !res || res.requestId !== requestId) return;
+        if (res.ok) {
+          if (reqPayload.mode === "redeem" && !cryptoService.isValidRoomSecret(res.roomRoutingSecret)) {
+            return;
+          }
+          finish(res);
+          return;
+        }
+        if (res.reason === "EXPIRED" || res.reason === "REVOKED" || res.reason === "BANNED") {
+          finish(res);
+          return;
+        }
+        // Grace period for "INVALID" in case another peer already has the freshly synced activeInvite
+        if (!invalidGraceTimer) {
+          invalidGraceTimer = setTimeout(() => {
+            finish(res);
+          }, 2500);
+          if (typeof invalidGraceTimer.unref === "function") invalidGraceTimer.unref();
+        }
+      };
+
+      fallbackTimer = setTimeout(() => {
+        finish({ ok: false, reason: "NO_PEERS_ONLINE" });
+      }, timeoutMs);
+      if (typeof fallbackTimer.unref === "function") fallbackTimer.unref();
+
+      // 1. Check already-connected peers on active RoomManager (handles same-DHT peers fast)
+      if (global.roomManager?.p2pService?.peers?.size > 0) {
+        global.roomManager.registerInviteRedeemWaiter?.(requestId, handleRes);
+        const line = encodeMessage("invite-redeem-req", reqPayload);
+        for (const peerObj of global.roomManager.p2pService.peers.values()) {
+          if (peerObj?.socket && !peerObj.socket.destroyed) {
+            safeWriteSocket(peerObj.socket, line);
+          }
+        }
+      }
+
+      // 2. Spin up an ephemeral Hyperswarm on the invite's DHT topic
+      try {
+        tempSwarm = new Hyperswarm({ maxPeers: 16 });
+        const topic = cryptoService.topicFromInviteSecret(code, cleanInviteSecret);
+        tempSwarm.on("connection", (socket) => {
+          buffers.set(socket, "");
+          safeWriteSocket(socket, encodeMessage("invite-redeem-req", reqPayload));
+          socket.on("data", (chunk) => {
+            if (settled) return;
+            const combined = (buffers.get(socket) || "") + chunk.toString("utf8");
+            const { messages, remaining } = decodeMessages(combined);
+            buffers.set(socket, remaining);
+            for (const msg of messages) {
+              if (msg?.type === "invite-redeem-res" && msg.payload) {
+                handleRes(msg.payload);
+              }
+            }
+          });
+          socket.on("error", () => {});
+        });
+        tempSwarm.join(topic, { server: false, client: true });
+      } catch (err) {
+        if (!settled) {
+          finish({ ok: false, reason: "NO_PEERS_ONLINE", error: err.message });
+        }
+      }
+    });
+  }
+
+  ipcMain.handle("deeplink:resolve-invite", async (event, roomCode, profile, inviteSecret = null) => {
     const normalized = String(roomCode).trim().toUpperCase();
 
     const roomMetaStore = global.roomManager?.roomMetaStore || new RoomMetaStore(app.getPath("userData"));
@@ -189,7 +319,33 @@ function registerP2PServerHandlers() {
       icon: localServer?.icon || localMeta?.icon || discovered?.icon || null,
       memberCount: Math.max(savedMembersList.length, discovered?.memberCount || 0, isLocalMember ? 1 : 0),
       onlineCount: activePeersInRoom.length + (isLocalMember ? 1 : 0),
+      expiresAt: localMeta?.activeInvite?.expiresAt || null,
     };
+
+    if (inviteSecret && cryptoService.isValidRoomSecret(inviteSecret)) {
+      if (!isLocalMember) {
+        (async () => {
+          const previewRes = await redeemOrPreviewTemporaryInvite(normalized, inviteSecret, profile, "preview", 15000);
+          if (previewRes?.ok) {
+            event.sender.send("invite:details-updated", {
+              roomCode: normalized,
+              name: previewRes.name || initialDetails.name,
+              icon: previewRes.icon !== undefined ? previewRes.icon : initialDetails.icon,
+              memberCount: previewRes.memberCount || initialDetails.memberCount,
+              onlineCount: previewRes.onlineCount || 1,
+              expiresAt: previewRes.expiresAt || null,
+              errorReason: null,
+            });
+          } else {
+            event.sender.send("invite:details-updated", {
+              roomCode: normalized,
+              errorReason: previewRes?.reason || "NO_PEERS_ONLINE",
+            });
+          }
+        })();
+      }
+      return initialDetails;
+    }
 
     // If main RoomManager is active, ask connected peers over the existing P2P/Discovery mesh instead of spawning a second Hyperswarm instance
     if (global.roomManager?.p2pService) {
@@ -334,8 +490,51 @@ function registerP2PServerHandlers() {
     return res;
   });
 
-  ipcMain.handle("servers:join", async (_event, code, name, profile) => {
-    return serverService.joinServer(code, name, profile);
+  ipcMain.handle("servers:join", async (_event, code, name, profile, roomSecret, keyData = null) => {
+    return serverService.joinServer(code, name, profile, roomSecret, keyData);
+  });
+
+  ipcMain.handle("servers:generate-invite", async (_event, roomCode, durationKey = "24h") => {
+    if (!global.roomManager) {
+      throw new Error("NO_ACTIVE_ROOM_MANAGER");
+    }
+    return global.roomManager.generateActiveInvite(roomCode, durationKey, profileService.activeProfile);
+  });
+
+  ipcMain.handle("servers:revoke-invite", async (_event, roomCode) => {
+    if (!global.roomManager) {
+      throw new Error("NO_ACTIVE_ROOM_MANAGER");
+    }
+    return global.roomManager.revokeActiveInvite(roomCode, profileService.activeProfile);
+  });
+
+  ipcMain.handle("servers:rotate-key", async (_event, roomCode) => {
+    if (!global.roomManager) {
+      throw new Error("NO_ACTIVE_ROOM_MANAGER");
+    }
+    return global.roomManager.rotateRoomKey(roomCode, {
+      reason: "manual",
+      actorId: profileService.activeProfile?.id || global.roomManager?.profile?.id || null,
+    });
+  });
+
+  ipcMain.handle("servers:redeem-invite", async (_event, roomCode, inviteSecret, profile) => {
+    const res = await redeemOrPreviewTemporaryInvite(roomCode, inviteSecret, profile, "redeem", 20000);
+    if (!res?.ok) {
+      return { ok: false, reason: res?.reason || "INVALID" };
+    }
+    const server = await serverService.joinServer(
+      res.roomCode || roomCode,
+      res.name || "",
+      profile,
+      res.roomRoutingSecret,
+      {
+        currentKeyEpoch: res.currentKeyEpoch || 1,
+        keyRing: res.keyRing || null,
+        keyEnvelopes: res.keyEnvelopes || null,
+      }
+    );
+    return { ok: true, server };
   });
 
   ipcMain.handle("servers:list", async () => {
@@ -421,9 +620,9 @@ function registerP2PServerHandlers() {
     return serverService.setLastActive(serverId);
   });
 
-  ipcMain.handle("room:state", async () => {
+  ipcMain.handle("room:state", async (_event, roomCode = null) => {
     if (!global.roomManager) return null;
-    return await global.roomManager.getState();
+    return await global.roomManager.getState(roomCode);
   });
 
   // Voice WebRTC IPC
@@ -517,6 +716,108 @@ function registerP2PServerHandlers() {
 
   ipcMain.handle("discover:reject-knock", async (_event, roomCode, applicant) => {
     return discoverService.rejectKnock(roomCode, applicant);
+  });
+
+  // === Security & Identity Verification Handlers ===
+  const getOrDeriveLocalPublicKeyHex = () => {
+    const activeId = global.roomManager?.p2pService?._resolveLocalPeerId();
+    if (activeId) return activeId;
+    try {
+      const db = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
+      const row = db.prepare("SELECT value_json FROM app_settings WHERE key = ?").get("p2p_node_seed");
+      let seedBuf = null;
+      if (row && row.value_json) {
+        const parsed = JSON.parse(row.value_json);
+        if (parsed?.seedHex) {
+          seedBuf = Buffer.from(parsed.seedHex, "hex");
+        }
+      }
+      if (!seedBuf) {
+        seedBuf = crypto.randomBytes(32);
+        db.prepare("INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)").run(
+          "p2p_node_seed",
+          JSON.stringify({ seedHex: seedBuf.toString("hex") }),
+          Date.now()
+        );
+      }
+      const kp = SecretStream.keyPair(seedBuf);
+      return b4a.toString(kp.publicKey, "hex");
+    } catch (err) {
+      console.warn("[Security IPC] Could not derive local public key:", err.message);
+      return null;
+    }
+  };
+
+  ipcMain.handle("security:get-local-identity", async () => {
+    const publicKeyHex = getOrDeriveLocalPublicKeyHex();
+    return {
+      publicKeyHex,
+      fingerprint: publicKeyHex ? cryptoService.computeIdentityFingerprint(publicKeyHex) : null,
+    };
+  });
+
+  ipcMain.handle("security:get-peer-verification", async (_event, { userId, peerId } = {}) => {
+    const localPublicKey = getOrDeriveLocalPublicKeyHex();
+    const userDataPath = app.getPath("userData");
+    const peersMap = global.roomManager?.p2pService?.peers;
+
+    let resolvedPeerId = peerId || null;
+    if (!resolvedPeerId && userId && global.roomManager?.getPeerIdByUserId) {
+      resolvedPeerId = global.roomManager.getPeerIdByUserId(userId);
+    }
+
+    const livePeer = resolvedPeerId && peersMap ? peersMap.get(resolvedPeerId) : null;
+    const transportAuth = livePeer ? (livePeer.transportAuth || "noise-hyperswarm") : "offline";
+    const protocolVersion = livePeer ? (livePeer.protocolVersion || 1) : null;
+    const supportsDmE2ee = livePeer ? (protocolVersion >= 2) : null;
+
+    const info = peerTrustService.getPeerVerification(userDataPath, {
+      userId,
+      peerPublicKey: resolvedPeerId,
+      localPublicKey,
+      transportAuth,
+    });
+    return {
+      ...info,
+      protocolVersion,
+      supportsDmE2ee,
+    };
+  });
+
+  ipcMain.handle("security:set-peer-verified", async (_event, { userId, peerPublicKey, verified } = {}) => {
+    const userDataPath = app.getPath("userData");
+    const res = peerTrustService.setPeerVerified(userDataPath, userId, peerPublicKey, Boolean(verified));
+    if (!res.ok) return res;
+
+    const localPublicKey = getOrDeriveLocalPublicKeyHex();
+    const peersMap = global.roomManager?.p2pService?.peers;
+    let resolvedPeerId = peerPublicKey || null;
+    if (!resolvedPeerId && userId && global.roomManager?.getPeerIdByUserId) {
+      resolvedPeerId = global.roomManager.getPeerIdByUserId(userId);
+    }
+
+    const livePeer = resolvedPeerId && peersMap ? peersMap.get(resolvedPeerId) : null;
+    const transportAuth = livePeer ? (livePeer.transportAuth || "noise-hyperswarm") : "offline";
+
+    if (livePeer && global.roomManager) {
+      livePeer.verificationStatus = peerTrustService.getVerificationStatusQuick(
+        userDataPath,
+        userId,
+        resolvedPeerId,
+        transportAuth
+      );
+      global.roomManager._emitPeerProfile(resolvedPeerId);
+    }
+
+    return {
+      ...res,
+      verification: peerTrustService.getPeerVerification(userDataPath, {
+        userId,
+        peerPublicKey: resolvedPeerId,
+        localPublicKey,
+        transportAuth,
+      }),
+    };
   });
 }
 

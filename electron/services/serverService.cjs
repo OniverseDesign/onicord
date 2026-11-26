@@ -12,6 +12,38 @@ class ServerService {
     return new ServerStore(app.getPath("userData"));
   }
 
+  _getLocalKeyPair() {
+    if (global.roomManager?.p2pService?.swarm?.keyPair) {
+      return global.roomManager.p2pService.swarm.keyPair;
+    }
+    try {
+      const SecretStream = require("@hyperswarm/secret-stream");
+      const { DbManager } = require("../storage/dbManager.cjs");
+      const userDataPath = app?.getPath?.("userData");
+      if (!userDataPath) return null;
+      const db = DbManager.getInstance(userDataPath).getGlobalDb("app_config");
+      const row = db.prepare("SELECT value_json FROM app_settings WHERE key = ?").get("p2p_node_seed");
+      let seedBuf = null;
+      if (row && row.value_json) {
+        const parsed = JSON.parse(row.value_json);
+        if (parsed?.seedHex) {
+          seedBuf = Buffer.from(parsed.seedHex, "hex");
+        }
+      }
+      if (!seedBuf) {
+        seedBuf = crypto.randomBytes(32);
+        db.prepare("INSERT OR REPLACE INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)").run(
+          "p2p_node_seed",
+          JSON.stringify({ seedHex: seedBuf.toString("hex") }),
+          Date.now()
+        );
+      }
+      return SecretStream.keyPair(seedBuf);
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Joins an active P2P server room, initializes local user profile state,
    * establishes network connections via RoomManager, and touches last active timestamp.
@@ -108,6 +140,21 @@ class ServerService {
     await profileService.saveProfileToDisk(profile);
 
     const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const roomSecret = crypto.randomBytes(32).toString("base64url");
+    const kp = this._getLocalKeyPair();
+    const ownerPublicKey = kp?.publicKey ? Buffer.from(kp.publicKey).toString("hex").toLowerCase() : null;
+    let roomSecretMigration = null;
+    if (kp?.secretKey && ownerPublicKey) {
+      const cryptoService = require("./cryptoService.cjs");
+      const migratedAt = Date.now();
+      roomSecretMigration = {
+        roomCode: code,
+        roomSecret,
+        migratedAt,
+        signedByPublicKey: ownerPublicKey,
+        signature: cryptoService.signPayload({ roomCode: code, roomSecret, migratedAt }, kp.secretKey),
+      };
+    }
 
     const server = await this.getServerStore().add({
       name: name || "My Server",
@@ -117,13 +164,50 @@ class ServerService {
       creatorId: profile.id,
       creatorID: profile.id,
       icon: icon || null,
+      roomSecret,
+      currentKeyEpoch: 1,
+      keyRing: { "1": roomSecret },
+      keyEnvelopes: [],
     });
+
+    const { buildSignableActiveInvite } = require("../p2p/roomMetaStore.cjs");
+    const inviteNow = Date.now();
+    const initialInvite = {
+      inviteId: crypto.randomUUID(),
+      inviteSecret: crypto.randomBytes(32).toString("base64url"),
+      createdAt: inviteNow,
+      expiresAt: inviteNow + 24 * 60 * 60 * 1000,
+      createdBy: profile.id,
+      createdByNickname: profile.nickname || "Owner",
+      revoked: false,
+      revokedAt: null,
+      signedByPublicKey: ownerPublicKey,
+    };
+    if (kp?.secretKey && ownerPublicKey) {
+      const cryptoService = require("./cryptoService.cjs");
+      initialInvite.signature = cryptoService.signPayload(buildSignableActiveInvite(code, initialInvite), kp.secretKey);
+    }
 
     const roomMetaStore = new RoomMetaStore(app.getPath("userData"));
     await roomMetaStore.bump(
       code,
-      { name: server.name, icon: server.icon || icon || null, channels: server.channels, ownerId: profile.id, creatorId: profile.id, creatorID: profile.id },
-      "local"
+      {
+        name: server.name,
+        icon: server.icon || icon || null,
+        channels: server.channels,
+        ownerId: profile.id,
+        creatorId: profile.id,
+        creatorID: profile.id,
+        ownerPublicKey,
+        adminPublicKeys: {},
+        roomSecretMigration,
+        currentKeyEpoch: 1,
+        lastKeyRotationAt: null,
+        lastKeyRotationBy: null,
+        activeInvite: initialInvite,
+      },
+      "local",
+      kp
     );
 
     return server;
@@ -144,6 +228,22 @@ class ServerService {
 
     const payload = discordImportService.buildServerImportPayload(importData);
     const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const roomSecret = crypto.randomBytes(32).toString("base64url");
+    const kp = this._getLocalKeyPair();
+    const ownerPublicKey = kp?.publicKey ? Buffer.from(kp.publicKey).toString("hex").toLowerCase() : null;
+    let roomSecretMigration = null;
+    if (kp?.secretKey && ownerPublicKey) {
+      const cryptoService = require("./cryptoService.cjs");
+      const migratedAt = Date.now();
+      roomSecretMigration = {
+        roomCode: code,
+        roomSecret,
+        migratedAt,
+        signedByPublicKey: ownerPublicKey,
+        signature: cryptoService.signPayload({ roomCode: code, roomSecret, migratedAt }, kp.secretKey),
+      };
+    }
+
     const store = this.getServerStore();
     const ownerId = profile?.id || null;
 
@@ -155,7 +255,29 @@ class ServerService {
       creatorId: ownerId,
       creatorID: ownerId,
       icon: payload.icon || null,
+      roomSecret,
+      currentKeyEpoch: 1,
+      keyRing: { "1": roomSecret },
+      keyEnvelopes: [],
     });
+
+    const { buildSignableActiveInvite } = require("../p2p/roomMetaStore.cjs");
+    const inviteNow = Date.now();
+    const initialInvite = {
+      inviteId: crypto.randomUUID(),
+      inviteSecret: crypto.randomBytes(32).toString("base64url"),
+      createdAt: inviteNow,
+      expiresAt: inviteNow + 24 * 60 * 60 * 1000,
+      createdBy: ownerId,
+      createdByNickname: profile?.nickname || "Owner",
+      revoked: false,
+      revokedAt: null,
+      signedByPublicKey: ownerPublicKey,
+    };
+    if (kp?.secretKey && ownerPublicKey) {
+      const cryptoService = require("./cryptoService.cjs");
+      initialInvite.signature = cryptoService.signPayload(buildSignableActiveInvite(code, initialInvite), kp.secretKey);
+    }
 
     const roomMetaStore = new RoomMetaStore(app.getPath("userData"));
     await roomMetaStore.bump(
@@ -170,8 +292,16 @@ class ServerService {
         ownerId,
         creatorId: ownerId,
         creatorID: ownerId,
+        ownerPublicKey,
+        adminPublicKeys: {},
+        roomSecretMigration,
+        currentKeyEpoch: 1,
+        lastKeyRotationAt: null,
+        lastKeyRotationBy: null,
+        activeInvite: initialInvite,
       },
-      "local"
+      "local",
+      kp
     );
 
     const firstTextOrForum =
@@ -291,11 +421,19 @@ class ServerService {
     return await store.remove(server?.id || serverId);
   }
 
-  async joinServer(code, name, profile) {
+  async joinServer(code, name, profile, explicitRoomSecret = null, keyData = null) {
     const profileService = require("./profileService.cjs");
     await profileService.saveProfileToDisk(profile);
 
-    const normalized = String(code).trim().toUpperCase();
+    const rawStr = String(code || "").trim();
+    const hashIdx = rawStr.indexOf("#");
+    const rawCode = hashIdx >= 0 ? rawStr.slice(0, hashIdx) : rawStr;
+    let rawSecretFromCode = hashIdx >= 0 ? rawStr.slice(hashIdx + 1).trim() : null;
+    if (rawSecretFromCode && rawSecretFromCode.startsWith("I:")) {
+      rawSecretFromCode = null;
+    }
+
+    const normalized = rawCode.trim().toUpperCase();
     if (!/^[A-F0-9]{8}$/.test(normalized))
       throw new Error("Código de invitación inválido");
 
@@ -305,12 +443,23 @@ class ServerService {
       discovered = discoverService.discoveredServers?.get(normalized);
     } catch (_) {}
 
+    const cryptoService = require("./cryptoService.cjs");
+    const candidateSecret = explicitRoomSecret || rawSecretFromCode || discovered?.roomSecret || null;
+    const roomSecret =
+      candidateSecret && cryptoService.isValidRoomSecret(candidateSecret)
+        ? candidateSecret.trim()
+        : null;
+
     return await this.getServerStore().add({
       name: name || discovered?.name || `Servidor ${normalized}`,
       roomCode: normalized,
       isOwner: false,
       icon: discovered?.icon || null,
       banner: discovered?.banner || null,
+      roomSecret,
+      currentKeyEpoch: keyData?.currentKeyEpoch || null,
+      keyRing: keyData?.keyRing || null,
+      keyEnvelopes: keyData?.keyEnvelopes || null,
     });
   }
 
@@ -337,11 +486,28 @@ class ServerService {
 
     const auditLogs = [];
     if (before && roomManager?.profile) {
-      const profile = roomManager.profile;
+      const profileService = require("./profileService.cjs");
+      const baseProfile =
+        profileService.activeProfile?.id === roomManager.profile.id
+          ? profileService.activeProfile
+          : roomManager.profile;
+      const effectiveProfile =
+        profileService.getEffectiveProfile(baseProfile, targetServerRoomCode) || baseProfile;
+      const savedSelf =
+        preloadedMeta?.savedMembers?.[baseProfile.id] ||
+        before.savedMembers?.[baseProfile.id];
       const editorInfo = {
-        userId: profile.id,
-        nickname: profile.nickname || "Usuario",
-        avatar: profile.avatar || null,
+        userId: baseProfile.id,
+        nickname:
+          effectiveProfile?.nickname ||
+          savedSelf?.nickname ||
+          baseProfile.nickname ||
+          "Usuario",
+        avatar:
+          effectiveProfile?.avatar ??
+          savedSelf?.avatar ??
+          baseProfile.avatar ??
+          null,
       };
 
       const log = (action, target, details) => {
@@ -373,6 +539,7 @@ class ServerService {
         return newChannels.get(id)?.name || oldChannels.get(id)?.name || id;
       };
       const getMemberNameById = (uId) => {
+        if (uId === baseProfile.id) return editorInfo.nickname;
         return oldMembers.get(uId)?.nickname || uId;
       };
 
@@ -688,10 +855,14 @@ class ServerService {
 
       // Detect newly banned or kicked users BEFORE publishing metadata
       const newlyPenalizedIds = new Set();
+      const newlyBannedIds = [];
       if (Array.isArray(data.bannedUsers)) {
         const beforeBanned = Array.isArray(before?.bannedUsers) ? before.bannedUsers : [];
         for (const id of data.bannedUsers) {
-          if (!beforeBanned.includes(id)) newlyPenalizedIds.add(id);
+          if (!beforeBanned.includes(id)) {
+            newlyPenalizedIds.add(id);
+            newlyBannedIds.push(id);
+          }
         }
       }
       if (data.kickedUsers) {
@@ -737,11 +908,26 @@ class ServerService {
               console.log(`[ServerService Moderation] Evicting peer ${targetPeerId} (userId: ${penalizedId}) from ${normalizedTargetRoom} due to ${isBanned ? "ban" : "kick"}`);
               try {
                 const { safeWriteSocket, encodeMessage } = require("../network/p2pService.cjs");
-                safeWriteSocket(peer.socket, encodeMessage("evict", {
-                  type: isBanned ? "banned" : "kicked",
+                const cryptoService = require("./cryptoService.cjs");
+                const kp = this._getLocalKeyPair();
+                const evictTs = Date.now();
+                const evictType = isBanned ? "banned" : "kicked";
+                const evictPayload = {
+                  type: evictType,
                   roomCode: normalizedTargetRoom,
                   name: updated.name,
-                }));
+                  targetUserId: penalizedId,
+                  timestamp: evictTs,
+                };
+                if (kp?.secretKey && kp?.publicKey) {
+                  const pubHex = Buffer.from(kp.publicKey).toString("hex").toLowerCase();
+                  evictPayload.signedByPublicKey = pubHex;
+                  evictPayload.signature = cryptoService.signPayload(
+                    { type: evictType, roomCode: normalizedTargetRoom, targetUserId: penalizedId, timestamp: evictTs },
+                    kp.secretKey
+                  );
+                }
+                safeWriteSocket(peer.socket, encodeMessage("evict", evictPayload));
               } catch (e) {
                 console.error("[ServerService Moderation] Error sending evict socket message:", e);
               }
@@ -784,6 +970,39 @@ class ServerService {
         }
       }
 
+      let updatedAdminKeys = { ...(latestMetaSnapshot?.adminPublicKeys || {}) };
+      if (data.userRoles || data.roles) {
+        try {
+          const peersMap = roomManager?.p2pService?.peers;
+          const peerTrustService = require("./peerTrustService.cjs");
+          const userDataDir = app?.getPath?.("userData");
+          const targetRolesList = Array.isArray(updated.roles) ? updated.roles : [];
+          const targetUserRoles = updated.userRoles || {};
+          const nextAdmins = {};
+          for (const [uId, rList] of Object.entries(targetUserRoles)) {
+            const arr = Array.isArray(rList) ? rList : [rList];
+            const hasAdmin = arr.some((rid) => targetRolesList.find((r) => r.id === rid)?.permissions?.admin === true);
+            if (!hasAdmin) continue;
+            if (updatedAdminKeys[uId]) {
+              nextAdmins[uId] = updatedAdminKeys[uId];
+              continue;
+            }
+            let foundKey = null;
+            if (peersMap) {
+              for (const [pId, pObj] of peersMap.entries()) {
+                if (pObj.userId === uId) { foundKey = pId; break; }
+              }
+            }
+            if (!foundKey && userDataDir) {
+              const info = peerTrustService.getPeerVerification(userDataDir, { userId: uId });
+              if (info?.peerPublicKey) foundKey = info.peerPublicKey;
+            }
+            if (foundKey) nextAdmins[uId] = String(foundKey).toLowerCase();
+          }
+          updatedAdminKeys = nextAdmins;
+        } catch {}
+      }
+
       const metaPayload = {
         name: updated.name,
         icon: updated.icon,
@@ -791,6 +1010,8 @@ class ServerService {
         channels: updated.channels,
         roles: updated.roles || [],
         userRoles: updated.userRoles || {},
+        adminPublicKeys: updatedAdminKeys,
+        enforceV2Encryption: Boolean(updated.enforceV2Encryption),
         plugins: updated.plugins || [],
         iceServers: updated.iceServers || [],
         bannedUsers: updated.bannedUsers || [],
@@ -837,13 +1058,28 @@ class ServerService {
         latestMetaSnapshot = await metaStore.bump(targetServerRoomCode, metaPayload, "local").catch(() => latestMetaSnapshot);
       }
 
+      // Automatic room encryption key rotation when one or more users are banned
+      if (newlyBannedIds.length > 0 && roomManager?.rotateRoomKey) {
+        try {
+          await roomManager.rotateRoomKey(String(targetServerRoomCode).trim().toUpperCase(), {
+            reason: "user_banned",
+            actorId: roomManager.profile?.id || null,
+          });
+          latestMetaSnapshot = await metaStore.load(targetServerRoomCode).catch(() => latestMetaSnapshot);
+        } catch (rotErr) {
+          console.warn("[ServerService] Auto key rotation after ban skipped:", rotErr.message);
+        }
+      }
+
+      const freshServer = (await store.get(serverId)) || updated;
+
       try {
         const discoverService = require("./discoverService.cjs");
         discoverService.syncAndAnnounceLocalServers().catch(() => {});
       } catch (_) {}
 
       return {
-        ...updated,
+        ...freshServer,
         savedMembers: cleanedSavedMembers || latestMetaSnapshot?.savedMembers || {},
         auditLog: mergedAuditLog,
       };

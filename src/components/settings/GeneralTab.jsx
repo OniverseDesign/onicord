@@ -242,15 +242,15 @@ export default function GeneralTab({ general, setGeneral }) {
       } catch {}
     }
 
-    if (key === "enableOpenGraph") {
+    if (key === "enableOpenGraph" || key === "alwaysRelayVoice") {
       try {
         const raw = localStorage.getItem("onicord_general_settings");
         const parsed = raw ? JSON.parse(raw) : {};
-        parsed.enableOpenGraph = value;
+        parsed[key] = value;
         localStorage.setItem("onicord_general_settings", JSON.stringify(parsed));
         window.dispatchEvent(
           new CustomEvent("onicord:general-settings-updated", {
-            detail: { enableOpenGraph: value },
+            detail: { [key]: value },
           })
         );
       } catch {}
@@ -521,6 +521,35 @@ export default function GeneralTab({ general, setGeneral }) {
                     ...(prev || {}),
                     blurNsfwContent: e.target.checked,
                   }))
+                }
+                className="sr-only peer"
+              />
+              <div className="onicord-toggle-slider" />
+            </label>
+          </div>
+
+          {/* Always Relay (TURN-only WebRTC calls) */}
+          <div data-setting-id="alwaysRelayVoice" className="onicord-settings-row transition-all">
+            <div className="min-w-0 pr-4">
+              <p className="onicord-settings-row-title">
+                {t(
+                  "settings.general.alwaysRelayVoiceTitle",
+                  "Forzar Relay TURN en llamadas (Always Relay)",
+                )}
+              </p>
+              <p className="onicord-settings-row-desc">
+                {t(
+                  "settings.general.alwaysRelayVoiceDesc",
+                  "Enruta el audio y video de WebRTC exclusivamente por servidores TURN para ocultar tu IP en llamadas a cambio de mayor latencia. El chat P2P (Hyperswarm) sigue siendo directo; para ocultar tu IP por completo usa una VPN.",
+                )}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none shrink-0">
+              <input
+                type="checkbox"
+                checked={general?.alwaysRelayVoice ?? false}
+                onChange={(e) =>
+                  handleChange("alwaysRelayVoice", e.target.checked)
                 }
                 className="sr-only peer"
               />

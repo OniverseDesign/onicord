@@ -24,6 +24,8 @@ export default function InviteModal({
   onlineCount,
   roomCode,
   isAlreadyMember,
+  expiresAt = null,
+  errorReason = null,
   busy,
   onAccept,
   onClose,
@@ -33,6 +35,24 @@ export default function InviteModal({
 
   /* Derive a single letter as fallback avatar */
   const initial = serverName?.trim()?.[0]?.toUpperCase() || "?";
+
+  const errorBannerText =
+    errorReason === "EXPIRED"
+      ? t("addServerModal.inviteExpired", "Esta invitación venció. Pedí una nueva invitación a un administrador.")
+      : errorReason === "REVOKED"
+        ? t("addServerModal.inviteRevoked", "Esta invitación fue revocada o reemplazada por una más reciente.")
+        : errorReason === "BANNED"
+          ? t("addServerModal.inviteBanned", "Tu cuenta está baneada en este servidor.")
+          : errorReason === "NO_PEERS_ONLINE"
+            ? t("addServerModal.inviteNoPeers", "No hay ningún miembro conectado en la sala ahora para validar tu invitación.")
+            : errorReason === "INVALID"
+              ? t("addServerModal.inviteInvalid", "La invitación no es válida o ya no está activa.")
+              : null;
+
+  const isHardBlocked = Boolean(
+    !isAlreadyMember &&
+    (errorReason === "EXPIRED" || errorReason === "REVOKED" || errorReason === "BANNED" || errorReason === "INVALID")
+  );
 
   return (
     <div
@@ -104,9 +124,21 @@ export default function InviteModal({
             </div>
           ) : null}
 
+          {expiresAt && !errorBannerText && (
+            <p className="text-xs text-onicord-muted mb-4 select-none">
+              {t("inviteModal.expiresAt", "Vence:")} {new Date(expiresAt).toLocaleString()}
+            </p>
+          )}
+
+          {errorBannerText && (
+            <div className="w-full mb-4 rounded-xl bg-onicord-danger/15 border border-onicord-danger/30 px-3 py-2 text-xs text-onicord-danger text-center">
+              {errorBannerText}
+            </div>
+          )}
+
           <div className="w-full flex flex-col gap-2.5">
             <button
-              disabled={busy}
+              disabled={busy || isHardBlocked}
               onClick={onAccept}
               className="w-full py-3 rounded-xl font-bold text-base transition-all duration-fast select-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               style={{

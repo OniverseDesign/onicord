@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes AFK threshold
 
-export function useAfkTracker(explicitStatusMode = "online", onStatusChange, isInVoice = false) {
-  const [isAfk, setIsAfk] = useState(false);
-  const isAfkRef = useRef(false);
+export function useAfkTracker(explicitStatusMode = "online", onStatusChange, isInVoice = false, currentStatus = "online") {
+  const [isAfk, setIsAfk] = useState(explicitStatusMode === "online" && currentStatus === "idle");
+  const isAfkRef = useRef(explicitStatusMode === "online" && currentStatus === "idle");
   const timeoutRef = useRef(null);
   const onStatusChangeRef = useRef(onStatusChange);
   onStatusChangeRef.current = onStatusChange;
@@ -16,6 +16,11 @@ export function useAfkTracker(explicitStatusMode = "online", onStatusChange, isI
       isAfkRef.current = false;
       setIsAfk(false);
       return;
+    }
+
+    if (currentStatus === "idle" && !isAfkRef.current) {
+      isAfkRef.current = true;
+      setIsAfk(true);
     }
 
     if (isInVoice) {

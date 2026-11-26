@@ -1,7 +1,18 @@
 const net = require("net");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { encodeMessage } = require("./p2pService.cjs");
+
+function computeFileSha256(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = fs.createReadStream(filePath);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", reject);
+  });
+}
 
 const BLOCK_SIZE = 512 * 1024; // 512 KB per block
 const MAX_INFLIGHT_PER_PEER = 2;
@@ -39,9 +50,10 @@ class FileService {
     this.roomCode = roomCode;
   }
 
-  async _isExecutableAllowed() {
+  async _isExecutableAllowed(roomCode = this.roomCode) {
     try {
-      if (!this.roomCode) return false;
+      const targetRoom = roomCode || this.roomCode;
+      if (!targetRoom) return false;
       let metaStore = this.roomMetaStore;
       if (!metaStore && this.userDataPath) {
         const { RoomMetaStore } = require("../p2p/roomMetaStore.cjs");
@@ -49,64 +61,97 @@ class FileService {
         this.roomMetaStore = metaStore;
       }
       if (metaStore) {
-        const meta = await metaStore.load(this.roomCode);
+        const meta = await metaStore.load(targetRoom);
         return Boolean(meta?.allowExecutableFiles);
       }
     } catch {}
     return false;
   }
 
-  async _resolveLocalFilePath(fileId) {
+  async _resolveLocalFilePath(fileId, requestingPeerId = null) {
     if (!fileId) return null;
     const cleanFileId = String(fileId).trim();
     let candidatePath = null;
+    let ownerRoomCode = null;
 
-    // 1. Check fileIndexStore for current room
-    try {
-      if (this.roomCode && this.fileIndexStore) {
-        const records = await this.fileIndexStore.load(this.roomCode);
-        const fileMeta = records.find((f) => f.id === cleanFileId);
-        if (fileMeta?.realPath && fs.existsSync(fileMeta.realPath)) {
-          candidatePath = fileMeta.realPath;
+    if (requestingPeerId) {
+      // Remote peer requests MUST stay strictly isolated inside shared rooms verified for requestingPeerId
+      const peerRooms = this.p2p?.peerRooms?.get(requestingPeerId);
+      if (!peerRooms || peerRooms.size === 0 || !this.fileIndexStore) {
+        return null;
+      }
+      const allowedRooms = Array.from(peerRooms).filter((r) =>
+        !this.p2p?.joinedRooms?.size || this.p2p.joinedRooms.has(r)
+      );
+      if (this.roomCode) {
+        const activeUpper = String(this.roomCode).trim().toUpperCase();
+        const idx = allowedRooms.indexOf(activeUpper);
+        if (idx > 0) {
+          allowedRooms.splice(idx, 1);
+          allowedRooms.unshift(activeUpper);
         }
       }
-    } catch {}
-
-    // 1b. Check fileIndexStore across any joined rooms if not found in current room
-    if (!candidatePath && this.fileIndexStore && this.p2p?.joinedRooms) {
-      for (const room of this.p2p.joinedRooms) {
-        if (room === this.roomCode) continue;
+      for (const room of allowedRooms) {
         try {
           const records = await this.fileIndexStore.load(room);
           const fileMeta = records.find((f) => f.id === cleanFileId);
           if (fileMeta?.realPath && fs.existsSync(fileMeta.realPath)) {
             candidatePath = fileMeta.realPath;
+            ownerRoomCode = room;
             break;
+          }
+        } catch {}
+      }
+      if (!candidatePath) return null;
+    } else {
+      // Local lookup: check active room -> joined rooms -> downloads table
+      try {
+        if (this.roomCode && this.fileIndexStore) {
+          const records = await this.fileIndexStore.load(this.roomCode);
+          const fileMeta = records.find((f) => f.id === cleanFileId);
+          if (fileMeta?.realPath && fs.existsSync(fileMeta.realPath)) {
+            candidatePath = fileMeta.realPath;
+            ownerRoomCode = this.roomCode;
+          }
+        }
+      } catch {}
+
+      if (!candidatePath && this.fileIndexStore && this.p2p?.joinedRooms) {
+        for (const room of this.p2p.joinedRooms) {
+          if (room === this.roomCode) continue;
+          try {
+            const records = await this.fileIndexStore.load(room);
+            const fileMeta = records.find((f) => f.id === cleanFileId);
+            if (fileMeta?.realPath && fs.existsSync(fileMeta.realPath)) {
+              candidatePath = fileMeta.realPath;
+              ownerRoomCode = room;
+              break;
+            }
+          } catch {}
+        }
+      }
+
+      if (!candidatePath && this.userDataPath) {
+        try {
+          const { DbManager } = require("../storage/dbManager.cjs");
+          const appConfigDb = DbManager.getInstance(this.userDataPath).getGlobalDb("app_config");
+          const row = appConfigDb
+            .prepare("SELECT file_path, source_room_code FROM downloads WHERE download_id = ?")
+            .get(cleanFileId);
+          if (row?.file_path && fs.existsSync(row.file_path)) {
+            candidatePath = row.file_path;
+            ownerRoomCode = row.source_room_code || this.roomCode;
           }
         } catch {}
       }
     }
 
-    // 2. Check app_config.db downloads table (auto-seeding for any peer who already downloaded the file)
-    if (!candidatePath && this.userDataPath) {
-      try {
-        const { DbManager } = require("../storage/dbManager.cjs");
-        const appConfigDb = DbManager.getInstance(this.userDataPath).getGlobalDb("app_config");
-        const row = appConfigDb
-          .prepare("SELECT file_path FROM downloads WHERE download_id = ?")
-          .get(cleanFileId);
-        if (row?.file_path && fs.existsSync(row.file_path)) {
-          candidatePath = row.file_path;
-        }
-      } catch {}
-    }
-
     if (!candidatePath) return null;
 
-    // 3. Enforce dangerous extension blacklist unless allowExecutableFiles === true
+    // 3. Enforce dangerous extension blacklist unless allowExecutableFiles === true in that room
     const ext = path.extname(candidatePath).toLowerCase();
     if (LISTA_NEGRA.includes(ext)) {
-      const allowExec = await this._isExecutableAllowed();
+      const allowExec = await this._isExecutableAllowed(ownerRoomCode || this.roomCode);
       if (!allowExec) {
         console.warn(
           `🚨 Ares blocked an attempt to extract a dangerous file: ${ext}`
@@ -293,6 +338,20 @@ class FileService {
       `[ARES NETWORK] Requesting network ports/blocks for fileId: ${fileId}`
     );
 
+    let expectedSha256 =
+      typeof options?.sha256 === "string" && /^[0-9a-f]{64}$/i.test(options.sha256.trim())
+        ? options.sha256.trim().toLowerCase()
+        : null;
+    if (!expectedSha256 && this.fileIndexStore && this.roomCode) {
+      try {
+        const records = await this.fileIndexStore.load(this.roomCode);
+        const rec = records.find((f) => f.id === fileId);
+        if (rec?.sha256 && /^[0-9a-f]{64}$/i.test(rec.sha256.trim())) {
+          expectedSha256 = rec.sha256.trim().toLowerCase();
+        }
+      } catch {}
+    }
+
     const totalSize = Number(fileSize) || 0;
     const totalBlocks = totalSize > 0 ? Math.ceil(totalSize / BLOCK_SIZE) : 0;
     const pendingBlocks = totalBlocks > 0
@@ -307,6 +366,7 @@ class FileService {
       fileHandlePromise: null,
       receivedBytes: 0,
       totalSize,
+      expectedSha256,
       abort: null,
       socket: null,
       providerPeerId: null,
@@ -368,10 +428,66 @@ class FileService {
     }
   }
 
+  async _verifyAndSealDownload(fileId, dl) {
+    let expectedSha = dl.expectedSha256 || null;
+    if (!expectedSha && this.fileIndexStore && this.roomCode) {
+      try {
+        const records = await this.fileIndexStore.load(this.roomCode);
+        const rec = records.find((f) => f.id === fileId);
+        if (rec?.sha256 && /^[0-9a-f]{64}$/i.test(rec.sha256.trim())) {
+          expectedSha = rec.sha256.trim().toLowerCase();
+        }
+      } catch {}
+    }
+
+    if (expectedSha) {
+      const actual = await computeFileSha256(dl.partPath);
+      if (actual !== expectedSha) {
+        console.error(
+          `[ARES INTEGRITY MISMATCH] ${fileId}: expected=${expectedSha}, actual=${actual}. Aborting and removing .part.`
+        );
+        try {
+          if (fs.existsSync(dl.partPath)) {
+            await fs.promises.unlink(dl.partPath);
+          }
+        } catch {}
+        global.mainWindow?.webContents.send("file:progress", {
+          fileId,
+          status: "error",
+          error: "INTEGRITY_MISMATCH",
+        });
+        return { ok: false, error: "INTEGRITY_MISMATCH" };
+      }
+    }
+
+    try {
+      if (fs.existsSync(dl.targetPath)) {
+        await fs.promises.unlink(dl.targetPath);
+      }
+    } catch {}
+    await fs.promises.rename(dl.partPath, dl.targetPath);
+
+    console.log(
+      `[ARES SUCCESS] Swarm file assembled and SEALED successfully at: ${dl.targetPath}`
+    );
+
+    this._recordDownload(fileId, dl.targetPath);
+
+    const legacyNoHash = !expectedSha;
+    global.mainWindow?.webContents.send("file:progress", {
+      fileId,
+      progress: 100,
+      done: true,
+      localPath: dl.targetPath,
+      ...(legacyNoHash ? { legacyNoHash: true } : {}),
+    });
+    return { ok: true, legacyNoHash };
+  }
+
   async handleFileRequestPort(peerId, payload) {
     try {
       if (!payload?.fileId) return;
-      const realPath = await this._resolveLocalFilePath(payload.fileId);
+      const realPath = await this._resolveLocalFilePath(payload.fileId, peerId);
 
       if (!realPath) {
         this.p2p._sendToPeer(peerId, "file-response-error", {
@@ -463,15 +579,10 @@ class FileService {
         dl.discoveryTimer = null;
       }
       try {
-        fs.writeFileSync(dl.targetPath, Buffer.alloc(0));
-        this._recordDownload(payload.fileId, dl.targetPath);
+        dl.finishing = true;
+        fs.writeFileSync(dl.partPath, Buffer.alloc(0));
         this._activeDownloads.delete(payload.fileId);
-        global.mainWindow?.webContents.send("file:progress", {
-          fileId: payload.fileId,
-          progress: 100,
-          done: true,
-          localPath: dl.targetPath,
-        });
+        this._verifyAndSealDownload(payload.fileId, dl).catch(() => {});
       } catch {}
       return;
     }
@@ -579,7 +690,7 @@ class FileService {
 
   async handleFileRequestBlock(peerId, payload) {
     if (!payload?.fileId || typeof payload.blockIndex !== "number") return;
-    const realPath = await this._resolveLocalFilePath(payload.fileId);
+    const realPath = await this._resolveLocalFilePath(payload.fileId, peerId);
     if (!realPath) {
       this.p2p._sendToPeer(peerId, "file-response-error", {
         fileId: payload.fileId,
@@ -683,25 +794,7 @@ class FileService {
         if (dl.totalBlocks > 0 && dl.completedBlocks.size >= dl.totalBlocks && !dl.finishing) {
           dl.finishing = true;
           await this._cleanupDownloadState(payload.fileId, dl, false);
-          try {
-            if (fs.existsSync(dl.targetPath)) {
-              await fs.promises.unlink(dl.targetPath);
-            }
-          } catch {}
-          await fs.promises.rename(dl.partPath, dl.targetPath);
-
-          console.log(
-            `[ARES SUCCESS] Swarm file assembled and SEALED successfully at: ${dl.targetPath}`
-          );
-
-          this._recordDownload(payload.fileId, dl.targetPath);
-
-          global.mainWindow?.webContents.send("file:progress", {
-            fileId: payload.fileId,
-            progress: 100,
-            done: true,
-            localPath: dl.targetPath,
-          });
+          await this._verifyAndSealDownload(payload.fileId, dl);
         }
       } catch (writeErr) {
         console.error("[ARES BLOCK WRITE ERROR]", writeErr.message);
@@ -727,7 +820,7 @@ class FileService {
 
     try {
       if (!dl.writeStream) {
-        dl.writeStream = fs.createWriteStream(dl.targetPath, {
+        dl.writeStream = fs.createWriteStream(dl.partPath, {
           flags: "w",
         });
         dl.providerPeerId = peerId;
@@ -758,20 +851,19 @@ class FileService {
 
       if (payload.done) {
         dl.finishing = true;
-        dl.writeStream.end(() => {
-          console.log(
-            `[ARES SUCCESS] File assembled and SEALED successfully at: ${dl.targetPath}`
-          );
-
-          this._recordDownload(payload.fileId, dl.targetPath);
+        dl.writeStream.end(async () => {
+          dl.writeStream = null;
           this._activeDownloads.delete(payload.fileId);
-
-          global.mainWindow?.webContents.send("file:progress", {
-            fileId: payload.fileId,
-            progress: 100,
-            done: true,
-            localPath: dl.targetPath,
-          });
+          try {
+            await this._verifyAndSealDownload(payload.fileId, dl);
+          } catch (sealErr) {
+            console.error("[ARES LEGACY SEAL ERROR]", sealErr.message);
+            global.mainWindow?.webContents.send("file:progress", {
+              fileId: payload.fileId,
+              status: "error",
+              error: sealErr.message,
+            });
+          }
         });
       }
     } catch (writeErr) {

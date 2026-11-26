@@ -38,6 +38,7 @@ class FileIndexStore {
       ownerId: row.owner_id || extra.ownerId || null,
       name: row.name,
       size: Number(row.size_bytes) || extra.size || 0,
+      sha256: row.cas_hash || extra.sha256 || null,
       realPath: row.local_path || null,
       uploadedAt: Number(row.uploaded_at) || extra.uploadedAt || 0,
       updatedAt: Number(row.updated_at) || extra.updatedAt || 0,
@@ -94,13 +95,17 @@ class FileIndexStore {
         const trustedLocalPath = allowLocalPath ? (f.realPath || f.local_path || null) : null;
 
         if (!existingRow) {
+          const cleanSha =
+            typeof safeIncoming.sha256 === "string" && /^[0-9a-f]{64}$/i.test(safeIncoming.sha256.trim())
+              ? safeIncoming.sha256.trim().toLowerCase()
+              : null;
           upsertFile.run(
             fId,
             safeIncoming.ownerId || null,
             String(safeIncoming.name || "archivo"),
             Number(safeIncoming.size) || 0,
             safeIncoming.mimeType || null,
-            null,
+            cleanSha,
             trustedLocalPath,
             JSON.stringify(safeIncoming),
             Number(safeIncoming.uploadedAt) || now,
@@ -116,13 +121,17 @@ class FileIndexStore {
             const preservedLocalPath = trustedLocalPath || existingRow.local_path || null;
             const { realPath: _exRp, local_path: _exLp, ...safeExisting } = exFile;
             const merged = { ...safeExisting, ...safeIncoming };
+            const cleanSha =
+              typeof merged.sha256 === "string" && /^[0-9a-f]{64}$/i.test(merged.sha256.trim())
+                ? merged.sha256.trim().toLowerCase()
+                : (existingRow.cas_hash || null);
             upsertFile.run(
               fId,
               merged.ownerId || null,
               String(merged.name || "archivo"),
               Number(merged.size) || 0,
               merged.mimeType || null,
-              null,
+              cleanSha,
               preservedLocalPath,
               JSON.stringify(merged),
               Number(merged.uploadedAt) || now,

@@ -5,6 +5,7 @@ import HomeView from "./components/views/HomeView";
 import LoadingScreen from "./components/views/LoadingScreen";
 import ToastContainer from "./components/ui/ToastContainer";
 const InviteModal = lazy(() => import("./components/modals/InviteModal"));
+const ConfirmDialogModal = lazy(() => import("./components/modals/ConfirmDialogModal"));
 import { notificationManager } from "./lib/notificationManager";
 import { soundEngine } from "./lib/soundEngine";
 import { ACCENT_PALETTE, applyDynamicTheme } from "./lib/colors";
@@ -275,6 +276,28 @@ export default function App() {
   // Invite modal state: set when a deep link arrives
   const [inviteData, setInviteData] = useState(null); // { code, serverName, memberCount, isAlreadyMember, serverObj }
   const [inviteBusy, setInviteBusy] = useState(false);
+  const [diagConsentQueue, setDiagConsentQueue] = useState([]);
+
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api?.onDiagConsentRequest) return;
+    return api.onDiagConsentRequest((req) => {
+      if (!req?.requestId) return;
+      setDiagConsentQueue((prev) => [...prev.filter((r) => r.requestId !== req.requestId), req]);
+    });
+  }, []);
+
+  const activeDiagConsent = diagConsentQueue[0] || null;
+  const handleRespondDiagConsent = useCallback(async (approved) => {
+    if (!activeDiagConsent?.requestId) return;
+    const reqId = activeDiagConsent.requestId;
+    setDiagConsentQueue((prev) => prev.filter((r) => r.requestId !== reqId));
+    try {
+      await window.electronAPI?.respondDiagConsent?.(reqId, Boolean(approved));
+    } catch (err) {
+      console.error("[DiagConsent] Error responding:", err.message);
+    }
+  }, [activeDiagConsent]);
 
   const hasPlayedWakeRef = useRef(false);
   useEffect(() => {
@@ -311,12 +334,13 @@ export default function App() {
     window.addEventListener("onicord:profile-updated", handleProfileUpdated);
     const unsubIpcProfile = window.electronAPI?.onProfileUpdated?.((updated) => {
       if (!updated) return;
-      if (updated.status) {
+      const { _isAutoAfk, ...cleanProfile } = updated;
+      if (cleanProfile.status && !_isAutoAfk) {
         try {
-          localStorage.setItem("onicord_explicit_status", updated.status);
+          localStorage.setItem("onicord_explicit_status", cleanProfile.status);
         } catch (_) {}
       }
-      setProfile((prev) => ({ ...(prev || {}), ...updated }));
+      setProfile((prev) => ({ ...(prev || {}), ...cleanProfile }));
     });
     return () => {
       window.removeEventListener("onicord:profile-updated", handleProfileUpdated);
@@ -519,23 +543,34 @@ export default function App() {
 
   // handleDeepLinkJoin: show the InviteModal instead of joining directly
   const handleDeepLinkJoin = useCallback(
-    async (code) => {
+    async (rawCodeOrToken) => {
       if (!profile) return;
-      const normalized = code.replace(/[^a-fA-F0-9]/g, "").toUpperCase().slice(0, 8);
+      const str = String(rawCodeOrToken || "").trim();
+      const hashIdx = str.indexOf("#");
+      const codePart = hashIdx >= 0 ? str.slice(0, hashIdx) : str;
+      const rawSecret = hashIdx >= 0 ? str.slice(hashIdx + 1).trim() : null;
+      const isManagedInvite = Boolean(rawSecret && rawSecret.startsWith("I:"));
+      const inviteSecret = isManagedInvite ? rawSecret.slice(2).trim() : null;
+      const roomSecret = !isManagedInvite && rawSecret ? rawSecret : null;
+      const normalized = codePart.replace(/[^a-fA-F0-9]/g, "").toUpperCase().slice(0, 8);
       if (normalized.length !== 8) return;
 
       const alreadyMember = servers.find((s) => s.roomCode === normalized);
 
       // 1. Fetch initial details (cached/fallback) from main process
       try {
-        const initialDetails = await window.electronAPI.resolveInvite(normalized, profile);
-        
+        const initialDetails = await window.electronAPI.resolveInvite(normalized, profile, inviteSecret);
+
         setInviteData({
           code: normalized,
+          roomSecret: roomSecret || null,
+          inviteSecret: inviteSecret || null,
           serverName: initialDetails.name || alreadyMember?.name || `Servidor ${normalized}`,
           serverAvatar: initialDetails.icon || alreadyMember?.icon || null,
           memberCount: initialDetails.memberCount || 0,
           onlineCount: 0,
+          expiresAt: initialDetails.expiresAt || null,
+          errorReason: initialDetails.errorReason || null,
           isAlreadyMember: Boolean(alreadyMember),
           serverObj: alreadyMember || null,
         });
@@ -543,10 +578,14 @@ export default function App() {
         console.error("Error resolving invite initially:", err);
         setInviteData({
           code: normalized,
+          roomSecret: roomSecret || null,
+          inviteSecret: inviteSecret || null,
           serverName: alreadyMember?.name || `Servidor ${normalized}`,
           serverAvatar: alreadyMember?.icon || null,
           memberCount: 0,
           onlineCount: 0,
+          expiresAt: null,
+          errorReason: null,
           isAlreadyMember: Boolean(alreadyMember),
           serverObj: alreadyMember || null,
         });
@@ -567,26 +606,46 @@ export default function App() {
         // Already a member — just connect
         setInviteData(null);
         await enterServerProcess(inviteData.serverObj, profile);
+      } else if (inviteData.inviteSecret && window.electronAPI.redeemServerInvite) {
+        const res = await window.electronAPI.redeemServerInvite(
+          inviteData.code,
+          inviteData.inviteSecret,
+          profile
+        );
+        if (!res?.ok || !res.server) {
+          setInviteData((prev) => (prev ? { ...prev, errorReason: res?.reason || "INVALID" } : null));
+          return;
+        }
+        const server = res.server;
+        setInviteData(null);
+        await refreshServers();
+        await enterServerProcess(server, profile);
+        notificationManager.showToast(
+          t("common.done", "Listo"),
+          t("inviteModal.joinedSuccess", { name: server.name, defaultValue: `Te has unido a ${server.name}` }),
+          "info"
+        );
       } else {
         // New server — join then navigate
         const server = await window.electronAPI.joinServer(
           inviteData.code,
           inviteData.serverName,
-          profile
+          profile,
+          inviteData.roomSecret || null
         );
         setInviteData(null);
         await refreshServers();
         await enterServerProcess(server, profile);
         notificationManager.showToast(
-          "Join completed",
-          `Successfully joined ${server.name}`,
+          t("common.done", "Listo"),
+          t("inviteModal.joinedSuccess", { name: server.name, defaultValue: `Te has unido a ${server.name}` }),
           "info"
         );
       }
     } catch (err) {
       console.error("Error joining via invite modal:", err);
       notificationManager.showToast(
-        "Error joining",
+        t("common.error", "Error"),
         err.message || "Invalid invitation code",
         "warning"
       );
@@ -594,7 +653,7 @@ export default function App() {
     } finally {
       setInviteBusy(false);
     }
-  }, [inviteData, profile, enterServerProcess, refreshServers]);
+  }, [inviteData, profile, enterServerProcess, refreshServers, t]);
 
   useEffect(() => {
     const api = window.electronAPI;
@@ -612,8 +671,8 @@ export default function App() {
       }
     });
 
-    // Handle direct TCP connection links: onicord://direct:IP:PORT/ROOMCODE
-    const unsubDirectLink = api.onDirectLink?.(async ({ ip, port, code }) => {
+    // Handle direct TCP connection links: onicord://direct:IP:PORT/ROOMCODE(#SECRET)?
+    const unsubDirectLink = api.onDirectLink?.(async ({ ip, port, code, roomSecret }) => {
       if (!code || !ip || !port) return;
       console.log(`[Direct Link] Recibido enlace directo: ${ip}:${port} / ${code}`);
       try {
@@ -624,7 +683,7 @@ export default function App() {
         );
         if (!serverObj) {
           // Not yet a member — join first (DHT will discover it)
-          serverObj = await api.joinServer(code, `Servidor ${code}`, profile);
+          serverObj = await api.joinServer(code, `Servidor ${code}`, profile, roomSecret || null);
           await refreshServers();
         }
         if (!serverObj) return;
@@ -658,6 +717,8 @@ export default function App() {
           serverAvatar: details.icon !== undefined ? details.icon : prev.serverAvatar,
           memberCount: details.memberCount !== undefined ? details.memberCount : prev.memberCount,
           onlineCount: details.onlineCount !== undefined ? details.onlineCount : prev.onlineCount,
+          expiresAt: details.expiresAt !== undefined ? details.expiresAt : prev.expiresAt,
+          errorReason: details.errorReason !== undefined ? details.errorReason : prev.errorReason,
         };
       });
     });
@@ -780,6 +841,8 @@ export default function App() {
                   onlineCount={inviteData.onlineCount}
                   roomCode={inviteData.code}
                   isAlreadyMember={inviteData.isAlreadyMember}
+                  expiresAt={inviteData.expiresAt}
+                  errorReason={inviteData.errorReason}
                   busy={inviteBusy}
                   onAccept={handleAcceptInvite}
                   onClose={() => {
@@ -790,6 +853,23 @@ export default function App() {
                       setInviteData(null);
                     }
                   }}
+                />
+              </Suspense>
+            )}
+            {activeDiagConsent && (
+              <Suspense fallback={null}>
+                <ConfirmDialogModal
+                  isOpen={Boolean(activeDiagConsent)}
+                  title={t("security.diagConsentTitle", "Solicitud de diagnóstico remoto")}
+                  message={t(
+                    "security.diagConsentMessage",
+                    "{{name}} solicita recibir tus registros locales de diagnóstico (OniDiag). Aunque los datos sensibles se sanitizan automáticamente, contienen información técnica de red y errores recientes.",
+                    { name: activeDiagConsent.nickname || "Un compañero" }
+                  )}
+                  confirmLabel={t("security.diagConsentApprove", "Compartir logs")}
+                  cancelLabel={t("security.diagConsentReject", "Rechazar")}
+                  onConfirm={() => handleRespondDiagConsent(true)}
+                  onCancel={() => handleRespondDiagConsent(false)}
                 />
               </Suspense>
             )}

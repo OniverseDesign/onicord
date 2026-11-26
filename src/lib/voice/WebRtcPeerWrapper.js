@@ -11,12 +11,15 @@ export function createNativePeer({
   remotePeerId,
   initiator,
   iceServers,
+  iceTransportPolicy = "all",
   isLan = false,
   peerCount = 2,
   lanPeerIPs,
   onRemoteVideoUpdate,
 }) {
-  const pc = new RTCPeerConnection({ iceServers });
+  const effectivePolicy = iceTransportPolicy === "relay" ? "relay" : "all";
+  const allowLanRewrite = Boolean(isLan) && effectivePolicy !== "relay";
+  const pc = new RTCPeerConnection({ iceServers, iceTransportPolicy: effectivePolicy });
   const listeners = {};
   let destroyed = false;
   let makingOffer = false;
@@ -78,7 +81,7 @@ export function createNativePeer({
 
     _rewriteRemoteSdp(sdpObj) {
       if (!sdpObj || !sdpObj.sdp) return sdpObj;
-      if (!isLan) return sdpObj;
+      if (!allowLanRewrite) return sdpObj;
       const ips = lanPeerIPs?.get(remotePeerId) || [];
       if (ips.length === 0) return sdpObj;
 
@@ -121,7 +124,7 @@ export function createNativePeer({
         usernameFragment,
       };
 
-      if (!isLan) {
+      if (!allowLanRewrite) {
         return [baseCandidate];
       }
 

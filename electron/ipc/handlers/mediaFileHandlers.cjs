@@ -10,6 +10,16 @@ const ytdlpService = require("../../services/ytdlpService.cjs");
 const mediaTranscodeService = require("../../services/mediaTranscodeService.cjs");
 const { DbManager } = require("../../storage/dbManager.cjs");
 
+function computeFileSha256(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = fs.createReadStream(filePath);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", reject);
+  });
+}
+
 async function saveDownloadToRegistry(fileId, targetPath, sourceRoomCode = null) {
   try {
     const appConfigDb = DbManager.getInstance(app.getPath("userData")).getGlobalDb("app_config");
@@ -81,6 +91,7 @@ function registerMediaFileHandlers() {
       throw new Error("No hay sala activa");
     const fp = String(filePath || "");
     const stat = await fsPromises.stat(fp);
+    const sha256 = await computeFileSha256(fp);
     const name = path.basename(fp);
     const id = crypto.randomUUID();
 
@@ -97,6 +108,7 @@ function registerMediaFileHandlers() {
       id,
       name,
       size: stat.size,
+      sha256,
       thumbnail,
       uploadedAt: Date.now(),
       updatedAt: Date.now(),
@@ -110,7 +122,7 @@ function registerMediaFileHandlers() {
       type: "file_upload",
       id,
     });
-    return { id, name, size: stat.size, thumbnail };
+    return { id, name, size: stat.size, sha256, thumbnail };
   });
 
   ipcMain.handle("files:uploadClipboardImage", async (_event, roomCode, arrayBuffer) => {
@@ -120,6 +132,7 @@ function registerMediaFileHandlers() {
 
     try {
       const buffer = Buffer.from(arrayBuffer);
+      const sha256 = crypto.createHash("sha256").update(buffer).digest("hex");
       const tempDir = path.join(app.getPath("userData"), "temp_uploads");
       if (!fs.existsSync(tempDir)) {
         fs.mkdirSync(tempDir, { recursive: true });
@@ -136,6 +149,7 @@ function registerMediaFileHandlers() {
         id,
         name: fileName,
         size: stat.size,
+        sha256,
         uploadedAt: Date.now(),
         updatedAt: Date.now(),
         realPath: fp,
@@ -149,7 +163,7 @@ function registerMediaFileHandlers() {
         type: "file_upload",
         id,
       });
-      return { id, name: fileName, size: stat.size };
+      return { id, name: fileName, size: stat.size, sha256 };
     } catch (err) {
       console.error("[ARES CLIPBOARD ERROR] Falló el procesamiento binario:", err.message);
       throw err;
@@ -167,6 +181,7 @@ function registerMediaFileHandlers() {
     if (result.canceled || !result.filePaths?.[0]) return null;
     const fp = result.filePaths[0];
     const stat = await fsPromises.stat(fp);
+    const sha256 = await computeFileSha256(fp);
     const name = path.basename(fp);
     const id = crypto.randomUUID();
 
@@ -183,6 +198,7 @@ function registerMediaFileHandlers() {
       id,
       name,
       size: stat.size,
+      sha256,
       thumbnail,
       uploadedAt: Date.now(),
       updatedAt: Date.now(),
@@ -197,7 +213,7 @@ function registerMediaFileHandlers() {
       id,
     });
 
-    return { id, name, size: stat.size, thumbnail };
+    return { id, name, size: stat.size, sha256, thumbnail };
   });
 
   ipcMain.handle("media:generateVideoThumbnail", async (_event, filePath) => {

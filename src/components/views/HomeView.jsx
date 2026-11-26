@@ -102,6 +102,7 @@ export default function HomeView({
         const saved = await window.electronAPI.saveProfile({
           ...profileRef.current,
           status: newStatus,
+          _isAutoAfk: true,
         });
         onProfileChange?.(saved);
       } catch (err) {
@@ -114,7 +115,7 @@ export default function HomeView({
     notificationManager.setUserStatus?.(profile?.status || explicitStatus);
   }, [profile?.status, explicitStatus]);
 
-  useAfkTracker(explicitStatus, handleAfkStatusChange, Boolean(currentVoiceServerId));
+  useAfkTracker(explicitStatus, handleAfkStatusChange, Boolean(currentVoiceServerId), profile?.status);
 
   const canonicalizeShortcut = useCallback((str) => {
     if (!str) return "";

@@ -256,6 +256,11 @@ function registerSystemDiagHandlers() {
     return { success: true };
   });
 
+  ipcMain.handle("diagnostics:respond-consent", async (_event, { requestId, approved } = {}) => {
+    if (!global.roomManager) return { ok: false, error: "no_room_manager" };
+    return global.roomManager.respondDiagConsent(requestId, Boolean(approved));
+  });
+
   ipcMain.handle("diagnostics:log", async (_event, level, category, message) => {
     diagService.log(level, category, message);
     return { success: true };

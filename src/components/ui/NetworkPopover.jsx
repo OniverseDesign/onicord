@@ -30,6 +30,7 @@ export default function NetworkPopover({
   localPeerId = null,
   voiceMembers = [],
   managerRef = null,
+  alwaysRelay = false,
 }) {
   const { t } = useTranslation();
   const popoverRef = useRef(null);
@@ -147,6 +148,11 @@ export default function NetworkPopover({
             {networkTopology === "sfu" ? t("network.sfu") : t("network.mesh")}
           </span>
         </div>
+        {alwaysRelay && (
+          <span className="ml-auto shrink-0 px-1.5 py-0.5 rounded-md bg-onicord-accent/15 text-onicord-accent border border-onicord-accent/30 text-2xs font-bold">
+            {t("network.alwaysRelayBadge", "Always Relay")}
+          </span>
+        )}
       </div>
 
       <div className="space-y-1.5 mb-2.5 max-h-[120px] overflow-y-auto minimal-scrollbar">

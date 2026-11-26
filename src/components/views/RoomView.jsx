@@ -52,6 +52,7 @@ export default function RoomView({
   const [showSettings, setShowSettings] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [moderationConfirm, setModerationConfirm] = useState(null);
+  const [securityModalPeer, setSecurityModalPeer] = useState(null);
   const [textChannelId, setTextChannelId] = useState(() => {
     const ch = server.channels?.find(
       (c) =>
@@ -691,10 +692,11 @@ export default function RoomView({
       const effStatus = savedInfo?.customStatus !== undefined ? savedInfo.customStatus : (peerServerOverride?.customStatus !== undefined ? peerServerOverride.customStatus : (p.customStatus || ""));
       const effGlobal = savedInfo?.globalNickname || peerServerOverride?.globalNickname || p.globalNickname || (effNickname !== p.nickname ? p.nickname : null);
 
+      const peerStatus = p.status || (p.online === false ? "offline" : "online");
       list.push({
         ...p,
         id: actualId,
-        status: p.status || (p.online ? "online" : "offline"),
+        status: peerStatus,
         nickname: effNickname,
         avatar: effAvatar,
         banner: effBanner,
@@ -702,7 +704,7 @@ export default function RoomView({
         profileColor: effColor,
         customStatus: effStatus,
         globalNickname: effGlobal,
-        online: p.online !== false,
+        online: peerStatus !== "invisible" && peerStatus !== "offline" && p.online !== false,
         role: getHighestRoleForUser(actualId),
         activity: p.showRichPresence !== false ? p.activity || null : null,
       });
@@ -1056,22 +1058,57 @@ export default function RoomView({
     const api = window.electronAPI;
     if (!api) return;
 
+    let isMounted = true;
     setPeers([]);
 
-    api.getRoomState().then((state) => {
-      if (state?.peers?.length) {
-        const initialNormalized = state.peers.map((p) => ({
-          ...p,
-          id: p.id || p.peerId || p.userId,
-        }));
-        setPeers(initialNormalized);
+    const targetRoomUpper = String(server?.roomCode || "").trim().toUpperCase();
+    const normalizePeerPresence = (peerObj) => {
+      const status = peerObj.status || (peerObj.online === false ? "offline" : "online");
+      return {
+        ...peerObj,
+        id: peerObj.id || peerObj.peerId || peerObj.userId,
+        status,
+        online: status !== "invisible" && status !== "offline" && peerObj.online !== false,
+      };
+    };
+
+    const syncPeersFromMain = () => {
+      if (!api.getRoomState) return;
+      api.getRoomState(targetRoomUpper || null).then((state) => {
+        if (!isMounted) return;
+        const stateRoom = state?.roomCode ? String(state.roomCode).trim().toUpperCase() : null;
+        if (targetRoomUpper && stateRoom && stateRoom !== targetRoomUpper) return;
+        if (Array.isArray(state?.peers)) {
+          setPeers(state.peers.map(normalizePeerPresence));
+        }
+      }).catch(() => {});
+    };
+
+    syncPeersFromMain();
+    const syncInterval = setInterval(syncPeersFromMain, 5000);
+    const handleWindowFocus = () => syncPeersFromMain();
+    window.addEventListener("focus", handleWindowFocus);
+
+    const unsubRoomJoined = api.onRoomJoined?.((data) => {
+      const joinedCode = data?.code ? String(data.code).trim().toUpperCase() : null;
+      if (!targetRoomUpper || !joinedCode || joinedCode === targetRoomUpper) {
+        syncPeersFromMain();
+      }
+    });
+
+    const unsubRoomCreated = api.onRoomCreated?.((data) => {
+      const createdCode = data?.code ? String(data.code).trim().toUpperCase() : null;
+      if (!targetRoomUpper || !createdCode || createdCode === targetRoomUpper) {
+        syncPeersFromMain();
       }
     });
 
     const unsubPeerUpdated = window.electronAPI.on?.(
       "peer:updated",
       (updatedPeer) => {
+        if (!updatedPeer) return;
         setPeers((prev) => {
+          let found = false;
           const updated = prev.map((p) => {
             const isMatch =
               p.id === updatedPeer.id ||
@@ -1080,9 +1117,26 @@ export default function RoomView({
               p.id === updatedPeer.peerId ||
               p.peerId === updatedPeer.id;
 
-            if (isMatch) return { ...p, ...updatedPeer };
+            if (isMatch) {
+              found = true;
+              const nextStatus = updatedPeer.status || p.status || "online";
+              const nextOnline = updatedPeer.status
+                ? (nextStatus !== "invisible" && nextStatus !== "offline")
+                : (updatedPeer.online ?? true);
+              return { ...p, ...updatedPeer, status: nextStatus, online: nextOnline };
+            }
             return p;
           });
+
+          if (!found && (updatedPeer.userId || updatedPeer.id) && (updatedPeer.online !== false || updatedPeer.peerId)) {
+            const nextStatus = updatedPeer.status || (updatedPeer.online === false ? "offline" : "online");
+            updated.push({
+              ...updatedPeer,
+              id: updatedPeer.userId || updatedPeer.id || updatedPeer.peerId,
+              status: nextStatus,
+              online: nextStatus !== "invisible" && nextStatus !== "offline" && updatedPeer.online !== false,
+            });
+          }
 
           const uniqueMap = new Map();
           updated.forEach((p) => {
@@ -1105,6 +1159,8 @@ export default function RoomView({
       }
       setPeers((prev) => {
         const uid = peer.userId || peer.id || peer.peerId;
+        const peerStatus = peer.status || (peer.online === false ? "offline" : "online");
+        const peerOnline = peerStatus !== "invisible" && peerStatus !== "offline" && peer.online !== false;
         const index = prev.findIndex(
           (p) =>
             (peer.userId && (p.userId === peer.userId || p.id === peer.userId)) ||
@@ -1114,10 +1170,10 @@ export default function RoomView({
         );
         if (index >= 0) {
           const next = [...prev];
-          next[index] = { ...next[index], ...peer, id: uid, online: true };
+          next[index] = { ...next[index], ...peer, id: uid, status: peerStatus, online: peerOnline };
           return next;
         }
-        return [...prev, { ...peer, id: uid, online: true }];
+        return [...prev, { ...peer, id: uid, status: peerStatus, online: peerOnline }];
       });
     });
 
@@ -1178,12 +1234,38 @@ export default function RoomView({
       }
     );
 
+    const unsubKeyChanged = api.onPeerKeyChanged?.((info) => {
+      if (!info?.userId) return;
+      setPeers((prev) =>
+        prev.map((p) =>
+          (p.userId === info.userId || p.id === info.userId || p.peerId === info.peerId)
+            ? { ...p, verificationStatus: "key_changed" }
+            : p
+        )
+      );
+      notificationManager.showToast(
+        t("security.keyChangedToastTitle", "Clave de seguridad cambiada"),
+        t("security.keyChangedToastDesc", {
+          name: info.nickname || "Usuario",
+          defaultValue: `La clave criptográfica de ${info.nickname || "Usuario"} cambió. Vuelve a verificar su Safety Number.`,
+        }),
+        "warning",
+        9000
+      );
+    });
+
     return () => {
+      isMounted = false;
+      clearInterval(syncInterval);
+      window.removeEventListener("focus", handleWindowFocus);
+      unsubRoomJoined?.();
+      unsubRoomCreated?.();
       unsubPeerUpdated?.();
       unsubJoin?.();
       unsubMemberFirstJoined?.();
       unsubLeave?.();
       unsubActivity?.();
+      unsubKeyChanged?.();
     };
   }, [server.roomCode]);
 
@@ -1702,6 +1784,7 @@ export default function RoomView({
           isSearchFocused={isSearchFocused}
           setIsSearchFocused={setIsSearchFocused}
           searchInputRef={searchInputRef}
+          onOpenPeerSecurity={setSecurityModalPeer}
         />
 
         {/* Forum Channel Hashtag Filters Bar */}
@@ -2039,6 +2122,8 @@ export default function RoomView({
         markChannelAsRead={markChannelAsRead}
         moderationConfirm={moderationConfirm}
         setModerationConfirm={setModerationConfirm}
+        securityModalPeer={securityModalPeer}
+        setSecurityModalPeer={setSecurityModalPeer}
       />
     </div>
   );

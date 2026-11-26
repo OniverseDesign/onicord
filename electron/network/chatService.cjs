@@ -54,6 +54,41 @@ class ChatService {
     return this.roomCodes.has(code) || this.roomCode === code;
   }
 
+  _getRoomSecret(roomCode) {
+    const code = this._resolveRoomCode(roomCode);
+    if (!code) return null;
+    if (global.roomManager?.getRoomSecret) {
+      return global.roomManager.getRoomSecret(code);
+    }
+    if (this.p2p?.userDataPath) {
+      try {
+        const { ServerStore } = require("../p2p/serverStore.cjs");
+        return new ServerStore(this.p2p.userDataPath).getServerByRoomCodeSync(String(code).trim().toUpperCase())?.roomSecret || null;
+      } catch {}
+    }
+    return null;
+  }
+
+  _encryptForRoom(roomCode, plaintext) {
+    const code = this._resolveRoomCode(roomCode);
+    if (global.roomManager?.encryptChannelText) {
+      return global.roomManager.encryptChannelText(code, "general", plaintext);
+    }
+    const cryptoService = require("../services/cryptoService.cjs");
+    const secret = this._getRoomSecret(code);
+    return cryptoService.encrypt(code, plaintext, secret ? { roomSecret: secret } : {});
+  }
+
+  _decryptForRoom(roomCode, ciphertext) {
+    const code = this._resolveRoomCode(roomCode);
+    if (global.roomManager?.decryptChannelText) {
+      return global.roomManager.decryptChannelText(code, "general", ciphertext);
+    }
+    const cryptoService = require("../services/cryptoService.cjs");
+    const secret = this._getRoomSecret(code);
+    return cryptoService.decrypt(code, ciphertext, secret ? { roomSecret: secret } : {});
+  }
+
   async getLocalMeta(roomCode) {
     const code = this._resolveRoomCode(roomCode);
     if (!code || !this.roomMetaStore) return null;
@@ -418,10 +453,9 @@ class ChatService {
       return { isEphemeral: false, expiresAt: null };
     }
     let plain = text.trim();
-    if (plain.startsWith("[E2EE]:") && roomCode) {
+    if ((plain.startsWith("[E2EE]:") || plain.startsWith("[E2EE2]:")) && roomCode) {
       try {
-        const cryptoService = require("../services/cryptoService.cjs");
-        plain = cryptoService.decrypt(roomCode, plain);
+        plain = this._decryptForRoom(roomCode, plain);
       } catch {}
     }
     if (typeof plain !== "string" || !plain.trim().startsWith("{")) {
@@ -558,8 +592,7 @@ class ChatService {
     if (!plainText) throw new Error("Empty message");
 
     try {
-      const cryptoService = require("../services/cryptoService.cjs");
-      const decrypted = cryptoService.decrypt(code, plainText);
+      const decrypted = this._decryptForRoom(code, plainText);
       if (decrypted && decrypted.trim()) {
         plainText = decrypted.trim();
       }
@@ -642,8 +675,7 @@ class ChatService {
     if (!code) throw new Error("You are not in a room");
 
     const plainText = String(content || "").trim();
-    const cryptoService = require("../services/cryptoService.cjs");
-    const encryptedText = plainText ? cryptoService.encrypt(code, plainText) : "";
+    const encryptedText = plainText ? this._encryptForRoom(code, plainText) : "";
 
     const message = {
       id: "wh_" + crypto.randomUUID(),
@@ -668,8 +700,7 @@ class ChatService {
     const code = this._resolveRoomCode(roomCode);
     if (!code) return null;
     const plainText = String(text || "").trim();
-    const cryptoService = require("../services/cryptoService.cjs");
-    const encryptedText = plainText ? cryptoService.encrypt(code, plainText) : "";
+    const encryptedText = plainText ? this._encryptForRoom(code, plainText) : "";
 
     const message = {
       id: options.id || "sys_" + crypto.randomUUID(),
@@ -832,7 +863,12 @@ class ChatService {
     }
 
     const peer = this.p2p.peers.get(fromPeerId);
-    const authorId = this.normalizeIncomingAuthor(payload, fromPeerId);
+    const isVerifiedSystemOrWebhook = Boolean(
+      payload.isSystemMessage || payload.isWebhook
+    );
+    const authorId = isVerifiedSystemOrWebhook
+      ? this.normalizeIncomingAuthor(payload, fromPeerId)
+      : (peer?.userId || fromPeerId);
     const now = Date.now();
     const rawTs = payload.timestamp || now;
     const eph = payload.isEphemeral
@@ -870,8 +906,7 @@ class ChatService {
 
     if (message.isHidden) {
       try {
-        const cryptoService = require("../services/cryptoService.cjs");
-        const decryptedText = cryptoService.decrypt(payload.roomCode, message.text);
+        const decryptedText = this._decryptForRoom(payload.roomCode, message.text);
         const decryptedMessage = { ...message, text: decryptedText };
         const pluginSandboxService = require("../services/pluginSandboxService.cjs");
         pluginSandboxService.processLiveChatMessage(decryptedMessage);
@@ -901,10 +936,9 @@ class ChatService {
   _extractCustomEmojis(text, roomCode) {
     if (!text || typeof text !== "string") return [];
     let plain = text.trim();
-    if (plain.startsWith("[E2EE]:")) {
+    if (plain.startsWith("[E2EE]:") || plain.startsWith("[E2EE2]:")) {
       try {
-        const cryptoService = require("../services/cryptoService.cjs");
-        const dec = cryptoService.decrypt(roomCode, plain);
+        const dec = this._decryptForRoom(roomCode, plain);
         if (dec) plain = dec.trim();
       } catch (_) {}
     }
@@ -932,10 +966,9 @@ class ChatService {
   _extractStickerInfo(text, roomCode) {
     if (!text || typeof text !== "string") return null;
     let plain = text.trim();
-    if (plain.startsWith("[E2EE]:")) {
+    if (plain.startsWith("[E2EE]:") || plain.startsWith("[E2EE2]:")) {
       try {
-        const cryptoService = require("../services/cryptoService.cjs");
-        const dec = cryptoService.decrypt(roomCode, plain);
+        const dec = this._decryptForRoom(roomCode, plain);
         if (dec) plain = dec.trim();
       } catch (e) {}
     }

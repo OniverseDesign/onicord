@@ -645,6 +645,15 @@ export default function ChatPanel({
       triggerServerFlameInteraction(profile, server, onProfileChange);
     } catch (err) {
       console.error("Error al enviar mensaje:", err);
+      if (String(err?.message || "").includes("DM_PEER_KEY_REQUIRED")) {
+        handleShowAlert(
+          t("security.statusUnavailableTitle", "Clave aún no disponible"),
+          t(
+            "security.dmKeyRequiredBanner",
+            "Debes coincidir en línea al menos una vez con este contacto para establecer cifrado E2EE par-a-par antes de enviar DMs."
+          )
+        );
+      }
     } finally {
       setSending(false);
       setReplyTarget(null);
@@ -1082,6 +1091,49 @@ export default function ChatPanel({
     checkPermission(server, profile?.id, "send_messages") &&
     canSpeakInChannel(server, currentChannel, profile?.id);
 
+  const isDmChannel = Boolean(channelId && String(channelId).startsWith("dm_"));
+  const dmRecipientId = useMemo(() => {
+    if (!isDmChannel) return null;
+    const raw = String(channelId).slice(3);
+    const myId = profile?.id;
+    if (myId && raw.includes(myId)) {
+      if (raw.startsWith(`${myId}_`)) return raw.slice(myId.length + 1);
+      if (raw.endsWith(`_${myId}`)) return raw.slice(0, raw.length - myId.length - 1);
+    }
+    const parts = String(channelId).split("_");
+    if (parts.length >= 3) {
+      return parts[1] === myId ? parts[2] : parts[1];
+    }
+    return null;
+  }, [isDmChannel, channelId, profile?.id]);
+
+  const [dmSecurity, setDmSecurity] = useState(null);
+  useEffect(() => {
+    let active = true;
+    if (!isDmChannel || !dmRecipientId || !window.electronAPI?.getPeerVerification) {
+      setDmSecurity(null);
+      return;
+    }
+    window.electronAPI
+      .getPeerVerification({ userId: dmRecipientId })
+      .then((res) => {
+        if (active) setDmSecurity(res || null);
+      })
+      .catch(() => {
+        if (active) setDmSecurity(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isDmChannel, dmRecipientId, peers]);
+
+  const isDmBlockedByMissingKey = Boolean(isDmChannel && dmSecurity?.status === "unavailable");
+  const isDmLegacyPeer = Boolean(isDmChannel && dmSecurity?.supportsDmE2ee === false);
+  const isRoomLegacyCompat = Boolean(
+    !isDmChannel && server?.roomSecret && !server?.enforceV2Encryption && Array.isArray(peers) && peers.some((p) => p.online && p.protocolVersion && p.protocolVersion < 2)
+  );
+  const effectiveHasSendMessages = hasSendMessages && !isDmBlockedByMissingKey;
+
   return (
     <div
       className={`flex h-full max-h-full min-h-0 flex-1 flex-col bg-onicord-base text-onicord-text relative ${
@@ -1132,9 +1184,45 @@ export default function ChatPanel({
         searchQuery={searchQuery}
       />
 
+      {isDmBlockedByMissingKey && (
+        <div className="mx-4 mb-2 px-3 py-2 rounded-onicord-inner bg-onicord-surface border border-onicord-border text-xs text-onicord-subtext flex items-center gap-2">
+          <MaterialIcon name="lock_clock" size={16} className="text-onicord-accent shrink-0" />
+          <span>
+            {t(
+              "security.dmKeyRequiredBanner",
+              "Debes coincidir en línea al menos una vez con este contacto para establecer cifrado E2EE par-a-par antes de enviar DMs."
+            )}
+          </span>
+        </div>
+      )}
+
+      {!isDmBlockedByMissingKey && isDmLegacyPeer && (
+        <div className="mx-4 mb-2 px-3 py-2 rounded-onicord-inner bg-onicord-warning/10 border border-onicord-warning/30 text-xs text-onicord-text flex items-center gap-2">
+          <MaterialIcon name="warning_amber" size={16} className="text-onicord-warning shrink-0" />
+          <span>
+            {t(
+              "security.dmLegacyPeerBanner",
+              "Este contacto usa una versión anterior de Onicord. Debe actualizar la app para leer mensajes privados E2EE nuevos (el historial previo sigue disponible)."
+            )}
+          </span>
+        </div>
+      )}
+
+      {isRoomLegacyCompat && (
+        <div className="mx-4 mb-2 px-3 py-1.5 rounded-onicord-inner bg-onicord-surface/80 border border-onicord-border text-xs text-onicord-muted flex items-center gap-2">
+          <MaterialIcon name="sync_lock" size={15} className="text-onicord-accent shrink-0" />
+          <span>
+            {t(
+              "security.roomCompatBanner",
+              "Sala en modo compatible: hay usuarios con una versión anterior conectados; se activará el cifrado de sala v2 automáticamente cuando todos actualicen."
+            )}
+          </span>
+        </div>
+      )}
+
       <ChatInputArea
         channelName={channelName}
-        hasSendMessages={hasSendMessages}
+        hasSendMessages={effectiveHasSendMessages}
         isForum={isForum}
         postTitle={postTitle}
         setPostTitle={setPostTitle}

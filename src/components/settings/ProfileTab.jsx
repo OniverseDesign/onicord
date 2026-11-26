@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from "react";
+import React, { useRef, useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import UserProfilePopout from "../ui/UserProfilePopout";
 import Select from "../ui/Select";
@@ -7,6 +7,7 @@ import MaterialIcon from "../icons/MaterialIcon";
 import ColorPicker from "../ui/ColorPicker";
 import { APP_COLORS } from "../../lib/colors";
 import { ModalInput } from "../ui/ModalShell";
+import { copyTextToClipboard } from "../../lib/clipboard";
 
 const MAX_AVATAR_SIZE = 8 * 1024 * 1024;
 
@@ -37,6 +38,21 @@ export default function ProfileTab({
   const { t } = useTranslation();
   const fileRef = useRef(null);
   const bannerFileRef = useRef(null);
+  const [localIdentity, setLocalIdentity] = useState(null);
+  const [copiedFingerprint, setCopiedFingerprint] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    window.electronAPI
+      ?.getLocalSecurityIdentity?.()
+      .then((res) => {
+        if (active && res) setLocalIdentity(res);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Canonical key for the server we are currently in (uppercase roomCode preferred)
   const currentServerKey = useMemo(() => {
@@ -240,7 +256,9 @@ export default function ProfileTab({
     : avatar;
 
   const previewBanner = isServerScope
-    ? currentBanner !== null && currentBanner !== undefined && currentBanner !== ""
+    ? currentBanner !== null &&
+      currentBanner !== undefined &&
+      currentBanner !== ""
       ? currentBanner
       : banner
     : banner;
@@ -319,11 +337,9 @@ export default function ProfileTab({
                   onChange={(e) => handleLinkChange(e.target.value)}
                   placeholder={
                     isServerScope
-                      ? customLink || t("profileTab.addLinkPlaceholder", "https://...")
-                      : t(
-                          "profileTab.addLinkPlaceholder",
-                          "https://...",
-                        )
+                      ? customLink ||
+                        t("profileTab.addLinkPlaceholder", "https://...")
+                      : t("profileTab.addLinkPlaceholder", "https://...")
                   }
                   className="h-10 text-xs"
                 />
@@ -395,6 +411,53 @@ export default function ProfileTab({
               />
             </div>
           </div>
+
+          {/* Local Cryptographic Identity Fingerprint (global profile) */}
+          {!isServerScope && (
+            <div
+              data-setting-id="identityFingerprint"
+              className="onicord-settings-card space-y-2.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="onicord-settings-section-title flex items-center gap-1.5 m-0">
+                  <span>
+                    {t(
+                      "profileTab.identityFingerprintTitle",
+                      "Huella Criptográfica de Identidad",
+                    )}
+                  </span>
+                </h3>
+              </div>
+              <p className="onicord-settings-row-desc">
+                {t(
+                  "profileTab.identityFingerprintDesc",
+                  "Identificador único derivado de tu clave pública Ed25519 persistente. Compártelo fuera de banda para que tus contactos verifiquen que hablan contigo.",
+                )}
+              </p>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-center min-h-9 w-full bg-onicord-base/60 border border-onicord-border rounded-xl font-mono text-xs font-bold text-onicord-text tracking-wider select-all break-all">
+                  {localIdentity?.fingerprint ||
+                    t("common.loading", "Cargando...")}
+                </div>
+                {localIdentity?.fingerprint && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      copyTextToClipboard(localIdentity.fingerprint);
+                      setCopiedFingerprint(true);
+                      setTimeout(() => setCopiedFingerprint(false), 2000);
+                    }}
+                    className="h-9 w-9 flex items-center justify-center rounded-lg bg-onicord-base hover:bg-onicord-overlay border-onicord-border-strong text-onicord-text shrink-0"
+                  >
+                    <MaterialIcon
+                      name={copiedFingerprint ? "check" : "content_copy"}
+                      size={13}
+                    />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN: SCOPE SELECTOR & LIVE PREVIEW */}
@@ -504,7 +567,11 @@ export default function ProfileTab({
               onAvatarClick={() => fileRef.current?.click()}
               onRemoveAvatar={handleRemoveAvatar}
               onBannerClick={() => bannerFileRef.current?.click()}
-              onRemoveBanner={(!isServerScope || Boolean(currentBanner)) ? handleRemoveBanner : undefined}
+              onRemoveBanner={
+                !isServerScope || Boolean(currentBanner)
+                  ? handleRemoveBanner
+                  : undefined
+              }
             />
           </div>
         </div>

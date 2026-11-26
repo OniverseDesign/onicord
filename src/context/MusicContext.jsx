@@ -70,6 +70,7 @@ export function MusicProvider({ profile, activeServer, children }) {
   // Track local audio stream source
   const [localAudioUrl, setLocalAudioUrl] = useState(null);
   const localAudioUrlRef = useRef(null);
+  const lastResolvedListenerTrackRef = useRef(null);
 
   // Synchronization refs
   const channelStateRef = useRef({
@@ -659,6 +660,7 @@ export function MusicProvider({ profile, activeServer, children }) {
 
   // 10. Subscribe to P2P music events ('music:channel-state' and 'music:channel-cmd')
   useEffect(() => {
+    lastResolvedListenerTrackRef.current = null;
     if (!window.electronAPI) return;
 
     const unsubState = window.electronAPI.onMusicChannelState?.((data) => {
@@ -701,10 +703,20 @@ export function MusicProvider({ profile, activeServer, children }) {
       setIsPlaying(Boolean(incoming.isPlaying));
       setRepeatMode(incoming.repeatMode || 0);
 
-      // Pre-resolve stream if listener
+      // Pre-resolve stream if listener (deduplicated per track so 4s state heartbeats do not respawn yt-dlp)
       if (incoming.currentTrack && (incoming.currentTrack.originalUrl || incoming.currentTrack.audioUrl)) {
         const targetUrl = incoming.currentTrack.originalUrl || incoming.currentTrack.audioUrl;
-        window.electronAPI?.resolveAndPrepareStream?.(targetUrl).catch(() => {});
+        const trackKey = incoming.currentTrack.trackId || targetUrl;
+        if (trackKey && lastResolvedListenerTrackRef.current !== trackKey) {
+          lastResolvedListenerTrackRef.current = trackKey;
+          window.electronAPI?.resolveAndPrepareStream?.(targetUrl).catch(() => {
+            if (lastResolvedListenerTrackRef.current === trackKey) {
+              lastResolvedListenerTrackRef.current = null;
+            }
+          });
+        }
+      } else {
+        lastResolvedListenerTrackRef.current = null;
       }
     });
 

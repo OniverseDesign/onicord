@@ -69,13 +69,27 @@ All voice, chat, file sharing, screen streaming, torrent cinema, and synchronize
 
 ## Highlights
 
-* **Serverless P2P Mesh & Headless Node Mode**: Powered by Hyperswarm DHT, WebRTC, and AES-256-GCM encryption backed by SQLite (WAL) and SHA-256 Content-Addressed Storage. Includes **Headless Node Mode ("Modo Nodo")**, freeing Chromium RAM/GPU while keeping your node, swarms, and unread queue active 24/7.
-* **Public P2P Discovery (Discover)**: Browse and join decentralized public communities via DHT with tags, categories, and "Knock to Join" approvals—zero central directories.
-* **Crystal-Clear Voice, Webcam & 60 FPS Multi-Stream**: Adaptive Opus voice mesh, AFK voice channels, drag-and-drop voice moderation, webcam + screen PiP compositing, multi-stream grid views, and digital loopback echo cancellation (AEC).
+* **Serverless P2P Mesh & Headless Node Mode**: Powered by Hyperswarm DHT (Noise XX), authenticated direct Noise TCP, WebRTC, and HKDF/AES-256-GCM encryption (`[E2EE2]:` rooms & X25519 ECDH DMs) backed by SQLite (WAL) and SHA-256 Content-Addressed Storage. Includes **Headless Node Mode ("Modo Nodo")**, freeing Chromium RAM/GPU while keeping your node, swarms, and unread queue active 24/7.
+* **Public P2P Discovery (Discover)**: Browse and join decentralized public communities via an isolated DHT swarm with tags, categories, and "Knock to Join" approvals—zero central directories and zero leakage of private room memberships.
+* **Crystal-Clear Voice, Webcam & 60 FPS Multi-Stream**: Adaptive Opus voice mesh, AFK voice channels, drag-and-drop voice moderation, webcam + screen PiP compositing, multi-stream grid views, digital loopback echo cancellation (AEC), and an optional **"Always Relay" (TURN-only)** toggle for IP privacy.
 * **Synchronized Watch Party, P2P Cinema & Jukebox**: Watch YouTube, web videos, or P2P torrents/magnets in sync with multi-audio/subtitle switching, intelligent voice ducking, and an embedded `yt-dlp` Jukebox.
 * **Rich Chat, Forums & Expressive Freedom**: Forum channels, ephemeral self-destructing messages, NSFW (+18) safeguards, per-server profiles, mosaic media galleries, virtualized HiDPI PDF viewer, Rich Presence activity grouping, webhooks, and RSS ingress.
 * **Adaptive Themes, Vault Backups & Modular Addons (`.onipkg`)**: Light & Dark adaptive themes with live CSS token syncing to sandboxed plugins, drag-and-drop server folders, encrypted `.onipkg` / `.onibackup` vaults, and Bento Dashboard widgets (including Sketchpad, Diagnostics, and Music).
 * **Native MCP Server (`onicord-mcp`)**: Built-in Model Context Protocol server with 10 tools for real-time diagnostics, peer log inspection, WebRTC telemetry, and multi-instance automation.
+
+---
+
+## Privacy, Encryption & Threat Model
+
+Onicord is genuinely serverless: your device connects directly to other peers rather than routing chat or media through a central company server. Understanding that trade-off helps you configure Onicord for your threat model:
+
+* **IP Address Exposure in P2P Calls**: By default, direct P2P data connections and WebRTC calls reveal your IP address to peers you connect with in a room or call (the exact opposite of centralized relays like Discord). If you want to hide your IP during voice/video calls, configure custom STUN/TURN servers and enable **"Always Relay" (`alwaysRelayVoice`)** in **Settings** to force WebRTC ICE candidates strictly through your TURN relay—trading slightly higher latency for IP privacy. Local LAN IP hints are only shared with peers already connected over a verified LAN socket and are suppressed when Always Relay is active.
+* **First Contact Verification (Safety Numbers & TOFU)**: Every node uses a persistent Ed25519 cryptographic identity over Noise XX-authenticated transport (`Hyperswarm` SecretStream and Noise-wrapped direct TCP). To detect man-in-the-middle attacks or key changes on first contact, open any user's profile or DM header to inspect their **Key Fingerprint** and **60-digit Safety Number**. Onicord pins peer keys locally (**Trust On First Use / TOFU**) and alerts you immediately if a peer's public key ever changes.
+* **Hardened Cryptography & Governance**:
+  * **Rooms (`[E2EE2]:` & Rotating Key Epochs)**: Rooms separate their 256-bit DHT routing secret from per-epoch HKDF-SHA256 encryption keys (`keyRing` / `[E2EE2:e<N>]:`), with Ed25519-signed metadata/roles/evictions, manual key rotation, automatic key rotation on ban (blocking banned users from future epochs while keeping returning offline members seamlessly connected), and single time-limited/revocable invites (`CODE#I:<inviteSecret>`).
+  * **Direct Messages (`[E2EE-DM]:`)**: DMs are encrypted pairwise using X25519 ECDH (derived from each peer's Ed25519 identity) + HKDF-SHA256 + AES-256-GCM, preventing unrelated peers from decrypting 1-on-1 conversations.
+  * **Zero Private-Room Leakage**: Public Discover runs on an isolated ephemeral swarm, and private rooms intersect membership privately via nonced HMAC-SHA256 challenges instead of broadcasting plaintext room lists.
+  * **Additional Safeguards**: Token-bucket P2P packet rate limiting, interactive consent modals for remote diagnostic requests, strict room-isolated P2P file transfers with streaming SHA-256 verification, and Chromium `webSecurity: true` with strict Content Security Policy.
 
 ---
 
@@ -85,7 +99,7 @@ For detailed technical references, explore the guides in [`docs/guides/`](docs/g
 
 | Guide | Topics Covered |
 | :--- | :--- |
-| **[Architecture](docs/guides/architecture.md)** | Hyperswarm DHT, WebRTC mesh, AES-256-GCM, SQLite WAL & CAS, Headless Node Mode |
+| **[Architecture](docs/guides/architecture.md)** | Hyperswarm Noise XX mesh, WebRTC + Always Relay, `[E2EE2]:` & ECDH DMs, Safety Numbers/TOFU, Security & Threat Model, SQLite WAL & CAS |
 | **[Features Guide](docs/guides/features.md)** | Discover, Watch Party, Torrent Cinema, Forums, Ephemeral Chat, Webhooks, Backups & Plugins |
 | **[MCP Server (`onicord-mcp`)](docs/guides/mcp-server.md)** | Multi-instance bridge setup, JSON config, and all 10 AI diagnostic/control tools |
 | **[Development & Packaging](docs/guides/development.md)** | Prerequisites, local setup, i18n/theme audit scripts, tech stack, and `electron-builder` targets |

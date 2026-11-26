@@ -5,6 +5,7 @@ const {
   BrowserWindow,
   session,
   protocol,
+  net,
   shell,
   Tray,
   Menu,
@@ -13,6 +14,7 @@ const {
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const { pathToFileURL } = require("url");
 const diagService = require("./services/diagService.cjs");
 
 // Configure Chromium and V8 flags for DXGI capture, WebAssembly JSPI, Wasm EH, SharedArrayBuffer, Gamepads/HID, and cross-origin isolation
@@ -28,6 +30,18 @@ app.commandLine.appendSwitch("enable-gpu-rasterization");
 app.commandLine.appendSwitch("enable-zero-copy");
 app.commandLine.appendSwitch("ignore-gpu-blocklist");
 app.commandLine.appendSwitch("canvas-oop-rasterization");
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "onicord-media",
+    privileges: {
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+]);
 
 const PROTOCOL_PREFIX = "onicord"; 
 
@@ -140,27 +154,30 @@ function handleOnipkgFile(filePath) {
 
 function handleDeepLink(urlStr) {
   try {
-    // Format 1: onicord://join/ROOMCODE (standard DHT join)
-    const match = urlStr.match(/onicord:\/\/join\/([A-F0-9]{8})/i);
+    // Format 1: onicord://join/ROOMCODE or onicord://join/ROOMCODE#(I:)?SECRET
+    const match = urlStr.match(/onicord:\/\/join\/([A-F0-9]{8})(?:#((?:I:)?[A-Za-z0-9_-]{32,64}))?/i);
     if (match && match[1]) {
       const code = match[1].toUpperCase();
-      console.log(`[Deep Link] Código de invitación detectado: ${code}`);
+      const secret = match[2] ? match[2].trim() : null;
+      const token = secret ? `${code}#${secret}` : code;
+      console.log(`[Deep Link] Código de invitación detectado: ${code}${secret ? "#***" : ""}`);
       if (global.mainWindow && !global.mainWindow.webContents.isDestroyed()) {
-        global.mainWindow.webContents.send("onicord:deep-link", code);
+        global.mainWindow.webContents.send("onicord:deep-link", token);
       } else {
-        global.pendingDeepLink = code;
+        global.pendingDeepLink = token;
       }
       return;
     }
 
-    // Format 2: onicord://direct:IP:PORT/ROOMCODE (Direct TCP / Port Forwarding)
-    const directMatch = urlStr.match(/onicord:\/\/direct:([^:\/]+):(\d+)\/([A-F0-9]{8})/i);
+    // Format 2: onicord://direct:IP:PORT/ROOMCODE or onicord://direct:IP:PORT/ROOMCODE#(I:)?SECRET
+    const directMatch = urlStr.match(/onicord:\/\/direct:([^:\/]+):(\d+)\/([A-F0-9]{8})(?:#((?:I:)?[A-Za-z0-9_-]{32,64}))?/i);
     if (directMatch) {
       const ip = directMatch[1];
       const port = parseInt(directMatch[2], 10);
       const code = directMatch[3].toUpperCase();
-      const payload = { ip, port, code };
-      console.log(`[Deep Link] Enlace de conexión directa detectado: ${ip}:${port} / ${code}`);
+      const roomSecret = directMatch[4] ? directMatch[4].trim() : null;
+      const payload = { ip, port, code, roomSecret };
+      console.log(`[Deep Link] Enlace de conexión directa detectado: ${ip}:${port} / ${code}${roomSecret ? "#***" : ""}`);
       if (global.mainWindow && !global.mainWindow.webContents.isDestroyed()) {
         global.mainWindow.webContents.send("onicord:direct-link", payload);
       } else {
@@ -629,8 +646,8 @@ function createWindow() {
       backgroundThrottling: true,
       plugins: true,
       pdfViewerEnabled: true,
-      webSecurity: false,
-      allowRunningInsecureContent: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
     },
     backgroundColor: "#1e1e2e",
   });
@@ -838,166 +855,178 @@ function createWindow() {
     }
   );
 
-  session.defaultSession.protocol.registerFileProtocol(
-    "onicord-media",
-    (request, callback) => {
-      // Isolation protection: block any requests originating from unauthorized remote origins
-      const referrer = (request.referrer || "").toLowerCase();
-      const origin = (request.headers?.Origin || request.headers?.origin || "").toLowerCase();
-      const isAllowedLocalHttp = (u) =>
-        u === "http://localhost" ||
-        u.startsWith("http://localhost:") ||
-        u.startsWith("http://localhost/") ||
-        u === "http://127.0.0.1" ||
-        u.startsWith("http://127.0.0.1:") ||
-        u.startsWith("http://127.0.0.1/");
-      const isRemote = (u) =>
-        (u.startsWith("http://") || u.startsWith("https://")) && !isAllowedLocalHttp(u);
+  session.defaultSession.protocol.handle("onicord-media", async (request) => {
+    // Isolation protection: block any requests originating from unauthorized remote origins
+    const referrer = (request.referrer || "").toLowerCase();
+    const origin = (request.headers.get("Origin") || request.headers.get("origin") || "").toLowerCase();
+    const isAllowedLocalHttp = (u) =>
+      u === "http://localhost" ||
+      u.startsWith("http://localhost:") ||
+      u.startsWith("http://localhost/") ||
+      u === "http://127.0.0.1" ||
+      u.startsWith("http://127.0.0.1:") ||
+      u.startsWith("http://127.0.0.1/");
+    const isRemote = (u) =>
+      (u.startsWith("http://") || u.startsWith("https://")) && !isAllowedLocalHttp(u);
 
-      if (isRemote(referrer) || isRemote(origin)) {
-        diagService.log("warn", "Security", `[Security] Acceso denegado a onicord-media desde origen remoto: ${referrer || origin}`);
-        return callback({ error: -10 }); // net::ERR_ACCESS_DENIED
-      }
+    if (isRemote(referrer) || isRemote(origin)) {
+      diagService.log("warn", "Security", `[Security] Acceso denegado a onicord-media desde origen remoto: ${referrer || origin}`);
+      return new Response("Forbidden", { status: 403 });
+    }
 
-      let urlPath = request.url.replace("onicord-media://", "");
-      urlPath = urlPath.split("?")[0];
+    let urlPath = request.url.replace("onicord-media://", "");
+    urlPath = urlPath.split("?")[0];
 
-      // Support Content-Addressed Storage: onicord-media://cas/<sha256>.<ext>
-      if (urlPath.startsWith("cas/")) {
-        const casRef = decodeURIComponent(urlPath.slice("cas/".length));
-        const { CasStore } = require("./storage/casStore.cjs");
-        let resolvedCasPath = CasStore.getInstance(app.getPath("userData")).resolveFilePath(casRef);
-        if (!resolvedCasPath) {
-          // Local multi-instance fallback (e.g. dev-user-2 <-> %APPDATA%/onicord)
-          const altDirs = [
-            path.join(process.cwd(), "dev-user-2"),
-            process.env.APPDATA ? path.join(process.env.APPDATA, "onicord") : null,
-          ].filter(Boolean);
-          for (const altDir of altDirs) {
-            if (fs.existsSync(path.join(altDir, "cas"))) {
-              resolvedCasPath = CasStore.getInstance(altDir).resolveFilePath(casRef);
-              if (resolvedCasPath) break;
-            }
+    // Support Content-Addressed Storage: onicord-media://cas/<sha256>.<ext>
+    if (urlPath.startsWith("cas/")) {
+      const casRef = decodeURIComponent(urlPath.slice("cas/".length));
+      const { CasStore } = require("./storage/casStore.cjs");
+      let resolvedCasPath = CasStore.getInstance(app.getPath("userData")).resolveFilePath(casRef);
+      if (!resolvedCasPath) {
+        // Local multi-instance fallback (e.g. dev-user-2 <-> %APPDATA%/onicord)
+        const altDirs = [
+          path.join(process.cwd(), "dev-user-2"),
+          process.env.APPDATA ? path.join(process.env.APPDATA, "onicord") : null,
+        ].filter(Boolean);
+        for (const altDir of altDirs) {
+          if (fs.existsSync(path.join(altDir, "cas"))) {
+            resolvedCasPath = CasStore.getInstance(altDir).resolveFilePath(casRef);
+            if (resolvedCasPath) break;
           }
         }
-        if (resolvedCasPath) {
-          urlPath = resolvedCasPath;
-        }
-      } else {
-        if (urlPath.startsWith("win-disk/")) {
-          urlPath = urlPath.replace("win-disk/", "");
-        }
-        urlPath = decodeURIComponent(urlPath);
+      }
+      if (resolvedCasPath) {
+        urlPath = resolvedCasPath;
+      }
+    } else {
+      if (urlPath.startsWith("win-disk/")) {
+        urlPath = urlPath.replace("win-disk/", "");
+      }
+      urlPath = decodeURIComponent(urlPath);
 
-        if (/^[a-zA-Z]\//.test(urlPath)) {
-          urlPath = urlPath.charAt(0) + ":" + urlPath.slice(1);
-        }
+      if (/^[a-zA-Z]\//.test(urlPath)) {
+        urlPath = urlPath.charAt(0) + ":" + urlPath.slice(1);
+      }
+    }
+
+    if (urlPath.includes("..")) {
+      console.warn(`🚨 Bloqueado intento de Path Traversal: ${urlPath}`);
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    try {
+      const absolutePath = path.resolve(urlPath);
+      const baseNameLower = path.basename(absolutePath).toLowerCase();
+      const ext = path.extname(absolutePath).toLowerCase();
+      const sensitiveFiles = [
+        "drive-tokens.enc",
+        "drive-oauth-config.json",
+        ".env",
+        "app_config.db",
+        "app_config.db-wal",
+        "app_config.db-shm",
+      ];
+      if (sensitiveFiles.includes(baseNameLower)) {
+        console.warn(`🚨 Bloqueado acceso a archivo sensible: ${baseNameLower}`);
+        return new Response("Forbidden", { status: 403 });
+      }
+      const listaNegra = [
+        ".js",
+        ".cjs",
+        ".mjs",
+        ".vbs",
+        ".bat",
+        ".cmd",
+        ".exe",
+        ".sh",
+        ".lnk",
+        ".html",
+      ];
+
+      if (listaNegra.includes(ext)) {
+        console.warn(
+          `🚨 Bloqueado intento de cargar archivo ejecutable/script: ${ext}`,
+        );
+        return new Response("Forbidden", { status: 403 });
       }
 
-      if (urlPath.includes("..")) {
-        console.warn(`🚨 Bloqueado intento de Path Traversal: ${urlPath}`);
-        return callback({ error: -10 });
+      const extensionesSeguras = [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".webp",
+        ".svg",
+        ".mp4",
+        ".webm",
+        ".ogg",
+        ".mp3",
+        ".wav",
+        ".opus",
+        ".zip",
+        ".rar",
+        ".7z",
+        ".tar",
+        ".gz",
+        ".pdf",
+        ".txt",
+        ".json",
+      ];
+
+      if (!extensionesSeguras.includes(ext)) {
+        console.warn(
+          `🚨 Bloqueado intento de cargar extensión no permitida: ${ext}`,
+        );
+        return new Response("Forbidden", { status: 403 });
       }
 
-      try {
-        const absolutePath = path.resolve(urlPath);
-        const baseNameLower = path.basename(absolutePath).toLowerCase();
-        const ext = path.extname(absolutePath).toLowerCase();
-        const sensitiveFiles = [
-          "drive-tokens.enc",
-          "drive-oauth-config.json",
-          ".env",
-          "app_config.db",
-          "app_config.db-wal",
-          "app_config.db-shm",
-        ];
-        if (sensitiveFiles.includes(baseNameLower)) {
-          console.warn(`🚨 Bloqueado acceso a archivo sensible: ${baseNameLower}`);
-          return callback({ error: -10 });
-        }
-        const listaNegra = [
-          ".js",
-          ".cjs",
-          ".mjs",
-          ".vbs",
-          ".bat",
-          ".cmd",
-          ".exe",
-          ".sh",
-          ".lnk",
-          ".html",
-        ];
-
-        if (listaNegra.includes(ext)) {
-          console.warn(
-            `🚨 Bloqueado intento de cargar archivo ejecutable/script: ${ext}`,
-          );
-          return callback({ error: -10 });
-        }
-
-        const extensionesSeguras = [
-          ".jpg",
-          ".jpeg",
-          ".png",
-          ".gif",
-          ".webp",
-          ".svg",
-          ".mp4",
-          ".webm",
-          ".ogg",
-          ".mp3",
-          ".wav",
-          ".opus",
-          ".zip",
-          ".rar",
-          ".7z",
-          ".tar",
-          ".gz",
-          ".pdf",
-          ".txt",
-          ".json",
-        ];
-
-        if (!extensionesSeguras.includes(ext)) {
-          console.warn(
-            `🚨 Bloqueado intento de cargar extensión no permitida: ${ext}`,
-          );
-          return callback({ error: -10 });
-        }
-
-        const mimeTypes = {
-          ".pdf": "application/pdf",
-          ".png": "image/png",
-          ".jpg": "image/jpeg",
-          ".jpeg": "image/jpeg",
-          ".gif": "image/gif",
-          ".webp": "image/webp",
-          ".svg": "image/svg+xml",
-          ".ico": "image/x-icon",
-          ".mp4": "video/mp4",
-          ".webm": "video/webm",
-          ".mp3": "audio/mpeg",
-          ".wav": "audio/wav",
-          ".ogg": "audio/ogg",
-          ".txt": "text/plain",
-        };
-
-        if (ext === ".pdf") {
-          diagService.log("info", "Console", `[OniDiag][PDF] Protocol request for PDF: ${absolutePath}`);
-        }
-
-        const mimeType = mimeTypes[ext];
-        if (mimeType) {
-          return callback({ path: absolutePath, mimeType });
-        }
-
-        return callback({ path: absolutePath });
-      } catch (error) {
-        console.error("Error decodificando ruta en protocolo:", error);
-        return callback({ error: -2 });
+      if (!fs.existsSync(absolutePath)) {
+        return new Response("Not Found", { status: 404 });
       }
-    },
-  );
+
+      const mimeTypes = {
+        ".pdf": "application/pdf",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".svg": "image/svg+xml",
+        ".ico": "image/x-icon",
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mp3": "audio/mpeg",
+        ".wav": "audio/wav",
+        ".ogg": "audio/ogg",
+        ".opus": "audio/opus",
+        ".txt": "text/plain",
+      };
+
+      if (ext === ".pdf") {
+        diagService.log("info", "Console", `[OniDiag][PDF] Protocol request for PDF: ${absolutePath}`);
+      }
+
+      const fileResp = await net.fetch(pathToFileURL(absolutePath).toString(), {
+        headers: request.headers,
+      });
+      const headers = new Headers(fileResp.headers);
+      headers.set("Access-Control-Allow-Origin", "*");
+      headers.set("Cross-Origin-Resource-Policy", "cross-origin");
+      const mimeType = mimeTypes[ext];
+      if (mimeType) {
+        headers.set("Content-Type", mimeType);
+      }
+
+      return new Response(fileResp.body, {
+        status: fileResp.status,
+        statusText: fileResp.statusText,
+        headers,
+      });
+    } catch (error) {
+      console.error("Error decodificando ruta en protocolo:", error);
+      return new Response("Internal Error", { status: 500 });
+    }
+  });
 
   global.mainWindow.webContents.on("did-finish-load", () => {
     if (global.pendingDeepLink) {
@@ -1335,10 +1364,10 @@ app.whenReady().then(async () => {
 
     const csp = isDev
       ? [
-          "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://s.ytimg.com https://*.ytimg.com https://*.google.com https://*.doubleclick.net https://static.doubleclick.net https://*.googlevideo.com https://*.googleapis.com https://www.tiktok.com https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: onicord-media: http://127.0.0.1:*; media-src 'self' data: blob: mediastream: https: onicord-media: http://127.0.0.1:* http://localhost:*; object-src 'self' file: blob:; frame-src 'self' file: blob: onicord-media: http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; child-src 'self' file: blob: onicord-media: http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://*.google.com https://*.doubleclick.net https://www.tiktok.com https://www.instagram.com https:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* ws: wss: stun: turn: https:;",
+          "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://s.ytimg.com https://*.ytimg.com https://*.google.com https://*.doubleclick.net https://static.doubleclick.net https://*.googlevideo.com https://*.googleapis.com https://www.tiktok.com https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: onicord-media: http://127.0.0.1:* http://localhost:*; media-src 'self' data: blob: mediastream: https: onicord-media: http://127.0.0.1:* http://localhost:*; object-src 'self' file: blob:; frame-src 'self' file: blob: onicord-media: http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; child-src 'self' file: blob: onicord-media: http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://*.google.com https://*.doubleclick.net https://www.tiktok.com https://www.instagram.com https:; connect-src 'self' data: blob: onicord-media: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws: wss: stun: turn: https:;",
         ]
       : [
-          "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://s.ytimg.com https://*.ytimg.com https://*.google.com https://*.doubleclick.net https://static.doubleclick.net https://*.googlevideo.com https://*.googleapis.com https://www.tiktok.com https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: onicord-media: http://127.0.0.1:*; media-src 'self' data: blob: mediastream: https: onicord-media: http://127.0.0.1:* http://localhost:*; object-src 'self' file: blob:; frame-src 'self' file: blob: onicord-media: http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; child-src 'self' file: blob: onicord-media: http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://*.google.com https://*.doubleclick.net https://www.tiktok.com https://www.instagram.com https:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:* ws: wss: stun: turn: https:;",
+          "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://s.ytimg.com https://*.ytimg.com https://*.google.com https://*.doubleclick.net https://static.doubleclick.net https://*.googlevideo.com https://*.googleapis.com https://www.tiktok.com https://www.instagram.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: onicord-media: http://127.0.0.1:* http://localhost:*; media-src 'self' data: blob: mediastream: https: onicord-media: http://127.0.0.1:* http://localhost:*; object-src 'self' file: blob:; frame-src 'self' file: blob: onicord-media: http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://www.tiktok.com https://www.instagram.com https:; child-src 'self' file: blob: onicord-media: http://127.0.0.1:* http://localhost:* https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://*.youtube-nocookie.com https://*.google.com https://*.doubleclick.net https://www.tiktok.com https://www.instagram.com https:; connect-src 'self' data: blob: onicord-media: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws: wss: stun: turn: https:;",
         ];
     responseHeaders["Content-Security-Policy"] = csp;
     callback({ responseHeaders });

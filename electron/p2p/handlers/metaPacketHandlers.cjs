@@ -2,7 +2,12 @@
 
 const diagService = require("../../services/diagService.cjs");
 const { ServerStore } = require("../serverStore.cjs");
-const { checkAdminPermission } = require("../roomMetaStore.cjs");
+const {
+  checkAdminPermission,
+  isAuthorizedSignerKey,
+  buildSignableActiveInvite,
+  buildSignableKeyEnvelope,
+} = require("../roomMetaStore.cjs");
 
 /**
  * Metadata, sync, discovery, membership, knock, eviction, and diagnostics packet handler.
@@ -30,10 +35,10 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
     return true;
   }
 
-  if (type === "onicord:discover-request") {
+  if (type === "onicord:discover-request" || type === "onicord:discover-req") {
     try {
       const discoverService = require("../../services/discoverService.cjs");
-      discoverService.syncAndAnnounceLocalServers(peerId).catch(() => {});
+      discoverService.syncAndAnnounceLocalServers().catch(() => {});
     } catch (_) {}
     return true;
   }
@@ -108,6 +113,7 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
             if (roomManager._callbacks.onPeerUpdated && currentCode === targetRoom) {
               roomManager._callbacks.onPeerUpdated({
                 id: peer.userId,
+                userId: peer.userId,
                 peerId: peer.id,
                 nickname: meta.savedMembers[m.id].nickname,
                 avatar: meta.savedMembers[m.id].avatar,
@@ -116,7 +122,8 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
                 profileColor: meta.savedMembers[m.id].profileColor,
                 customStatus: meta.savedMembers[m.id].customStatus,
                 globalNickname: meta.savedMembers[m.id].globalNickname,
-                online: true,
+                status: peer.status || "online",
+                online: peer.status !== "invisible",
                 activity: peer.activity || null,
                 showRichPresence: peer.showRichPresence,
                 flame: peer.flame,
@@ -215,6 +222,268 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
     return true;
   }
 
+  if (type === "room-key-sync" && payload && payload.roomCode) {
+    try {
+      const code = String(payload.roomCode).trim().toUpperCase();
+      if (!roomManager.isPeerInRoom(peerId, code)) return true;
+      if (!roomManager.rooms?.has(code) && roomManager.roomCode !== code) return true;
+
+      const meta = await roomManager.roomMetaStore?.load(code);
+      if (meta && peer?.userId && Array.isArray(meta.bannedUsers) && meta.bannedUsers.includes(peer.userId)) {
+        return true;
+      }
+
+      const cryptoService = require("../../services/cryptoService.cjs");
+      const incomingEnvelopes = Array.isArray(payload.keyEnvelopes) ? payload.keyEnvelopes : [];
+      const currentState = roomManager.getRoomKeyState(code);
+      const nextRing = { ...(currentState.keyRing || {}) };
+      const envByEpoch = new Map();
+      for (const existingEnv of (currentState.keyEnvelopes || [])) {
+        if (existingEnv && Number(existingEnv.epoch) >= 2) {
+          envByEpoch.set(Number(existingEnv.epoch), existingEnv);
+        }
+      }
+
+      let maxVerifiedEpoch = currentState.currentEpoch || 1;
+      let changed = false;
+
+      for (const env of incomingEnvelopes) {
+        if (!env || typeof env !== "object") continue;
+        const ep = Number(env.epoch) || 0;
+        if (ep < 2 || !cryptoService.isValidRoomSecret(env.secret)) continue;
+
+        const signerPub =
+          typeof env.signedByPublicKey === "string" ? env.signedByPublicKey.trim().toLowerCase() : null;
+        if (!signerPub || typeof env.signature !== "string") continue;
+
+        if (meta?.ownerPublicKey) {
+          if (!isAuthorizedSignerKey(meta, signerPub)) {
+            console.warn(`[room-key-sync] Rejected unauthorized signer ${signerPub} for ${code} epoch ${ep}`);
+            continue;
+          }
+        } else if (meta?.ownerId && peer?.userId && peer.userId !== meta.ownerId && !checkAdminPermission(meta, peer.userId)) {
+          continue;
+        }
+
+        const sigOk = cryptoService.verifyPayload(
+          buildSignableKeyEnvelope(code, env),
+          env.signature,
+          signerPub
+        );
+        if (!sigOk) {
+          console.warn(`[room-key-sync] Rejected invalid signature for ${code} epoch ${ep}`);
+          continue;
+        }
+
+        if (nextRing[String(ep)] !== env.secret.trim()) {
+          nextRing[String(ep)] = env.secret.trim();
+          changed = true;
+        }
+        envByEpoch.set(ep, { ...env, roomCode: code, epoch: ep, secret: env.secret.trim() });
+        if (ep > maxVerifiedEpoch) {
+          maxVerifiedEpoch = ep;
+        }
+      }
+
+      if (changed || maxVerifiedEpoch > (currentState.currentEpoch || 1)) {
+        const mergedEnvelopes = Array.from(envByEpoch.values()).sort((a, b) => Number(a.epoch) - Number(b.epoch));
+        roomManager._roomKeyRings?.set(code, {
+          currentEpoch: maxVerifiedEpoch,
+          keyRing: nextRing,
+          keyEnvelopes: mergedEnvelopes,
+        });
+        const serverStore = new ServerStore(roomManager.userDataPath);
+        const updatedServer = await serverStore.updateRoomKeyRing(code, {
+          currentKeyEpoch: maxVerifiedEpoch,
+          keyRing: nextRing,
+          keyEnvelopes: mergedEnvelopes,
+        });
+        if (updatedServer) {
+          global.mainWindow?.webContents.send("server:updated", {
+            ...updatedServer,
+            savedMembers: meta?.savedMembers || updatedServer.savedMembers || {},
+          });
+        }
+      }
+    } catch (err) {
+      console.error("[p2p] room-key-sync error:", err.message);
+    }
+    return true;
+  }
+
+  if (type === "invite-redeem-req" && payload && payload.roomCode && payload.requestId) {
+    try {
+      const code = String(payload.roomCode).trim().toUpperCase();
+      if (!roomManager.rooms?.has(code) && roomManager.roomCode !== code) return true;
+      if (!roomManager.roomMetaStore) return true;
+
+      const meta = await roomManager.roomMetaStore.load(code);
+      const inv = meta?.activeInvite || null;
+      const sendRes = (resPayload) => {
+        roomManager.p2pService._sendToPeer(peerId, "invite-redeem-res", {
+          requestId: payload.requestId,
+          roomCode: code,
+          ...resPayload,
+        });
+      };
+
+      const cryptoService = require("../../services/cryptoService.cjs");
+      if (!inv || !cryptoService.isValidRoomSecret(inv.inviteSecret)) {
+        sendRes({ ok: false, reason: "INVALID" });
+        return true;
+      }
+
+      if (meta?.ownerPublicKey) {
+        const invSigner = typeof inv.signedByPublicKey === "string" ? inv.signedByPublicKey.trim().toLowerCase() : null;
+        if (
+          !invSigner ||
+          !isAuthorizedSignerKey(meta, invSigner) ||
+          !cryptoService.verifyPayload(buildSignableActiveInvite(code, inv), inv.signature, invSigner)
+        ) {
+          sendRes({ ok: false, reason: "INVALID" });
+          return true;
+        }
+      }
+
+      const expectedHash = cryptoService.hashInviteSecret(inv.inviteSecret);
+      if (!payload.inviteSecretHash || expectedHash !== String(payload.inviteSecretHash).trim().toLowerCase()) {
+        sendRes({ ok: false, reason: "INVALID" });
+        return true;
+      }
+
+      if (inv.revoked) {
+        sendRes({ ok: false, reason: "REVOKED" });
+        return true;
+      }
+
+      if (inv.expiresAt !== undefined && inv.expiresAt !== null && Date.now() > Number(inv.expiresAt) + 60000) {
+        sendRes({ ok: false, reason: "EXPIRED" });
+        return true;
+      }
+
+      const applicantId = payload.applicant?.id || peer?.userId || null;
+      if (applicantId && Array.isArray(meta?.bannedUsers) && meta.bannedUsers.includes(applicantId)) {
+        sendRes({ ok: false, reason: "BANNED" });
+        return true;
+      }
+
+      const mode = payload.mode === "preview" ? "preview" : "redeem";
+      const memberCount = meta?.savedMembers ? Object.keys(meta.savedMembers).length : 1;
+      const onlinePeers = roomManager.getPeersForRoom ? roomManager.getPeersForRoom(code) : [];
+
+      if (mode === "preview") {
+        sendRes({
+          ok: true,
+          preview: true,
+          name: meta.name || `Servidor ${code.slice(0, 4)}`,
+          icon: meta.icon || null,
+          memberCount: Math.max(1, memberCount),
+          onlineCount: onlinePeers.length + 1,
+          expiresAt: inv.expiresAt || null,
+        });
+        return true;
+      }
+
+      const roomRoutingSecret = roomManager.getRoomSecret(code);
+      const keyState = roomManager.getRoomKeyState(code);
+      sendRes({
+        ok: true,
+        preview: false,
+        name: meta.name || `Servidor ${code.slice(0, 4)}`,
+        icon: meta.icon || null,
+        expiresAt: inv.expiresAt || null,
+        roomRoutingSecret,
+        currentKeyEpoch: keyState.currentEpoch,
+        keyRing: keyState.keyRing,
+        keyEnvelopes: keyState.keyEnvelopes,
+      });
+    } catch (err) {
+      console.error("[p2p] invite-redeem-req error:", err.message);
+    }
+    return true;
+  }
+
+  if (type === "invite-redeem-res" && payload && payload.requestId) {
+    const waiter = roomManager._pendingInviteRedeems?.get(payload.requestId);
+    if (waiter) {
+      roomManager._pendingInviteRedeems.delete(payload.requestId);
+      waiter(payload);
+    }
+    return true;
+  }
+
+  if (type === "room-secret-migrate" && payload && payload.roomCode) {
+    try {
+      const code = String(payload.roomCode).trim().toUpperCase();
+      if (!roomManager.rooms?.has(code) && roomManager.roomCode !== code) return true;
+      const cryptoService = require("../../services/cryptoService.cjs");
+      if (!cryptoService.isValidRoomSecret(payload.roomSecret)) return true;
+
+      const meta = await roomManager.roomMetaStore?.load(code);
+      const signerPub =
+        typeof payload.signedByPublicKey === "string"
+          ? payload.signedByPublicKey.trim().toLowerCase()
+          : null;
+      const expectedOwnerPub = meta?.ownerPublicKey
+        ? String(meta.ownerPublicKey).trim().toLowerCase()
+        : null;
+      // Verify against anchored ownerPublicKey (or allow initial anchor ONLY if authenticated peer IS the room owner)
+      const senderIsKnownOwner = Boolean(meta?.ownerId && peer?.userId === meta.ownerId);
+      if (!signerPub || (expectedOwnerPub ? signerPub !== expectedOwnerPub : !senderIsKnownOwner)) {
+        console.warn(`[room-secret-migrate] Rejected unauthorized secret migration for ${code} from ${peerId}`);
+        return true;
+      }
+
+      const validSig = cryptoService.verifyPayload(
+        {
+          roomCode: code,
+          roomSecret: payload.roomSecret.trim(),
+          migratedAt: Number(payload.migratedAt),
+        },
+        payload.signature,
+        signerPub
+      );
+      if (!validSig) {
+        console.warn(`[room-secret-migrate] Invalid Ed25519 signature for ${code}`);
+        return true;
+      }
+
+      const cleanSecret = payload.roomSecret.trim();
+      const serverStore = new ServerStore(roomManager.userDataPath);
+      await serverStore.setRoomSecret(code, cleanSecret);
+      roomManager._roomSecrets?.set(code, cleanSecret);
+
+      if (roomManager.roomMetaStore && meta) {
+        if (!meta.ownerPublicKey) meta.ownerPublicKey = signerPub;
+        meta.roomSecretMigration = {
+          roomCode: code,
+          roomSecret: cleanSecret,
+          migratedAt: Number(payload.migratedAt),
+          signedByPublicKey: signerPub,
+          signature: payload.signature,
+        };
+        await roomManager.roomMetaStore.save(code, meta);
+      }
+
+      await roomManager.p2pService.joinRoom(code, {
+        roomSecret: cleanSecret,
+        keepLegacyTopic: true,
+      });
+
+      const updatedServer = await serverStore.getByRoomCode(code);
+      if (updatedServer) {
+        global.mainWindow?.webContents.send("server:updated", {
+          ...updatedServer,
+          savedMembers: meta?.savedMembers || updatedServer.savedMembers || {},
+        });
+      }
+      roomManager._callbacks?.onServerMetaUpdated?.(code, meta || {});
+    } catch (err) {
+      console.error("[p2p] room-secret-migrate error:", err.message);
+    }
+    return true;
+  }
+
   if (type === "evict" && payload) {
     const { type: evictType, roomCode, name } = payload;
     const normalizedCode = String(roomCode || "").trim().toUpperCase();
@@ -236,7 +505,41 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
           console.warn(`[P2P Evict] Ignored eviction attempt against owner in room ${normalizedCode}`);
           return true;
         }
-        if (peer.userId && (localMeta?.ownerId || localMeta?.creatorID)) {
+        if (localMeta?.ownerPublicKey) {
+          const cryptoService = require("../../services/cryptoService.cjs");
+          const signerPub =
+            typeof payload.signedByPublicKey === "string"
+              ? payload.signedByPublicKey.trim().toLowerCase()
+              : null;
+          const ownerPub = String(localMeta.ownerPublicKey).trim().toLowerCase();
+          const adminPubs = new Set(
+            Object.values(localMeta.adminPublicKeys || {})
+              .map((k) => String(k || "").trim().toLowerCase())
+              .filter(Boolean)
+          );
+          const isAllowedSigner = Boolean(signerPub && (signerPub === ownerPub || adminPubs.has(signerPub)));
+          const evictTs = Number(payload.timestamp) || 0;
+          const fresh = evictTs > 0 && Math.abs(Date.now() - evictTs) <= 5 * 60 * 1000;
+          const sigOk = Boolean(
+            isAllowedSigner &&
+            fresh &&
+            typeof payload.signature === "string" &&
+            cryptoService.verifyPayload(
+              {
+                type: evictType,
+                roomCode: normalizedCode,
+                targetUserId: payload.targetUserId || myId,
+                timestamp: evictTs,
+              },
+              payload.signature,
+              signerPub
+            )
+          );
+          if (!sigOk) {
+            console.warn(`[P2P Evict] Rejected forged/unsigned eviction for room ${normalizedCode} from peer ${peerId}`);
+            return true;
+          }
+        } else if (peer.userId && (localMeta?.ownerId || localMeta?.creatorID)) {
           const isAuthorizedEvictor =
             localMeta.ownerId === peer.userId ||
             localMeta.creatorID === peer.userId ||
@@ -270,12 +573,62 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
   }
 
   if (type === "diag-request" && payload) {
+    const sharedRooms = roomManager.p2pService.peerRooms.get(peerId);
+    if (!sharedRooms || sharedRooms.size === 0) {
+      console.warn(`[Diagnostics] Rechazada petición diag-request de ${peerId}: no comparte sala activa.`);
+      return true;
+    }
+
+    const now = Date.now();
+    const lastReqAt = roomManager._diagCooldownByPeer?.get(peerId) || 0;
+    if (now - lastReqAt < 30000) {
+      console.warn(`[Diagnostics] Cooldown activo para diag-request de ${peerId}.`);
+      return true;
+    }
+    roomManager._diagCooldownByPeer?.set(peerId, now);
+
+    const requestId = payload.requestId || require("crypto").randomUUID();
     diagService.log("info", "Diagnostics", `Received log request from peer ${peerId}`);
-    const sanitizedLogs = diagService.sanitizeLogs(diagService.getLocalLogs());
-    roomManager.p2pService._sendToPeer(peerId, "diag-response", {
-      requestId: payload.requestId,
-      nickname: roomManager.profile?.nickname || "Peer",
-      logs: sanitizedLogs,
+
+    if (process.env.ONICORD_DEV_ALLOW_DIAG === "1") {
+      const sanitizedLogs = diagService.sanitizeLogs(diagService.getLocalLogs());
+      roomManager.p2pService._sendToPeer(peerId, "diag-response", {
+        requestId,
+        nickname: roomManager.profile?.nickname || "Peer",
+        logs: sanitizedLogs,
+      });
+      return true;
+    }
+
+    const nickname = peer?.nickname || "Peer";
+    const expiresAt = now + 60000;
+    const timer = setTimeout(() => {
+      if (roomManager._pendingDiagRequests?.has(requestId)) {
+        roomManager._pendingDiagRequests.delete(requestId);
+        roomManager.p2pService._sendToPeer(peerId, "diag-response", {
+          requestId,
+          rejected: true,
+          reason: "timeout",
+          nickname: roomManager.profile?.nickname || "Peer",
+          logs: [],
+        });
+      }
+    }, 60000);
+    if (typeof timer.unref === "function") timer.unref();
+
+    roomManager._pendingDiagRequests?.set(requestId, {
+      requestId,
+      peerId,
+      nickname,
+      expiresAt,
+      timer,
+    });
+
+    roomManager._callbacks?.onDiagConsentRequest?.({
+      requestId,
+      peerId,
+      nickname,
+      expiresAt,
     });
     return true;
   }
@@ -310,7 +663,7 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
   if (type === "onicord:discover-announce" && payload) {
     try {
       const discoverService = require("../../services/discoverService.cjs");
-      discoverService.handleIncomingAnnouncement(payload, false);
+      discoverService.handleIncomingAnnouncement(payload, false, peerId);
     } catch (err) {
       console.error("[p2p] onicord:discover-announce error:", err.message);
     }
@@ -320,9 +673,7 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
   if (type === "onicord:discover-unannounce" && payload && payload.roomCode) {
     try {
       const discoverService = require("../../services/discoverService.cjs");
-      discoverService.discoveredServers.delete(String(payload.roomCode).toUpperCase());
-      discoverService._saveCacheDebounced();
-      discoverService._broadcast("plugins:discover-servers-updated", discoverService.getDiscoveredServers());
+      await discoverService.handleIncomingUnannounce(payload, peerId);
     } catch (err) {
       console.error("[p2p] onicord:discover-unannounce error:", err.message);
     }
@@ -341,28 +692,8 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
 
   if (type === "onicord:knock-approved" && payload) {
     try {
-      const myProfile = roomManager.profile || roomManager.p2pService?.profile;
-      const myId = myProfile?.id;
-      if (payload.applicantId && payload.applicantId === myId && payload.roomCode) {
-        const serverName = payload.serverName || payload.serverData?.name || payload.roomCode;
-        try {
-          const serverService = require("../../services/serverService.cjs");
-          await serverService.joinServer(payload.roomCode, serverName, myProfile);
-          roomManager.connectToRoom(payload.roomCode, false, myProfile, { isBackground: true }).catch(() => {});
-        } catch (joinErr) {
-          console.error("[p2p] Error auto-joining approved server:", joinErr.message);
-        }
-        global.mainWindow?.webContents.send("plugins:show-toast", {
-          title: "¡Solicitud Aprobada!",
-          message: `Tu solicitud para unirte a "${serverName}" ha sido aprobada.`,
-          type: "success",
-        });
-        global.mainWindow?.webContents.send("discover:knock-status-changed", {
-          roomCode: payload.roomCode,
-          status: "approved",
-          serverName,
-        });
-      }
+      const discoverService = require("../../services/discoverService.cjs");
+      await discoverService.handleKnockApproved(payload, roomManager);
     } catch (err) {
       console.error("[p2p] onicord:knock-approved error:", err.message);
     }
@@ -371,18 +702,8 @@ async function handleMetaPacket(roomManager, peerId, type, payload) {
 
   if (type === "onicord:knock-rejected" && payload) {
     try {
-      const myId = roomManager.profile?.id || roomManager.p2pService?.profile?.id;
-      if (payload.applicantId && payload.applicantId === myId) {
-        global.mainWindow?.webContents.send("plugins:show-toast", {
-          title: "Solicitud Rechazada",
-          message: `Tu solicitud para unirte al servidor ${payload.roomCode} fue rechazada.`,
-          type: "warning",
-        });
-        global.mainWindow?.webContents.send("discover:knock-status-changed", {
-          roomCode: payload.roomCode,
-          status: "rejected",
-        });
-      }
+      const discoverService = require("../../services/discoverService.cjs");
+      await discoverService.handleKnockRejected(payload, roomManager);
     } catch (err) {
       console.error("[p2p] onicord:knock-rejected error:", err.message);
     }

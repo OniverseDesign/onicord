@@ -64,22 +64,50 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
       return {
         valid: true,
         code: parsedUrl.roomCode.toUpperCase(),
+        roomSecret: parsedUrl.roomSecret || null,
+        inviteSecret: parsedUrl.inviteSecret || null,
         ip: parsedUrl.ip || null,
         port: parsedUrl.port || null,
       };
     }
 
     const trimmed = inviteInput.replace(/\s+/g, "");
-    if (/^[a-fA-F0-9]{8}$/.test(trimmed)) {
+    const rawManaged = trimmed.match(/^([a-fA-F0-9]{8})#I:([A-Za-z0-9_-]{32,64})$/);
+    if (rawManaged) {
       return {
         valid: true,
-        code: trimmed.toUpperCase(),
+        code: rawManaged[1].toUpperCase(),
+        roomSecret: null,
+        inviteSecret: rawManaged[2],
         ip: null,
         port: null,
       };
     }
 
-    return { valid: false, code: "", ip: null, port: null };
+    const rawWithSecret = trimmed.match(/^([a-fA-F0-9]{8})#([A-Za-z0-9_-]{32,64})$/);
+    if (rawWithSecret) {
+      return {
+        valid: true,
+        code: rawWithSecret[1].toUpperCase(),
+        roomSecret: rawWithSecret[2],
+        inviteSecret: null,
+        ip: null,
+        port: null,
+      };
+    }
+
+    if (/^[a-fA-F0-9]{8}$/.test(trimmed)) {
+      return {
+        valid: true,
+        code: trimmed.toUpperCase(),
+        roomSecret: null,
+        inviteSecret: null,
+        ip: null,
+        port: null,
+      };
+    }
+
+    return { valid: false, code: "", roomSecret: null, inviteSecret: null, ip: null, port: null };
   }, [inviteInput]);
 
   const discordCounts = useMemo(() => {
@@ -243,17 +271,51 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
     }
   };
 
+  const resolveInviteError = useCallback(
+    (reason) => {
+      switch (reason) {
+        case "EXPIRED":
+          return t("addServerModal.inviteExpired", "Esta invitación venció. Pedí una nueva invitación a un administrador.");
+        case "REVOKED":
+          return t("addServerModal.inviteRevoked", "Esta invitación fue revocada o reemplazada por una más reciente.");
+        case "BANNED":
+          return t("addServerModal.inviteBanned", "Tu cuenta está baneada en este servidor.");
+        case "NO_PEERS_ONLINE":
+          return t("addServerModal.inviteNoPeers", "No hay ningún miembro conectado en la sala ahora para validar tu invitación.");
+        case "INVALID":
+        default:
+          return t("addServerModal.inviteInvalid", "La invitación no es válida o ya no está activa.");
+      }
+    },
+    [t]
+  );
+
   const handleJoin = async () => {
     if (!parsedInvite.valid || busyAction) return;
 
     setBusyAction("join");
     setError(null);
     try {
-      let server = await window.electronAPI.joinServer(
-        parsedInvite.code,
-        "",
-        profile,
-      );
+      let server = null;
+      if (parsedInvite.inviteSecret && window.electronAPI?.redeemServerInvite) {
+        const res = await window.electronAPI.redeemServerInvite(
+          parsedInvite.code,
+          parsedInvite.inviteSecret,
+          profile
+        );
+        if (!res?.ok || !res.server) {
+          setError(resolveInviteError(res?.reason));
+          return;
+        }
+        server = res.server;
+      } else {
+        server = await window.electronAPI.joinServer(
+          parsedInvite.code,
+          "",
+          profile,
+          parsedInvite.roomSecret || null,
+        );
+      }
       if (
         parsedInvite.ip &&
         parsedInvite.port &&
@@ -432,6 +494,14 @@ export default function AddServerModal({ profile, onClose, onCreated }) {
                   ? t("common.loading", "Cargando...")
                   : t("addServerModal.joinButton", "Únete a un servidor")}
               </button>
+              {busyAction === "join" && parsedInvite.inviteSecret && (
+                <p className="mt-2 text-xs text-onicord-muted text-center">
+                  {t(
+                    "addServerModal.waitingPeerValidation",
+                    "Esperando a un miembro conectado para validar tu invitación..."
+                  )}
+                </p>
+              )}
             </div>
           </>
         ) : !discordPreview ? (

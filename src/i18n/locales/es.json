@@ -89,6 +89,12 @@
     "joinInviteInstruction": "Configuración del servidor → Invitaciones",
     "createButton": "Crear servidor",
     "joinButton": "Únete a un servidor",
+    "inviteExpired": "Esta invitación venció. Pedí una nueva invitación a un administrador.",
+    "inviteRevoked": "Esta invitación fue revocada o reemplazada por una más reciente.",
+    "inviteBanned": "Tu cuenta está baneada en este servidor.",
+    "inviteNoPeers": "No hay ningún miembro conectado en la sala ahora para validar tu invitación.",
+    "inviteInvalid": "La invitación no es válida o ya no está activa.",
+    "waitingPeerValidation": "Esperando a un miembro conectado para validar tu invitación...",
     "haveInviteTitle": "¿Ya tienes una invitación?",
     "invitePlaceholder": "A1B2C3D4 o enlace de invitación",
     "codePlaceholder": "A1B2C3D4",
@@ -462,7 +468,7 @@
       "title": "Invitaciones al Servidor",
       "hint": "Comparte el código alfanumérico o el enlace directo P2P para invitar a nuevos miembros.",
       "codeTitle": "Código de Invitación de Sala",
-      "codeHint": "Código único de 8 caracteres para unirse manualmente en la pantalla principal.",
+      "codeHint": "Código seguro de invitación para unirse manualmente desde la pantalla principal.",
       "codeCopied": "¡Código Copiado!",
       "copyCodeOnly": "Copiar Solo Código",
       "linkTitle": "Enlace Directo P2P (Deep Link)",
@@ -473,7 +479,52 @@
       "member": "Miembro",
       "members": "Miembros",
       "hideCode": "Ocultar código",
-      "revealCode": "Revelar código temporalmente"
+      "revealCode": "Revelar código temporalmente",
+      "duration30m": "30 min",
+      "duration1h": "1 h",
+      "duration6h": "6 h",
+      "duration24h": "24 h",
+      "duration7d": "7 días",
+      "durationNever": "Sin vencimiento",
+      "neverExpires": "Sin vencimiento",
+      "expired": "Vencida",
+      "revokedBadge": "Revocada",
+      "durationLabel": "Duración de la invitación",
+      "generateNew": "Generar nueva invitación",
+      "revoke": "Revocar",
+      "noActiveAdminHint": "La invitación anterior venció o fue revocada. Generá una nueva arriba.",
+      "noActiveMemberHint": "No hay ninguna invitación activa en este momento. Pedile a un administrador que genere una.",
+      "keyEpochTitle": "Clave de Cifrado por Épocas",
+      "epochBadge": "Época #{{epoch}}",
+      "keyEpochDesc": "Rota la clave AES-256-GCM para mensajes futuros (también rota automáticamente al banear a un miembro). Los miembros legítimos conservan el historial previo.",
+      "lastRotation": "Última rotación:",
+      "rotateKeyBtn": "Rotar clave de cifrado",
+      "keyRotatedSuccess": "¡Clave rotada a la nueva época!",
+      "rotateConfirmTitle": "¿Rotar clave de cifrado del servidor?",
+      "rotateConfirmMessage": "Se creará una nueva época de cifrado (#{{nextEpoch}}). Todos los mensajes nuevos usarán la clave nueva; los miembros autorizados seguirán leyendo el historial anterior automáticamente.",
+      "adminKeyPending": "Tu clave pública de administrador aún no fue sincronizada con el propietario del servidor.",
+      "unauthorized": "Solo el propietario o un administrador autorizado puede realizar esta acción.",
+      "actionError": "No se pudo completar la operación.",
+      "activeInviteTitle": "Invitación activa",
+      "createInviteTitle": "Crear invitación",
+      "createInviteDesc": "Solo puede existir una invitación activa a la vez. Elegí cuánto tiempo durará antes de vencer.",
+      "createInviteBtn": "Crear invitación",
+      "expiresIn": "Expira en {{time}}",
+      "formatWeb": "Enlace Web",
+      "formatCode": "Código",
+      "formatNative": "Nativo",
+      "nativeLinkHint": "Enlace de protocolo onicord:// para abrir la app directamente.",
+      "copySelected": "Copiar",
+      "copiedGeneric": "¡Copiado!",
+      "durationNeverShort": "Nunca",
+      "duration30mShort": "30m",
+      "duration1hShort": "1h",
+      "duration6hShort": "6h",
+      "duration24hShort": "24h",
+      "duration7dShort": "7d",
+      "epochStatus": "Época actual: #{{epoch}}",
+      "inactivePreviewHint": "No hay una invitación activa. Creá una nueva para volver a compartir este servidor.",
+      "upgradeToExpiring": "Usar temporal"
     },
     "webhooks": {
       "title": "Webhooks del Servidor",
@@ -645,7 +696,8 @@
       "fixStep3": "Confirma que no estés detrás de un NAT simétrico restrictivo o CGNAT de tu proveedor de internet.",
       "iceBackupTitle": "Servidores ICE de Respaldo (STUN/TURN)",
       "iceBackupDesc": "Si los miembros del servidor no logran conectarse a las salas de voz (por cortafuegos restrictivos o NAT simétrico), configura aquí servidores STUN/TURN de relay. De lo contrario, Onicord usará los nodos públicos por defecto.",
-      "configuredServers": "Servidores Configurados"
+      "configuredServers": "Servidores Configurados",
+      "noTurnWarning": "Tu lista personalizada solo incluye servidores STUN sin TURN. Los miembros con el modo Always Relay activado usarán los relays TURN públicos por defecto para poder conectar."
     },
     "plugins": {
       "title": "Complementos del Servidor ({{count}})",
@@ -750,7 +802,9 @@
     "editServerProfile": "Editar perfil del servidor",
     "contentPrivacySettings": "Privacidad de Contenido",
     "blurNsfwTitle": "Desenfocar automáticamente contenido NSFW",
-    "blurNsfwDesc": "Muestra desenfocados los archivos multimedia marcados como NSFW (+18) hasta que hagas clic para revelarlos."
+    "blurNsfwDesc": "Muestra desenfocados los archivos multimedia marcados como NSFW (+18) hasta que hagas clic para revelarlos.",
+    "identityFingerprintTitle": "Huella Criptográfica de Identidad",
+    "identityFingerprintDesc": "Identificador único derivado de tu clave pública Ed25519 persistente. Compártelo fuera de banda para que tus contactos verifiquen que hablan contigo."
   },
   "server": {
     "newMemberJoined": "Nuevo Miembro",
@@ -925,7 +979,9 @@
     "localStreamAudioMuted": "Tu transmisión (silenciada localmente)",
     "enableWebcam": "Activar webcam",
     "disableWebcam": "Desactivar webcam",
-    "webcamSettings": "Ajustes de Webcam"
+    "webcamSettings": "Ajustes de Webcam",
+    "alwaysRelayChangedTitle": "Modo Always Relay actualizado",
+    "alwaysRelayChangedDesc": "Reconecta al canal de voz para aplicar la nueva política de relay a las conexiones activas."
   },
   "flame": {
     "title": "Flama",
@@ -1111,7 +1167,9 @@
       "webCacheDesc": "Archivos temporales de imágenes remotas, avatares y vistas embebidas (límite máximo de 100 MB en disco).",
       "clearWebCache": "Limpiar caché web",
       "clearingWebCache": "Limpiando...",
-      "webCacheCleared": "Caché web limpiado"
+      "webCacheCleared": "Caché web limpiado",
+      "alwaysRelayVoiceTitle": "Forzar Relay TURN en llamadas (Always Relay)",
+      "alwaysRelayVoiceDesc": "Enruta el audio y video de WebRTC exclusivamente por servidores TURN para ocultar tu IP en llamadas a cambio de mayor latencia. El chat P2P (Hyperswarm) sigue siendo directo; para ocultar tu IP por completo usa una VPN."
     },
     "voiceVideo": {
       "inputDevice": "Dispositivo de entrada (Micrófono)",
@@ -1550,7 +1608,8 @@
     "sfu": "Estrella (SFU / Star Host)",
     "noPeersConnected": "No hay otros miembros en la llamada.",
     "topology": "TOPOLOGÍA",
-    "peerId": "PEER ID"
+    "peerId": "PEER ID",
+    "alwaysRelayBadge": "Always Relay"
   },
   "inviteModal": {
     "invited": "Has sido invitado a unirte a:",
@@ -1559,7 +1618,9 @@
     "accept": "Aceptar Invitación",
     "cancel": "Cancelar",
     "alreadyMember": "Ya eres miembro · Reconectar",
-    "connecting": "Conectando..."
+    "connecting": "Conectando...",
+    "expiresAt": "Vence:",
+    "joinedSuccess": "Te has unido a {{name}}"
   },
   "plugins": {
     "pollsName": "Encuestas Rápidas",
@@ -1889,5 +1950,41 @@
     "saturationArea": "Saturación y brillo",
     "hueSlider": "Tono",
     "presets": "Colores rápidos"
+  },
+  "security": {
+    "modalTitle": "Verificar Seguridad",
+    "statusVerifiedTitle": "Identidad verificada",
+    "statusVerifiedDesc": "Marcaste la clave pública de este contacto como verificada.",
+    "statusKeyChangedTitle": "Clave de seguridad cambiada",
+    "statusKeyChangedDesc": "Este usuario se conectó con una clave criptográfica distinta a la registrada anteriormente. Verifica el Safety Number por otro medio.",
+    "statusUnauthTitle": "Transporte no autenticado",
+    "statusUnauthDesc": "Esta conexión no completó autenticación Noise XX, por lo que no puede marcarse como verificada.",
+    "statusUnavailableTitle": "Clave aún no disponible",
+    "statusUnavailableDesc": "Aún no se ha observado una sesión P2P autenticada con este usuario en este dispositivo.",
+    "statusUnverifiedTitle": "Sin verificar",
+    "statusUnverifiedDesc": "Compara este Safety Number con tu contacto por una llamada o canal externo de confianza.",
+    "transportHyperswarm": "Noise XX · Hyperswarm",
+    "transportDirectTcp": "Noise XX · Direct TCP",
+    "transportOffline": "Sin conexión activa (TOFU)",
+    "transportUnauthenticated": "No autenticado",
+    "transportUnknown": "Desconocido",
+    "safetyNumberLabel": "Safety Number (60 dígitos)",
+    "transportLabel": "Autenticación de transporte",
+    "peerFingerprintLabel": "Huella del contacto",
+    "localFingerprintLabel": "Tu huella local",
+    "unmarkVerifiedBtn": "Quitar verificación",
+    "markVerifiedBtn": "Marcar como verificado",
+    "verifiedPeer": "Identidad verificada",
+    "keyChangedShort": "Clave cambiada",
+    "verifyIdentity": "Verificar seguridad",
+    "keyChangedToastTitle": "Clave de seguridad cambiada",
+    "keyChangedToastDesc": "La clave criptográfica de {{name}} cambió. Vuelve a verificar su Safety Number.",
+    "diagConsentTitle": "Solicitud de diagnóstico remoto",
+    "diagConsentMessage": "{{name}} solicita recibir tus registros locales de diagnóstico (OniDiag). Aunque los datos sensibles se sanitizan automáticamente, contienen información técnica de red y errores recientes.",
+    "diagConsentApprove": "Compartir logs",
+    "diagConsentReject": "Rechazar",
+    "dmKeyRequiredBanner": "Debes coincidir en línea al menos una vez con este contacto para establecer cifrado E2EE par-a-par antes de enviar DMs.",
+    "dmLegacyPeerBanner": "Este contacto usa una versión anterior de Onicord. Debe actualizar la app para leer mensajes privados E2EE nuevos (el historial previo sigue disponible).",
+    "roomCompatBanner": "Sala en modo compatible: hay usuarios con una versión anterior conectados; se activará el cifrado de sala v2 automáticamente cuando todos actualicen."
   }
 }

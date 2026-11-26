@@ -1,13 +1,19 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import MaterialIcon from "../icons/MaterialIcon";
+import { getEffectiveProfile } from "../../lib/profileUtils";
 
-export default function ServerAuditTab({ server }) {
+export default function ServerAuditTab({ server, profile = null }) {
   const { t } = useTranslation();
   const [auditLog, setAuditLog] = useState(
     Array.isArray(server?.auditLog) ? server.auditLog : []
   );
   const [loading, setLoading] = useState(false);
+
+  const effectiveSelfProfile = useMemo(
+    () => (profile ? getEffectiveProfile(profile, server?.roomCode || server?.id) : null),
+    [profile, server?.roomCode, server?.id]
+  );
 
   const fetchAuditLogs = useCallback(async () => {
     const codeOrId = server?.roomCode || server?.id;
@@ -186,11 +192,20 @@ export default function ServerAuditTab({ server }) {
             <div className="space-y-2 max-h-[500px] overflow-y-auto minimal-scrollbar pr-1">
               {auditLog.map((log) => {
                 const badge = getActionBadgeStyle(log.action);
-                const firstChar = String(log.nickname || "U").charAt(0).toUpperCase();
-
-                // Dynamic avatar resolution (checks log record first, then member database)
+                const isSelf = Boolean(profile?.id && log.userId === profile.id);
+                const savedMember = log.userId ? server?.savedMembers?.[log.userId] : null;
+                const displayName =
+                  (isSelf ? effectiveSelfProfile?.nickname : null) ||
+                  savedMember?.nickname ||
+                  log.nickname ||
+                  log.userName ||
+                  t("common.user", "Usuario");
                 const avatarUrl =
-                  log.avatar || server?.savedMembers?.[log.userId]?.avatar;
+                  (isSelf ? effectiveSelfProfile?.avatar : null) ||
+                  savedMember?.avatar ||
+                  log.avatar ||
+                  null;
+                const firstChar = String(displayName || "U").charAt(0).toUpperCase();
 
                 return (
                   <div
@@ -216,7 +231,7 @@ export default function ServerAuditTab({ server }) {
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs font-bold text-onicord-text truncate">
-                            {log.nickname}
+                            {displayName}
                           </span>
 
                           <div

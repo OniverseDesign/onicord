@@ -542,7 +542,7 @@ export default function UserPanel({
             avatarSize="md"
             showStatusDot={true}
             showFlame={false}
-            onClick={onOpenAppSettings}
+            onClick={() => onOpenAppSettings?.("profile")}
             onContextMenu={handleUserPanelContextMenu}
           />
         </div>
@@ -567,6 +567,7 @@ export default function UserPanel({
           localPeerId={localPeerId}
           voiceMembers={voiceMembers}
           managerRef={managerRef}
+          alwaysRelay={Boolean(profile?.general?.alwaysRelayVoice)}
         />
       )}
       {contextMenu && (

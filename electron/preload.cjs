@@ -87,8 +87,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("servers:preview-discord-template", input),
   importDiscordTemplate: (importData, profile) =>
     ipcRenderer.invoke("servers:import-discord-template", importData, profile),
-  joinServer: (code, name, profile) =>
-    ipcRenderer.invoke("servers:join", code, name, profile),
+  joinServer: (code, name, profile, roomSecret, keyData = null) =>
+    ipcRenderer.invoke("servers:join", code, name, profile, roomSecret, keyData),
+  generateServerInvite: (roomCode, durationKey = "24h") =>
+    ipcRenderer.invoke("servers:generate-invite", roomCode, durationKey),
+  revokeServerInvite: (roomCode) =>
+    ipcRenderer.invoke("servers:revoke-invite", roomCode),
+  rotateServerKey: (roomCode) =>
+    ipcRenderer.invoke("servers:rotate-key", roomCode),
+  redeemServerInvite: (roomCode, inviteSecret, profile) =>
+    ipcRenderer.invoke("servers:redeem-invite", roomCode, inviteSecret, profile),
   enterServer: (serverId, profile) =>
     ipcRenderer.invoke("servers:enter", serverId, profile),
   bootBackgroundServers: (profile, excludeServerId) =>
@@ -122,7 +130,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   createRoom: (profile) => ipcRenderer.invoke("room:create", profile),
   joinRoom: (code, profile) => ipcRenderer.invoke("room:join", code, profile),
   leaveRoom: () => ipcRenderer.invoke("room:leave"),
-  getRoomState: () => ipcRenderer.invoke("room:state"),
+  getRoomState: (roomCode = null) => ipcRenderer.invoke("room:state", roomCode),
 
   getChatHistory: (roomCode, channelId) =>
     ipcRenderer.invoke("chat:history", roomCode, channelId || "general"),
@@ -183,7 +191,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       "game-activity-changed", "profile:updated", "onicord:mcp-trigger-action",
       "onicord:global-keybind",
       "voice:join-channel", "voice:leave-channel", "voice:toggle-media",
-      "suggestions:updated"
+      "suggestions:updated", "security:peer-key-changed", "diagnostics:consent-request"
     ];
     if (!ALLOWED_CHANNELS.includes(channel)) {
       console.warn(`[Preload Guard] Intento de suscripción no permitida al canal: ${channel}`);
@@ -390,12 +398,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getLocalLogs: () => ipcRenderer.invoke("diagnostics:getLocal"),
   clearLogs: () => ipcRenderer.invoke("diagnostics:clear"),
   requestPeerLogs: (peerId) => ipcRenderer.invoke("diagnostics:request", peerId),
+  respondDiagConsent: (requestId, approved) =>
+    ipcRenderer.invoke("diagnostics:respond-consent", { requestId, approved }),
   diagLog: (level, category, message) => ipcRenderer.invoke("diagnostics:log", level, category, message),
   exportAllUserLogs: () => ipcRenderer.invoke("diagnostics:exportAllUserLogs"),
   onPeerLogsReceived: (callback) => {
     const handler = (_event, data) => callback(data);
     ipcRenderer.on("diagnostics:peer-logs", handler);
     return () => ipcRenderer.removeListener("diagnostics:peer-logs", handler);
+  },
+  onDiagConsentRequest: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("diagnostics:consent-request", handler);
+    return () => ipcRenderer.removeListener("diagnostics:consent-request", handler);
   },
 
   // --- files / attachments ---
@@ -465,7 +480,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   checkPendingDeepLink: () => ipcRenderer.invoke("deeplink:check-pending"),
 
-  resolveInvite: (code, profile) => ipcRenderer.invoke("deeplink:resolve-invite", code, profile),
+  resolveInvite: (code, profile, inviteSecret = null) =>
+    ipcRenderer.invoke("deeplink:resolve-invite", code, profile, inviteSecret),
   cancelInviteResolve: (code) => ipcRenderer.send("deeplink:cancel-resolve-invite", code),
   cancelResolveInvite: (code) => ipcRenderer.send("deeplink:cancel-resolve-invite", code),
   onInviteDetailsUpdated: (callback) => {
@@ -664,4 +680,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("update:status", handler);
   },
   setMediaActivity: (state) => ipcRenderer.send("app:set-media-activity", state),
+
+  // --- Security & Identity Verification ---
+  getLocalSecurityIdentity: () => ipcRenderer.invoke("security:get-local-identity"),
+  getPeerVerification: (params) => ipcRenderer.invoke("security:get-peer-verification", params),
+  setPeerVerified: (params) => ipcRenderer.invoke("security:set-peer-verified", params),
+  onPeerKeyChanged: (callback) => {
+    const handler = (_event, data) => callback(data);
+    ipcRenderer.on("security:peer-key-changed", handler);
+    return () => ipcRenderer.removeListener("security:peer-key-changed", handler);
+  },
 });

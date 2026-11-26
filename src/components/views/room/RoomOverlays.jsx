@@ -4,6 +4,7 @@ import VoiceUserVolumeMenu from "../../voice/VoiceUserVolumeMenu";
 import UserProfilePopout from "../../ui/UserProfilePopout";
 import ContextMenu from "../../ui/ContextMenu";
 import ConfirmDialogModal from "../../modals/ConfirmDialogModal";
+import PeerSecurityModal from "../../modals/PeerSecurityModal";
 import MaterialIcon from "../../icons/MaterialIcon";
 import { checkPermission } from "../../../lib/permissionsHelper";
 import { soundEngine } from "../../../lib/soundEngine";
@@ -36,6 +37,8 @@ export default function RoomOverlays({
   markChannelAsRead,
   moderationConfirm,
   setModerationConfirm,
+  securityModalPeer,
+  setSecurityModalPeer,
 }) {
   const { t } = useTranslation();
 
@@ -74,6 +77,7 @@ export default function RoomOverlays({
           onEditProfile={() => {
             onOpenAppSettings?.("profile", { serverId: server.roomCode || server.id });
           }}
+          onOpenSecurity={(m) => setSecurityModalPeer?.(m)}
           userRolesList={(() => {
             const mId =
               userPopout.member.id ||
@@ -159,6 +163,25 @@ export default function RoomOverlays({
                   icon: <MaterialIcon name="chat" size={16} />,
                   onClick: () => {
                     handleMessageUser(targetUser);
+                    setContextMenu(null);
+                  },
+                });
+                menuItems.push({
+                  label: t("security.verifyIdentity", "Verificar seguridad"),
+                  icon: (
+                    <MaterialIcon
+                      name={
+                        targetUser.verificationStatus === "verified"
+                          ? "verified_user"
+                          : targetUser.verificationStatus === "key_changed"
+                            ? "gpp_maybe"
+                            : "shield"
+                      }
+                      size={16}
+                    />
+                  ),
+                  onClick: () => {
+                    setSecurityModalPeer?.(targetUser);
                     setContextMenu(null);
                   },
                 });
@@ -304,6 +327,25 @@ export default function RoomOverlays({
           onCancel={() => setModerationConfirm(null)}
         />
       )}
+
+      {/* 6. Peer Security / Safety Number Modal */}
+      <PeerSecurityModal
+        member={securityModalPeer}
+        onClose={() => setSecurityModalPeer?.(null)}
+        onVerificationChanged={(updated) => {
+          if (!updated?.userId) return;
+          setPeers?.((prev) =>
+            prev.map((p) =>
+              (p.userId === updated.userId || p.id === updated.userId || p.peerId === updated.peerId)
+                ? { ...p, verificationStatus: updated.status }
+                : p
+            )
+          );
+          setSecurityModalPeer((prev) =>
+            prev ? { ...prev, verificationStatus: updated.status } : prev
+          );
+        }}
+      />
     </>
   );
 }

@@ -44,9 +44,12 @@ export default function ServerPluginsTab({ server, onUpdateServer, onCloseSettin
     const targetId = server.roomCode || server.id;
     if (window.electronAPI?.updateServerSettings && targetId) {
       try {
-        await window.electronAPI.updateServerSettings(targetId, {
+        const updated = await window.electronAPI.updateServerSettings(targetId, {
           plugins: newPlugins,
         });
+        if (updated) {
+          onUpdateServer(updated);
+        }
       } catch (e) {
         console.error("Error al persistir complementos del servidor en Electron:", e);
       }

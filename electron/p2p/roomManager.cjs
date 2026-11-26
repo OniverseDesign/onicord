@@ -1,13 +1,21 @@
 const crypto = require("crypto");
+const b4a = require("b4a");
 const { ChatStore } = require("./chatStore.cjs");
 const { WhiteboardStore } = require("./whiteboardStore.cjs");
-const { RoomMetaStore } = require("./roomMetaStore.cjs");
+const {
+  RoomMetaStore,
+  checkAdminPermission,
+  isAuthorizedSignerKey,
+  buildSignableActiveInvite,
+  buildSignableKeyEnvelope,
+} = require("./roomMetaStore.cjs");
 const { FileIndexStore } = require("./fileIndexStore.cjs");
 const { P2PService, encodeMessage, topicFromRoomCode, safeWriteSocket } = require("../network/p2pService.cjs");
 const { VoiceService } = require("../network/voiceService.cjs");
 const { ChatService } = require("../network/chatService.cjs");
 const { FileService } = require("../network/fileService.cjs");
 const diagService = require("../services/diagService.cjs");
+const peerTrustService = require("../services/peerTrustService.cjs");
 const { handleChatPacket } = require("./handlers/chatPacketHandlers.cjs");
 const { handleVoicePacket } = require("./handlers/voicePacketHandlers.cjs");
 const { handleFilePacket } = require("./handlers/filePacketHandlers.cjs");
@@ -35,6 +43,7 @@ class RoomManager {
     onVoiceSignal,
     onPeerActivityUpdated,
     onPeerUpdated,
+    onDiagConsentRequest,
     onError,
     onUserTyping,
     isPreview = false,
@@ -47,6 +56,12 @@ class RoomManager {
     this.isPreview = Boolean(isPreview);
     this.rooms = new Map(); // Map<roomCode, { roomCode, isHost, localJoinTimestamp, moderationCache }>
     this._moderationCache = null;
+    this._pendingDiagRequests = new Map();
+    this._diagCooldownByPeer = new Map();
+    this._roomSecrets = new Map();
+    this._roomKeyRings = new Map();
+    this._inviteExpiryTimers = new Map();
+    this._pendingInviteRedeems = new Map();
 
     this.chatStore = userDataPath ? new ChatStore(userDataPath) : null;
     this.roomMetaStore = userDataPath ? new RoomMetaStore(userDataPath) : null;
@@ -66,6 +81,7 @@ class RoomManager {
       onVoiceSignal,
       onPeerActivityUpdated,
       onPeerUpdated,
+      onDiagConsentRequest,
       onError,
       onUserTyping,
     };
@@ -144,6 +160,571 @@ class RoomManager {
     if (peerId === this.p2pService._resolveLocalPeerId()) return this.p2pService.profile?.id;
     const peer = this.p2pService.peers.get(peerId);
     return peer ? peer.userId : null;
+  }
+
+  getRoomSecret(roomCode) {
+    const code = String(roomCode || "").trim().toUpperCase();
+    if (!code) return null;
+    if (this._roomSecrets.has(code)) return this._roomSecrets.get(code);
+    if (!this.userDataPath) return null;
+    try {
+      const { ServerStore } = require("./serverStore.cjs");
+      const srv = new ServerStore(this.userDataPath).getServerByRoomCodeSync(code);
+      if (srv?.roomSecret) {
+        this._roomSecrets.set(code, srv.roomSecret);
+        return srv.roomSecret;
+      }
+    } catch {}
+    return null;
+  }
+
+  getRoomKeyState(roomCode) {
+    const code = String(roomCode || "").trim().toUpperCase();
+    if (!code) return { currentEpoch: 1, keyRing: {}, keyEnvelopes: [] };
+
+    let state = this._roomKeyRings.get(code);
+    if (!state && this.userDataPath) {
+      try {
+        const { ServerStore } = require("./serverStore.cjs");
+        const srv = new ServerStore(this.userDataPath).getServerByRoomCodeSync(code);
+        if (srv) {
+          const ring = srv.keyRing && typeof srv.keyRing === "object" ? { ...srv.keyRing } : {};
+          if (srv.roomSecret && !ring["1"]) {
+            ring["1"] = srv.roomSecret;
+          }
+          state = {
+            currentEpoch: Math.max(1, Number(srv.currentKeyEpoch) || 1),
+            keyRing: ring,
+            keyEnvelopes: Array.isArray(srv.keyEnvelopes) ? srv.keyEnvelopes : [],
+          };
+          this._roomKeyRings.set(code, state);
+        }
+      } catch {}
+    }
+
+    if (!state) {
+      const routingSecret = this.getRoomSecret(code);
+      state = {
+        currentEpoch: 1,
+        keyRing: routingSecret ? { "1": routingSecret } : {},
+        keyEnvelopes: [],
+      };
+      if (routingSecret) {
+        this._roomKeyRings.set(code, state);
+      }
+    } else if (!state.keyRing["1"]) {
+      const routingSecret = this.getRoomSecret(code);
+      if (routingSecret) {
+        state.keyRing["1"] = routingSecret;
+      }
+    }
+    return state;
+  }
+
+  _clearInviteExpiryTimer(roomCode) {
+    const code = String(roomCode || "").trim().toUpperCase();
+    if (!code) return;
+    const prevTimer = this._inviteExpiryTimers.get(code);
+    if (prevTimer) {
+      clearTimeout(prevTimer);
+      this._inviteExpiryTimers.delete(code);
+    }
+  }
+
+  _syncRoomInviteListener(roomCode, meta) {
+    if (this.isPreview || !this.p2pService) return;
+    const code = String(roomCode || "").trim().toUpperCase();
+    if (!code) return;
+    this._clearInviteExpiryTimer(code);
+
+    const cryptoService = require("../services/cryptoService.cjs");
+    const inv = meta?.activeInvite;
+    if (!inv || inv.revoked || !cryptoService.isValidRoomSecret(inv.inviteSecret)) {
+      this.p2pService.leaveInviteTopic?.(code).catch(() => {});
+      return;
+    }
+
+    if (inv.expiresAt !== undefined && inv.expiresAt !== null) {
+      const remainingMs = Number(inv.expiresAt) - Date.now();
+      if (remainingMs <= 0) {
+        this.p2pService.leaveInviteTopic?.(code).catch(() => {});
+        return;
+      }
+      const delay = Math.min(remainingMs + 250, 2147483647);
+      const timer = setTimeout(() => {
+        this._inviteExpiryTimers.delete(code);
+        this._syncRoomInviteListener(code, meta);
+      }, delay);
+      if (typeof timer.unref === "function") timer.unref();
+      this._inviteExpiryTimers.set(code, timer);
+    }
+
+    this.p2pService.syncInviteTopic?.(code, inv.inviteSecret).catch((err) => {
+      console.warn(`[RoomManager InviteTopic] Failed joining invite topic for ${code}:`, err.message);
+    });
+  }
+
+  _resolveGovernanceSigner(roomCode, meta, actorProfile = null) {
+    const code = String(roomCode || "").trim().toUpperCase();
+    const myId = actorProfile?.id || this.profile?.id || this.p2pService?.profile?.id || null;
+    const kp = this.p2pService?.getKeyPair?.() || this.p2pService?.swarm?.keyPair || null;
+    const localPub =
+      this.p2pService?._resolveLocalPeerId?.() ||
+      (kp?.publicKey ? b4a.toString(kp.publicKey, "hex").toLowerCase() : null);
+
+    const roomEntry = this.rooms.get(code);
+    const isOwner = Boolean(
+      roomEntry?.isHost ||
+      (this.roomCode === code && this.isHost) ||
+      (myId && meta && (meta.ownerId === myId || meta.creatorID === myId || meta.creatorId === myId))
+    );
+    const isAdmin = Boolean(myId && meta && checkAdminPermission(meta, myId));
+    if (!isOwner && !isAdmin) {
+      throw new Error("UNAUTHORIZED_GOVERNANCE");
+    }
+
+    const ownerPub =
+      typeof meta?.ownerPublicKey === "string" && /^[0-9a-f]{64}$/i.test(meta.ownerPublicKey.trim())
+        ? meta.ownerPublicKey.trim().toLowerCase()
+        : null;
+
+    if (ownerPub && localPub && localPub !== ownerPub && !isOwner) {
+      if (!isAuthorizedSignerKey(meta, localPub)) {
+        throw new Error("ADMIN_KEY_NOT_REGISTERED");
+      }
+    }
+
+    return { kp, localPub, myId, isOwner };
+  }
+
+  _resolveAuditActorInfo(roomCode, meta, actorProfile = null, actorId = null) {
+    const profileService = require("../services/profileService.cjs");
+    const baseProfile =
+      actorProfile ||
+      profileService.activeProfile ||
+      this.profile ||
+      this.p2pService?.profile ||
+      null;
+    const effective = baseProfile
+      ? profileService.getEffectiveProfile(baseProfile, roomCode) || baseProfile
+      : null;
+    const resolvedId = actorId || effective?.id || baseProfile?.id || "system";
+    const savedMember = meta?.savedMembers?.[resolvedId];
+    return {
+      userId: resolvedId,
+      nickname:
+        effective?.nickname ||
+        savedMember?.nickname ||
+        baseProfile?.nickname ||
+        "Admin",
+      avatar:
+        effective?.avatar ??
+        savedMember?.avatar ??
+        baseProfile?.avatar ??
+        null,
+    };
+  }
+
+  async rotateRoomKey(roomCode, { reason = "manual", actorId = null } = {}) {
+    const code = String(roomCode || this.roomCode || "").trim().toUpperCase();
+    if (!code || !this.userDataPath || !this.roomMetaStore) {
+      throw new Error("INVALID_ROOM");
+    }
+
+    const cryptoService = require("../services/cryptoService.cjs");
+    const meta = await this.roomMetaStore.load(code);
+    const { kp, localPub, myId } = this._resolveGovernanceSigner(
+      code,
+      meta,
+      actorId ? { id: actorId } : null
+    );
+    if (!kp?.secretKey || !localPub) {
+      throw new Error("SIGNING_KEY_UNAVAILABLE");
+    }
+
+    const keyState = this.getRoomKeyState(code);
+    const nextEpoch = Math.max(Number(keyState.currentEpoch) || 1, Number(meta?.currentKeyEpoch) || 1) + 1;
+    const newSecret = crypto.randomBytes(32).toString("base64url");
+    const now = Date.now();
+    const resolvedActorId = actorId || myId || null;
+
+    const envelope = {
+      roomCode: code,
+      epoch: nextEpoch,
+      secret: newSecret,
+      rotatedAt: now,
+      rotatedBy: resolvedActorId,
+      reason: reason || "manual",
+      signedByPublicKey: localPub,
+    };
+    envelope.signature = cryptoService.signPayload(
+      buildSignableKeyEnvelope(code, envelope),
+      kp.secretKey
+    );
+
+    const updatedRing = {
+      ...(keyState.keyRing || {}),
+      [String(nextEpoch)]: newSecret,
+    };
+    if (!updatedRing["1"] && this.getRoomSecret(code)) {
+      updatedRing["1"] = this.getRoomSecret(code);
+    }
+    const updatedEnvelopes = [
+      ...(Array.isArray(keyState.keyEnvelopes) ? keyState.keyEnvelopes : []).filter(
+        (e) => Number(e?.epoch) !== nextEpoch
+      ),
+      envelope,
+    ].sort((a, b) => Number(a.epoch) - Number(b.epoch));
+
+    const { ServerStore } = require("./serverStore.cjs");
+    const serverStore = new ServerStore(this.userDataPath);
+    const updatedServer = await serverStore.updateRoomKeyRing(code, {
+      currentKeyEpoch: nextEpoch,
+      keyRing: updatedRing,
+      keyEnvelopes: updatedEnvelopes,
+    });
+
+    this._roomKeyRings.set(code, {
+      currentEpoch: nextEpoch,
+      keyRing: updatedRing,
+      keyEnvelopes: updatedEnvelopes,
+    });
+
+    const existingLogs = Array.isArray(meta?.auditLog) ? meta.auditLog : [];
+    const actorInfo = this._resolveAuditActorInfo(code, meta, null, resolvedActorId);
+    const auditEntry = {
+      id: crypto.randomUUID(),
+      timestamp: now,
+      userId: actorInfo.userId,
+      nickname: actorInfo.nickname,
+      userName: actorInfo.nickname,
+      avatar: actorInfo.avatar,
+      action: "rotate_room_key",
+      target: `Epoch #${nextEpoch}`,
+      details: reason === "user_banned"
+        ? `Auto-rotated room encryption key to Epoch #${nextEpoch} after user ban`
+        : `Manually rotated room encryption key to Epoch #${nextEpoch}`,
+    };
+
+    const metaPatch = {
+      currentKeyEpoch: nextEpoch,
+      lastKeyRotationAt: now,
+      lastKeyRotationBy: resolvedActorId,
+      auditLog: [auditEntry, ...existingLogs].slice(0, 100),
+      ...(!meta?.ownerPublicKey && localPub ? { ownerPublicKey: localPub } : {}),
+    };
+
+    const updatedMeta = await this.roomMetaStore.bump(code, metaPatch, resolvedActorId || "local", kp);
+    this.p2pService?._broadcast("meta-update", updatedMeta, code);
+
+    const bannedSet = new Set(Array.isArray(updatedMeta?.bannedUsers) ? updatedMeta.bannedUsers : []);
+    const syncPayload = {
+      roomCode: code,
+      currentKeyEpoch: nextEpoch,
+      keyRing: updatedRing,
+      keyEnvelopes: updatedEnvelopes,
+    };
+    for (const [pId, peerObj] of (this.p2pService?.peers || new Map()).entries()) {
+      if (!this.isPeerInRoom(pId, code)) continue;
+      if (peerObj.userId && bannedSet.has(peerObj.userId)) continue;
+      this.p2pService._sendToPeer(pId, "room-key-sync", syncPayload);
+    }
+
+    if (updatedServer) {
+      global.mainWindow?.webContents.send("server:updated", {
+        ...updatedServer,
+        savedMembers: updatedMeta?.savedMembers || updatedServer.savedMembers || {},
+      });
+    }
+
+    return {
+      ok: true,
+      currentKeyEpoch: nextEpoch,
+      lastKeyRotationAt: now,
+      keyEnvelope: envelope,
+    };
+  }
+
+  async generateActiveInvite(roomCode, durationKey = "24h", actorProfile = null) {
+    const code = String(roomCode || this.roomCode || "").trim().toUpperCase();
+    if (!code || !this.userDataPath || !this.roomMetaStore) {
+      throw new Error("INVALID_ROOM");
+    }
+
+    const DURATION_MS_MAP = {
+      "30m": 30 * 60 * 1000,
+      "1h": 60 * 60 * 1000,
+      "6h": 6 * 60 * 60 * 1000,
+      "24h": 24 * 60 * 60 * 1000,
+      "7d": 7 * 24 * 60 * 60 * 1000,
+      never: null,
+    };
+    const durationMs = Object.prototype.hasOwnProperty.call(DURATION_MS_MAP, durationKey)
+      ? DURATION_MS_MAP[durationKey]
+      : DURATION_MS_MAP["24h"];
+
+    const cryptoService = require("../services/cryptoService.cjs");
+    const meta = await this.roomMetaStore.load(code);
+    const { kp, localPub, myId } = this._resolveGovernanceSigner(code, meta, actorProfile);
+    if (!kp?.secretKey || !localPub) {
+      throw new Error("SIGNING_KEY_UNAVAILABLE");
+    }
+
+    const now = Date.now();
+    const actorInfo = this._resolveAuditActorInfo(code, meta, actorProfile, myId);
+    const inviteSecret = crypto.randomBytes(32).toString("base64url");
+    const activeInvite = {
+      inviteId: crypto.randomUUID(),
+      inviteSecret,
+      createdAt: now,
+      expiresAt: durationMs ? now + durationMs : null,
+      createdBy: myId || actorProfile?.id || null,
+      createdByNickname: actorInfo.nickname,
+      revoked: false,
+      revokedAt: null,
+      signedByPublicKey: localPub,
+    };
+    activeInvite.signature = cryptoService.signPayload(
+      buildSignableActiveInvite(code, activeInvite),
+      kp.secretKey
+    );
+
+    const existingLogs = Array.isArray(meta?.auditLog) ? meta.auditLog : [];
+    const auditEntry = {
+      id: crypto.randomUUID(),
+      timestamp: now,
+      userId: actorInfo.userId,
+      nickname: actorInfo.nickname,
+      userName: actorInfo.nickname,
+      avatar: actorInfo.avatar,
+      action: "generate_invite",
+      target: activeInvite.inviteId,
+      details: durationMs ? `Generated new invite (${durationKey})` : "Generated new permanent invite",
+    };
+
+    const updatedMeta = await this.roomMetaStore.bump(
+      code,
+      {
+        activeInvite,
+        auditLog: [auditEntry, ...existingLogs].slice(0, 100),
+        ...(!meta?.ownerPublicKey && localPub ? { ownerPublicKey: localPub } : {}),
+      },
+      myId || "local",
+      kp
+    );
+
+    this._syncRoomInviteListener(code, updatedMeta);
+    this.p2pService?._broadcast("meta-update", updatedMeta, code);
+
+    try {
+      const { ServerStore } = require("./serverStore.cjs");
+      const updatedServer = await new ServerStore(this.userDataPath).getByRoomCode(code);
+      if (updatedServer) {
+        global.mainWindow?.webContents.send("server:updated", {
+          ...updatedServer,
+          savedMembers: updatedMeta?.savedMembers || updatedServer.savedMembers || {},
+        });
+      }
+    } catch {}
+
+    return { ok: true, activeInvite };
+  }
+
+  async revokeActiveInvite(roomCode, actorProfile = null) {
+    const code = String(roomCode || this.roomCode || "").trim().toUpperCase();
+    if (!code || !this.userDataPath || !this.roomMetaStore) {
+      throw new Error("INVALID_ROOM");
+    }
+
+    const cryptoService = require("../services/cryptoService.cjs");
+    const meta = await this.roomMetaStore.load(code);
+    const { kp, localPub, myId } = this._resolveGovernanceSigner(code, meta, actorProfile);
+    if (!kp?.secretKey || !localPub) {
+      throw new Error("SIGNING_KEY_UNAVAILABLE");
+    }
+
+    if (!meta?.activeInvite) {
+      await this.p2pService?.leaveInviteTopic?.(code);
+      this._clearInviteExpiryTimer(code);
+      return { ok: true, activeInvite: null };
+    }
+
+    const now = Date.now();
+    const revokedInvite = {
+      ...meta.activeInvite,
+      revoked: true,
+      revokedAt: now,
+      signedByPublicKey: localPub,
+    };
+    revokedInvite.signature = cryptoService.signPayload(
+      buildSignableActiveInvite(code, revokedInvite),
+      kp.secretKey
+    );
+
+    const existingLogs = Array.isArray(meta?.auditLog) ? meta.auditLog : [];
+    const actorInfo = this._resolveAuditActorInfo(code, meta, actorProfile, myId);
+    const auditEntry = {
+      id: crypto.randomUUID(),
+      timestamp: now,
+      userId: actorInfo.userId,
+      nickname: actorInfo.nickname,
+      userName: actorInfo.nickname,
+      avatar: actorInfo.avatar,
+      action: "revoke_invite",
+      target: revokedInvite.inviteId,
+      details: "Revoked active room invite",
+    };
+
+    const updatedMeta = await this.roomMetaStore.bump(
+      code,
+      {
+        activeInvite: revokedInvite,
+        auditLog: [auditEntry, ...existingLogs].slice(0, 100),
+      },
+      myId || "local",
+      kp
+    );
+
+    this._syncRoomInviteListener(code, updatedMeta);
+    this.p2pService?._broadcast("meta-update", updatedMeta, code);
+
+    try {
+      const { ServerStore } = require("./serverStore.cjs");
+      const updatedServer = await new ServerStore(this.userDataPath).getByRoomCode(code);
+      if (updatedServer) {
+        global.mainWindow?.webContents.send("server:updated", {
+          ...updatedServer,
+          savedMembers: updatedMeta?.savedMembers || updatedServer.savedMembers || {},
+        });
+      }
+    } catch {}
+
+    return { ok: true, activeInvite: revokedInvite };
+  }
+
+  registerInviteRedeemWaiter(requestId, handler) {
+    if (!requestId || typeof handler !== "function") return;
+    this._pendingInviteRedeems.set(requestId, handler);
+  }
+
+  unregisterInviteRedeemWaiter(requestId) {
+    if (!requestId) return;
+    this._pendingInviteRedeems.delete(requestId);
+  }
+
+  shouldUseV2RoomEncryption(roomCode) {
+    const code = String(roomCode || "").trim().toUpperCase();
+    if (!code) return false;
+    const cryptoService = require("../services/cryptoService.cjs");
+    const secret = this.getRoomSecret(code);
+    if (!secret || !cryptoService.isValidRoomSecret(secret)) return false;
+
+    const cachedMeta = this.roomMetaStore?._cache?.get(code);
+    if (cachedMeta?.enforceV2Encryption) return true;
+
+    const activePeers = this.getPeersForRoom(code);
+    return !activePeers.some((p) => (p.protocolVersion || 1) < 2);
+  }
+
+  isRoomInLegacyCompatMode(roomCode) {
+    const code = String(roomCode || "").trim().toUpperCase();
+    if (!code) return false;
+    const cryptoService = require("../services/cryptoService.cjs");
+    const secret = this.getRoomSecret(code);
+    if (!secret || !cryptoService.isValidRoomSecret(secret)) return false;
+    const cachedMeta = this.roomMetaStore?._cache?.get(code);
+    if (cachedMeta?.enforceV2Encryption) return false;
+    return this.getPeersForRoom(code).some((p) => (p.protocolVersion || 1) < 2);
+  }
+
+  extractDmRecipientUserId(channelId) {
+    if (!channelId || !String(channelId).startsWith("dm_")) return null;
+    const raw = String(channelId).slice(3);
+    const myUserId = this.profile?.id || this.p2pService?.profile?.id || null;
+    if (myUserId && raw.includes(myUserId)) {
+      if (raw.startsWith(`${myUserId}_`)) return raw.slice(myUserId.length + 1);
+      if (raw.endsWith(`_${myUserId}`)) return raw.slice(0, raw.length - myUserId.length - 1);
+    }
+    const parts = String(channelId).split("_");
+    if (parts.length >= 3) {
+      return parts[1] === myUserId ? parts[2] : parts[1];
+    }
+    return null;
+  }
+
+  resolveDmRecipientPublicKey(channelId) {
+    const recipientUserId = this.extractDmRecipientUserId(channelId);
+    if (!recipientUserId) return "__NEED_KEY__";
+
+    if (this.p2pService?.peers) {
+      for (const [pId, peerObj] of this.p2pService.peers.entries()) {
+        if (peerObj && (peerObj.userId === recipientUserId || pId === recipientUserId)) {
+          return pId;
+        }
+      }
+    }
+
+    if (this.userDataPath) {
+      try {
+        const info = peerTrustService.getPeerVerification(this.userDataPath, {
+          userId: recipientUserId,
+        });
+        if (info?.peerPublicKey) return info.peerPublicKey;
+      } catch {}
+    }
+
+    return "__NEED_KEY__";
+  }
+
+  encryptChannelText(roomCode, channelId, plaintext) {
+    const code = String(roomCode || "").trim().toUpperCase();
+    const cryptoService = require("../services/cryptoService.cjs");
+    if (String(channelId || "").startsWith("dm_")) {
+      const dmTarget = this.resolveDmRecipientPublicKey(channelId);
+      if (!dmTarget || dmTarget === "__NEED_KEY__") {
+        throw new Error("DM_PEER_KEY_REQUIRED");
+      }
+      const kp = this.p2pService?.getKeyPair?.() || this.p2pService?.swarm?.keyPair;
+      const localPub = this.p2pService?._resolveLocalPeerId();
+      if (!kp?.secretKey || !localPub) {
+        throw new Error("DM_PEER_KEY_REQUIRED");
+      }
+      return cryptoService.encryptDM(kp.secretKey, localPub, dmTarget, plaintext);
+    }
+    if (!this.shouldUseV2RoomEncryption(code)) {
+      return cryptoService.encrypt(code, plaintext, {});
+    }
+    const routingSecret = this.getRoomSecret(code);
+    const keyState = this.getRoomKeyState(code);
+    const epoch = Math.max(1, Number(keyState.currentEpoch) || 1);
+    const epochSecret =
+      keyState.keyRing?.[epoch] ||
+      keyState.keyRing?.[String(epoch)] ||
+      routingSecret;
+    return cryptoService.encrypt(code, plaintext, {
+      roomSecret: routingSecret || epochSecret,
+      keyEpoch: epoch,
+      epochSecret: epochSecret || routingSecret,
+    });
+  }
+
+  decryptChannelText(roomCode, channelId, ciphertext) {
+    const code = String(roomCode || "").trim().toUpperCase();
+    const cryptoService = require("../services/cryptoService.cjs");
+    if (typeof ciphertext === "string" && ciphertext.startsWith("[E2EE-DM]:")) {
+      const kp = this.p2pService?.getKeyPair?.() || this.p2pService?.swarm?.keyPair;
+      const localPub = this.p2pService?._resolveLocalPeerId();
+      if (kp?.secretKey && localPub) {
+        return cryptoService.decryptDM(kp.secretKey, localPub, ciphertext);
+      }
+      return "[Cifrado - No disponible]";
+    }
+    const routingSecret = this.getRoomSecret(code);
+    const keyState = this.getRoomKeyState(code);
+    return cryptoService.decrypt(code, ciphertext, {
+      roomSecret: routingSecret,
+      keyRing: keyState.keyRing,
+    });
   }
 
   getPeersForRoom(roomCode) {
@@ -420,6 +1001,9 @@ class RoomManager {
   }
 
   async onServerProfileUpdated(targetRoomCode, updatedFullProfile) {
+    if (updatedFullProfile) {
+      this.profile = updatedFullProfile;
+    }
     const code = String(targetRoomCode).trim().toUpperCase();
     if (!this.p2pService) return;
     const currentCode = this.roomCode ? String(this.roomCode).trim().toUpperCase() : null;
@@ -515,13 +1099,17 @@ class RoomManager {
       this.p2pService.profile.status = "invisible";
       this.p2pService.profile.showRichPresence = false;
       this.p2pService._broadcast("activity-state", { name: null });
-      this.p2pService._broadcast("profile", this.p2pService.profile);
+      for (const peerId of this.p2pService.peers.keys()) {
+        this.p2pService._sendProfileToPeer(peerId);
+      }
     } else {
       this.p2pService.profile.status = this._preHeadlessStatus || "online";
       if (this._preHeadlessRichPresence !== undefined) {
         this.p2pService.profile.showRichPresence = this._preHeadlessRichPresence;
       }
-      this.p2pService._broadcast("profile", this.p2pService.profile);
+      for (const peerId of this.p2pService.peers.keys()) {
+        this.p2pService._sendProfileToPeer(peerId);
+      }
       if (this.localActivity?.name && this.p2pService.profile.showRichPresence !== false) {
         this.p2pService._broadcast("activity-state", this.localActivity);
       }
@@ -628,10 +1216,106 @@ class RoomManager {
       });
     }
 
-    await this.p2pService.joinRoom(normalized, { waitFlush: Boolean(options?.waitFlush) });
+    let roomSecret = null;
+    let keepLegacyTopic = true;
+    let serverRecord = null;
+    let roomMeta = null;
+
+    if (!this.isPreview && this.userDataPath) {
+      await this.p2pService.ensureSwarm();
+      try {
+        const { ServerStore } = require("./serverStore.cjs");
+        const serverStore = new ServerStore(this.userDataPath);
+        serverRecord = await serverStore.getByRoomCode(normalized);
+        if (serverRecord?.roomSecret) {
+          roomSecret = serverRecord.roomSecret;
+          this._roomSecrets.set(normalized, roomSecret);
+        }
+        if (serverRecord) {
+          const ring = serverRecord.keyRing && typeof serverRecord.keyRing === "object" ? { ...serverRecord.keyRing } : {};
+          if (roomSecret && !ring["1"]) ring["1"] = roomSecret;
+          this._roomKeyRings.set(normalized, {
+            currentEpoch: Math.max(1, Number(serverRecord.currentKeyEpoch) || 1),
+            keyRing: ring,
+            keyEnvelopes: Array.isArray(serverRecord.keyEnvelopes) ? serverRecord.keyEnvelopes : [],
+          });
+        }
+      } catch {}
+
+      if (this.roomMetaStore) {
+        roomMeta = await this.roomMetaStore.load(normalized).catch(() => null);
+      }
+
+      // Auto-migrate legacy v1 -> v2 when the room owner connects
+      if (isHost && (!roomMeta?.ownerPublicKey || !roomSecret || !roomMeta?.roomSecretMigration)) {
+        try {
+          const kp = this.p2pService.swarm?.keyPair;
+          const localPub = this.p2pService._resolveLocalPeerId();
+          if (kp?.secretKey && localPub) {
+            const cryptoService = require("../services/cryptoService.cjs");
+            const isLegacyRoom = Boolean(!roomSecret || !roomMeta?.ownerPublicKey);
+            if (!roomSecret || !cryptoService.isValidRoomSecret(roomSecret)) {
+              roomSecret = crypto.randomBytes(32).toString("base64url");
+              this._roomSecrets.set(normalized, roomSecret);
+              if (serverRecord) {
+                const { ServerStore } = require("./serverStore.cjs");
+                await new ServerStore(this.userDataPath).setRoomSecret(normalized, roomSecret);
+              }
+            }
+            const migratedAt = Date.now();
+            const sig = cryptoService.signPayload(
+              { roomCode: normalized, roomSecret, migratedAt },
+              kp.secretKey
+            );
+            const migrationEnvelope = {
+              roomCode: normalized,
+              roomSecret,
+              migratedAt,
+              signedByPublicKey: localPub,
+              signature: sig,
+              legacyMigrated: isLegacyRoom,
+            };
+            if (this.roomMetaStore) {
+              const bumpPatch = {
+                ownerId: roomMeta?.ownerId || profile?.id || null,
+                ownerPublicKey: roomMeta?.ownerPublicKey || localPub,
+                roomSecretMigration: migrationEnvelope,
+              };
+              roomMeta = await this.roomMetaStore.bump(normalized, bumpPatch, profile?.id || "local", kp);
+              this.p2pService._broadcast("meta-update", roomMeta, normalized);
+            }
+            this.p2pService._broadcast("room-secret-migrate", migrationEnvelope, normalized);
+          }
+        } catch (migErr) {
+          console.warn(`[RoomManager AutoMigrate] Warning for ${normalized}:`, migErr.message);
+        }
+      }
+
+      // Brand-new private v2 rooms (not migrated from v1 and not Discover-public) use v2 DHT topic only
+      const isPublicDiscover = Boolean(serverRecord?.discoverConfig?.enabled || roomMeta?.discoverConfig?.enabled);
+      const isLegacyMigrated = Boolean(
+        !roomSecret ||
+        !roomMeta?.ownerPublicKey ||
+        roomMeta?.roomSecretMigration?.legacyMigrated
+      );
+      keepLegacyTopic = isPublicDiscover || isLegacyMigrated;
+    }
+
+    await this.p2pService.joinRoom(normalized, {
+      waitFlush: Boolean(options?.waitFlush),
+      roomSecret,
+      keepLegacyTopic,
+    });
+    if (!this.isPreview && roomMeta) {
+      this._syncRoomInviteListener(normalized, roomMeta);
+    }
     if (this.p2pService.profile) {
-      this.p2pService.profile.joinedRooms = Array.from(this.p2pService.joinedRooms);
-      this.p2pService._broadcast("profile", this.p2pService.profile);
+      this.p2pService._broadcastJoinedRooms();
+      for (const [peerId] of this.p2pService.peers.entries()) {
+        if (this.isPeerInRoom(peerId, normalized)) {
+          this.p2pService._sendProfileToPeer(peerId);
+        }
+      }
     }
 
     try {
@@ -867,6 +1551,7 @@ class RoomManager {
       this._moderationCache = null;
     }
 
+    this._clearInviteExpiryTimer(normalized);
     this.rooms.delete(normalized);
     this.chatService.clearRoomCode(normalized);
     await this.p2pService.leaveRoom(normalized);
@@ -884,6 +1569,10 @@ class RoomManager {
 
     this.stopRoomPingInterval();
     this.stopPeriodicMetaSync();
+    for (const timer of this._inviteExpiryTimers.values()) {
+      clearTimeout(timer);
+    }
+    this._inviteExpiryTimers.clear();
     this.voiceService.stopPingInterval();
     if (this.roomCode) {
       this.chatService.clearRoomCode(this.roomCode);
@@ -905,32 +1594,52 @@ class RoomManager {
     this.fileService.destroy();
   }
 
-  async getState() {
+  async getState(targetRoomCode = null) {
+    const effectiveRoomCode = targetRoomCode ? String(targetRoomCode).trim().toUpperCase() : this.roomCode;
     const localId = this.p2pService._resolveLocalPeerId();
     const activePeers = Array.from(this.p2pService.peers.values())
-      .filter((p) => p.userId !== null && !p.isPreview && this.isPeerInRoom(p.id, this.roomCode))
-      .map((p) => ({
-        id: p.userId,
-        userId: p.userId,
-        peerId: p.id,
-        nickname: p.nickname,
-        avatar: p.avatar,
-        banner: p.banner || null,
-        status: p.status || "online",
-        online: p.status !== "invisible",
-        activity: p.activity || null,
-        customLink: p.customLink || "",
-        profileColor: p.profileColor || "",
-        customStatus: p.customStatus || "",
-        showRichPresence: p.showRichPresence ?? true,
-        flame: p.flame || null,
-        ping: p.averagePing !== undefined ? Math.round(p.averagePing) : (p.ping !== undefined ? Math.round(p.ping) : null),
-      }));
+      .filter((p) => p.userId !== null && !p.isPreview && effectiveRoomCode && this.isPeerInRoom(p.id, effectiveRoomCode))
+      .map((p) => {
+        const transportAuth = p.transportAuth || "noise-hyperswarm";
+        const verificationStatus =
+          p.verificationStatus ||
+          (p.userId
+            ? peerTrustService.getVerificationStatusQuick(
+                this.userDataPath,
+                p.userId,
+                p.id,
+                transportAuth
+              )
+            : "unverified");
+        const status = p.status || "online";
+        return {
+          id: p.userId,
+          userId: p.userId,
+          peerId: p.id,
+          nickname: p.nickname,
+          globalNickname: p.nickname,
+          avatar: p.avatar,
+          banner: p.banner || null,
+          serverProfiles: p.serverProfiles || null,
+          status,
+          online: status !== "invisible",
+          activity: p.activity || null,
+          customLink: p.customLink || "",
+          profileColor: p.profileColor || "",
+          customStatus: p.customStatus || "",
+          showRichPresence: p.showRichPresence ?? true,
+          flame: p.flame || null,
+          ping: p.averagePing !== undefined ? Math.round(p.averagePing) : (p.ping !== undefined ? Math.round(p.ping) : null),
+          verificationStatus,
+          transportAuth,
+          protocolVersion: p.protocolVersion || 1,
+        };
+      });
 
     let historicalMembers = [];
     try {
-      if (this.roomMetaStore && this.roomCode) {
-        const meta = await this.roomMetaStore.load(this.roomCode);
+      if (this.roomMetaStore && effectiveRoomCode) {
+        const meta = await this.roomMetaStore.load(effectiveRoomCode);
         if (meta && meta.savedMembers) {
           historicalMembers = Object.values(meta.savedMembers).map((m) => ({
             id: m.id,
@@ -938,6 +1647,7 @@ class RoomManager {
             nickname: m.nickname,
             avatar: m.avatar,
             banner: m.banner || null,
+            status: "offline",
             online: false,
           }));
         }
@@ -957,10 +1667,11 @@ class RoomManager {
     }
 
     return {
-      roomCode: this.roomCode,
+      roomCode: effectiveRoomCode,
       isHost: this.isHost,
       mesh: true,
       localPeerId: localId,
+      compatMode: this.isRoomInLegacyCompatMode(effectiveRoomCode),
       peers: Array.from(finalMembersMap.values()),
     };
   }
@@ -1033,6 +1744,18 @@ class RoomManager {
       }
     }
 
+    const transportAuth = peer.transportAuth || "noise-hyperswarm";
+    const verificationStatus =
+      peer.verificationStatus ||
+      (peer.userId
+        ? peerTrustService.getVerificationStatusQuick(
+            this.userDataPath,
+            peer.userId,
+            peerId,
+            transportAuth
+          )
+        : "unverified");
+
     this._callbacks.onPeerJoined?.({
       id: peer.userId || peerId,
       peerId: peerId,
@@ -1047,8 +1770,13 @@ class RoomManager {
       profileColor: effectiveProfileColor,
       customStatus: effectiveCustomStatus,
       showRichPresence: peer.showRichPresence,
+      status: peer.status || "online",
+      online: peer.status !== "invisible",
       activity: peer.activity || null,
       ping: peer.averagePing !== undefined ? Math.round(peer.averagePing) : (peer.ping !== undefined ? Math.round(peer.ping) : null),
+      verificationStatus,
+      transportAuth,
+      protocolVersion: peer.protocolVersion || 1,
     });
   }
 
@@ -1056,18 +1784,57 @@ class RoomManager {
     const peer = this.p2pService.peers.get(peerId);
     if (!peer) return;
 
-    if (type === "profile" && payload) {
-      const peerJoinedRooms = Array.isArray(payload.joinedRooms)
-        ? payload.joinedRooms.map((r) => String(r || "").trim().toUpperCase()).filter(Boolean)
-        : [];
-      const activeRooms = this.rooms.size > 0 ? [...this.rooms.keys()] : (this.roomCode ? [this.roomCode] : []);
-      const sharedRooms = activeRooms.filter((code) => peerJoinedRooms.includes(code));
+    if (type === "room-proofs-matched" && payload) {
+      const removedRooms = Array.isArray(payload.removedRooms) ? payload.removedRooms : [];
+      const activeRoomCode = this.roomCode ? String(this.roomCode).trim().toUpperCase() : null;
+      if (activeRoomCode && removedRooms.includes(activeRoomCode)) {
+        this._callbacks.onPeerLeft?.({
+          id: peer.userId || peerId,
+          peerId,
+          roomCode: activeRoomCode,
+        });
+        this.voiceService.handlePeerLeft(peerId, () => this._emitVoiceState());
+      }
 
-      if (!payload.isPreview) {
-        try {
-          const discoverService = require("../services/discoverService.cjs");
-          discoverService.syncAndAnnounceLocalServers(peerId).catch(() => {});
-        } catch (_) {}
+      // If peer profile already arrived before a new room match was confirmed, trigger room sync & profile emission
+      const addedRooms = Array.isArray(payload.addedRooms) ? payload.addedRooms : [];
+      if (peer.userId && addedRooms.length > 0 && !peer.isPreview) {
+        await this._onSharedRoomsActivated(peerId, peer.lastProfilePayload || peer, addedRooms);
+      } else if (peer.isPreview && addedRooms.length > 0 && this.roomMetaStore) {
+        for (const code of addedRooms) {
+          this.roomMetaStore.load(code).then((meta) => {
+            if (meta) {
+              const { webhooks: _wh, activeInvite: _ai, ...safeMeta } = meta;
+              this.p2pService._sendToPeer(peerId, "meta-update", {
+                ...safeMeta,
+                webhooks: [],
+                activeInvite: null,
+                roomCode: code,
+              });
+            }
+          }).catch(() => {});
+        }
+      }
+      return;
+    }
+
+    if (type === "profile" && payload) {
+      peer.lastProfilePayload = payload;
+      const activeRooms = this.rooms.size > 0 ? [...this.rooms.keys()] : (this.roomCode ? [this.roomCode] : []);
+      const verifiedPeerRooms = this.p2pService.peerRooms.get(peerId) || new Set();
+
+      let sharedRooms = [];
+      if ((peer.protocolVersion || 1) >= 2) {
+        // v2 peers derive shared rooms strictly from HMAC room-proofs verification
+        sharedRooms = activeRooms.filter((code) => verifiedPeerRooms.has(code));
+      } else {
+        // Legacy v1 fallback (v0.3.6)
+        const peerJoinedRooms = Array.isArray(payload.joinedRooms)
+          ? payload.joinedRooms.map((r) => String(r || "").trim().toUpperCase()).filter(Boolean)
+          : [];
+        sharedRooms = activeRooms.filter(
+          (code) => verifiedPeerRooms.has(code) || peerJoinedRooms.includes(code)
+        );
       }
 
       if (payload.isPreview || !payload.id) {
@@ -1075,10 +1842,11 @@ class RoomManager {
           for (const code of sharedRooms) {
             this.roomMetaStore.load(code).then((meta) => {
               if (meta) {
-                const { webhooks: _wh, ...safeMeta } = meta;
+                const { webhooks: _wh, activeInvite: _ai, ...safeMeta } = meta;
                 this.p2pService._sendToPeer(peerId, "meta-update", {
                   ...safeMeta,
                   webhooks: [],
+                  activeInvite: null,
                   roomCode: code,
                 });
               }
@@ -1091,6 +1859,20 @@ class RoomManager {
       if (sharedRooms.length === 0) {
         return;
       }
+
+      await this._onSharedRoomsActivated(peerId, payload, sharedRooms);
+      return;
+    }
+
+    if (await handleChatPacket(this, peerId, type, payload)) return;
+    if (await handleVoicePacket(this, peerId, type, payload)) return;
+    if (await handleFilePacket(this, peerId, type, payload)) return;
+    if (await handleMetaPacket(this, peerId, type, payload)) return;
+  }
+
+  async _onSharedRoomsActivated(peerId, payload, sharedRooms) {
+    const peer = this.p2pService.peers.get(peerId);
+    if (!peer || !Array.isArray(sharedRooms) || sharedRooms.length === 0) return;
 
       // 🛑 Anti-Moderation Security Firewall: Check if the peer is banned in any shared room
       const allowedSharedRooms = [];
@@ -1128,10 +1910,26 @@ class RoomManager {
         return;
       }
 
-      // Ensure the connecting/rejoining peer has our full up-to-date room list
-      this.p2pService._sendToPeer(peerId, "room-announce", {
-        rooms: Array.from(this.p2pService.joinedRooms),
-      });
+      if (!this.isPreview && this.userDataPath && payload.id) {
+        const sighting = peerTrustService.recordPeerSighting(
+          this.userDataPath,
+          payload.id,
+          peerId,
+          peer.transportAuth || "noise-hyperswarm"
+        );
+        peer.verificationStatus = sighting.status;
+        if (sighting.keyChanged) {
+          global.mainWindow?.webContents.send("security:peer-key-changed", {
+            userId: payload.id,
+            peerId,
+            nickname: peer.nickname || payload.nickname || "Usuario",
+            hadVerifiedKey: Boolean(sighting.hadVerifiedKey),
+          });
+        }
+      }
+
+      // Re-sync room proofs/profile on shared rooms without leaking unrelated rooms in plaintext
+      this.p2pService._broadcastJoinedRooms();
 
       // If we are currently connected to voice, announce our voice state to this newly authenticated peer
       if (this.voiceService?.localVoice?.channelId) {
@@ -1279,7 +2077,14 @@ class RoomManager {
               }
 
               if (isFirstJoin) {
-                if (this.roomCode === targetCode) {
+                const roomEntryForJoin = this.rooms.get(targetCode);
+                const isRoomHostForJoin = Boolean(roomEntryForJoin?.isHost || (this.roomCode === targetCode && this.isHost));
+                const hasInitialMetaSynced = isRoomHostForJoin || (Number(meta.version) || 0) > 0;
+                const isRoomOwnerPeer = Boolean(
+                  payload.id &&
+                  (payload.id === meta.ownerId || payload.id === meta.creatorID || payload.id === meta.creatorId)
+                );
+                if (this.roomCode === targetCode && hasInitialMetaSynced && !isRoomOwnerPeer) {
                   this._callbacks.onMemberFirstJoined?.({
                     id: payload.id,
                     nickname: payload.nickname || "Usuario",
@@ -1362,8 +2167,43 @@ class RoomManager {
         }
       }
 
-      // Proactively reply to newly connected peer with our effective server profile and sync for shared rooms
+      // Proactively reply to newly connected peer with our effective server profile, sync, v2 secret envelope relay, and keyRing
       for (const code of allowedSharedRooms) {
+        if ((peer.protocolVersion || 1) >= 2 && this.roomMetaStore) {
+          this.roomMetaStore.load(code).then(async (m) => {
+            if (m?.roomSecretMigration && m?.ownerPublicKey) {
+              this.p2pService._sendToPeer(peerId, "room-secret-migrate", m.roomSecretMigration);
+            }
+            // Self-heal adminPublicKeys when Owner sees a verified Admin peer
+            const myId = this.profile?.id || this.p2pService?.profile?.id;
+            const localPub = this.p2pService?._resolveLocalPeerId?.();
+            const isLocalOwner = Boolean(
+              m?.ownerId === myId || (m?.ownerPublicKey && localPub && m.ownerPublicKey.toLowerCase() === localPub.toLowerCase())
+            );
+            if (isLocalOwner && payload?.id && checkAdminPermission(m, payload.id)) {
+              const currentAdminKey = m?.adminPublicKeys?.[payload.id]?.toLowerCase?.();
+              if (currentAdminKey !== String(peerId).toLowerCase()) {
+                try {
+                  const nextAdminKeys = { ...(m.adminPublicKeys || {}), [payload.id]: String(peerId).toLowerCase() };
+                  const kp = this.p2pService?.getKeyPair?.() || this.p2pService?.swarm?.keyPair;
+                  const updatedM = await this.roomMetaStore.bump(code, { adminPublicKeys: nextAdminKeys }, myId || "local", kp);
+                  this.p2pService._broadcast("meta-update", updatedM, code);
+                } catch {}
+              }
+            }
+          }).catch(() => {});
+        }
+        if ((peer.protocolVersion || 1) >= 2) {
+          const keyState = this.getRoomKeyState(code);
+          if (keyState && (keyState.currentEpoch > 1 || (keyState.keyEnvelopes && keyState.keyEnvelopes.length > 0))) {
+            this.p2pService._sendToPeer(peerId, "room-key-sync", {
+              roomCode: code,
+              currentKeyEpoch: keyState.currentEpoch,
+              keyRing: keyState.keyRing,
+              keyEnvelopes: keyState.keyEnvelopes,
+            });
+          }
+        }
         this.chatService.scheduleSync(peerId, code);
         try {
           const profileService = require("../services/profileService.cjs");
@@ -1433,13 +2273,26 @@ class RoomManager {
             }
           }
 
+          const transportAuth = peer.transportAuth || "noise-hyperswarm";
+          const verificationStatus =
+            peer.verificationStatus ||
+            (peer.userId
+              ? peerTrustService.getVerificationStatusQuick(
+                  this.userDataPath,
+                  peer.userId,
+                  peerId,
+                  transportAuth
+                )
+              : "unverified");
           this._callbacks.onPeerUpdated({
             id: peer.userId,
+            userId: peer.userId,
             peerId: peer.id,
             nickname: effectiveNickname,
             avatar: effectiveAvatar,
             banner: effectiveBanner,
-            online: true,
+            status: peer.status || "online",
+            online: peer.status !== "invisible",
             activity: peer.activity || null,
             customLink: effectiveCustomLink,
             profileColor: effectiveProfileColor,
@@ -1449,15 +2302,12 @@ class RoomManager {
             showRichPresence: peer.showRichPresence,
             flame: peer.flame,
             ping: peer.averagePing !== undefined ? Math.round(peer.averagePing) : (peer.ping !== undefined ? Math.round(peer.ping) : null),
+            verificationStatus,
+            transportAuth,
+            protocolVersion: peer.protocolVersion || 1,
           });
         }
       }
-    } else {
-      if (await handleChatPacket(this, peerId, type, payload)) return;
-      if (await handleVoicePacket(this, peerId, type, payload)) return;
-      if (await handleFilePacket(this, peerId, type, payload)) return;
-      if (await handleMetaPacket(this, peerId, type, payload)) return;
-    }
   }
 
   requestPeerDiagnostics(peerId) {
@@ -1465,6 +2315,44 @@ class RoomManager {
     diagService.log("info", "Diagnostics", `Requesting diagnostics from peer: ${peerId}`);
     const requestId = crypto.randomUUID();
     this.p2pService._sendToPeer(peerId, "diag-request", { requestId });
+  }
+
+  respondDiagConsent(requestId, approved) {
+    if (!requestId || !this._pendingDiagRequests) return { ok: false, error: "invalid_request" };
+    const entry = this._pendingDiagRequests.get(requestId);
+    if (!entry) return { ok: false, error: "expired_or_missing" };
+    this._pendingDiagRequests.delete(requestId);
+    if (entry.timer) clearTimeout(entry.timer);
+
+    if (Date.now() > entry.expiresAt) {
+      this.p2pService._sendToPeer(entry.peerId, "diag-response", {
+        requestId,
+        rejected: true,
+        reason: "expired",
+        nickname: this.profile?.nickname || "Peer",
+        logs: [],
+      });
+      return { ok: false, error: "expired" };
+    }
+
+    if (approved) {
+      const sanitizedLogs = diagService.sanitizeLogs(diagService.getLocalLogs());
+      this.p2pService._sendToPeer(entry.peerId, "diag-response", {
+        requestId,
+        rejected: false,
+        nickname: this.profile?.nickname || "Peer",
+        logs: sanitizedLogs,
+      });
+      return { ok: true, approved: true };
+    }
+
+    this.p2pService._sendToPeer(entry.peerId, "diag-response", {
+      requestId,
+      rejected: true,
+      nickname: this.profile?.nickname || "Peer",
+      logs: [],
+    });
+    return { ok: true, approved: false };
   }
 
   async collectAllPeerLogs(timeoutMs = 2000) {

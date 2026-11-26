@@ -47,6 +47,18 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
+    watch: {
+      ignored: [
+        "**/dev-user-*/**",
+        "**/logs/**",
+        "**/dist/**",
+        "**/release/**",
+        "**/electron/**",
+        "**/addons/**",
+        "**/*.tmp",
+        "**/*.db*",
+      ],
+    },
   },
 
 });

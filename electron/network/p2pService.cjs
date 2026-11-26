@@ -1,4 +1,5 @@
 const Hyperswarm = require("hyperswarm");
+const SecretStream = require("@hyperswarm/secret-stream");
 const b4a = require("b4a");
 const crypto = require("crypto");
 const os = require("os");
@@ -118,6 +119,44 @@ function decodeMessages(bufferStr) {
   return { messages, remaining };
 }
 
+const P2P_PROTOCOL_VERSION = 2;
+const P2P_CAPABILITIES = [
+  "hmac-rooms",
+  "ed25519-meta",
+  "e2ee2-room",
+  "dm-ecdh",
+  "cas-sha256",
+  "key-epochs-v1",
+  "expiring-invite-v1",
+];
+
+const RATE_LIMIT_CONFIGS = {
+  sync: { capacity: 25, refillPerSec: 10 },
+  chat: { capacity: 40, refillPerSec: 20 },
+  file: { capacity: 400, refillPerSec: 250 },
+  draw: { capacity: 120, refillPerSec: 60 },
+  general: { capacity: 80, refillPerSec: 40 },
+};
+
+const RATE_TYPE_CATEGORY = {
+  "sync-req": "sync",
+  "sync-res": "sync",
+  "invite-preview-req": "sync",
+  "room-key-sync": "sync",
+  "invite-redeem-req": "sync",
+  "invite-redeem-res": "sync",
+  "chat": "chat",
+  "chat-delete": "chat",
+  "typing-state": "chat",
+  "chat-typing": "chat",
+  "file-request-block": "file",
+  "file-request": "file",
+  "file-response-chunk": "file",
+  "file-block-res": "file",
+  "whiteboard-event": "draw",
+  "sketch-draw": "draw",
+};
+
 class P2PService {
   constructor({ userDataPath, onPeerJoined, onPeerLeft, onMessage } = {}) {
     this.userDataPath = userDataPath || null;
@@ -129,6 +168,7 @@ class P2PService {
     this.roomCode = null;
     this.joinedRooms = new Set();
     this.roomDiscoveries = new Map();
+    this.inviteDiscoveries = new Map();
     this.peerRooms = new Map(); // Map<peerId, Set<roomCode>>
 
     this.onPeerJoined = onPeerJoined;
@@ -172,8 +212,26 @@ class P2PService {
     if (this.localPeerId) return this.localPeerId;
     if (this.swarm?.keyPair?.publicKey) {
       this.localPeerId = b4a.toString(this.swarm.keyPair.publicKey, "hex");
+    } else {
+      const kp = this.getKeyPair();
+      if (kp?.publicKey) {
+        this.localPeerId = b4a.toString(kp.publicKey, "hex");
+      }
     }
     return this.localPeerId;
+  }
+
+  getKeyPair() {
+    if (this.swarm?.keyPair?.secretKey && this.swarm?.keyPair?.publicKey) {
+      return this.swarm.keyPair;
+    }
+    if (this._cachedKeyPair) return this._cachedKeyPair;
+    const seed = this._getOrCreateNodeSeed();
+    if (seed) {
+      this._cachedKeyPair = SecretStream.keyPair(seed);
+      return this._cachedKeyPair;
+    }
+    return null;
   }
 
   async ensureSwarm() {
@@ -186,12 +244,6 @@ class P2PService {
       this.swarm = new Hyperswarm(swarmOpts);
       this.swarm.on("connection", (socket, peerInfo) => this._handleConnection(socket, peerInfo));
       this._resolveLocalPeerId();
-      try {
-        const globalDiscoverTopic = topicFromRoomCode("__ONICORD_GLOBAL_DISCOVER_V1__");
-        this.swarm.join(globalDiscoverTopic, { server: true, client: true });
-      } catch (e) {
-        console.error("[P2P] Error joining global discovery swarm:", e.message);
-      }
     }
   }
 
@@ -200,56 +252,129 @@ class P2PService {
     const normalized = String(roomCode || "").trim().toUpperCase();
     if (!normalized) return null;
 
+    const cryptoService = require("../services/cryptoService.cjs");
+    const roomSecret =
+      typeof options?.roomSecret === "string" && cryptoService.isValidRoomSecret(options.roomSecret)
+        ? options.roomSecret.trim()
+        : null;
+    const keepLegacyTopic = options?.keepLegacyTopic !== false;
+
     this.roomCode = normalized;
-    if (this.joinedRooms.has(normalized) && this.roomDiscoveries.has(normalized)) {
-      return this.roomDiscoveries.get(normalized);
+    this.joinedRooms.add(normalized);
+
+    let entry = this.roomDiscoveries.get(normalized);
+    if (entry && !entry.v2Topic && !entry.legacyTopic) {
+      // Upgrade older discovery entry shape if needed
+      entry = { legacyDiscovery: entry, v2Discovery: null, legacyTopic: topicFromRoomCode(normalized), v2Topic: null };
+    } else if (!entry) {
+      entry = { legacyDiscovery: null, v2Discovery: null, legacyTopic: null, v2Topic: null };
     }
 
-    this.joinedRooms.add(normalized);
-    const topic = topicFromRoomCode(normalized);
-    const discovery = this.swarm.join(topic, { server: true, client: true });
-    this.roomDiscoveries.set(normalized, discovery);
+    if (roomSecret && !entry.v2Discovery) {
+      const v2Topic = cryptoService.topicFromRoomSecret(normalized, roomSecret);
+      entry.v2Topic = v2Topic;
+      entry.v2Discovery = this.swarm.join(v2Topic, { server: true, client: true });
+    }
+
+    if (keepLegacyTopic && !entry.legacyDiscovery) {
+      const legacyTopic = topicFromRoomCode(normalized);
+      entry.legacyTopic = legacyTopic;
+      entry.legacyDiscovery = this.swarm.join(legacyTopic, { server: true, client: true });
+    }
+
+    this.roomDiscoveries.set(normalized, entry);
+    const primaryDiscovery = entry.v2Discovery || entry.legacyDiscovery;
 
     const waitFlush = Boolean(options?.waitFlush);
+    const flushes = [entry.v2Discovery, entry.legacyDiscovery].filter(Boolean).map((d) => d.flushed());
     if (waitFlush) {
-      await discovery.flushed();
+      await Promise.all(flushes);
     } else {
-      discovery.flushed().catch((err) => {
+      Promise.all(flushes).catch((err) => {
         console.warn(`[P2P] Background discovery flush warning for ${normalized}:`, err.message);
       });
     }
 
-    // Announce active joined rooms to all connected peers
+    // Recompute HMAC room proofs for connected v2 peers
     this._broadcastJoinedRooms();
+    return primaryDiscovery;
+  }
+
+  async syncInviteTopic(roomCode, inviteSecret) {
+    const normalized = String(roomCode || "").trim().toUpperCase();
+    if (!normalized) return null;
+    const cryptoService = require("../services/cryptoService.cjs");
+    const cleanSecret =
+      typeof inviteSecret === "string" && cryptoService.isValidRoomSecret(inviteSecret)
+        ? inviteSecret.trim()
+        : null;
+    if (!cleanSecret) {
+      await this.leaveInviteTopic(normalized);
+      return null;
+    }
+
+    const existing = this.inviteDiscoveries.get(normalized);
+    if (existing && existing.inviteSecret === cleanSecret) {
+      return existing.discovery;
+    }
+    if (existing) {
+      await this.leaveInviteTopic(normalized);
+    }
+
+    await this.ensureSwarm();
+    const topic = cryptoService.topicFromInviteSecret(normalized, cleanSecret);
+    const discovery = this.swarm.join(topic, { server: true, client: true });
+    this.inviteDiscoveries.set(normalized, {
+      topic,
+      discovery,
+      inviteSecret: cleanSecret,
+    });
+    discovery.flushed().catch(() => {});
     return discovery;
+  }
+
+  async leaveInviteTopic(roomCode) {
+    const normalized = String(roomCode || "").trim().toUpperCase();
+    if (!normalized) return;
+    const entry = this.inviteDiscoveries.get(normalized);
+    if (!entry) return;
+    this.inviteDiscoveries.delete(normalized);
+    if (this.swarm && entry.topic) {
+      try {
+        await this.swarm.leave(entry.topic);
+      } catch {}
+    }
   }
 
   async leaveRoom(roomCode) {
     const normalized = String(roomCode || "").trim().toUpperCase();
     if (!normalized) return;
 
+    await this.leaveInviteTopic(normalized);
+
     this.joinedRooms.delete(normalized);
     if (this.roomCode === normalized) {
       this.roomCode = this.joinedRooms.size > 0 ? [...this.joinedRooms][0] : null;
     }
-    if (this.profile) {
-      this.profile.joinedRooms = Array.from(this.joinedRooms);
-    }
     this._broadcastJoinedRooms();
 
-    const discovery = this.roomDiscoveries.get(normalized);
-    if (discovery) {
+    const entry = this.roomDiscoveries.get(normalized);
+    if (entry) {
       this.roomDiscoveries.delete(normalized);
-    }
-
-    if (this.swarm) {
+      if (this.swarm) {
+        if (entry.v2Topic) {
+          try { await this.swarm.leave(entry.v2Topic); } catch {}
+        }
+        if (entry.legacyTopic) {
+          try { await this.swarm.leave(entry.legacyTopic); } catch {}
+        }
+      }
+    } else if (this.swarm) {
       const topic = topicFromRoomCode(normalized);
       try {
         await this.swarm.leave(topic);
       } catch {}
     }
-    // Note: Do NOT delete `normalized` from `this.peerRooms` (which tracks *remote* peers' joined rooms)
-    // and do NOT tear down peer sockets, as sockets remain shared for other servers & global discovery.
   }
 
   disconnectAllPeers() {
@@ -261,11 +386,80 @@ class P2PService {
     this.peerRooms.clear();
     this.joinedRooms.clear();
     this.roomDiscoveries.clear();
+    this.inviteDiscoveries.clear();
     this.roomCode = null;
   }
 
   _broadcastJoinedRooms() {
-    this._broadcast("room-announce", { rooms: Array.from(this.joinedRooms) });
+    const cryptoService = require("../services/cryptoService.cjs");
+    for (const peer of this.peers.values()) {
+      if (!peer?.socket || peer.socket.destroyed) continue;
+      if ((peer.protocolVersion || 1) >= 2 && peer.sharedNonceBuf) {
+        const proofs = [];
+        for (const room of this.joinedRooms) {
+          const proof = cryptoService.computeRoomProof(peer.sharedNonceBuf, room);
+          if (proof) proofs.push(proof);
+        }
+        safeWriteSocket(peer.socket, encodeMessage("room-proofs", { proofs }));
+      }
+    }
+  }
+
+  _buildWireProfileForPeer(peerId, { includeJoinedRooms = false, legacySharedRooms = [] } = {}) {
+    if (!this.profile) return null;
+    const { joinedRooms: _omitted, localIPs: _omittedIPs, ...safeBase } = this.profile;
+    const allowLanIPs = this.isVerifiedLan(peerId) && !this._isAlwaysRelayEnabled();
+    const wireProfile = {
+      ...safeBase,
+      localIPs: allowLanIPs ? getLocalIPs() : [],
+    };
+    if (includeJoinedRooms) {
+      wireProfile.joinedRooms = legacySharedRooms;
+    }
+    return wireProfile;
+  }
+
+  _sendProfileToPeer(peerId) {
+    const peer = this.peers.get(peerId);
+    if (!peer?.socket || peer.socket.destroyed || !this.profile) return;
+    const shared = this.peerRooms.get(peerId);
+    if (!shared || shared.size === 0) return;
+    const isLegacy = (peer.protocolVersion || 1) < 2;
+    const wireProfile = this._buildWireProfileForPeer(peerId, {
+      includeJoinedRooms: isLegacy,
+      legacySharedRooms: isLegacy ? Array.from(shared) : [],
+    });
+    if (wireProfile) {
+      safeWriteSocket(peer.socket, encodeMessage("profile", wireProfile));
+      peer.profileSent = true;
+    }
+  }
+
+  _consumeRateToken(peer, msgType) {
+    const cat = RATE_TYPE_CATEGORY[msgType] || "general";
+    const cfg = RATE_LIMIT_CONFIGS[cat] || RATE_LIMIT_CONFIGS.general;
+    if (!peer.rateBuckets) peer.rateBuckets = new Map();
+    const now = Date.now();
+    let bucket = peer.rateBuckets.get(cat);
+    if (!bucket) {
+      bucket = { tokens: cfg.capacity, lastRefill: now };
+      peer.rateBuckets.set(cat, bucket);
+    }
+    const elapsedSec = Math.max(0, (now - bucket.lastRefill) / 1000);
+    bucket.tokens = Math.min(cfg.capacity, bucket.tokens + elapsedSec * cfg.refillPerSec);
+    bucket.lastRefill = now;
+
+    if (bucket.tokens >= 1) {
+      bucket.tokens -= 1;
+      return true;
+    }
+
+    if (!peer.rateWindowStart || now - peer.rateWindowStart > 10000) {
+      peer.rateWindowStart = now;
+      peer.rateDropCount = 0;
+    }
+    peer.rateDropCount = (peer.rateDropCount || 0) + 1;
+    return false;
   }
 
   _handleConnection(socket, peerInfo) {
@@ -285,6 +479,11 @@ class P2PService {
       null
     );
 
+    const transportAuth = peerInfo?.isDirectTCP
+      ? (peerInfo?.isNoiseAuthenticated ? "noise-direct-tcp" : "unauthenticated")
+      : "noise-hyperswarm";
+
+    const localNonceHex = crypto.randomBytes(16).toString("hex");
     const peer = {
       id: peerId,
       userId: null,
@@ -294,8 +493,18 @@ class P2PService {
       socket,
       decoder: new StringDecoder("utf8"),
       isDirectTCP: Boolean(peerInfo?.isDirectTCP),
+      transportAuth,
       remoteAddress: remoteAddr,
       lastPingAck: Date.now(),
+      protocolVersion: 1,
+      capabilities: [],
+      localNonceHex,
+      remoteNonceHex: null,
+      sharedNonceBuf: null,
+      profileSent: false,
+      rateBuckets: new Map(),
+      rateDropCount: 0,
+      rateWindowStart: Date.now(),
     };
     this.peers.set(peerId, peer);
     this._buffers.set(peerId, "");
@@ -303,25 +512,31 @@ class P2PService {
       this.peerRooms.set(peerId, new Set());
     }
 
-    if (this.profile) {
-      safeWriteSocket(socket, encodeMessage("profile", {
-        ...this.profile,
-        joinedRooms: Array.from(this.joinedRooms),
-      }));
-    }
-
-    this._broadcastJoinedRooms();
+    // Begin private HMAC room intersection handshake before sharing profile or rooms
+    safeWriteSocket(socket, encodeMessage("room-hello", {
+      nonce: localNonceHex,
+      protocolVersion: P2P_PROTOCOL_VERSION,
+      capabilities: P2P_CAPABILITIES,
+    }));
 
     socket.on("data", (data) => this._onSocketData(peerId, data));
-    socket.on("error", (err) => console.error(`[P2P Socket Error] ${peerId}:`, err.message));
-    socket.on("close", () => this._removePeer(peerId));
+    socket.on("error", (err) => {
+      if (String(err?.message || "").includes("Duplicate connection")) return;
+      console.error(`[P2P Socket Error] ${peerId}:`, err.message);
+    });
+    socket.on("close", () => this._removePeer(peerId, socket));
 
     this.onPeerJoined?.(peerId, socket);
   }
 
-  _removePeer(peerId) {
+  _removePeer(peerId, expectedSocket = null) {
     const peer = this.peers.get(peerId);
     if (!peer) return;
+    if (expectedSocket && peer.socket !== expectedSocket) return;
+
+    this.peers.delete(peerId);
+    this._buffers.delete(peerId);
+    this.peerRooms.delete(peerId);
 
     try {
       peer.decoder?.end();
@@ -329,10 +544,6 @@ class P2PService {
     try {
       peer.socket?.destroy();
     } catch {}
-
-    this.peers.delete(peerId);
-    this._buffers.delete(peerId);
-    this.peerRooms.delete(peerId);
 
     this.onPeerLeft?.(peerId);
   }
@@ -359,7 +570,18 @@ class P2PService {
     this._buffers.set(peerId, remaining);
 
     for (const msg of messages) {
+      if (!msg || typeof msg.type !== "string") continue;
       const { type } = msg;
+
+      if (!this._consumeRateToken(peer, type)) {
+        if (peer.rateDropCount > 200) {
+          console.warn(`[P2P RateLimit] Flood sostenido desde ${peerId} (${type}). Desconectando.`);
+          this._removePeer(peerId);
+          return;
+        }
+        continue;
+      }
+
       let { payload } = msg;
       try {
         const { app } = require("electron");
@@ -368,6 +590,66 @@ class P2PService {
           payload = CasStore.getInstance(app.getPath("userData")).ingestObject(payload);
         }
       } catch {}
+
+      if (type === "room-hello" && payload && typeof payload.nonce === "string") {
+        const remoteHex = payload.nonce.trim().toLowerCase();
+        if (!/^[0-9a-f]{32}$/.test(remoteHex)) continue;
+        peer.protocolVersion = Math.max(2, Number(payload.protocolVersion) || 2);
+        peer.capabilities = Array.isArray(payload.capabilities) ? payload.capabilities : [];
+        peer.remoteNonceHex = remoteHex;
+
+        const [first, second] =
+          peer.localNonceHex <= remoteHex
+            ? [peer.localNonceHex, remoteHex]
+            : [remoteHex, peer.localNonceHex];
+        peer.sharedNonceBuf = Buffer.from(first + second, "hex");
+
+        const cryptoService = require("../services/cryptoService.cjs");
+        const proofs = [];
+        for (const room of this.joinedRooms) {
+          const proof = cryptoService.computeRoomProof(peer.sharedNonceBuf, room);
+          if (proof) proofs.push(proof);
+        }
+        safeWriteSocket(peer.socket, encodeMessage("room-proofs", { proofs }));
+        continue;
+      }
+
+      if (type === "room-proofs" && payload && Array.isArray(payload.proofs)) {
+        if (!peer.sharedNonceBuf) continue;
+        const cryptoService = require("../services/cryptoService.cjs");
+        const proofToRoom = new Map();
+        for (const room of this.joinedRooms) {
+          const proof = cryptoService.computeRoomProof(peer.sharedNonceBuf, room);
+          if (proof) proofToRoom.set(proof, room);
+        }
+        const prevRooms = this.peerRooms.get(peerId) || new Set();
+        const nextRooms = new Set();
+        const addedRooms = [];
+        const removedRooms = [];
+        for (const remoteProof of payload.proofs.slice(0, 500)) {
+          if (typeof remoteProof !== "string") continue;
+          const matchedRoom = proofToRoom.get(remoteProof.trim().toLowerCase());
+          if (matchedRoom && !nextRooms.has(matchedRoom)) {
+            nextRooms.add(matchedRoom);
+            if (!prevRooms.has(matchedRoom)) addedRooms.push(matchedRoom);
+          }
+        }
+        for (const oldRoom of prevRooms) {
+          if (!nextRooms.has(oldRoom)) removedRooms.push(oldRoom);
+        }
+        this.peerRooms.set(peerId, nextRooms);
+
+        if (nextRooms.size > 0 && !peer.profileSent) {
+          this._sendProfileToPeer(peerId);
+        }
+
+        await this.onMessage?.(peerId, "room-proofs-matched", {
+          sharedRooms: Array.from(nextRooms),
+          addedRooms,
+          removedRooms,
+        });
+        continue;
+      }
 
       if (type === "profile" && payload) {
         peer.userId = payload.id || peer.userId;
@@ -385,19 +667,28 @@ class P2PService {
         peer.status = payload.status || "online";
         peer.isPreview = Boolean(payload.isPreview);
 
-        if (Array.isArray(payload.joinedRooms)) {
-          this.peerRooms.set(
-            peerId,
-            new Set(payload.joinedRooms.map((r) => String(r || "").trim().toUpperCase()).filter(Boolean))
-          );
+        // Legacy v1 (v0.3.6) fallback: intersect locally and never adopt non-joined rooms
+        if ((peer.protocolVersion || 1) < 2 && Array.isArray(payload.joinedRooms)) {
+          const shared = payload.joinedRooms
+            .map((r) => String(r || "").trim().toUpperCase())
+            .filter((r) => r && this.joinedRooms.has(r));
+          this.peerRooms.set(peerId, new Set(shared));
+          if (shared.length > 0 && !peer.profileSent) {
+            this._sendProfileToPeer(peerId);
+          }
         }
       }
 
       if (type === "room-announce" && payload && Array.isArray(payload.rooms)) {
-        this.peerRooms.set(
-          peerId,
-          new Set(payload.rooms.map((r) => String(r || "").trim().toUpperCase()).filter(Boolean))
-        );
+        if ((peer.protocolVersion || 1) >= 2) {
+          // v2 peers must use HMAC room-proofs instead of plaintext room announcements
+          continue;
+        }
+        const shared = payload.rooms
+          .map((r) => String(r || "").trim().toUpperCase())
+          .filter((r) => r && this.joinedRooms.has(r));
+        this.peerRooms.set(peerId, new Set(shared));
+        payload = { ...payload, rooms: shared };
       }
 
       this.onMessage?.(peerId, type, payload);
@@ -435,14 +726,21 @@ class P2PService {
     }
   }
 
+  _isAlwaysRelayEnabled() {
+    return Boolean(this.profile?.general?.alwaysRelayVoice);
+  }
+
   setProfile(profile, fileServerPort) {
+    const { joinedRooms: _omitted, localIPs: _omittedIPs, ...safeProfile } = profile || {};
+    const hideLocalIPs = Boolean(safeProfile?.general?.alwaysRelayVoice);
     this.profile = {
-      ...profile,
+      ...safeProfile,
       filePort: fileServerPort,
-      localIPs: getLocalIPs(),
-      joinedRooms: Array.from(this.joinedRooms),
+      localIPs: hideLocalIPs ? [] : getLocalIPs(),
     };
-    this._broadcast("profile", this.profile);
+    for (const peerId of this.peers.keys()) {
+      this._sendProfileToPeer(peerId);
+    }
   }
 
   isVerifiedLan(peerId) {
@@ -533,11 +831,22 @@ class P2PService {
     const ip = this.directConfig?.ip;
     const port = this.directConfig?.port || 7777;
 
+    if (this._isAlwaysRelayEnabled()) {
+      console.log("[P2P Direct TCP] Omitido porque Always Relay está activo.");
+      return;
+    }
+
     if (enabled && !isHost && ip) {
       if (this.directClientConnecting) return;
 
+      const normalizedIp = normalizeIP(ip);
       for (const peer of this.peers.values()) {
-        if (peer.socket?.remoteAddress === ip || peer.socket?.address?.()?.address === ip) {
+        if (
+          peer.socket?.remoteAddress === ip ||
+          peer.socket?.rawStream?.remoteAddress === ip ||
+          peer.remoteAddress === normalizedIp ||
+          peer.socket?.address?.()?.address === ip
+        ) {
           return;
         }
       }
@@ -547,140 +856,113 @@ class P2PService {
     }
   }
 
-  _handleIncomingDirectTCP(socket) {
-    let buffer = "";
-    const decoder = new StringDecoder("utf8");
-    const MAX_BUFFER_SIZE = 50 * 1024 * 1024; // 50MB guard before handshake completion
-
-    const handshakeTimer = setTimeout(() => {
-      console.warn("[P2P Direct TCP] Handshake timeout (15s) on incoming socket. Destroying.");
-      cleanupHandshake();
+  _handleIncomingDirectTCP(rawSocket) {
+    if (!this.swarm?.keyPair) {
+      console.warn("[P2P Direct TCP] Swarm keyPair no disponible; rechazando conexión entrante.");
       try {
-        socket.destroy();
+        rawSocket.destroy();
       } catch {}
-    }, 15000);
-
-    const cleanupHandshake = () => {
-      clearTimeout(handshakeTimer);
-      socket.off("data", onData);
-      socket.off("error", onError);
-      socket.off("close", cleanupHandshake);
-    };
-
-    if (this.swarm?.keyPair?.publicKey) {
-      const myPubKey = b4a.toString(this.swarm.keyPair.publicKey, "hex");
-      safeWriteSocket(socket, JSON.stringify({ type: "direct-handshake", payload: { publicKeyHex: myPubKey } }) + "\n");
+      return;
     }
 
-    const onData = (chunk) => {
-      buffer += Buffer.isBuffer(chunk) ? decoder.write(chunk) : String(chunk);
-      if (buffer.length > MAX_BUFFER_SIZE) {
-        console.error("[P2P Direct TCP] Handshake buffer overflow (>50MB). Destroying socket.");
-        cleanupHandshake();
-        try {
-          socket.destroy();
-        } catch {}
-        return;
-      }
-      const lines = buffer.split("\n");
-      const remaining = lines.pop() ?? "";
-      buffer = remaining;
+    const stream = new SecretStream(false, rawSocket, { keyPair: this.swarm.keyPair });
+    let finished = false;
 
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const msg = JSON.parse(line);
-          if (msg.type === "direct-handshake" && msg.payload?.publicKeyHex) {
-            cleanupHandshake();
-
-            const peerPublicKey = b4a.from(msg.payload.publicKeyHex, "hex");
-            const peerInfo = { publicKey: peerPublicKey, isDirectTCP: true };
-
-            this._handleConnection(socket, peerInfo);
-            return;
-          }
-        } catch (e) {
-        }
-      }
-    };
-
-    const onError = (err) => {
-      console.error("[P2P Direct TCP Handshake Error]:", err.message);
-      cleanupHandshake();
+    const failHandshake = (reason) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(handshakeTimer);
+      console.warn(`[P2P Direct TCP] Handshake Noise fallido (${reason}). Destruyendo.`);
       try {
-        socket.destroy();
+        stream.destroy();
+      } catch {}
+      try {
+        rawSocket.destroy();
       } catch {}
     };
 
-    socket.on("data", onData);
-    socket.on("error", onError);
-    socket.on("close", cleanupHandshake);
+    const handshakeTimer = setTimeout(() => {
+      failHandshake("timeout 15s");
+    }, 15000);
+
+    const onRawError = (err) => failHandshake(err.message);
+    const onStreamError = (err) => failHandshake(err.message);
+    const onStreamClose = () => {
+      if (!finished) {
+        finished = true;
+        clearTimeout(handshakeTimer);
+      }
+    };
+
+    rawSocket.on("error", onRawError);
+    stream.on("error", onStreamError);
+    stream.on("close", onStreamClose);
+
+    stream.once("open", () => {
+      if (finished) return;
+      if (!stream.remotePublicKey) {
+        failHandshake("missing remotePublicKey");
+        return;
+      }
+      finished = true;
+      clearTimeout(handshakeTimer);
+
+      rawSocket.off("error", onRawError);
+      rawSocket.on("error", () => {});
+      stream.off("error", onStreamError);
+      stream.off("close", onStreamClose);
+
+      const peerInfo = {
+        publicKey: stream.remotePublicKey,
+        isDirectTCP: true,
+        isNoiseAuthenticated: true,
+        remoteIP: rawSocket.remoteAddress || null,
+      };
+      this._handleConnection(stream, peerInfo);
+    });
   }
 
   _connectDirectTCPClient(ip, port) {
+    if (!this.swarm?.keyPair) {
+      this.directClientConnecting = false;
+      return;
+    }
+
     const net = require("net");
-    console.log(`[P2P Direct TCP] Intentando conexión directa a ${ip}:${port}...`);
-    const socket = net.createConnection({ host: ip, port: port });
+    console.log(`[P2P Direct TCP] Intentando conexión Noise XX directa a ${ip}:${port}...`);
+    const rawSocket = net.createConnection({ host: ip, port });
+    const stream = new SecretStream(true, rawSocket, { keyPair: this.swarm.keyPair });
+    let finished = false;
 
-    let buffer = "";
-    const decoder = new StringDecoder("utf8");
-    const MAX_BUFFER_SIZE = 50 * 1024 * 1024; // 50MB guard before handshake completion
-
-    const handshakeTimer = setTimeout(() => {
-      console.warn(`[P2P Direct TCP] Handshake timeout (15s) connecting to ${ip}:${port}.`);
-      onError(new Error("Direct TCP handshake timeout (15s)"));
-    }, 15000);
-
-    const cleanupHandshake = () => {
+    const cleanupPreOpen = () => {
       clearTimeout(handshakeTimer);
-      socket.off("data", onData);
-      socket.off("error", onError);
+      rawSocket.off("error", onError);
+      stream.off("error", onError);
+      stream.off("close", onCloseBeforeOpen);
     };
 
-    socket.on("connect", () => {
-      if (this.swarm?.keyPair?.publicKey) {
-        const myPubKey = b4a.toString(this.swarm.keyPair.publicKey, "hex");
-        safeWriteSocket(socket, JSON.stringify({ type: "direct-handshake", payload: { publicKeyHex: myPubKey } }) + "\n");
-      }
-    });
+    const handshakeTimer = setTimeout(() => {
+      console.warn(`[P2P Direct TCP] Handshake Noise timeout (15s) conectando a ${ip}:${port}.`);
+      onError(new Error("Direct TCP Noise handshake timeout (15s)"));
+    }, 15000);
 
-    const onData = (chunk) => {
-      buffer += Buffer.isBuffer(chunk) ? decoder.write(chunk) : String(chunk);
-      if (buffer.length > MAX_BUFFER_SIZE) {
-        console.error("[P2P Direct TCP Client] Handshake buffer overflow (>50MB). Destroying socket.");
-        onError(new Error("Direct TCP handshake buffer overflow"));
-        return;
-      }
-      const lines = buffer.split("\n");
-      const remaining = lines.pop() ?? "";
-      buffer = remaining;
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const msg = JSON.parse(line);
-          if (msg.type === "direct-handshake" && msg.payload?.publicKeyHex) {
-            cleanupHandshake();
-            this.directClientConnecting = false;
-
-            const peerPublicKey = b4a.from(msg.payload.publicKeyHex, "hex");
-            const peerInfo = { publicKey: peerPublicKey, isDirectTCP: true };
-
-            console.log(`[P2P Direct TCP] ¡Conexión directa exitosa con host ${msg.payload.publicKeyHex}!`);
-            this._handleConnection(socket, peerInfo);
-            return;
-          }
-        } catch (e) {
-        }
+    const onCloseBeforeOpen = () => {
+      if (!finished) {
+        onError(new Error("Direct TCP socket closed before Noise handshake completed"));
       }
     };
 
     const onError = (err) => {
-      cleanupHandshake();
+      if (finished) return;
+      finished = true;
+      cleanupPreOpen();
       console.warn("[P2P Direct TCP Client Connection Failed]:", err.message);
       this.directClientConnecting = false;
       try {
-        socket.destroy();
+        stream.destroy();
+      } catch {}
+      try {
+        rawSocket.destroy();
       } catch {}
 
       // Retry with exponential backoff (max 5 attempts, up to 15s delay)
@@ -689,6 +971,7 @@ class P2PService {
         this.directConfig?.enabled &&
         !this.directConfig?.isHost &&
         this.directConfig?.ip &&
+        !this._isAlwaysRelayEnabled() &&
         retryCount <= 5
       ) {
         this._directRetryCount = retryCount;
@@ -701,8 +984,33 @@ class P2PService {
       }
     };
 
-    socket.on("data", onData);
-    socket.on("error", onError);
+    rawSocket.on("error", onError);
+    stream.on("error", onError);
+    stream.on("close", onCloseBeforeOpen);
+
+    stream.once("open", () => {
+      if (finished) return;
+      if (!stream.remotePublicKey) {
+        onError(new Error("Missing remotePublicKey"));
+        return;
+      }
+      finished = true;
+      cleanupPreOpen();
+      rawSocket.on("error", () => {});
+      this.directClientConnecting = false;
+      this._directRetryCount = 0;
+
+      const remoteHex = b4a.toString(stream.remotePublicKey, "hex");
+      const peerInfo = {
+        publicKey: stream.remotePublicKey,
+        isDirectTCP: true,
+        isNoiseAuthenticated: true,
+        remoteIP: rawSocket.remoteAddress || ip,
+      };
+
+      console.log(`[P2P Direct TCP] ¡Conexión directa Noise XX exitosa con host ${remoteHex}!`);
+      this._handleConnection(stream, peerInfo);
+    });
   }
 
   async destroy() {

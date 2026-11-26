@@ -85,6 +85,14 @@ export default function ServerNetworkTab({
 
   // Helper validation for privileged ports
   const isPrivilegedPort = directPort && parseInt(directPort, 10) < 1024;
+  const hasCustomTurn = iceServers.some((srv) => {
+    const urls = Array.isArray(srv?.urls) ? srv.urls : [srv?.urls];
+    return urls.some(
+      (u) =>
+        typeof u === "string" &&
+        (u.trim().toLowerCase().startsWith("turn:") || u.trim().toLowerCase().startsWith("turns:"))
+    );
+  });
 
   return (
     <div className="onicord-settings-container space-y-4">
@@ -310,6 +318,18 @@ export default function ServerNetworkTab({
         <p className="onicord-settings-row-desc">
           {t("serverSettings.network.iceBackupDesc", "Si los miembros del servidor no logran conectarse a las salas de voz (por cortafuegos restrictivos o NAT simétrico), configura aquí servidores STUN/TURN de relay. De lo contrario, Onicord usará los nodos públicos por defecto.")}
         </p>
+
+        {iceServers.length > 0 && !hasCustomTurn && (
+          <div className="flex items-start gap-2 p-2.5 mt-2 rounded-xl bg-onicord-warning/10 border border-onicord-warning/20 text-onicord-warning text-2xs">
+            <MaterialIcon name="info" size={16} className="shrink-0 mt-0.5" />
+            <p>
+              {t(
+                "serverSettings.network.noTurnWarning",
+                "Tu lista personalizada solo incluye servidores STUN sin TURN. Los miembros con el modo Always Relay activado usarán los relays TURN públicos por defecto para poder conectar."
+              )}
+            </p>
+          </div>
+        )}
 
         {/* Form and server list subsections within the card */}
         <div className="space-y-4 pt-2 pb-4">

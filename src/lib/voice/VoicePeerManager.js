@@ -10,6 +10,43 @@ import { VoiceAudioEngine } from "./VoiceAudioEngine";
 import { VoiceSfuRouter } from "./VoiceSfuRouter";
 import { VoiceStatsMonitor, getAdaptiveVideoBitrate } from "./VoiceBitrateAdapter";
 
+const DEFAULT_STUN_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
+];
+
+const DEFAULT_TURN_SERVERS = [
+  {
+    urls: [
+      "turn:openrelay.metered.ca:80",
+      "turn:openrelay.metered.ca:443",
+      "turn:openrelay.metered.ca:443?transport=tcp",
+    ],
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turn:relay1.expressturn.com:3478",
+    username: "efKME2JQKDZ1TA4HL3",
+    credential: "gXjDGSOKf3gCADM4",
+  },
+];
+
+const DEFAULT_ICE_SERVERS = [...DEFAULT_STUN_SERVERS, ...DEFAULT_TURN_SERVERS];
+
+function hasTurnServer(servers) {
+  if (!Array.isArray(servers)) return false;
+  return servers.some((srv) => {
+    const urls = Array.isArray(srv?.urls) ? srv.urls : [srv?.urls];
+    return urls.some(
+      (u) =>
+        typeof u === "string" &&
+        (u.trim().toLowerCase().startsWith("turn:") || u.trim().toLowerCase().startsWith("turns:")),
+    );
+  });
+}
+
 export class VoicePeerManager {
   constructor({
     localPeerId,
@@ -23,12 +60,13 @@ export class VoicePeerManager {
     peerVolumes = {},
     peers = {},
     iceServers = [],
+    alwaysRelay = false,
     lanPeerIPs = new Map(),
     initialMuted = false,
     initialDeafened = false,
     onDeviceRebound = null,
   }) {
-    this.options = { iceServers };
+    this.options = { iceServers, alwaysRelay: Boolean(alwaysRelay) };
     this.audioSettings = audioSettings;
     this.localPeerId = localPeerId;
     this.channelId = channelId;
@@ -759,13 +797,14 @@ export class VoicePeerManager {
     return this.localPeerId < remotePeerId;
   }
 
-  _createNativePeer(remotePeerId, initiator, iceServers, isLan = false) {
+  _createNativePeer(remotePeerId, initiator, iceServers, isLan = false, iceTransportPolicy = "all") {
     const peerCount = Math.max(2, this.peers.size + 1);
     return createNativePeer({
       localPeerId: this.localPeerId,
       remotePeerId,
       initiator,
       iceServers,
+      iceTransportPolicy,
       isLan,
       peerCount,
       lanPeerIPs: this.lanPeerIPs,
@@ -798,35 +837,32 @@ export class VoicePeerManager {
 
     if (!this.localStream) return;
 
-    const customizedIceServers =
+    const alwaysRelay = Boolean(this.options.alwaysRelay);
+    let customizedIceServers =
       this.options.iceServers && this.options.iceServers.length > 0
         ? this.options.iceServers
-        : [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-            { urls: "stun:stun.cloudflare.com:3478" },
-            {
-              urls: [
-                "turn:openrelay.metered.ca:80",
-                "turn:openrelay.metered.ca:443",
-                "turn:openrelay.metered.ca:443?transport=tcp",
-              ],
-              username: "openrelayproject",
-              credential: "openrelayproject",
-            },
-            {
-              urls: "turn:relay1.expressturn.com:3478",
-              username: "efKME2JQKDZ1TA4HL3",
-              credential: "gXjDGSOKf3gCADM4",
-            },
-          ];
+        : DEFAULT_ICE_SERVERS;
+
+    if (alwaysRelay && !hasTurnServer(customizedIceServers)) {
+      console.warn(
+        "[voice] Always Relay enabled but custom iceServers lack TURN; appending default TURN relays",
+      );
+      customizedIceServers = [...customizedIceServers, ...DEFAULT_TURN_SERVERS];
+    }
 
     const serial = (this._peerSerialCounters.get(remotePeerId) || 0) + 1;
     this._peerSerialCounters.set(remotePeerId, serial);
-    console.log(`[voice] Peer creado con ${remotePeerId} (initiator=${Boolean(initiator)}, pcSerial=${serial})`);
+    console.log(`[voice] Peer creado con ${remotePeerId} (initiator=${Boolean(initiator)}, pcSerial=${serial}, alwaysRelay=${alwaysRelay})`);
 
-    const isLan = this.lanPeerIPs.has(remotePeerId);
-    const peer = this._createNativePeer(remotePeerId, initiator, customizedIceServers, isLan);
+    const isLan = alwaysRelay ? false : this.lanPeerIPs.has(remotePeerId);
+    const iceTransportPolicy = alwaysRelay ? "relay" : "all";
+    const peer = this._createNativePeer(
+      remotePeerId,
+      initiator,
+      customizedIceServers,
+      isLan,
+      iceTransportPolicy,
+    );
     peer._pcSerial = serial;
     this.peers.set(remotePeerId, peer);
 

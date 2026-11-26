@@ -12,6 +12,7 @@ export default function RoomHeader({
   isSearchFocused,
   setIsSearchFocused,
   searchInputRef,
+  onOpenPeerSecurity = null,
 }) {
   const { t } = useTranslation();
 
@@ -40,6 +41,42 @@ export default function RoomHeader({
               <h2 className="text-base font-semibold text-onicord-text truncate max-w-[150px]">
                 {resolvedDmUser.nickname}
               </h2>
+              {onOpenPeerSecurity && (
+                <Tooltip
+                  content={
+                    resolvedDmUser.verificationStatus === "verified"
+                      ? t("security.verifiedPeer", "Identidad verificada")
+                      : resolvedDmUser.verificationStatus === "key_changed"
+                        ? t("security.keyChangedShort", "Clave de seguridad cambiada")
+                        : t("security.verifyIdentity", "Verificar seguridad")
+                  }
+                  side="bottom"
+                >
+                  <button
+                    type="button"
+                    onClick={() => onOpenPeerSecurity(resolvedDmUser)}
+                    className={`p-1 rounded-full transition-colors cursor-pointer flex items-center justify-center ${
+                      resolvedDmUser.verificationStatus === "verified"
+                        ? "text-onicord-success hover:bg-onicord-success/10"
+                        : resolvedDmUser.verificationStatus === "key_changed"
+                          ? "text-onicord-danger hover:bg-onicord-danger/10"
+                          : "text-onicord-muted hover:text-onicord-accent hover:bg-onicord-tint/10"
+                    }`}
+                    aria-label={t("security.verifyIdentity", "Verificar seguridad")}
+                  >
+                    <MaterialIcon
+                      name={
+                        resolvedDmUser.verificationStatus === "verified"
+                          ? "verified_user"
+                          : resolvedDmUser.verificationStatus === "key_changed"
+                            ? "gpp_maybe"
+                            : "shield"
+                      }
+                      size={16}
+                    />
+                  </button>
+                </Tooltip>
+              )}
             </>
           ) : (
             <>

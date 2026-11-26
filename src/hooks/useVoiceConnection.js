@@ -55,6 +55,26 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
     }
   }, [serverIceServers]);
 
+  const alwaysRelay = Boolean(profile?.general?.alwaysRelayVoice);
+  const alwaysRelayRef = useRef(alwaysRelay);
+  const prevAlwaysRelayRef = useRef(alwaysRelay);
+  useEffect(() => {
+    alwaysRelayRef.current = alwaysRelay;
+    if (managerRef.current) {
+      managerRef.current.options.alwaysRelay = alwaysRelay;
+    }
+    if (prevAlwaysRelayRef.current !== alwaysRelay) {
+      prevAlwaysRelayRef.current = alwaysRelay;
+      if (inVoiceRef.current) {
+        notificationManager.showToast(
+          t("voice.alwaysRelayChangedTitle", "Modo Always Relay actualizado"),
+          t("voice.alwaysRelayChangedDesc", "Reconecta al canal de voz para aplicar la nueva política de relay a las conexiones activas."),
+          "info"
+        );
+      }
+    }
+  }, [alwaysRelay, t]);
+
   // Network topology state: defaults to full-mesh P2P (direct RTCPeerConnection between all peers).
   // Dynamically switches to SFU (Selective Forwarding Unit) mode if swarm scale exceeds mesh threshold.
   const [networkTopology, setNetworkTopology] = useState("mesh"); // 'mesh' | 'sfu'
@@ -295,6 +315,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
       peerVolumes: audio.peerVolumes,
       peers: profileRef.current?.peers || {},
       iceServers: iceServersRef.current || [],
+      alwaysRelay: alwaysRelayRef.current,
       lanPeerIPs: lanPeerIPsRef.current,
       initialMuted: mutedRef.current,
       initialDeafened: deafenedRef.current,
@@ -1007,6 +1028,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
       networkTopology,
       sfuHostId,
       localPeerId,
+      alwaysRelay,
     }),
     [
       inVoice,
@@ -1030,6 +1052,7 @@ export function useVoiceConnection(activeVoiceChannelId, profile, serverIceServe
       networkTopology,
       sfuHostId,
       localPeerId,
+      alwaysRelay,
     ]
   );
 }
