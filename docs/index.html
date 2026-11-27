@@ -550,12 +550,6 @@
       background: #11111b;
     }
 
-    @media (max-width: 768px) {
-      .demo-iframe {
-        height: 520px;
-      }
-    }
-
     /* ── SECCIÓN CARACTERÍSTICAS ── */
     .section-title {
       text-align: center;
@@ -1573,6 +1567,33 @@
       const fallbackImg = document.getElementById('mockup-image');
       if (shell) shell.style.display = 'none';
       if (fallbackImg) fallbackImg.style.display = 'block';
+    } else {
+      function updateDemoScale() {
+        const shell = document.getElementById('demo-shell');
+        const iframe = document.getElementById('demo-iframe');
+        if (!shell || !iframe) return;
+
+        if (window.innerWidth < 1250) {
+          const baseW = 1280;
+          const baseH = 780;
+          const availW = shell.clientWidth || window.innerWidth * 0.96;
+          const scale = Math.min(1, availW / baseW);
+          iframe.style.width = `${baseW}px`;
+          iframe.style.height = `${baseH}px`;
+          iframe.style.transformOrigin = 'top left';
+          iframe.style.transform = `scale(${scale})`;
+          shell.style.height = `${Math.round(baseH * scale)}px`;
+        } else {
+          iframe.style.width = '';
+          iframe.style.height = '';
+          iframe.style.transformOrigin = '';
+          iframe.style.transform = '';
+          shell.style.height = '';
+        }
+      }
+
+      window.addEventListener('resize', updateDemoScale, { passive: true });
+      updateDemoScale();
     }
   </script>
 </body>
