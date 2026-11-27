@@ -10,10 +10,10 @@
 
   <p>
     <a href="https://github.com/OniverseDesign/onicord/releases/latest">
-      <img src="https://flat.badgen.net/github/release/OniverseDesign/onicord?color=cba6f7&label=RELEASE&scale=1.4" alt="Latest Release" />
+      <img src="https://img.shields.io/github/v/release/OniverseDesign/onicord?style=for-the-badge&label=Release&color=cba6f7" alt="Latest Release" />
     </a>
     <a href="https://github.com/OniverseDesign/onicord/releases">
-      <img src="https://flat.badgen.net/github/assets-dl/OniverseDesign/onicord?color=89b4fa&label=DOWNLOADS&scale=1.4" alt="Total Downloads" />
+      <img src="https://img.shields.io/github/downloads/OniverseDesign/onicord/total?style=for-the-badge&color=89b4fa&label=Downloads" alt="Total Downloads" />
     </a>
     <a href="LICENSE">
       <img src="https://img.shields.io/badge/License-AGPL%20v3-74c7ec.svg?style=for-the-badge" alt="License: AGPL-3.0" />
