@@ -781,6 +781,7 @@ export default function ChatPanel({
   };
 
   const handleAttachFileClick = () => {
+    if (window.__ONICORD_DEMO__) return;
     fileInputRef.current?.click();
   };
 

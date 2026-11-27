@@ -45,6 +45,7 @@ export default function HomeView({
   const [evictionModal, setEvictionModal] = useState(null);
 
   const handleOpenAppSettings = useCallback((section = "general", context = null) => {
+    if (window.__ONICORD_DEMO__) return;
     const targetSection = typeof section === "string" ? section : (section?.section || "general");
     const targetScope = typeof section === "object" && section?.serverId ? section.serverId : (context?.serverId || null);
     setAppSettingsInitialServerScope(targetScope);
@@ -641,10 +642,12 @@ export default function HomeView({
     ) {
       document.activeElement.blur();
     }
+    if (window.__ONICORD_DEMO__) return;
     setActiveView("home");
   };
 
   const handleSelectView = (viewName) => {
+    if (window.__ONICORD_DEMO__ && viewName !== "server") return;
     if (
       document.activeElement &&
       typeof document.activeElement.blur === "function"
@@ -763,7 +766,10 @@ export default function HomeView({
           onSelectView={handleSelectView}
           onSelectHome={handleSelectHome}
           onSelectServer={handleSelectServer}
-          onAdd={() => setShowAddModal(true)}
+          onAdd={() => {
+            if (window.__ONICORD_DEMO__) return;
+            setShowAddModal(true);
+          }}
           onServerContextMenu={handleServerContextMenu}
           onOpenAppSettings={handleOpenAppSettings}
           getServerUnreadCount={getServerUnreadCount}

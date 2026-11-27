@@ -230,7 +230,10 @@ export default function RoomHeader({
       <Tooltip content={t("chat.pinnedMessages", "Mensajes Fijados")} side="bottom">
         <button
           type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("onicord:open-pinned-modal"))}
+          onClick={() => {
+            if (window.__ONICORD_DEMO__) return;
+            window.dispatchEvent(new CustomEvent("onicord:open-pinned-modal"));
+          }}
           className="h-12 w-12 rounded-full bg-onicord-base border border-onicord-island hover:bg-onicord-hover text-onicord-muted hover:text-onicord-accent transition-colors cursor-pointer shrink-0 flex items-center justify-center"
         >
           <MaterialIcon name="push_pin" size="lg" />

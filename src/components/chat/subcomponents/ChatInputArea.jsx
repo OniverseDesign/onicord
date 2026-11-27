@@ -723,7 +723,7 @@ export default function ChatInputArea({
             >
               <button
                 type="button"
-                onClick={hasSendMessages ? onToggleEphemeralMode : undefined}
+                onClick={hasSendMessages && !window.__ONICORD_DEMO__ ? onToggleEphemeralMode : undefined}
                 className={`onicord-chat-toolbar-btn group relative ${
                   !hasSendMessages
                     ? "opacity-35 cursor-not-allowed pointer-events-none"
