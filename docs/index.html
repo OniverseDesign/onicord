@@ -517,8 +517,11 @@
 
     /* ── MOCKUP / CAPTURA DE PANTALLA REAL DE ONICORD ── */
     .showcase-wrapper {
-      max-width: min(1360px, 94vw);
-      margin: 1.5rem auto 5rem;
+      position: relative;
+      width: min(1680px, 95vw);
+      max-width: none;
+      margin: 1.5rem 0 5rem 50%;
+      transform: translateX(-50%);
       border-radius: var(--radius-inner);
       overflow: hidden;
       box-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.75), 0 0 35px var(--onicord-mauve-glow);
@@ -542,7 +545,7 @@
 
     .demo-iframe {
       width: 100%;
-      height: clamp(640px, 78vh, 840px);
+      height: clamp(720px, 84vh, 960px);
       border: 0;
       display: block;
       background: #11111b;
