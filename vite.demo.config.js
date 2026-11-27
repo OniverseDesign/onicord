@@ -18,6 +18,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'pdfjs-dist/web/pdf_viewer.css': path.resolve(__dirname, './src/demo/empty.css'),
+      'pdfjs-dist/build/pdf.worker.mjs': path.resolve(__dirname, './src/demo/emptyStub.js'),
+      'pdfjs-dist': path.resolve(__dirname, './src/demo/emptyStub.js'),
+      'hls.js': path.resolve(__dirname, './src/demo/emptyStub.js'),
     },
   },
 });

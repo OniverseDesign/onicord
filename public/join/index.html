@@ -4,18 +4,71 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Onicord - Comunicación P2P Descentralizada</title>
+  <!-- Título Optimizado para Intención de Búsqueda y Alto CTR -->
+  <title>Onicord - Alternativa a Discord P2P, Privada y Sin Servidores</title>
 
+  <!-- Metadatos Primarios y SEO Técnico -->
   <meta name="description"
-    content="Salas de comunicación descentralizadas, privadas y sin servidores centrales. Audio cristalino, compartir pantalla y complementos.">
-  <meta property="og:title" content="Onicord - Plataforma P2P de Voz, Video y Chat">
-  <meta property="og:description"
-    content="Salas de comunicación descentralizadas, privadas y sin servidores centrales. Audio cristalino, compartir pantalla y complementos.">
+    content="Alternativa a Discord descentralizada y de código abierto. Voz cristalina P2P, video, chat cifrado y pantalla compartida sin servidores centrales ni registro.">
+  <meta name="keywords"
+    content="alternativa a discord, discord alternative, p2p voice chat, decentralized chat, software libre, webrtc, sin servidores, open source discord, onicord, e2ee voice chat">
+  <meta name="author" content="Oniverse Design">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://oniversedesign.github.io/onicord/">
+
+  <!-- OpenGraph / Facebook / WhatsApp / LinkedIn / Discord Previews -->
   <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_ES">
+  <meta property="og:locale:alternate" content="en_US">
+  <meta property="og:site_name" content="Onicord">
   <meta property="og:url" content="https://oniversedesign.github.io/onicord/">
-  <meta property="og:image" content="https://raw.githubusercontent.com/OniverseDesign/onicord/main/public/icon.png">
+  <meta property="og:title" content="Onicord — Plataforma P2P de Voz, Video y Chat Sin Servidores">
+  <meta property="og:description"
+    content="Comunícate directamente con tus amigos sin intermediarios. Audio de alta fidelidad, pantalla compartida y privacidad total garantizada por diseño.">
+  <meta property="og:image" content="https://raw.githubusercontent.com/OniverseDesign/onicord/main/docs/mockup.png">
+  <meta property="og:image:secure_url" content="https://raw.githubusercontent.com/OniverseDesign/onicord/main/docs/mockup.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="720">
+  <meta property="og:image:alt" content="Interfaz de usuario moderna y minimalista de Onicord Desktop">
+
+  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Onicord — La alternativa a Discord descentralizada y libre">
+  <meta name="twitter:description"
+    content="Voz y video P2P directo entre usuarios, sin nube, sin cuentas y con audio ultra nítido.">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/OniverseDesign/onicord/main/docs/mockup.png">
+  <meta name="twitter:image:alt" content="Onicord Desktop Application Showcase">
   <meta name="theme-color" content="#cba6f7">
+
+  <!-- Marcado Estructurado Schema.org (JSON-LD) para Aplicación de Software -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Onicord",
+    "alternateName": "Onicord P2P",
+    "operatingSystem": "Windows 10, Windows 11, Linux, macOS",
+    "applicationCategory": "CommunicationApplication",
+    "applicationSubCategory": "VoiceOverIP",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "Plataforma de comunicación de voz, video y texto P2P descentralizada, privada y sin servidores centrales.",
+    "image": "https://raw.githubusercontent.com/OniverseDesign/onicord/main/docs/mockup.png",
+    "screenshot": "https://raw.githubusercontent.com/OniverseDesign/onicord/main/docs/mockup.png",
+    "softwareVersion": "0.1.4",
+    "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+    "author": {
+      "@type": "Organization",
+      "name": "Oniverse Design",
+      "url": "https://github.com/OniverseDesign"
+    },
+    "downloadUrl": "https://github.com/OniverseDesign/onicord/releases/latest"
+  }
+  </script>
 
   <link rel="icon" type="image/png" href="./icon.png?v=2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -464,7 +517,9 @@
 
     /* ── MOCKUP / CAPTURA DE PANTALLA REAL DE ONICORD ── */
     .showcase-wrapper {
-      max-width: 1040px;
+      position: relative;
+      width: min(1720px, 96vw);
+      max-width: none;
       margin: 1.5rem auto 5rem;
       border-radius: var(--radius-inner);
       overflow: hidden;
@@ -476,6 +531,60 @@
       height: auto;
       display: block;
       border-radius: var(--radius-inner);
+    }
+
+    .demo-shell {
+      position: relative;
+      width: 100%;
+      background: #11111b;
+      border: 1px solid rgba(203, 166, 247, 0.22);
+      border-radius: var(--radius-inner);
+      overflow: hidden;
+    }
+
+    .demo-iframe {
+      width: 100%;
+      height: clamp(760px, 86vh, 980px);
+      border: 0;
+      display: block;
+      background: #11111b;
+    }
+
+    .quick-dl-pills {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1.15rem;
+    }
+
+    .quick-dl-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .quick-dl-pill:hover {
+      background: rgba(203, 166, 247, 0.12);
+      border-color: rgba(203, 166, 247, 0.35);
+      color: #ffffff;
+    }
+
+    .quick-dl-pill code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #cba6f7;
+      font-size: 0.76rem;
     }
 
     /* ── SECCIÓN CARACTERÍSTICAS ── */
@@ -806,12 +915,15 @@
           <button id="lang-btn-es" class="lang-btn" onclick="setLanguage('es')">ES</button>
           <span class="lang-divider">/</span>
           <button id="lang-btn-en" class="lang-btn" onclick="setLanguage('en')">EN</button>
+          <span class="lang-divider">/</span>
+          <button id="lang-btn-pt" class="lang-btn" onclick="setLanguage('pt')">PT</button>
         </div>
       </div>
     </div>
   </header>
 
-  <main class="container">
+  <main>
+    <div class="container">
 
     <!-- Tarjeta Trampolín (Visible solo si se ingresa con un enlace de invitación) -->
     <div id="launcher-card">
@@ -851,13 +963,13 @@
         servidores centrales, sin recolección de datos y sin suscripciones.
       </p>
       <div class="hero-actions">
-        <a href="#descargas" class="btn btn-primary">
+        <a id="hero-download-btn" href="#descargas" class="btn btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          <span data-i18n="hero_download_btn">Descargar para Windows, Linux o macOS</span>
+          <span id="hero-download-label" data-i18n="hero_download_btn">Descargar para Windows, Linux o macOS</span>
         </a>
         <a href="https://github.com/OniverseDesign/onicord" target="_blank" class="btn btn-secondary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -870,10 +982,14 @@
       </div>
     </section>
 
+    </div>
+
     <!-- Maqueta Visual de la Interfaz (Mockup / Captura de Pantalla) -->
     <div class="showcase-wrapper">
       <img src="./mockup.png" alt="Captura de Pantalla de Onicord" class="mockup-img" id="mockup-image">
     </div>
+
+    <div class="container">
 
     <!-- Sección de Características -->
     <section id="caracteristicas">
@@ -1019,13 +1135,23 @@
               <span data-i18n="dl_btn_source">Ver Código Fuente</span>
             </a>
           </div>
-          <p style="margin-top: 1rem; margin-bottom: 0; font-size: 0.85rem; color: var(--text-muted);">
+          <div class="quick-dl-pills">
+            <a class="quick-dl-pill" data-asset="portable" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank">Windows Portable (.exe)</a>
+            <a class="quick-dl-pill" data-asset="appimage" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank">Linux (.AppImage)</a>
+            <a class="quick-dl-pill" data-asset="deb" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank">Debian/Ubuntu (.deb)</a>
+            <a class="quick-dl-pill" data-asset="dmg" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank">macOS (.dmg)</a>
+            <button type="button" class="quick-dl-pill" onclick="copyWingetCommand()" title="Copiar comando WinGet">
+              <span>WinGet:</span> <code>winget install Oniverse.Onicord</code>
+            </button>
+          </div>
+          <p style="margin-top: 0.9rem; margin-bottom: 0; font-size: 0.85rem; color: var(--text-muted);">
             <a href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank" style="color: var(--text-muted); text-decoration: underline;" data-i18n="dl_all_platforms">Todas las plataformas y versiones (GitHub Releases)</a>
           </p>
         </div>
       </div>
     </section>
 
+    </div>
   </main>
 
   <!-- Pie de Página -->
@@ -1075,6 +1201,9 @@
         hero_github_btn: "Ver Código en GitHub",
         mockup_title: "Captura de pantalla de Onicord",
         mockup_hint: "Coloca tu imagen o captura como <code>docs/mockup.png</code> para mostrarla aquí.",
+        demo_live_badge: "Demo Interactiva en Vivo",
+        demo_live_hint: "· Explora canales, perfiles y chat sin instalar nada",
+        demo_open_tab: "Abrir en pantalla completa ↗",
         features_title: "Diseñado para la privacidad y el rendimiento",
         features_subtitle: "Todo el procesamiento y la transmisión ocurren de extremo a extremo entre los participantes de la sala.",
         feat1_title: "100% P2P y Descentralizado",
@@ -1109,7 +1238,8 @@
         footer_releases: "Releases",
         footer_kofi: "Apoyar en Ko-fi",
         toast_code_copied: "Código copiado al portapapeles",
-        toast_link_copied: "Enlace de protocolo copiado"
+        toast_link_copied: "Enlace de protocolo copiado",
+        toast_winget_copied: "Comando WinGet copiado al portapapeles"
       },
       en: {
         page_title: "Onicord - P2P Voice, Video & Chat Platform",
@@ -1133,6 +1263,9 @@
         hero_github_btn: "View Code on GitHub",
         mockup_title: "Onicord Screenshot",
         mockup_hint: "Place your image or screenshot at <code>docs/mockup.png</code> to display it here.",
+        demo_live_badge: "Live Interactive Demo",
+        demo_live_hint: "· Explore channels, profiles and chat without installing",
+        demo_open_tab: "Open full screen ↗",
         features_title: "Engineered for privacy and performance",
         features_subtitle: "All processing and media streaming happen end-to-end between room participants.",
         feat1_title: "100% P2P & Decentralized",
@@ -1167,7 +1300,70 @@
         footer_releases: "Releases",
         footer_kofi: "Support on Ko-fi",
         toast_code_copied: "Code copied to clipboard",
-        toast_link_copied: "Protocol link copied"
+        toast_link_copied: "Protocol link copied",
+        toast_winget_copied: "WinGet command copied to clipboard"
+      },
+      pt: {
+        page_title: "Onicord - Plataforma P2P de Voz, Vídeo e Chat",
+        page_desc: "Salas de comunicação descentralizadas, privadas e sem servidores centrais. Áudio cristalino, compartilhamento de tela e complementos.",
+        nav_features: "Recursos",
+        nav_how: "Como Funciona",
+        nav_download: "Baixar",
+        nav_kofi: "Pague-me um café",
+        launcher_opening: "Abrindo o Onicord...",
+        launcher_connecting: "Conectando com segurança à sala P2P.",
+        launcher_invited_to: "Você foi convidado para {name}",
+        launcher_invited_by: "{inviter} convidou você para esta sala P2P.",
+        launcher_copy: "Copiar",
+        launcher_fallback_question: "O aplicativo não abriu automaticamente?",
+        launcher_open_btn: "Abrir no Onicord",
+        launcher_copy_direct: "Copiar Link Direto",
+        launcher_fallback_hint: "Se você ainda não tem o Onicord instalado neste computador, baixe gratuitamente abaixo.",
+        hero_title: 'Comunicação sem servidores.<br><span>Privada, direta e de alta fidelidade.</span>',
+        hero_desc: "O Onicord é um aplicativo de voz, vídeo, compartilhamento de tela e música construído sobre redes P2P criptografadas. Sem servidores centrais, sem coleta de dados e sem assinaturas.",
+        hero_download_btn: "Baixar para Windows, Linux ou macOS",
+        hero_github_btn: "Ver Código no GitHub",
+        mockup_title: "Captura de tela do Onicord",
+        mockup_hint: "Coloque sua imagem em docs/mockup.png para exibi-la aqui.",
+        demo_live_badge: "Demo Interativa ao Vivo",
+        demo_live_hint: "· Explore canais, perfis e chat sem instalar nada",
+        demo_open_tab: "Abrir em tela cheia ↗",
+        features_title: "Projetado para privacidade e desempenho",
+        features_subtitle: "Todo o processamento e transmissão ocorrem ponto a ponto entre os participantes da sala.",
+        feat1_title: "100% P2P e Descentralizado",
+        feat1_desc: "Conexão direta através de enxames DHT com Hyperswarm. Nenhum servidor central registra suas conversas, IPs ou metadados.",
+        feat2_title: "Voz Cristalina e Vídeo WebRTC",
+        feat2_desc: "Áudio de baixíssima latência com codec Opus otimizado, cancelamento de eco e vídeo fluido ajustado à sua banda.",
+        feat3_title: "Compartilhamento de Tela a 60 FPS",
+        feat3_desc: "Transmita aplicativos, janelas ou jogos para seus amigos com resolução fluida e taxas de quadros ajustáveis.",
+        feat4_title: "Música e Streaming Sincronizado",
+        feat4_desc: "Servidor local integrado com suporte a yt-dlp. Ouça música colaborativamente na sala sem bots externos.",
+        feat5_title: "Ecossistema Modular de Complementos",
+        feat5_desc: "Expanda suas salas com mini-aplicativos, widgets interativos e comandos executados em uma Sandbox segura.",
+        feat6_title: "Código Aberto e sem Contas",
+        feat6_desc: "Licença pública AGPL-3.0. Sua identidade vive localmente no seu computador sem exigir senhas ou emails.",
+        steps_title: "Como entrar em uma chamada?",
+        steps_subtitle: "Três passos simples para começar a se comunicar em segundos.",
+        step1_title: "Baixe o aplicativo",
+        step1_desc: "Escolha o pacote oficial para o seu sistema: Windows (.exe), Linux (.AppImage, .deb) ou macOS (.dmg, .zip).",
+        step2_title: "Configure seu apelido",
+        step2_desc: "Abra o Onicord e digite o nome pelo qual seus amigos vão reconhecer você.",
+        step3_title: "Cole o código da sala",
+        step3_desc: "Clique no link de convite recebido ou cole o código de convite diretamente.",
+        dl_card_title: "Comece a se comunicar no Onicord",
+        dl_card_desc: "Binários oficiais para Windows (.exe), Linux (.AppImage, .deb) e macOS (.dmg, .zip) disponíveis gratuitamente.",
+        dl_btn_releases: "Baixar no GitHub Releases",
+        dl_btn_os: "Baixar para {os}",
+        dl_all_platforms: "Todas as plataformas e versões (GitHub Releases)",
+        dl_btn_source: "Ver Código Fonte",
+        footer_credit: '<strong>Onicord</strong> — Desenvolvido de forma independente por <strong>Oniverse</strong>.',
+        footer_license: "Distribuído sob a Licença Pública Geral GNU v3.0 (AGPL-3.0).",
+        footer_repo: "Repositório no GitHub",
+        footer_releases: "Releases",
+        footer_kofi: "Apoiar no Ko-fi",
+        toast_code_copied: "Código copiado para a área de transferência",
+        toast_link_copied: "Link de protocolo copiado",
+        toast_winget_copied: "Comando WinGet copiado para a área de transferência"
       }
     };
 
@@ -1207,10 +1403,12 @@
 
       const btnEs = document.getElementById('lang-btn-es');
       const btnEn = document.getElementById('lang-btn-en');
+      const btnPt = document.getElementById('lang-btn-pt');
       if (btnEs) btnEs.classList.toggle('active', lang === 'es');
       if (btnEn) btnEn.classList.toggle('active', lang === 'en');
+      if (btnPt) btnPt.classList.toggle('active', lang === 'pt');
 
-      const dict = TRANSLATIONS[lang];
+      const dict = TRANSLATIONS[lang] || TRANSLATIONS.es;
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         if (dict[key]) el.textContent = dict[key];
@@ -1228,16 +1426,30 @@
       if (typeof updateSmartDownloadLabel === 'function') {
         updateSmartDownloadLabel();
       }
+
+      const demoIframe = document.getElementById('demo-iframe');
+      if (demoIframe && window.location.protocol !== 'file:') {
+        const targetSrc = `./demo/index.html?lang=${lang}`;
+        if (demoIframe.getAttribute('src') !== targetSrc) {
+          demoIframe.setAttribute('src', targetSrc);
+        }
+      }
     }
 
     function initLanguage() {
       const stored = localStorage.getItem('onicord_lang');
       let lang = 'es';
-      if (stored === 'es' || stored === 'en') {
+      if (stored === 'es' || stored === 'en' || stored === 'pt') {
         lang = stored;
       } else {
         const navLang = (navigator.language || navigator.userLanguage || 'es').toLowerCase();
-        lang = navLang.startsWith('es') ? 'es' : 'en';
+        if (navLang.startsWith('pt')) {
+          lang = 'pt';
+        } else if (navLang.startsWith('es')) {
+          lang = 'es';
+        } else {
+          lang = 'en';
+        }
       }
       setLanguage(lang);
     }
@@ -1334,22 +1546,31 @@
       return null;
     }
 
+    function copyWingetCommand() {
+      navigator.clipboard.writeText('winget install Oniverse.Onicord');
+      const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.es;
+      showToast(dict.toast_winget_copied || 'Comando WinGet copiado al portapapeles');
+    }
+
     function updateSmartDownloadLabel() {
-      const labelEl = document.getElementById('smart-download-label');
-      if (!labelEl || !detectedDownloadState) return;
+      if (!detectedDownloadState) return;
       const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.es;
       const template = dict.dl_btn_os || 'Descargar para {os}';
       const baseText = template.replace('{os}', detectedDownloadState.os);
-      labelEl.textContent = detectedDownloadState.version
+      const text = detectedDownloadState.version
         ? `${baseText} (${detectedDownloadState.version})`
         : baseText;
+      const labelEl = document.getElementById('smart-download-label');
+      if (labelEl) labelEl.textContent = text;
+      const heroLabelEl = document.getElementById('hero-download-label');
+      if (heroLabelEl) heroLabelEl.textContent = text;
     }
 
     async function initSmartDownload() {
       const os = detectDesktopOS();
-      if (!os) return;
       const btn = document.getElementById('smart-download-btn');
-      if (!btn) return;
+      const heroBtn = document.getElementById('hero-download-btn');
+      if (!btn && !heroBtn) return;
 
       const cacheKey = 'onicord_latest_release_v1';
       let release = null;
@@ -1378,12 +1599,35 @@
         }
       }
 
+      const validAssets = Array.isArray(release.assets)
+        ? release.assets.filter(a => a && a.name && a.browser_download_url && !a.name.endsWith('.blockmap') && !a.name.endsWith('.yml'))
+        : [];
+
+      const quickMap = {
+        portable: validAssets.find(a => /portable.*\.exe$/i.test(a.name)),
+        appimage: validAssets.find(a => /\.AppImage$/i.test(a.name)),
+        deb: validAssets.find(a => /\.deb$/i.test(a.name)),
+        dmg: validAssets.find(a => /\.dmg$/i.test(a.name)),
+      };
+      document.querySelectorAll('.quick-dl-pill[data-asset]').forEach(el => {
+        const matched = quickMap[el.getAttribute('data-asset')];
+        if (matched) {
+          el.href = matched.browser_download_url;
+          el.removeAttribute('target');
+          el.setAttribute('download', matched.name);
+        }
+      });
+
+      if (!os) return;
       const asset = pickAssetForOS(release.assets, os);
       if (!asset) return;
 
-      btn.href = asset.browser_download_url;
-      btn.removeAttribute('target');
-      btn.setAttribute('download', asset.name);
+      [btn, heroBtn].forEach(el => {
+        if (!el) return;
+        el.href = asset.browser_download_url;
+        el.removeAttribute('target');
+        el.setAttribute('download', asset.name);
+      });
       detectedDownloadState = {
         os,
         version: release.tag_name || ''
@@ -1394,6 +1638,41 @@
     // Inicializar idioma detectado o guardado
     initLanguage();
     initSmartDownload();
+
+    // Si se abre en local con file://, usar captura estática porque los módulos ES requieren HTTP
+    if (window.location.protocol === 'file:') {
+      const shell = document.getElementById('demo-shell');
+      const fallbackImg = document.getElementById('mockup-image');
+      if (shell) shell.style.display = 'none';
+      if (fallbackImg) fallbackImg.style.display = 'block';
+    } else {
+      function updateDemoScale() {
+        const shell = document.getElementById('demo-shell');
+        const iframe = document.getElementById('demo-iframe');
+        if (!shell || !iframe) return;
+
+        if (window.innerWidth < 1250) {
+          const baseW = 1280;
+          const baseH = 780;
+          const availW = shell.clientWidth || window.innerWidth * 0.96;
+          const scale = Math.min(1, availW / baseW);
+          iframe.style.width = `${baseW}px`;
+          iframe.style.height = `${baseH}px`;
+          iframe.style.transformOrigin = 'top left';
+          iframe.style.transform = `scale(${scale})`;
+          shell.style.height = `${Math.round(baseH * scale)}px`;
+        } else {
+          iframe.style.width = '';
+          iframe.style.height = '';
+          iframe.style.transformOrigin = '';
+          iframe.style.transform = '';
+          shell.style.height = '';
+        }
+      }
+
+      window.addEventListener('resize', updateDemoScale, { passive: true });
+      updateDemoScale();
+    }
   </script>
 </body>
 

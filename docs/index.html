@@ -550,6 +550,43 @@
       background: #11111b;
     }
 
+    .quick-dl-pills {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1.15rem;
+    }
+
+    .quick-dl-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .quick-dl-pill:hover {
+      background: rgba(203, 166, 247, 0.12);
+      border-color: rgba(203, 166, 247, 0.35);
+      color: #ffffff;
+    }
+
+    .quick-dl-pill code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #cba6f7;
+      font-size: 0.76rem;
+    }
+
     /* ── SECCIÓN CARACTERÍSTICAS ── */
     .section-title {
       text-align: center;
@@ -926,13 +963,13 @@
         servidores centrales, sin recolección de datos y sin suscripciones.
       </p>
       <div class="hero-actions">
-        <a href="#descargas" class="btn btn-primary">
+        <a id="hero-download-btn" href="#descargas" class="btn btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          <span data-i18n="hero_download_btn">Descargar para Windows, Linux o macOS</span>
+          <span id="hero-download-label" data-i18n="hero_download_btn">Descargar para Windows, Linux o macOS</span>
         </a>
         <a href="https://github.com/OniverseDesign/onicord" target="_blank" class="btn btn-secondary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1101,7 +1138,16 @@
               <span data-i18n="dl_btn_source">Ver Código Fuente</span>
             </a>
           </div>
-          <p style="margin-top: 1rem; margin-bottom: 0; font-size: 0.85rem; color: var(--text-muted);">
+          <div class="quick-dl-pills">
+            <a class="quick-dl-pill" data-asset="portable" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank">Windows Portable (.exe)</a>
+            <a class="quick-dl-pill" data-asset="appimage" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank">Linux (.AppImage)</a>
+            <a class="quick-dl-pill" data-asset="deb" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank">Debian/Ubuntu (.deb)</a>
+            <a class="quick-dl-pill" data-asset="dmg" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank">macOS (.dmg)</a>
+            <button type="button" class="quick-dl-pill" onclick="copyWingetCommand()" title="Copiar comando WinGet">
+              <span>WinGet:</span> <code>winget install Oniverse.Onicord</code>
+            </button>
+          </div>
+          <p style="margin-top: 0.9rem; margin-bottom: 0; font-size: 0.85rem; color: var(--text-muted);">
             <a href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank" style="color: var(--text-muted); text-decoration: underline;" data-i18n="dl_all_platforms">Todas las plataformas y versiones (GitHub Releases)</a>
           </p>
         </div>
@@ -1195,7 +1241,8 @@
         footer_releases: "Releases",
         footer_kofi: "Apoyar en Ko-fi",
         toast_code_copied: "Código copiado al portapapeles",
-        toast_link_copied: "Enlace de protocolo copiado"
+        toast_link_copied: "Enlace de protocolo copiado",
+        toast_winget_copied: "Comando WinGet copiado al portapapeles"
       },
       en: {
         page_title: "Onicord - P2P Voice, Video & Chat Platform",
@@ -1256,7 +1303,8 @@
         footer_releases: "Releases",
         footer_kofi: "Support on Ko-fi",
         toast_code_copied: "Code copied to clipboard",
-        toast_link_copied: "Protocol link copied"
+        toast_link_copied: "Protocol link copied",
+        toast_winget_copied: "WinGet command copied to clipboard"
       },
       pt: {
         page_title: "Onicord - Plataforma P2P de Voz, Vídeo e Chat",
@@ -1317,7 +1365,8 @@
         footer_releases: "Releases",
         footer_kofi: "Apoiar no Ko-fi",
         toast_code_copied: "Código copiado para a área de transferência",
-        toast_link_copied: "Link de protocolo copiado"
+        toast_link_copied: "Link de protocolo copiado",
+        toast_winget_copied: "Comando WinGet copiado para a área de transferência"
       }
     };
 
@@ -1500,22 +1549,31 @@
       return null;
     }
 
+    function copyWingetCommand() {
+      navigator.clipboard.writeText('winget install Oniverse.Onicord');
+      const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.es;
+      showToast(dict.toast_winget_copied || 'Comando WinGet copiado al portapapeles');
+    }
+
     function updateSmartDownloadLabel() {
-      const labelEl = document.getElementById('smart-download-label');
-      if (!labelEl || !detectedDownloadState) return;
+      if (!detectedDownloadState) return;
       const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.es;
       const template = dict.dl_btn_os || 'Descargar para {os}';
       const baseText = template.replace('{os}', detectedDownloadState.os);
-      labelEl.textContent = detectedDownloadState.version
+      const text = detectedDownloadState.version
         ? `${baseText} (${detectedDownloadState.version})`
         : baseText;
+      const labelEl = document.getElementById('smart-download-label');
+      if (labelEl) labelEl.textContent = text;
+      const heroLabelEl = document.getElementById('hero-download-label');
+      if (heroLabelEl) heroLabelEl.textContent = text;
     }
 
     async function initSmartDownload() {
       const os = detectDesktopOS();
-      if (!os) return;
       const btn = document.getElementById('smart-download-btn');
-      if (!btn) return;
+      const heroBtn = document.getElementById('hero-download-btn');
+      if (!btn && !heroBtn) return;
 
       const cacheKey = 'onicord_latest_release_v1';
       let release = null;
@@ -1544,12 +1602,35 @@
         }
       }
 
+      const validAssets = Array.isArray(release.assets)
+        ? release.assets.filter(a => a && a.name && a.browser_download_url && !a.name.endsWith('.blockmap') && !a.name.endsWith('.yml'))
+        : [];
+
+      const quickMap = {
+        portable: validAssets.find(a => /portable.*\.exe$/i.test(a.name)),
+        appimage: validAssets.find(a => /\.AppImage$/i.test(a.name)),
+        deb: validAssets.find(a => /\.deb$/i.test(a.name)),
+        dmg: validAssets.find(a => /\.dmg$/i.test(a.name)),
+      };
+      document.querySelectorAll('.quick-dl-pill[data-asset]').forEach(el => {
+        const matched = quickMap[el.getAttribute('data-asset')];
+        if (matched) {
+          el.href = matched.browser_download_url;
+          el.removeAttribute('target');
+          el.setAttribute('download', matched.name);
+        }
+      });
+
+      if (!os) return;
       const asset = pickAssetForOS(release.assets, os);
       if (!asset) return;
 
-      btn.href = asset.browser_download_url;
-      btn.removeAttribute('target');
-      btn.setAttribute('download', asset.name);
+      [btn, heroBtn].forEach(el => {
+        if (!el) return;
+        el.href = asset.browser_download_url;
+        el.removeAttribute('target');
+        el.setAttribute('download', asset.name);
+      });
       detectedDownloadState = {
         os,
         version: release.tag_name || ''

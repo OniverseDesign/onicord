@@ -1,0 +1,1 @@
+class r{render(){return Promise.resolve()}cancel(){}}function t(){return{promise:Promise.reject(new Error("Disabled in demo"))}}class s{static isSupported(){return!1}on(){}loadSource(){}attachMedia(){}destroy(){}}export{s as Hls,r as TextLayer,s as default,t as getDocument};
