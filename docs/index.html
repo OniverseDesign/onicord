@@ -518,10 +518,9 @@
     /* ── MOCKUP / CAPTURA DE PANTALLA REAL DE ONICORD ── */
     .showcase-wrapper {
       position: relative;
-      width: min(1680px, 95vw);
+      width: min(1720px, 96vw);
       max-width: none;
-      margin: 1.5rem 0 5rem 50%;
-      transform: translateX(-50%);
+      margin: 1.5rem auto 5rem;
       border-radius: var(--radius-inner);
       overflow: hidden;
       box-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.75), 0 0 35px var(--onicord-mauve-glow);
@@ -545,7 +544,7 @@
 
     .demo-iframe {
       width: 100%;
-      height: clamp(720px, 84vh, 960px);
+      height: clamp(760px, 86vh, 980px);
       border: 0;
       display: block;
       background: #11111b;
@@ -892,7 +891,8 @@
     </div>
   </header>
 
-  <main class="container">
+  <main>
+    <div class="container">
 
     <!-- Tarjeta Trampolín (Visible solo si se ingresa con un enlace de invitación) -->
     <div id="launcher-card">
@@ -951,6 +951,8 @@
       </div>
     </section>
 
+    </div>
+
     <!-- Maqueta Interactiva en Vivo de la Interfaz -->
     <div class="showcase-wrapper">
       <div class="demo-shell" id="demo-shell">
@@ -958,6 +960,8 @@
       </div>
       <img src="./mockup.png" alt="Captura de Pantalla de Onicord" class="mockup-img" id="mockup-image" style="display: none;">
     </div>
+
+    <div class="container">
 
     <!-- Sección de Características -->
     <section id="caracteristicas">
@@ -1110,6 +1114,7 @@
       </div>
     </section>
 
+    </div>
   </main>
 
   <!-- Pie de Página -->
