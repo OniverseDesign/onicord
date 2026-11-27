@@ -17,6 +17,7 @@
     "start": "node scripts/dev.cjs",
     "start:concurrent": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"npm run dev\" \"npm run electron:dev\"",
     "build": "vite build",
+    "build:demo": "vite build --config vite.demo.config.js",
     "icons": "node scripts/prepare-icons.cjs",
     "ensure-ytdlp": "node scripts/ensure-ytdlp.cjs",
     "pack": "node scripts/ensure-ytdlp.cjs --platform=win && npm run icons && npm run build && electron-builder --win nsis",

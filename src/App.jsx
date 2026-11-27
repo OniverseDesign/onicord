@@ -399,8 +399,8 @@ export default function App() {
 
     async function init() {
       const bootStartTime = Date.now();
-      const MIN_SPLASH_TIME = 2800; // Duration for wordmark animation to play its entrance and shine cycle once
-      const FADE_OUT_DURATION = 400;
+      const MIN_SPLASH_TIME = window.__ONICORD_DEMO__ ? 300 : 2800; // Duration for wordmark animation to play its entrance and shine cycle once
+      const FADE_OUT_DURATION = window.__ONICORD_DEMO__ ? 200 : 400;
 
       const finishSplash = async () => {
         const elapsed = Date.now() - bootStartTime;

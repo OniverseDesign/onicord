@@ -857,7 +857,7 @@
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          <span data-i18n="hero_download_btn">Descargar Gratis para Windows</span>
+          <span data-i18n="hero_download_btn">Descargar para Windows, Linux o macOS</span>
         </a>
         <a href="https://github.com/OniverseDesign/onicord" target="_blank" class="btn btn-secondary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -973,8 +973,7 @@
         <div class="step-item">
           <div class="step-number">01</div>
           <h4 data-i18n="step1_title">Descarga la aplicación</h4>
-          <p data-i18n="step1_desc">Elige el instalador oficial o la versión portable que no requiere privilegios ni
-            instalación.</p>
+          <p data-i18n="step1_desc">Elige el paquete oficial para tu sistema operativo: Windows (.exe), Linux (.AppImage, .deb) o macOS (.dmg, .zip).</p>
         </div>
         <div class="step-item">
           <div class="step-number">02</div>
@@ -985,7 +984,7 @@
         <div class="step-item">
           <div class="step-number">03</div>
           <h4 data-i18n="step3_title">Pega el código de sala</h4>
-          <p data-i18n="step3_desc">Haz clic en el enlace de invitación recibido o pega el código de 8 caracteres
+          <p data-i18n="step3_desc">Haz clic en el enlace de invitación recibido o pega el código de invitación
             directamente.</p>
         </div>
       </div>
@@ -1001,14 +1000,14 @@
           </p>
 
           <div class="download-actions-row" style="margin-bottom: 0;">
-            <a href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank" class="btn btn-primary"
+            <a id="smart-download-btn" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank" class="btn btn-primary"
               style="padding: 0.9rem 1.85rem; font-size: 0.95rem;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              <span data-i18n="dl_btn_releases">Descargar en GitHub Releases</span>
+              <span id="smart-download-label" data-i18n="dl_btn_releases">Descargar en GitHub Releases</span>
             </a>
             <a href="https://github.com/OniverseDesign/onicord" target="_blank" class="btn btn-secondary"
               style="padding: 0.9rem 1.5rem;">
@@ -1020,6 +1019,9 @@
               <span data-i18n="dl_btn_source">Ver Código Fuente</span>
             </a>
           </div>
+          <p style="margin-top: 1rem; margin-bottom: 0; font-size: 0.85rem; color: var(--text-muted);">
+            <a href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank" style="color: var(--text-muted); text-decoration: underline;" data-i18n="dl_all_platforms">Todas las plataformas y versiones (GitHub Releases)</a>
+          </p>
         </div>
       </div>
     </section>
@@ -1069,7 +1071,7 @@
         launcher_fallback_hint: "Si todavía no tienes Onicord instalado en este equipo, descárgalo gratis abajo.",
         hero_title: 'Comunicación sin servidores.<br><span>Privada, directa y de alta fidelidad.</span>',
         hero_desc: "Onicord es una aplicación de voz, video, pantalla compartida y música construida sobre redes P2P cifradas. Sin servidores centrales, sin recolección de datos y sin suscripciones.",
-        hero_download_btn: "Descargar Gratis para Windows",
+        hero_download_btn: "Descargar para Windows, Linux o macOS",
         hero_github_btn: "Ver Código en GitHub",
         mockup_title: "Captura de pantalla de Onicord",
         mockup_hint: "Coloca tu imagen o captura como <code>docs/mockup.png</code> para mostrarla aquí.",
@@ -1090,14 +1092,16 @@
         steps_title: "¿Cómo unirse a una llamada?",
         steps_subtitle: "Tres pasos sencillos para empezar a comunicarte en segundos.",
         step1_title: "Descarga la aplicación",
-        step1_desc: "Elige el instalador oficial o la versión portable que no requiere privilegios ni instalación.",
+        step1_desc: "Elige el paquete oficial para tu sistema operativo: Windows (.exe), Linux (.AppImage, .deb) o macOS (.dmg, .zip).",
         step2_title: "Configura tu apodo",
         step2_desc: "Abre Onicord e ingresa el nombre con el que quieres que te reconozcan tus amigos.",
         step3_title: "Pega el código de sala",
-        step3_desc: "Haz clic en el enlace de invitación recibido o pega el código de 8 caracteres directamente.",
+        step3_desc: "Haz clic en el enlace de invitación recibido o pega el código de invitación directamente.",
         dl_card_title: "Comienza a comunicarte en Onicord",
         dl_card_desc: "Binarios oficiales para Windows, Linux y macOS disponibles sin coste ni registros.",
         dl_btn_releases: "Descargar en GitHub Releases",
+        dl_btn_os: "Descargar para {os}",
+        dl_all_platforms: "Todas las plataformas y versiones (GitHub Releases)",
         dl_btn_source: "Ver Código Fuente",
         footer_credit: '<strong>Onicord</strong> — Diseñado y desarrollado de forma independiente por <strong>Oniverse</strong>.',
         footer_license: "Distribuido bajo la Licencia Pública General GNU v3.0 (AGPL-3.0).",
@@ -1125,7 +1129,7 @@
         launcher_fallback_hint: "If you don't have Onicord installed on this machine yet, download it free below.",
         hero_title: 'Serverless communication.<br><span>Private, direct and high fidelity.</span>',
         hero_desc: "Onicord is a voice, video, screen share and music app built on encrypted P2P networks. No central servers, no data collection and no subscriptions.",
-        hero_download_btn: "Free Download for Windows",
+        hero_download_btn: "Download for Windows, Linux or macOS",
         hero_github_btn: "View Code on GitHub",
         mockup_title: "Onicord Screenshot",
         mockup_hint: "Place your image or screenshot at <code>docs/mockup.png</code> to display it here.",
@@ -1146,14 +1150,16 @@
         steps_title: "How to join a call?",
         steps_subtitle: "Three simple steps to start communicating in seconds.",
         step1_title: "Download the app",
-        step1_desc: "Choose the official installer or portable version that runs without administrative privileges or installation.",
+        step1_desc: "Choose the official package for your OS: Windows (.exe), Linux (.AppImage, .deb), or macOS (.dmg, .zip).",
         step2_title: "Choose your nickname",
         step2_desc: "Launch Onicord and pick the display name your friends will recognize you by.",
         step3_title: "Paste room code",
-        step3_desc: "Click the invite link you received or paste the 8-character room code directly.",
+        step3_desc: "Click the invite link you received or paste the invite code directly.",
         dl_card_title: "Start communicating on Onicord",
-        dl_card_desc: "Setup installer and portable executable available free with no accounts required.",
+        dl_card_desc: "Official binaries for Windows (.exe), Linux (.AppImage, .deb), and macOS (.dmg, .zip) available free without accounts.",
         dl_btn_releases: "Download on GitHub Releases",
+        dl_btn_os: "Download for {os}",
+        dl_all_platforms: "All platforms & versions (GitHub Releases)",
         dl_btn_source: "View Source Code",
         footer_credit: '<strong>Onicord</strong> — Independently designed and developed by <strong>Oniverse</strong>.',
         footer_license: "Distributed under GNU General Public License v3.0 (AGPL-3.0).",
@@ -1179,13 +1185,14 @@
     const addonId = params.get('addon');
 
     let deepLink = '';
+    const inviteHash = window.location.hash || '';
 
     if (ip && port && code) {
-      deepLink = `onicord://direct:${ip}:${port}/${code}`;
+      deepLink = `onicord://direct:${ip}:${port}/${code}${inviteHash}`;
     } else if (addonId) {
       deepLink = `onicord://addon/install/${addonId}`;
-    } else if (code && code.length === 8) {
-      deepLink = `onicord://join/${code}`;
+    } else if (code) {
+      deepLink = `onicord://join/${code}${inviteHash}`;
     }
 
     const launcherCard = document.getElementById('launcher-card');
@@ -1217,6 +1224,10 @@
       document.title = dict.page_title;
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) metaDesc.setAttribute('content', dict.page_desc);
+
+      if (typeof updateSmartDownloadLabel === 'function') {
+        updateSmartDownloadLabel();
+      }
     }
 
     function initLanguage() {
@@ -1291,8 +1302,98 @@
       showToast(dict.toast_link_copied);
     }
 
+    // Detección de SO y descarga directa desde la última release de GitHub
+    let detectedDownloadState = null;
+
+    function detectDesktopOS() {
+      const ua = navigator.userAgent || '';
+      const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+      const combined = `${platform} ${ua}`.toLowerCase();
+      if (/android|iphone|ipad|ipod|mobile/i.test(combined)) return null;
+      if (combined.includes('win')) return 'Windows';
+      if (combined.includes('mac')) return 'macOS';
+      if (combined.includes('linux') || combined.includes('x11')) return 'Linux';
+      return null;
+    }
+
+    function pickAssetForOS(assets, os) {
+      if (!Array.isArray(assets)) return null;
+      const valid = assets.filter(a => a && a.name && a.browser_download_url && !a.name.endsWith('.blockmap') && !a.name.endsWith('.yml'));
+      if (os === 'Windows') {
+        return valid.find(a => /^Onicord-Setup-.*\.exe$/i.test(a.name))
+          || valid.find(a => /\.exe$/i.test(a.name));
+      }
+      if (os === 'macOS') {
+        return valid.find(a => /\.dmg$/i.test(a.name))
+          || valid.find(a => /\.zip$/i.test(a.name));
+      }
+      if (os === 'Linux') {
+        return valid.find(a => /\.AppImage$/i.test(a.name))
+          || valid.find(a => /\.deb$/i.test(a.name));
+      }
+      return null;
+    }
+
+    function updateSmartDownloadLabel() {
+      const labelEl = document.getElementById('smart-download-label');
+      if (!labelEl || !detectedDownloadState) return;
+      const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.es;
+      const template = dict.dl_btn_os || 'Descargar para {os}';
+      const baseText = template.replace('{os}', detectedDownloadState.os);
+      labelEl.textContent = detectedDownloadState.version
+        ? `${baseText} (${detectedDownloadState.version})`
+        : baseText;
+    }
+
+    async function initSmartDownload() {
+      const os = detectDesktopOS();
+      if (!os) return;
+      const btn = document.getElementById('smart-download-btn');
+      if (!btn) return;
+
+      const cacheKey = 'onicord_latest_release_v1';
+      let release = null;
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.ts && (Date.now() - parsed.ts < 600000) && parsed.data) {
+            release = parsed.data;
+          }
+        }
+      } catch (_) {}
+
+      if (!release) {
+        try {
+          const res = await fetch('https://api.github.com/repos/OniverseDesign/onicord/releases/latest', {
+            headers: { 'Accept': 'application/vnd.github+json' }
+          });
+          if (!res.ok) return;
+          release = await res.json();
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: release }));
+          } catch (_) {}
+        } catch (_) {
+          return;
+        }
+      }
+
+      const asset = pickAssetForOS(release.assets, os);
+      if (!asset) return;
+
+      btn.href = asset.browser_download_url;
+      btn.removeAttribute('target');
+      btn.setAttribute('download', asset.name);
+      detectedDownloadState = {
+        os,
+        version: release.tag_name || ''
+      };
+      updateSmartDownloadLabel();
+    }
+
     // Inicializar idioma detectado o guardado
     initLanguage();
+    initSmartDownload();
   </script>
 </body>
 

@@ -531,6 +531,54 @@
       border-radius: var(--radius-inner);
     }
 
+    .demo-shell {
+      position: relative;
+      width: 100%;
+      background: #11111b;
+      border: 1px solid rgba(203, 166, 247, 0.22);
+      border-radius: var(--radius-inner);
+      overflow: hidden;
+    }
+
+    .demo-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.55rem 0.9rem;
+      background: rgba(24, 24, 37, 0.96);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .demo-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .demo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #a6e3a1;
+      box-shadow: 0 0 8px rgba(166, 227, 161, 0.7);
+    }
+
+    .demo-iframe {
+      width: 100%;
+      height: 640px;
+      border: 0;
+      display: block;
+      background: #11111b;
+    }
+
+    @media (max-width: 768px) {
+      .demo-iframe {
+        height: 480px;
+      }
+    }
+
     /* ── SECCIÓN CARACTERÍSTICAS ── */
     .section-title {
       text-align: center;
@@ -925,9 +973,20 @@
       </div>
     </section>
 
-    <!-- Maqueta Visual de la Interfaz (Mockup / Captura de Pantalla) -->
+    <!-- Maqueta Interactiva en Vivo de la Interfaz -->
     <div class="showcase-wrapper">
-      <img src="./mockup.png" alt="Captura de Pantalla de Onicord" class="mockup-img" id="mockup-image">
+      <div class="demo-shell" id="demo-shell">
+        <div class="demo-topbar">
+          <div class="demo-topbar-left">
+            <span class="demo-dot"></span>
+            <strong style="color: #cdd6f4;" data-i18n="demo_live_badge">Demo Interactiva en Vivo</strong>
+            <span style="opacity: 0.7;" data-i18n="demo_live_hint">· Explora canales, perfiles y chat sin instalar nada</span>
+          </div>
+          <a href="./demo/index.html" target="_blank" style="color: #cba6f7; text-decoration: none; font-weight: 600;" data-i18n="demo_open_tab">Abrir en pantalla completa ↗</a>
+        </div>
+        <iframe id="demo-iframe" class="demo-iframe" src="./demo/index.html" title="Onicord Interactive Demo" loading="lazy"></iframe>
+      </div>
+      <img src="./mockup.png" alt="Captura de Pantalla de Onicord" class="mockup-img" id="mockup-image" style="display: none;">
     </div>
 
     <!-- Sección de Características -->
@@ -1028,8 +1087,7 @@
         <div class="step-item">
           <div class="step-number">01</div>
           <h4 data-i18n="step1_title">Descarga la aplicación</h4>
-          <p data-i18n="step1_desc">Elige el instalador oficial o la versión portable que no requiere privilegios ni
-            instalación.</p>
+          <p data-i18n="step1_desc">Elige el paquete oficial para tu sistema operativo: Windows (.exe), Linux (.AppImage, .deb) o macOS (.dmg, .zip).</p>
         </div>
         <div class="step-item">
           <div class="step-number">02</div>
@@ -1040,7 +1098,7 @@
         <div class="step-item">
           <div class="step-number">03</div>
           <h4 data-i18n="step3_title">Pega el código de sala</h4>
-          <p data-i18n="step3_desc">Haz clic en el enlace de invitación recibido o pega el código de 8 caracteres
+          <p data-i18n="step3_desc">Haz clic en el enlace de invitación recibido o pega el código de invitación
             directamente.</p>
         </div>
       </div>
@@ -1056,14 +1114,14 @@
           </p>
 
           <div class="download-actions-row" style="margin-bottom: 0;">
-            <a href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank" class="btn btn-primary"
+            <a id="smart-download-btn" href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank" class="btn btn-primary"
               style="padding: 0.9rem 1.85rem; font-size: 0.95rem;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              <span data-i18n="dl_btn_releases">Descargar en GitHub Releases</span>
+              <span id="smart-download-label" data-i18n="dl_btn_releases">Descargar en GitHub Releases</span>
             </a>
             <a href="https://github.com/OniverseDesign/onicord" target="_blank" class="btn btn-secondary"
               style="padding: 0.9rem 1.5rem;">
@@ -1075,6 +1133,9 @@
               <span data-i18n="dl_btn_source">Ver Código Fuente</span>
             </a>
           </div>
+          <p style="margin-top: 1rem; margin-bottom: 0; font-size: 0.85rem; color: var(--text-muted);">
+            <a href="https://github.com/OniverseDesign/onicord/releases/latest" target="_blank" style="color: var(--text-muted); text-decoration: underline;" data-i18n="dl_all_platforms">Todas las plataformas y versiones (GitHub Releases)</a>
+          </p>
         </div>
       </div>
     </section>
@@ -1128,6 +1189,9 @@
         hero_github_btn: "Ver Código en GitHub",
         mockup_title: "Captura de pantalla de Onicord",
         mockup_hint: "Coloca tu imagen o captura como <code>docs/mockup.png</code> para mostrarla aquí.",
+        demo_live_badge: "Demo Interactiva en Vivo",
+        demo_live_hint: "· Explora canales, perfiles y chat sin instalar nada",
+        demo_open_tab: "Abrir en pantalla completa ↗",
         features_title: "Diseñado para la privacidad y el rendimiento",
         features_subtitle: "Todo el procesamiento y la transmisión ocurren de extremo a extremo entre los participantes de la sala.",
         feat1_title: "100% P2P y Descentralizado",
@@ -1149,10 +1213,12 @@
         step2_title: "Configura tu apodo",
         step2_desc: "Abre Onicord e ingresa el nombre con el que quieres que te reconozcan tus amigos.",
         step3_title: "Pega el código de sala",
-        step3_desc: "Haz clic en el enlace de invitación recibido o pega el código de 8 caracteres directamente.",
+        step3_desc: "Haz clic en el enlace de invitación recibido o pega el código de invitación directamente.",
         dl_card_title: "Comienza a comunicarte en Onicord",
         dl_card_desc: "Binarios oficiales para Windows, Linux y macOS disponibles sin coste ni registros.",
         dl_btn_releases: "Descargar en GitHub Releases",
+        dl_btn_os: "Descargar para {os}",
+        dl_all_platforms: "Todas las plataformas y versiones (GitHub Releases)",
         dl_btn_source: "Ver Código Fuente",
         footer_credit: '<strong>Onicord</strong> — Diseñado y desarrollado de forma independiente por <strong>Oniverse</strong>.',
         footer_license: "Distribuido bajo la Licencia Pública General GNU v3.0 (AGPL-3.0).",
@@ -1184,6 +1250,9 @@
         hero_github_btn: "View Code on GitHub",
         mockup_title: "Onicord Screenshot",
         mockup_hint: "Place your image or screenshot at <code>docs/mockup.png</code> to display it here.",
+        demo_live_badge: "Live Interactive Demo",
+        demo_live_hint: "· Explore channels, profiles and chat without installing",
+        demo_open_tab: "Open full screen ↗",
         features_title: "Engineered for privacy and performance",
         features_subtitle: "All processing and media streaming happen end-to-end between room participants.",
         feat1_title: "100% P2P & Decentralized",
@@ -1205,10 +1274,12 @@
         step2_title: "Choose your nickname",
         step2_desc: "Launch Onicord and pick the display name your friends will recognize you by.",
         step3_title: "Paste room code",
-        step3_desc: "Click the invite link you received or paste the 8-character room code directly.",
+        step3_desc: "Click the invite link you received or paste the invite code directly.",
         dl_card_title: "Start communicating on Onicord",
         dl_card_desc: "Official binaries for Windows (.exe), Linux (.AppImage, .deb), and macOS (.dmg, .zip) available free without accounts.",
         dl_btn_releases: "Download on GitHub Releases",
+        dl_btn_os: "Download for {os}",
+        dl_all_platforms: "All platforms & versions (GitHub Releases)",
         dl_btn_source: "View Source Code",
         footer_credit: '<strong>Onicord</strong> — Independently designed and developed by <strong>Oniverse</strong>.',
         footer_license: "Distributed under GNU General Public License v3.0 (AGPL-3.0).",
@@ -1240,6 +1311,9 @@
         hero_github_btn: "Ver Código no GitHub",
         mockup_title: "Captura de tela do Onicord",
         mockup_hint: "Coloque sua imagem em docs/mockup.png para exibi-la aqui.",
+        demo_live_badge: "Demo Interativa ao Vivo",
+        demo_live_hint: "· Explore canais, perfis e chat sem instalar nada",
+        demo_open_tab: "Abrir em tela cheia ↗",
         features_title: "Projetado para privacidade e desempenho",
         features_subtitle: "Todo o processamento e transmissão ocorrem ponto a ponto entre os participantes da sala.",
         feat1_title: "100% P2P e Descentralizado",
@@ -1261,10 +1335,12 @@
         step2_title: "Configure seu apelido",
         step2_desc: "Abra o Onicord e digite o nome pelo qual seus amigos vão reconhecer você.",
         step3_title: "Cole o código da sala",
-        step3_desc: "Clique no link de convite recebido ou cole o código de 8 caracteres diretamente.",
+        step3_desc: "Clique no link de convite recebido ou cole o código de convite diretamente.",
         dl_card_title: "Comece a se comunicar no Onicord",
         dl_card_desc: "Binários oficiais para Windows (.exe), Linux (.AppImage, .deb) e macOS (.dmg, .zip) disponíveis gratuitamente.",
         dl_btn_releases: "Baixar no GitHub Releases",
+        dl_btn_os: "Baixar para {os}",
+        dl_all_platforms: "Todas as plataformas e versões (GitHub Releases)",
         dl_btn_source: "Ver Código Fonte",
         footer_credit: '<strong>Onicord</strong> — Desenvolvido de forma independente por <strong>Oniverse</strong>.',
         footer_license: "Distribuído sob a Licença Pública Geral GNU v3.0 (AGPL-3.0).",
@@ -1290,13 +1366,14 @@
     const addonId = params.get('addon');
 
     let deepLink = '';
+    const inviteHash = window.location.hash || '';
 
     if (ip && port && code) {
-      deepLink = `onicord://direct:${ip}:${port}/${code}`;
+      deepLink = `onicord://direct:${ip}:${port}/${code}${inviteHash}`;
     } else if (addonId) {
       deepLink = `onicord://addon/install/${addonId}`;
-    } else if (code && code.length === 8) {
-      deepLink = `onicord://join/${code}`;
+    } else if (code) {
+      deepLink = `onicord://join/${code}${inviteHash}`;
     }
 
     const launcherCard = document.getElementById('launcher-card');
@@ -1330,6 +1407,10 @@
       document.title = dict.page_title;
       const metaDesc = document.querySelector('meta[name="description"]');
       if (metaDesc) metaDesc.setAttribute('content', dict.page_desc);
+
+      if (typeof updateSmartDownloadLabel === 'function') {
+        updateSmartDownloadLabel();
+      }
     }
 
     function initLanguage() {
@@ -1410,8 +1491,106 @@
       showToast(dict.toast_link_copied);
     }
 
+    // Detección de SO y descarga directa desde la última release de GitHub
+    let detectedDownloadState = null;
+
+    function detectDesktopOS() {
+      const ua = navigator.userAgent || '';
+      const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+      const combined = `${platform} ${ua}`.toLowerCase();
+      if (/android|iphone|ipad|ipod|mobile/i.test(combined)) return null;
+      if (combined.includes('win')) return 'Windows';
+      if (combined.includes('mac')) return 'macOS';
+      if (combined.includes('linux') || combined.includes('x11')) return 'Linux';
+      return null;
+    }
+
+    function pickAssetForOS(assets, os) {
+      if (!Array.isArray(assets)) return null;
+      const valid = assets.filter(a => a && a.name && a.browser_download_url && !a.name.endsWith('.blockmap') && !a.name.endsWith('.yml'));
+      if (os === 'Windows') {
+        return valid.find(a => /^Onicord-Setup-.*\.exe$/i.test(a.name))
+          || valid.find(a => /\.exe$/i.test(a.name));
+      }
+      if (os === 'macOS') {
+        return valid.find(a => /\.dmg$/i.test(a.name))
+          || valid.find(a => /\.zip$/i.test(a.name));
+      }
+      if (os === 'Linux') {
+        return valid.find(a => /\.AppImage$/i.test(a.name))
+          || valid.find(a => /\.deb$/i.test(a.name));
+      }
+      return null;
+    }
+
+    function updateSmartDownloadLabel() {
+      const labelEl = document.getElementById('smart-download-label');
+      if (!labelEl || !detectedDownloadState) return;
+      const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.es;
+      const template = dict.dl_btn_os || 'Descargar para {os}';
+      const baseText = template.replace('{os}', detectedDownloadState.os);
+      labelEl.textContent = detectedDownloadState.version
+        ? `${baseText} (${detectedDownloadState.version})`
+        : baseText;
+    }
+
+    async function initSmartDownload() {
+      const os = detectDesktopOS();
+      if (!os) return;
+      const btn = document.getElementById('smart-download-btn');
+      if (!btn) return;
+
+      const cacheKey = 'onicord_latest_release_v1';
+      let release = null;
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.ts && (Date.now() - parsed.ts < 600000) && parsed.data) {
+            release = parsed.data;
+          }
+        }
+      } catch (_) {}
+
+      if (!release) {
+        try {
+          const res = await fetch('https://api.github.com/repos/OniverseDesign/onicord/releases/latest', {
+            headers: { 'Accept': 'application/vnd.github+json' }
+          });
+          if (!res.ok) return;
+          release = await res.json();
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: release }));
+          } catch (_) {}
+        } catch (_) {
+          return;
+        }
+      }
+
+      const asset = pickAssetForOS(release.assets, os);
+      if (!asset) return;
+
+      btn.href = asset.browser_download_url;
+      btn.removeAttribute('target');
+      btn.setAttribute('download', asset.name);
+      detectedDownloadState = {
+        os,
+        version: release.tag_name || ''
+      };
+      updateSmartDownloadLabel();
+    }
+
     // Inicializar idioma detectado o guardado
     initLanguage();
+    initSmartDownload();
+
+    // Si se abre en local con file://, usar captura estática porque los módulos ES requieren HTTP
+    if (window.location.protocol === 'file:') {
+      const shell = document.getElementById('demo-shell');
+      const fallbackImg = document.getElementById('mockup-image');
+      if (shell) shell.style.display = 'none';
+      if (fallbackImg) fallbackImg.style.display = 'block';
+    }
   </script>
 </body>
 
