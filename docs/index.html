@@ -517,7 +517,7 @@
 
     /* ── MOCKUP / CAPTURA DE PANTALLA REAL DE ONICORD ── */
     .showcase-wrapper {
-      max-width: 1040px;
+      max-width: min(1360px, 94vw);
       margin: 1.5rem auto 5rem;
       border-radius: var(--radius-inner);
       overflow: hidden;
@@ -540,34 +540,9 @@
       overflow: hidden;
     }
 
-    .demo-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.55rem 0.9rem;
-      background: rgba(24, 24, 37, 0.96);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .demo-topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 0.55rem;
-    }
-
-    .demo-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #a6e3a1;
-      box-shadow: 0 0 8px rgba(166, 227, 161, 0.7);
-    }
-
     .demo-iframe {
       width: 100%;
-      height: 640px;
+      height: clamp(640px, 78vh, 840px);
       border: 0;
       display: block;
       background: #11111b;
@@ -575,7 +550,7 @@
 
     @media (max-width: 768px) {
       .demo-iframe {
-        height: 480px;
+        height: 520px;
       }
     }
 
@@ -976,14 +951,6 @@
     <!-- Maqueta Interactiva en Vivo de la Interfaz -->
     <div class="showcase-wrapper">
       <div class="demo-shell" id="demo-shell">
-        <div class="demo-topbar">
-          <div class="demo-topbar-left">
-            <span class="demo-dot"></span>
-            <strong style="color: #cdd6f4;" data-i18n="demo_live_badge">Demo Interactiva en Vivo</strong>
-            <span style="opacity: 0.7;" data-i18n="demo_live_hint">· Explora canales, perfiles y chat sin instalar nada</span>
-          </div>
-          <a href="./demo/index.html" target="_blank" style="color: #cba6f7; text-decoration: none; font-weight: 600;" data-i18n="demo_open_tab">Abrir en pantalla completa ↗</a>
-        </div>
         <iframe id="demo-iframe" class="demo-iframe" src="./demo/index.html" title="Onicord Interactive Demo" loading="lazy"></iframe>
       </div>
       <img src="./mockup.png" alt="Captura de Pantalla de Onicord" class="mockup-img" id="mockup-image" style="display: none;">
@@ -1410,6 +1377,14 @@
 
       if (typeof updateSmartDownloadLabel === 'function') {
         updateSmartDownloadLabel();
+      }
+
+      const demoIframe = document.getElementById('demo-iframe');
+      if (demoIframe && window.location.protocol !== 'file:') {
+        const targetSrc = `./demo/index.html?lang=${lang}`;
+        if (demoIframe.getAttribute('src') !== targetSrc) {
+          demoIframe.setAttribute('src', targetSrc);
+        }
       }
     }
 

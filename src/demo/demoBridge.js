@@ -16,253 +16,375 @@ function svgSticker(bg, emoji, label) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-const DEMO_USERS = {
-  me: {
-    id: "demo-me",
-    userId: "demo-me",
-    peerId: "demo-me",
-    nickname: "Criss",
-    status: "online",
-    online: true,
-    customStatus: "Probando Onicord P2P ✨",
-    bio: "Creador de Onicord. 100% P2P, cifrado de extremo a extremo y sin servidores centrales.",
-    avatar: svgAvatar("#cba6f7", "#89b4fa", "CR"),
-    bannerColor: "#cba6f7",
-    banner: svgBanner("#313244", "#cba6f7"),
-    roleId: "role-founder",
-    roles: ["role-founder", "role-dev"],
+export function resolveDemoLanguage() {
+  if (typeof window === "undefined") return "es";
+  const param = new URLSearchParams(window.location.search).get("lang");
+  const candidate = (
+    param ||
+    localStorage.getItem("onicord_lang") ||
+    localStorage.getItem("onicord_language") ||
+    navigator.language ||
+    "es"
+  )
+    .toLowerCase()
+    .split("-")[0];
+  return candidate === "en" || candidate === "pt" || candidate === "es" ? candidate : "es";
+}
+
+const DEMO_COPY = {
+  es: {
+    meStatus: "Probando Onicord P2P ✨",
+    meBio: "Creador de Onicord. 100% P2P, cifrado de extremo a extremo y sin servidores centrales.",
+    lunaStatus: "Escuchando Synthwave 🎧",
+    lunaBio: "Diseñadora de interfaces & amante del audio lossless.",
+    kairoStatus: "Pantalla compartida a 60 FPS 🚀",
+    kairoBio: "Ingeniero de redes P2P. Hyperswarm + WebRTC.",
+    vexStatus: "En Watch Party 🍿",
+    vexBio: "Probando addons y temas personalizados.",
+    novaStatus: "AFK por un café ☕",
+    novaBio: "Moderadora de la comunidad.",
+    catCommunity: "Comunidad",
+    catVoice: "Canales de Voz & Música",
+    catProjects: "Proyectos",
+    catRooms: "Salas",
+    catMusic: "Música",
+    chGeneralTopic: "Bienvenido a la demo interactiva de Onicord — 100% P2P",
+    chDevName: "desarrollo",
+    chDevTopic: "Cifrado Noise XX, WebRTC 60 FPS y plugins .onipkg",
+    chMusicName: "música-y-clips",
+    chMusicTopic: "Comparte temas para el Jukebox sincronizado",
+    chShowcaseTopic: "Muestra tus avances y prototipos",
+    chResourcesName: "recursos",
+    chResourcesTopic: "Shaders, UI kits y herramientas open-source",
+    chPlaylistsTopic: "Playlists colaborativas para programar",
+    msg1: "¡Bienvenidos a **Onicord**! Todo lo que ves aquí corre de forma descentralizada sobre **Hyperswarm DHT** y **WebRTC**, sin servidores centrales ni cuentas. 🚀",
+    msg2: "Acabo de activar el **Jukebox sincronizado** en `Lounge P2P` y compartir pantalla a **60 FPS** con eco cancelado. ¿Se escucha limpio?",
+    msg2Reply: "¡Bienvenidos a Onicord! Todo lo que ves aquí corre de forma descentralizada...",
+    msg3: "Cristalino 👌 Además probé cambiar el tema adaptable a modo claro y los plugins `.onipkg` se sincronizaron al instante.",
+    msg4: "¡Escribe un mensaje abajo, haz clic en los perfiles de la derecha o cambia de canal para explorar la interfaz!",
+    msgDev: "Cada sala separa su secreto de enrutamiento DHT de las claves de cifrado por época (`[E2EE2:eN]:` con HKDF-SHA256 + AES-256-GCM).\n```js\nconst roomKey = hkdfSha256(epochSecret, 'onicord-e2ee2');\n```",
+    msgMusic: "Sonando ahora en el canal de voz **Lounge P2P**: *Midnight City (P2P Synthwave Mix)* 🎶",
+    msgIndie: "Subí un nuevo widget interactivo en `.onipkg` con sincronización P2P en tiempo real.",
+    msgChill: "Lo-Fi & Synthwave 24/7 para sesiones largas de código 🌙☕",
+    autoReply: "¡Mensaje recibido en la demo interactiva! ✨",
   },
-  luna: {
-    id: "demo-luna",
-    userId: "demo-luna",
-    peerId: "demo-luna",
-    nickname: "Luna",
-    status: "online",
-    online: true,
-    customStatus: "Escuchando Synthwave 🎧",
-    bio: "Diseñadora de interfaces & amante del audio lossless.",
-    avatar: svgAvatar("#f5c2e7", "#cba6f7", "LU"),
-    banner: svgBanner("#45475a", "#f5c2e7"),
-    roleId: "role-dev",
-    roles: ["role-dev"],
-    activity: { name: "Onicord Jukebox", type: "listening" },
+  en: {
+    meStatus: "Testing Onicord P2P ✨",
+    meBio: "Creator of Onicord. 100% P2P, end-to-end encrypted with zero central servers.",
+    lunaStatus: "Listening to Synthwave 🎧",
+    lunaBio: "UI designer & lossless audio enthusiast.",
+    kairoStatus: "60 FPS Screen Share 🚀",
+    kairoBio: "P2P networking engineer. Hyperswarm + WebRTC.",
+    vexStatus: "In Watch Party 🍿",
+    vexBio: "Testing addons and custom themes.",
+    novaStatus: "AFK for coffee ☕",
+    novaBio: "Community moderator.",
+    catCommunity: "Community",
+    catVoice: "Voice & Music Channels",
+    catProjects: "Projects",
+    catRooms: "Rooms",
+    catMusic: "Music",
+    chGeneralTopic: "Welcome to the interactive Onicord demo — 100% P2P",
+    chDevName: "development",
+    chDevTopic: "Noise XX encryption, 60 FPS WebRTC and .onipkg plugins",
+    chMusicName: "music-and-clips",
+    chMusicTopic: "Share tracks for the synced Jukebox",
+    chShowcaseTopic: "Show off your builds and prototypes",
+    chResourcesName: "resources",
+    chResourcesTopic: "Shaders, UI kits and open-source tools",
+    chPlaylistsTopic: "Collaborative playlists for coding",
+    msg1: "Welcome to **Onicord**! Everything here runs decentralized over **Hyperswarm DHT** and **WebRTC**, with no central servers or accounts. 🚀",
+    msg2: "Just started the **synced Jukebox** in `Lounge P2P` and **60 FPS** screen sharing with echo cancellation. Sounds clean?",
+    msg2Reply: "Welcome to Onicord! Everything here runs decentralized...",
+    msg3: "Crystal clear 👌 Also tried switching to adaptive light mode and `.onipkg` plugins synced instantly.",
+    msg4: "Send a message below, click user profiles on the right, or switch channels to explore the interface!",
+    msgDev: "Each room separates its DHT routing secret from per-epoch encryption keys (`[E2EE2:eN]:` with HKDF-SHA256 + AES-256-GCM).\n```js\nconst roomKey = hkdfSha256(epochSecret, 'onicord-e2ee2');\n```",
+    msgMusic: "Now playing in **Lounge P2P** voice channel: *Midnight City (P2P Synthwave Mix)* 🎶",
+    msgIndie: "Just published a new interactive `.onipkg` widget with real-time P2P sync.",
+    msgChill: "24/7 Lo-Fi & Synthwave for long coding sessions 🌙☕",
+    autoReply: "Message received in the interactive demo! ✨",
   },
-  kairo: {
-    id: "demo-kairo",
-    userId: "demo-kairo",
-    peerId: "demo-kairo",
-    nickname: "Kairo",
-    status: "online",
-    online: true,
-    customStatus: "60 FPS Screen Share 🚀",
-    bio: "Ingeniero de redes P2P. Hyperswarm + WebRTC.",
-    avatar: svgAvatar("#89b4fa", "#74c7ec", "KA"),
-    banner: svgBanner("#1e1e2e", "#89b4fa"),
-    roleId: "role-dev",
-    roles: ["role-dev"],
-    activity: { name: "Hollow Knight: Silksong", type: "playing" },
-  },
-  vex: {
-    id: "demo-vex",
-    userId: "demo-vex",
-    peerId: "demo-vex",
-    nickname: "Vex",
-    status: "dnd",
-    online: true,
-    customStatus: "En Watch Party 🍿",
-    bio: "Probando addons y temas personalizados.",
-    avatar: svgAvatar("#a6e3a1", "#94e2d5", "VX"),
-    banner: svgBanner("#1e1e2e", "#a6e3a1"),
-    roleId: "role-supporter",
-    roles: ["role-supporter"],
-  },
-  nova: {
-    id: "demo-nova",
-    userId: "demo-nova",
-    peerId: "demo-nova",
-    nickname: "Nova",
-    status: "idle",
-    online: true,
-    customStatus: "AFK por un café ☕",
-    bio: "Moderadora de la comunidad.",
-    avatar: svgAvatar("#fab387", "#f9e2af", "NV"),
-    banner: svgBanner("#313244", "#fab387"),
-    roleId: "role-supporter",
-    roles: ["role-supporter"],
+  pt: {
+    meStatus: "Testando Onicord P2P ✨",
+    meBio: "Criador do Onicord. 100% P2P, criptografado de ponta a ponta e sem servidores centrais.",
+    lunaStatus: "Ouvindo Synthwave 🎧",
+    lunaBio: "Designer de interfaces & apaixonada por áudio lossless.",
+    kairoStatus: "Tela compartilhada a 60 FPS 🚀",
+    kairoBio: "Engenheiro de redes P2P. Hyperswarm + WebRTC.",
+    vexStatus: "Em Watch Party 🍿",
+    vexBio: "Testando addons e temas personalizados.",
+    novaStatus: "AFK para um café ☕",
+    novaBio: "Moderadora da comunidade.",
+    catCommunity: "Comunidade",
+    catVoice: "Canais de Voz e Música",
+    catProjects: "Projetos",
+    catRooms: "Salas",
+    catMusic: "Música",
+    chGeneralTopic: "Bem-vindo à demo interativa do Onicord — 100% P2P",
+    chDevName: "desenvolvimento",
+    chDevTopic: "Criptografia Noise XX, WebRTC 60 FPS e plugins .onipkg",
+    chMusicName: "música-e-clipes",
+    chMusicTopic: "Compartilhe faixas para a Jukebox sincronizada",
+    chShowcaseTopic: "Mostre seus projetos e protótipos",
+    chResourcesName: "recursos",
+    chResourcesTopic: "Shaders, UI kits e ferramentas open-source",
+    chPlaylistsTopic: "Playlists colaborativas para programar",
+    msg1: "Bem-vindos ao **Onicord**! Tudo aqui roda de forma descentralizada sobre **Hyperswarm DHT** e **WebRTC**, sem servidores centrais nem contas. 🚀",
+    msg2: "Acabei de ativar a **Jukebox sincronizada** no `Lounge P2P` e transmissão de tela a **60 FPS** com cancelamento de eco. Está limpo?",
+    msg2Reply: "Bem-vindos ao Onicord! Tudo aqui roda de forma descentralizada...",
+    msg3: "Cristalino 👌 Também testei o tema adaptável claro e os plugins `.onipkg` sincronizaram na hora.",
+    msg4: "Envie uma mensagem abaixo, clique nos perfis à direita ou troque de canal para explorar a interface!",
+    msgDev: "Cada sala separa seu segredo de roteamento DHT das chaves de criptografia por época (`[E2EE2:eN]:` com HKDF-SHA256 + AES-256-GCM).\n```js\nconst roomKey = hkdfSha256(epochSecret, 'onicord-e2ee2');\n```",
+    msgMusic: "Tocando agora no canal de voz **Lounge P2P**: *Midnight City (P2P Synthwave Mix)* 🎶",
+    msgIndie: "Publiquei um novo widget interativo em `.onipkg` com sincronização P2P em tempo real.",
+    msgChill: "Lo-Fi & Synthwave 24/7 para longas sessões de código 🌙☕",
+    autoReply: "Mensagem recebida na demo interativa! ✨",
   },
 };
 
-const DEMO_ROLES = [
-  { id: "role-founder", name: "Founder", color: "#cba6f7", hoist: true, position: 3, permissions: ["administrator"] },
-  { id: "role-dev", name: "Core Dev", color: "#89b4fa", hoist: true, position: 2, permissions: ["manage_channels", "send_messages"] },
-  { id: "role-supporter", name: "Supporter", color: "#a6e3a1", hoist: true, position: 1, permissions: ["send_messages"] },
-];
+function buildDemoData(lang) {
+  const c = DEMO_COPY[lang] || DEMO_COPY.es;
 
-const DEMO_SERVERS = [
-  {
-    id: "srv-onicord",
-    name: "Onicord HQ",
-    roomCode: "ONICORD1",
-    isOwner: true,
-    icon: svgAvatar("#cba6f7", "#89b4fa", "OH"),
-    banner: svgBanner("#1e1e2e", "#cba6f7"),
-    lastChannelId: "general",
-    roles: DEMO_ROLES,
-    categories: [
-      { id: "cat-text", name: "Comunidad", position: 0 },
-      { id: "cat-voice", name: "Canales de Voz & Música", position: 1 },
-    ],
-    channels: [
-      { id: "general", name: "general", type: "text", categoryId: "cat-text", topic: "Bienvenido a la demo interactiva de Onicord — 100% P2P" },
-      { id: "desarrollo", name: "desarrollo", type: "text", categoryId: "cat-text", topic: "Cifrado Noise XX, WebRTC 60 FPS y plugins .onipkg" },
-      { id: "musica-clips", name: "música-y-clips", type: "text", categoryId: "cat-text", topic: "Comparte temas para el Jukebox sincronizado" },
-      { id: "lounge-p2p", name: "Lounge P2P", type: "voice", categoryId: "cat-voice" },
-      { id: "gaming-60fps", name: "Gaming 60FPS", type: "voice", categoryId: "cat-voice" },
-    ],
-    savedMembers: Object.values(DEMO_USERS),
-  },
-  {
-    id: "srv-indie",
-    name: "Indie Dev Lab",
-    roomCode: "INDIELAB",
-    isOwner: false,
-    icon: svgAvatar("#a6e3a1", "#74c7ec", "ID"),
-    banner: svgBanner("#181825", "#a6e3a1"),
-    lastChannelId: "showcase",
-    roles: DEMO_ROLES,
-    categories: [
-      { id: "cat-indie-1", name: "Proyectos", position: 0 },
-      { id: "cat-indie-2", name: "Salas", position: 1 },
-    ],
-    channels: [
-      { id: "showcase", name: "showcase", type: "text", categoryId: "cat-indie-1", topic: "Muestra tus avances y prototipos" },
-      { id: "recursos", name: "recursos", type: "text", categoryId: "cat-indie-1", topic: "Shaders, UI kits y herramientas open-source" },
-      { id: "coworking", name: "Coworking", type: "voice", categoryId: "cat-indie-2" },
-    ],
-    savedMembers: [DEMO_USERS.me, DEMO_USERS.kairo, DEMO_USERS.luna],
-  },
-  {
-    id: "srv-chill",
-    name: "Chill & Lo-Fi",
-    roomCode: "CHILLFM1",
-    isOwner: false,
-    icon: svgAvatar("#f5c2e7", "#fab387", "CF"),
-    banner: svgBanner("#1e1e2e", "#f5c2e7"),
-    lastChannelId: "playlists",
-    roles: DEMO_ROLES,
-    categories: [{ id: "cat-chill-1", name: "Música", position: 0 }],
-    channels: [
-      { id: "playlists", name: "playlists", type: "text", categoryId: "cat-chill-1", topic: "Playlists colaborativas para programar" },
-      { id: "radio-247", name: "Radio 24/7", type: "voice", categoryId: "cat-chill-1" },
-    ],
-    savedMembers: [DEMO_USERS.me, DEMO_USERS.luna, DEMO_USERS.vex, DEMO_USERS.nova],
-  },
-];
+  const users = {
+    me: {
+      id: "demo-me",
+      userId: "demo-me",
+      peerId: "demo-me",
+      nickname: "Criss",
+      status: "online",
+      online: true,
+      customStatus: c.meStatus,
+      bio: c.meBio,
+      avatar: svgAvatar("#cba6f7", "#89b4fa", "CR"),
+      bannerColor: "#cba6f7",
+      banner: svgBanner("#313244", "#cba6f7"),
+      roleId: "role-founder",
+      roles: ["role-founder", "role-dev"],
+    },
+    luna: {
+      id: "demo-luna",
+      userId: "demo-luna",
+      peerId: "demo-luna",
+      nickname: "Luna",
+      status: "online",
+      online: true,
+      customStatus: c.lunaStatus,
+      bio: c.lunaBio,
+      avatar: svgAvatar("#f5c2e7", "#cba6f7", "LU"),
+      banner: svgBanner("#45475a", "#f5c2e7"),
+      roleId: "role-dev",
+      roles: ["role-dev"],
+      activity: { name: "Onicord Jukebox", type: "listening" },
+    },
+    kairo: {
+      id: "demo-kairo",
+      userId: "demo-kairo",
+      peerId: "demo-kairo",
+      nickname: "Kairo",
+      status: "online",
+      online: true,
+      customStatus: c.kairoStatus,
+      bio: c.kairoBio,
+      avatar: svgAvatar("#89b4fa", "#74c7ec", "KA"),
+      banner: svgBanner("#1e1e2e", "#89b4fa"),
+      roleId: "role-dev",
+      roles: ["role-dev"],
+      activity: { name: "Hollow Knight: Silksong", type: "playing" },
+    },
+    vex: {
+      id: "demo-vex",
+      userId: "demo-vex",
+      peerId: "demo-vex",
+      nickname: "Vex",
+      status: "dnd",
+      online: true,
+      customStatus: c.vexStatus,
+      bio: c.vexBio,
+      avatar: svgAvatar("#a6e3a1", "#94e2d5", "VX"),
+      banner: svgBanner("#1e1e2e", "#a6e3a1"),
+      roleId: "role-supporter",
+      roles: ["role-supporter"],
+    },
+    nova: {
+      id: "demo-nova",
+      userId: "demo-nova",
+      peerId: "demo-nova",
+      nickname: "Nova",
+      status: "idle",
+      online: true,
+      customStatus: c.novaStatus,
+      bio: c.novaBio,
+      avatar: svgAvatar("#fab387", "#f9e2af", "NV"),
+      banner: svgBanner("#313244", "#fab387"),
+      roleId: "role-supporter",
+      roles: ["role-supporter"],
+    },
+  };
 
-const now = Date.now();
-const min = 60 * 1000;
+  const roles = [
+    { id: "role-founder", name: "Founder", color: "#cba6f7", hoist: true, position: 3, permissions: ["administrator"] },
+    { id: "role-dev", name: "Core Dev", color: "#89b4fa", hoist: true, position: 2, permissions: ["manage_channels", "send_messages"] },
+    { id: "role-supporter", name: "Supporter", color: "#a6e3a1", hoist: true, position: 1, permissions: ["send_messages"] },
+  ];
 
-const INITIAL_MESSAGES = {
-  "ONICORD1:general": [
+  const servers = [
     {
-      id: "msg-1",
-      channelId: "general",
-      userId: DEMO_USERS.luna.id,
-      nickname: DEMO_USERS.luna.nickname,
-      avatar: DEMO_USERS.luna.avatar,
-      timestamp: now - 18 * min,
-      text: "¡Bienvenidos a **Onicord**! Todo lo que ves aquí corre de forma descentralizada sobre **Hyperswarm DHT** y **WebRTC**, sin servidores centrales ni cuentas. 🚀",
-      reactions: { "🚀": [DEMO_USERS.me.id, DEMO_USERS.kairo.id], "💜": [DEMO_USERS.vex.id, DEMO_USERS.nova.id] },
+      id: "srv-onicord",
+      name: "Onicord HQ",
+      roomCode: "ONICORD1",
+      isOwner: true,
+      icon: svgAvatar("#cba6f7", "#89b4fa", "OH"),
+      banner: svgBanner("#1e1e2e", "#cba6f7"),
+      lastChannelId: "general",
+      roles,
+      categories: [
+        { id: "cat-text", name: c.catCommunity, position: 0 },
+        { id: "cat-voice", name: c.catVoice, position: 1 },
+      ],
+      channels: [
+        { id: "general", name: "general", type: "text", categoryId: "cat-text", topic: c.chGeneralTopic },
+        { id: "desarrollo", name: c.chDevName, type: "text", categoryId: "cat-text", topic: c.chDevTopic },
+        { id: "musica-clips", name: c.chMusicName, type: "text", categoryId: "cat-text", topic: c.chMusicTopic },
+        { id: "lounge-p2p", name: "Lounge P2P", type: "voice", categoryId: "cat-voice" },
+        { id: "gaming-60fps", name: "Gaming 60FPS", type: "voice", categoryId: "cat-voice" },
+      ],
+      savedMembers: Object.values(users),
     },
     {
-      id: "msg-2",
-      channelId: "general",
-      userId: DEMO_USERS.kairo.id,
-      nickname: DEMO_USERS.kairo.nickname,
-      avatar: DEMO_USERS.kairo.avatar,
-      timestamp: now - 12 * min,
-      text: "Acabo de activar el **Jukebox sincronizado** en `Lounge P2P` y compartir pantalla a **60 FPS** con eco cancelado. ¿Se escucha limpio?",
-      replyTo: {
+      id: "srv-indie",
+      name: "Indie Dev Lab",
+      roomCode: "INDIELAB",
+      isOwner: false,
+      icon: svgAvatar("#a6e3a1", "#74c7ec", "ID"),
+      banner: svgBanner("#181825", "#a6e3a1"),
+      lastChannelId: "showcase",
+      roles,
+      categories: [
+        { id: "cat-indie-1", name: c.catProjects, position: 0 },
+        { id: "cat-indie-2", name: c.catRooms, position: 1 },
+      ],
+      channels: [
+        { id: "showcase", name: "showcase", type: "text", categoryId: "cat-indie-1", topic: c.chShowcaseTopic },
+        { id: "recursos", name: c.chResourcesName, type: "text", categoryId: "cat-indie-1", topic: c.chResourcesTopic },
+        { id: "coworking", name: "Coworking", type: "voice", categoryId: "cat-indie-2" },
+      ],
+      savedMembers: [users.me, users.kairo, users.luna],
+    },
+    {
+      id: "srv-chill",
+      name: "Chill & Lo-Fi",
+      roomCode: "CHILLFM1",
+      isOwner: false,
+      icon: svgAvatar("#f5c2e7", "#fab387", "CF"),
+      banner: svgBanner("#1e1e2e", "#f5c2e7"),
+      lastChannelId: "playlists",
+      roles,
+      categories: [{ id: "cat-chill-1", name: c.catMusic, position: 0 }],
+      channels: [
+        { id: "playlists", name: "playlists", type: "text", categoryId: "cat-chill-1", topic: c.chPlaylistsTopic },
+        { id: "radio-247", name: "Radio 24/7", type: "voice", categoryId: "cat-chill-1" },
+      ],
+      savedMembers: [users.me, users.luna, users.vex, users.nova],
+    },
+  ];
+
+  const now = Date.now();
+  const min = 60 * 1000;
+
+  const initialMessages = {
+    "ONICORD1:general": [
+      {
         id: "msg-1",
-        nickname: DEMO_USERS.luna.nickname,
-        text: "¡Bienvenidos a Onicord! Todo lo que ves aquí corre de forma descentralizada...",
+        channelId: "general",
+        userId: users.luna.id,
+        nickname: users.luna.nickname,
+        avatar: users.luna.avatar,
+        timestamp: now - 18 * min,
+        text: c.msg1,
+        reactions: { "🚀": [users.me.id, users.kairo.id], "💜": [users.vex.id, users.nova.id] },
       },
-      reactions: { "🔥": [DEMO_USERS.me.id, DEMO_USERS.luna.id] },
-    },
-    {
-      id: "msg-3",
-      channelId: "general",
-      userId: DEMO_USERS.vex.id,
-      nickname: DEMO_USERS.vex.nickname,
-      avatar: DEMO_USERS.vex.avatar,
-      timestamp: now - 7 * min,
-      text: "Cristalino 👌 Además probé cambiar el tema adaptable a modo claro y los plugins `.onipkg` se sincronizaron al instante.",
-      reactions: { "✨": [DEMO_USERS.luna.id] },
-    },
-    {
-      id: "msg-4",
-      channelId: "general",
-      userId: DEMO_USERS.me.id,
-      nickname: DEMO_USERS.me.nickname,
-      avatar: DEMO_USERS.me.avatar,
-      timestamp: now - 3 * min,
-      text: "¡Escribe un mensaje abajo, haz clic en los perfiles de la derecha o cambia de canal para explorar la interfaz!",
-      reactions: { "👀": [DEMO_USERS.luna.id, DEMO_USERS.kairo.id, DEMO_USERS.vex.id] },
-    },
-  ],
-  "ONICORD1:desarrollo": [
-    {
-      id: "msg-dev-1",
-      channelId: "desarrollo",
-      userId: DEMO_USERS.kairo.id,
-      nickname: DEMO_USERS.kairo.nickname,
-      avatar: DEMO_USERS.kairo.avatar,
-      timestamp: now - 25 * min,
-      text: "Cada sala separa su secreto de enrutamiento DHT de las claves de cifrado por época (`[E2EE2:eN]:` con HKDF-SHA256 + AES-256-GCM).\n```js\nconst roomKey = hkdfSha256(epochSecret, 'onicord-e2ee2');\n```",
-      reactions: { "🔐": [DEMO_USERS.me.id, DEMO_USERS.luna.id] },
-    },
-  ],
-  "ONICORD1:musica-clips": [
-    {
-      id: "msg-mus-1",
-      channelId: "musica-clips",
-      userId: DEMO_USERS.luna.id,
-      nickname: DEMO_USERS.luna.nickname,
-      avatar: DEMO_USERS.luna.avatar,
-      timestamp: now - 9 * min,
-      text: "Sonando ahora en el canal de voz **Lounge P2P**: *Midnight City (P2P Synthwave Mix)* 🎶",
-      reactions: { "🎧": [DEMO_USERS.me.id, DEMO_USERS.vex.id] },
-    },
-  ],
-  "INDIELAB:showcase": [
-    {
-      id: "msg-ind-1",
-      channelId: "showcase",
-      userId: DEMO_USERS.kairo.id,
-      nickname: DEMO_USERS.kairo.nickname,
-      avatar: DEMO_USERS.kairo.avatar,
-      timestamp: now - 15 * min,
-      text: "Subí un nuevo widget interactivo en `.onipkg` con sincronización P2P en tiempo real.",
-    },
-  ],
-  "CHILLFM1:playlists": [
-    {
-      id: "msg-ch-1",
-      channelId: "playlists",
-      userId: DEMO_USERS.luna.id,
-      nickname: DEMO_USERS.luna.nickname,
-      avatar: DEMO_USERS.luna.avatar,
-      timestamp: now - 20 * min,
-      text: "Lo-Fi & Synthwave 24/7 para sesiones largas de código 🌙☕",
-    },
-  ],
-};
+      {
+        id: "msg-2",
+        channelId: "general",
+        userId: users.kairo.id,
+        nickname: users.kairo.nickname,
+        avatar: users.kairo.avatar,
+        timestamp: now - 12 * min,
+        text: c.msg2,
+        replyTo: { id: "msg-1", nickname: users.luna.nickname, text: c.msg2Reply },
+        reactions: { "🔥": [users.me.id, users.luna.id] },
+      },
+      {
+        id: "msg-3",
+        channelId: "general",
+        userId: users.vex.id,
+        nickname: users.vex.nickname,
+        avatar: users.vex.avatar,
+        timestamp: now - 7 * min,
+        text: c.msg3,
+        reactions: { "✨": [users.luna.id] },
+      },
+      {
+        id: "msg-4",
+        channelId: "general",
+        userId: users.me.id,
+        nickname: users.me.nickname,
+        avatar: users.me.avatar,
+        timestamp: now - 3 * min,
+        text: c.msg4,
+        reactions: { "👀": [users.luna.id, users.kairo.id, users.vex.id] },
+      },
+    ],
+    "ONICORD1:desarrollo": [
+      {
+        id: "msg-dev-1",
+        channelId: "desarrollo",
+        userId: users.kairo.id,
+        nickname: users.kairo.nickname,
+        avatar: users.kairo.avatar,
+        timestamp: now - 25 * min,
+        text: c.msgDev,
+        reactions: { "🔐": [users.me.id, users.luna.id] },
+      },
+    ],
+    "ONICORD1:musica-clips": [
+      {
+        id: "msg-mus-1",
+        channelId: "musica-clips",
+        userId: users.luna.id,
+        nickname: users.luna.nickname,
+        avatar: users.luna.avatar,
+        timestamp: now - 9 * min,
+        text: c.msgMusic,
+        reactions: { "🎧": [users.me.id, users.vex.id] },
+      },
+    ],
+    "INDIELAB:showcase": [
+      {
+        id: "msg-ind-1",
+        channelId: "showcase",
+        userId: users.kairo.id,
+        nickname: users.kairo.nickname,
+        avatar: users.kairo.avatar,
+        timestamp: now - 15 * min,
+        text: c.msgIndie,
+      },
+    ],
+    "CHILLFM1:playlists": [
+      {
+        id: "msg-ch-1",
+        channelId: "playlists",
+        userId: users.luna.id,
+        nickname: users.luna.nickname,
+        avatar: users.luna.avatar,
+        timestamp: now - 20 * min,
+        text: c.msgChill,
+      },
+    ],
+  };
 
-const DEMO_EMOJIS = [
-  { id: "emo-onicord", shortcode: "onicord", name: "onicord", ext: "svg", url: svgAvatar("#cba6f7", "#89b4fa", "O"), packName: "Onicord Demo" },
-  { id: "emo-p2p", shortcode: "p2p_mesh", name: "p2p_mesh", ext: "svg", url: svgAvatar("#a6e3a1", "#94e2d5", "P2P"), packName: "Onicord Demo" },
-  { id: "emo-60fps", shortcode: "60fps", name: "60fps", ext: "svg", url: svgAvatar("#fab387", "#f38ba8", "60"), packName: "Onicord Demo" },
-];
+  return { c, users, servers, initialMessages };
+}
 
 const DEMO_STICKERS = [
   { id: "stk-1", name: "Hype!", packName: "Onicord Pack", url: svgSticker("#313244", "🚀", "HYPE") },
@@ -275,8 +397,14 @@ export function initDemoBridge() {
   if (typeof window === "undefined" || window.electronAPI) return;
   window.__ONICORD_DEMO__ = true;
 
-  let myProfile = { ...DEMO_USERS.me };
-  const messagesStore = new Map(Object.entries(INITIAL_MESSAGES));
+  const lang = resolveDemoLanguage();
+  try {
+    localStorage.setItem("onicord_language", lang);
+  } catch (_) {}
+
+  const { c, users, servers, initialMessages } = buildDemoData(lang);
+  let myProfile = { ...users.me };
+  const messagesStore = new Map(Object.entries(initialMessages));
   const listeners = new Map();
   const musicStateListeners = new Set();
   const chatListeners = new Set();
@@ -301,14 +429,14 @@ export function initDemoBridge() {
       myProfile = { ...myProfile, ...next };
       return myProfile;
     },
-    listServers: async () => DEMO_SERVERS,
-    getLastServer: async () => DEMO_SERVERS[0].id,
+    listServers: async () => servers,
+    getLastServer: async () => servers[0].id,
     setLastServer: async () => true,
     enterServer: async (serverId) => {
-      return DEMO_SERVERS.find((s) => s.id === serverId || s.roomCode === serverId) || DEMO_SERVERS[0];
+      return servers.find((s) => s.id === serverId || s.roomCode === serverId) || servers[0];
     },
     getRoomState: async (roomCode) => {
-      const srv = DEMO_SERVERS.find((s) => s.roomCode === roomCode) || DEMO_SERVERS[0];
+      const srv = servers.find((s) => s.roomCode === roomCode) || servers[0];
       return {
         roomCode: srv.roomCode,
         peers: srv.savedMembers,
@@ -337,18 +465,17 @@ export function initDemoBridge() {
       messagesStore.set(key, arr);
       chatListeners.forEach((cb) => { try { cb(msg); } catch {} });
 
-      // Simular respuesta amigable en modo demo si es un mensaje normal
       if (typeof msg.text === "string" && !msg.text.startsWith("[")) {
         setTimeout(() => {
           const reply = {
             id: `demo-reply-${Date.now()}`,
             channelId,
             roomCode,
-            userId: DEMO_USERS.luna.id,
-            nickname: DEMO_USERS.luna.nickname,
-            avatar: DEMO_USERS.luna.avatar,
+            userId: users.luna.id,
+            nickname: users.luna.nickname,
+            avatar: users.luna.avatar,
             timestamp: Date.now(),
-            text: "¡Mensaje recibido en la demo interactiva! ✨",
+            text: c.autoReply,
             replyTo: { id: msg.id, nickname: myProfile.nickname, text: msg.text.slice(0, 80) },
           };
           arr.push(reply);
@@ -357,7 +484,7 @@ export function initDemoBridge() {
       }
       return msg;
     },
-    listLocalEmojis: async () => DEMO_EMOJIS,
+    listLocalEmojis: async () => [],
     listLocalStickers: async () => DEMO_STICKERS,
     getStickerPath: async (id) => {
       const found = DEMO_STICKERS.find((s) => s.id === id);
@@ -381,7 +508,7 @@ export function initDemoBridge() {
             repeatMode: 1,
             currentTime: 64,
             updatedAt: Date.now(),
-            djUserId: DEMO_USERS.luna.id,
+            djUserId: users.luna.id,
           });
         } catch {}
       }, 250);
@@ -392,7 +519,7 @@ export function initDemoBridge() {
       listeners.get(event).add(cb);
       if (event === "peer:updated") {
         setTimeout(() => {
-          DEMO_SERVERS[0].savedMembers.forEach((m) => emit("peer:updated", m));
+          servers[0].savedMembers.forEach((m) => emit("peer:updated", m));
         }, 150);
       }
       return () => listeners.get(event)?.delete(cb);
