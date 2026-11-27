@@ -519,6 +519,14 @@ function startRpcServer() {
 }
 
 function stopRpcServer() {
+  if (activeClientSocket) {
+    const sock = activeClientSocket;
+    activeClientSocket = null;
+    try {
+      sock.destroy();
+    } catch {}
+    clearRpcActivity();
+  }
   for (const item of activeServers) {
     try {
       item.server.close();
@@ -528,7 +536,6 @@ function stopRpcServer() {
     } catch {}
   }
   activeServers = [];
-  activeClientSocket = null;
 }
 
 module.exports = { startRpcServer, stopRpcServer };

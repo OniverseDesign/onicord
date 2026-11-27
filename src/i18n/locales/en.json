@@ -251,7 +251,43 @@
     "subtitle": "Welcome to your Onicord control panel.",
     "customize": "Customize widgets",
     "welcomeUser": "Welcome, {{nickname}}!",
-    "personalDashboard": "Here is your customized dashboard."
+    "personalDashboard": "Here is your customized dashboard.",
+    "v2": {
+      "customize": "Customize",
+      "customizeHint": "Drag to swap, resize any edge, or change colors",
+      "addWidget": "Add widget",
+      "undo": "Undo (Ctrl+Z)",
+      "redo": "Redo (Ctrl+Y)",
+      "reset": "Reset",
+      "resetTitle": "Reset to default layout",
+      "done": "Done",
+      "galleryTitle": "Widget Gallery",
+      "galleryDesc": "Enable or disable modules. The grid rearranges automatically without breaking your layout.",
+      "add": "+ Add",
+      "remove": "Remove",
+      "surface": "Surface",
+      "changeStyle": "Change style",
+      "hideWidget": "Hide widget",
+      "presets": {
+        "balanced": "Balanced",
+        "balancedDesc": "Everything visible in 12×6 without scroll",
+        "monitoring": "Monitoring & Studio",
+        "monitoringDesc": "Hardware and weather front and center",
+        "minimal": "Minimalist",
+        "minimalDesc": "Only essentials in wide layouts"
+      },
+      "widgetDesc": {
+        "hora": "Adaptive Swiss, LED Matrix, and Analog clock",
+        "weather": "Current temperature, min/max, and hourly forecast",
+        "hardware": "CPU, RAM, Network, and Ping with rings and bars",
+        "music-player": "Shared player, queue, and play history",
+        "gaming_stats": "Live rich presence and accumulated playtime",
+        "conexion": "P2P orbital radar and peer latency",
+        "ares": "Sent and received file split and index",
+        "sketchpad": "Collaborative live drawing canvas",
+        "plugin": "Addon widget"
+      }
+    }
   },
   "widgets": {
     "connection": {
@@ -265,11 +301,14 @@
       "swarm": "Swarm:",
       "searchingPeers": "Searching peers in DHT...",
       "peersCount": "{{count}} peers",
-      "offline": "OFFLINE"
+      "offline": "OFFLINE",
+      "idleShort": "IDLE"
     },
     "hardware": {
       "title": "Performance",
       "live": "Live",
+      "all": "ALL",
+      "netShort": "NET",
       "cpuApp": "CPU App",
       "memoryOS": "Memory OS",
       "network": "Network",
@@ -278,6 +317,11 @@
     },
     "weather": {
       "title": "Local Weather",
+      "nowPrefix": "Now",
+      "inCity": "in",
+      "feelsLikeShort": "FL {{temp}}°",
+      "humidityShort": "HUM",
+      "searchCity": "Search city",
       "codes": {
         "0": "Clear",
         "1": "Mostly clear",
@@ -303,29 +347,38 @@
     },
     "clock": {
       "title": "Local Time",
-      "badge": "Clock"
+      "badge": "Clock",
+      "switchStyle": "Switch clock style",
+      "dayProgress": "Day progress · {{pct}}%"
     },
     "music": {
       "title": "Music Player",
       "badge": "Music",
       "pasteUrlHint": "Paste a URL in chat",
+      "pasteOrHistoryHint": "Paste a URL or pick from history",
       "playlist": "Playlist",
       "history": "History",
       "queueEmpty": "Queue empty",
       "noHistory": "No history yet",
       "removeFromQueue": "Remove from queue",
       "addToQueue": "Add to queue",
-      "repeatMode": "Repeat mode"
+      "repeatMode": "Repeat mode",
+      "statusPlaying": "PLAY",
+      "statusPaused": "PAUSED",
+      "statusIdle": "IDLE"
     },
     "gaming": {
       "title": "Activity",
       "totalTime": "Total time",
       "empty": "No activity logged yet",
       "emptyHint": "Launch any registered game or application to automatically log your time.",
-      "live": "LIVE"
+      "live": "LIVE",
+      "appsCount": "{{count}} apps",
+      "totalShort": "Total"
     },
     "files": {
       "title": "Files",
+      "all": "ALL",
       "sent": "Sent",
       "noTransfers": "No transfers",
       "received": "Received",
@@ -361,7 +414,10 @@
       "resetView": "Reset",
       "solo": "SOLO / OFFLINE",
       "brushTool": "Brush",
-      "eraserTool": "Eraser"
+      "eraserTool": "Eraser",
+      "panTool": "Pan canvas",
+      "colorPicker": "Color",
+      "tools": "Tools"
     }
   },
   "userPopout": {

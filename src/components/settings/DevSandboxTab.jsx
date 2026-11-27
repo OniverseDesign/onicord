@@ -5,6 +5,7 @@ import FlameBadge from "../ui/FlameBadge";
 import MaterialIcon from "../icons/MaterialIcon";
 import Select from "../ui/Select";
 import { updateAppBadge } from "../../lib/badgeIconGenerator";
+import { resetV2All } from "../../lib/bento-v2/layoutStorage";
 
 export default function DevSandboxTab({ profile, onProfileChange, servers = [], activeServerId = null }) {
   const { t } = useTranslation();
@@ -20,6 +21,24 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
   const [allowLocalStreamExpand, setAllowLocalStreamExpand] = useState(
     () => localStorage.getItem("onicord_dev_allow_local_stream_expand") === "true"
   );
+  const [dashboardVersion, setDashboardVersion] = useState(
+    () => localStorage.getItem("onicord_dev_dashboard_version") || "v2"
+  );
+
+  const handleSelectDashboardVersion = (version) => {
+    setDashboardVersion(version);
+    localStorage.setItem("onicord_dev_dashboard_version", version);
+    window.dispatchEvent(
+      new CustomEvent("onicord:dev-dashboard-changed", { detail: { version } })
+    );
+    notificationManager.showToast(
+      "Developer",
+      version === "v2"
+        ? "Dashboard Bento v2 (Experimental) activado"
+        : "Dashboard Clásico (v1) activado",
+      "info"
+    );
+  };
 
   const handleSaveAllUserLogs = async () => {
     if (exportingLogs) return;
@@ -408,6 +427,66 @@ export default function DevSandboxTab({ profile, onProfileChange, servers = [], 
             <MaterialIcon name="cleaning_services" size={14} />
             <span>Limpiar (0)</span>
           </button>
+        </div>
+      </div>
+
+      {/* CARD 7: EXPERIMENTAL DASHBOARD SWITCHER (BENTO V2) */}
+      <div className="onicord-settings-card">
+        <h3 className="onicord-settings-section-title">
+          <span>Dashboard Experimental (Bento v2)</span>
+        </h3>
+        <p className="onicord-settings-row-desc -mt-2">
+          Alterna en caliente entre el Dashboard Clásico (v1) y el nuevo sistema paralelo Bento v2 sin alterar tu configuración original.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <button
+            type="button"
+            onClick={() => handleSelectDashboardVersion("v1")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95 border ${
+              dashboardVersion === "v1"
+                ? "bg-onicord-accent text-onicord-on-accent border-transparent"
+                : "bg-onicord-base hover:bg-onicord-hover text-onicord-text border-onicord-border-strong"
+            }`}
+          >
+            <MaterialIcon name="dashboard" size={15} />
+            <span>Clásico (v1)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleSelectDashboardVersion("v2")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95 border ${
+              dashboardVersion === "v2"
+                ? "bg-onicord-accent text-onicord-on-accent border-transparent"
+                : "bg-onicord-base hover:bg-onicord-hover text-onicord-text border-onicord-border-strong"
+            }`}
+          >
+            <MaterialIcon name="auto_awesome_mosaic" size={15} />
+            <span>Bento v2 (Default)</span>
+          </button>
+
+          {dashboardVersion === "v2" && (
+            <button
+              type="button"
+              onClick={() => {
+                resetV2All();
+                window.dispatchEvent(
+                  new CustomEvent("onicord:dev-dashboard-changed", { detail: { version: "v1" } })
+                );
+                setTimeout(() => {
+                  window.dispatchEvent(
+                    new CustomEvent("onicord:dev-dashboard-changed", { detail: { version: "v2" } })
+                  );
+                }, 20);
+                notificationManager.showToast("Bento v2", "Layout y estilos v2 reiniciados", "success");
+              }}
+              className="px-3 py-1.5 rounded-xl bg-onicord-danger/15 hover:bg-onicord-danger/25 text-onicord-danger border border-onicord-danger/30 text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            >
+              <MaterialIcon name="restart_alt" size={15} />
+              <span>Reiniciar layout v2</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

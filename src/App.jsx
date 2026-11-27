@@ -5,7 +5,7 @@ import HomeView from "./components/views/HomeView";
 import LoadingScreen from "./components/views/LoadingScreen";
 import ToastContainer from "./components/ui/ToastContainer";
 const InviteModal = lazy(() => import("./components/modals/InviteModal"));
-const ConfirmDialogModal = lazy(() => import("./components/modals/ConfirmDialogModal"));
+import ConfirmDialogModal from "./components/modals/ConfirmDialogModal";
 import { notificationManager } from "./lib/notificationManager";
 import { soundEngine } from "./lib/soundEngine";
 import { ACCENT_PALETTE, applyDynamicTheme } from "./lib/colors";
@@ -857,21 +857,19 @@ export default function App() {
               </Suspense>
             )}
             {activeDiagConsent && (
-              <Suspense fallback={null}>
-                <ConfirmDialogModal
-                  isOpen={Boolean(activeDiagConsent)}
-                  title={t("security.diagConsentTitle", "Solicitud de diagnóstico remoto")}
-                  message={t(
-                    "security.diagConsentMessage",
-                    "{{name}} solicita recibir tus registros locales de diagnóstico (OniDiag). Aunque los datos sensibles se sanitizan automáticamente, contienen información técnica de red y errores recientes.",
-                    { name: activeDiagConsent.nickname || "Un compañero" }
-                  )}
-                  confirmLabel={t("security.diagConsentApprove", "Compartir logs")}
-                  cancelLabel={t("security.diagConsentReject", "Rechazar")}
-                  onConfirm={() => handleRespondDiagConsent(true)}
-                  onCancel={() => handleRespondDiagConsent(false)}
-                />
-              </Suspense>
+              <ConfirmDialogModal
+                isOpen={Boolean(activeDiagConsent)}
+                title={t("security.diagConsentTitle", "Solicitud de diagnóstico remoto")}
+                message={t(
+                  "security.diagConsentMessage",
+                  "{{name}} solicita recibir tus registros locales de diagnóstico (OniDiag). Aunque los datos sensibles se sanitizan automáticamente, contienen información técnica de red y errores recientes.",
+                  { name: activeDiagConsent.nickname || "Un compañero" }
+                )}
+                confirmLabel={t("security.diagConsentApprove", "Compartir logs")}
+                cancelLabel={t("security.diagConsentReject", "Rechazar")}
+                onConfirm={() => handleRespondDiagConsent(true)}
+                onCancel={() => handleRespondDiagConsent(false)}
+              />
             )}
           </WatchPartyProvider>
         </MusicProvider>

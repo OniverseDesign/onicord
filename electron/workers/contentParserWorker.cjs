@@ -4,20 +4,27 @@ function decodeHtmlEntities(str) {
   if (!str || typeof str !== "string") return "";
   return str
     .replace(/&amp;/g, "&")
-    .replace(/&#x26;/g, "&")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
-    .replace(/&#x27;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&nbsp;/g, " ")
-    .replace(/&#8216;/g, "‘")
-    .replace(/&#8217;/g, "’")
-    .replace(/&#8220;/g, "“")
-    .replace(/&#8221;/g, "”")
-    .replace(/&#8211;/g, "–")
-    .replace(/&#8212;/g, "—")
+    .replace(/&#x([0-9a-f]+);/gi, (full, hex) => {
+      try {
+        const cp = parseInt(hex, 16);
+        return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : full;
+      } catch {
+        return full;
+      }
+    })
+    .replace(/&#(\d+);/g, (full, dec) => {
+      try {
+        const cp = parseInt(dec, 10);
+        return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : full;
+      } catch {
+        return full;
+      }
+    })
     .trim();
 }
 

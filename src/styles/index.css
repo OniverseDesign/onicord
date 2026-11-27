@@ -36,6 +36,7 @@
 @import "./components/stickers.css";
 @import "./components/settings.css";
 @import "./components/widgets.css";
+@import "./components/dashboard-v2.css";
 
 /* 🚀 TAILWIND DIRECTIVES (Must succeed imports in standard CSS files) */
 @tailwind base;

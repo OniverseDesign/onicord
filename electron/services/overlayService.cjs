@@ -186,6 +186,11 @@ function applySettings(settings) {
 }
 
 function evaluateVisibility() {
+  if (global.isHeadlessMode) {
+    destroyOverlay();
+    return;
+  }
+
   const shouldBeVisible =
     isTestMode ||
     (isGameActive &&
@@ -270,6 +275,11 @@ function triggerTestOverlay(durationMs = 10000) {
 }
 
 function destroyOverlay() {
+  if (testModeTimer) {
+    clearTimeout(testModeTimer);
+    testModeTimer = null;
+  }
+  isTestMode = false;
   if (overlayWindow && !overlayWindow.isDestroyed()) {
     overlayWindow.destroy();
     overlayWindow = null;

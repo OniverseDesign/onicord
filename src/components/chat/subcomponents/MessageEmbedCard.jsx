@@ -61,6 +61,7 @@ export default function MessageEmbedCard({ url }) {
   const [ogData, setOgData] = useState(() => cachedData || null);
   const [loading, setLoading] = useState(() => !cachedData);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [ogEnabled, setOgEnabled] = useState(() => {
     try {
       const raw = localStorage.getItem("onicord_general_settings");
@@ -87,6 +88,9 @@ export default function MessageEmbedCard({ url }) {
   }, []);
 
   useEffect(() => {
+    setImgError(false);
+    setIsPlaying(false);
+
     if (!ogEnabled) {
       setLoading(false);
       return;
@@ -105,7 +109,9 @@ export default function MessageEmbedCard({ url }) {
         .fetchOpenGraph(url)
         .then((data) => {
           if (data && isMounted) {
-            clientOgCache.set(url, data);
+            if (data.success !== false) {
+              clientOgCache.set(url, data);
+            }
             setOgData(data);
             // Signal ChatPanel to re-anchor scroll if user was at the bottom
             window.dispatchEvent(new CustomEvent("onicord:embed-loaded"));
@@ -247,14 +253,57 @@ export default function MessageEmbedCard({ url }) {
     );
   }
 
+  const isTikTok = Boolean(
+    ttId || ogData.mediaType === "tiktok" || ogData.siteName === "TikTok",
+  );
+
+  const isSocialPhotoCard =
+    (ogData.siteName === "Instagram" || ogData.siteName === "Facebook") &&
+    ogData.mediaType === "image" &&
+    Boolean(ogData.image) &&
+    !imgError;
+
+  if (isSocialPhotoCard) {
+    return (
+      <div
+        onClick={handleOpenExternal}
+        className="flex flex-col max-w-[420px] mt-2 rounded-onicord-inner bg-onicord-mantle border border-onicord-island hover:border-onicord-accent/40 p-3.5 gap-1.5 text-left cursor-pointer transition-all duration-normal group/card select-none"
+      >
+        <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted truncate">
+          {ogData.siteName}
+        </span>
+
+        <span className="text-sm font-bold text-onicord-text group-hover/card:underline line-clamp-2 leading-snug">
+          {ogData.title || url}
+        </span>
+
+        {ogData.description && (
+          <p className="text-xs text-onicord-subtext line-clamp-2 leading-relaxed -mt-0.5">
+            {ogData.description}
+          </p>
+        )}
+
+        <div className="w-full relative bg-onicord-scrim overflow-hidden rounded-xl border border-onicord-border flex items-center justify-center max-h-[420px] mt-1">
+          <img
+            src={ogData.image}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="w-full max-h-[420px] object-contain group-hover/card:scale-[1.02] transition-transform duration-relaxed rounded-xl"
+            onError={() => setImgError(true)}
+          />
+        </div>
+      </div>
+    );
+  }
+
   const isGifOrTenor = ogData.mediaType === "gif" || ogData.siteName === "Tenor" || ogData.siteName === "GIPHY";
 
   const isVideoContent =
     isYouTube ||
+    isTikTok ||
     ogData.mediaType === "video" ||
     isGifOrTenor ||
     Boolean(ogData.video) ||
-    Boolean(ttId) ||
     Boolean(igInfo) ||
     (typeof url === "string" &&
       (url.includes("tiktok.com") ||
@@ -272,18 +321,32 @@ export default function MessageEmbedCard({ url }) {
   // Multimedia preview (Video or GIF)
   if (isVideoContent) {
     const ytThumb = ogData.image || (ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : null);
+    const previewThumb = isYouTube ? ytThumb : ogData.image;
+    const playableEmbedUrl = isYouTube
+      ? (embedUrl ? `${embedUrl}?autoplay=1&rel=0` : null)
+      : isTikTok
+        ? (ogData.embedUrl ||
+          (ttId
+            ? `https://www.tiktok.com/player/v1/${ttId}?embed_from=oembed&music_info=1&description=1&autoplay=1`
+            : null))
+        : null;
+    const supportsInlinePlayer = Boolean(playableEmbedUrl && (isYouTube || isTikTok));
+    const hasMediaPreview =
+      supportsInlinePlayer ||
+      Boolean(ogData.video) ||
+      (Boolean(previewThumb) && !imgError);
 
     return (
       <div
-        onClick={!isYouTube ? handleOpenExternal : undefined}
+        onClick={!supportsInlinePlayer ? handleOpenExternal : undefined}
         className={`flex flex-col mt-2 p-3.5 ${
           isVertical ? "max-w-[230px]" : "max-w-[500px]"
         } rounded-onicord-inner bg-onicord-mantle border border-onicord-island gap-1.5 text-left select-none ${
-          !isYouTube ? "cursor-pointer hover:border-onicord-accent/40 transition-colors" : ""
+          !supportsInlinePlayer ? "cursor-pointer hover:border-onicord-accent/40 transition-colors" : ""
         }`}
       >
         <span className="text-2xs font-bold uppercase tracking-wider text-onicord-muted truncate">
-          {ogData.siteName || (ytId ? "YouTube" : ttId ? "TikTok" : igInfo ? "Instagram" : isGifOrTenor ? "GIF" : "Video")}
+          {ogData.siteName || (ytId ? "YouTube" : isTikTok ? "TikTok" : igInfo ? "Instagram" : isGifOrTenor ? "GIF" : "Video")}
         </span>
 
         <span
@@ -302,96 +365,112 @@ export default function MessageEmbedCard({ url }) {
           </p>
         )}
 
-        <div
-          className={`w-full relative bg-onicord-scrim ${
-            isVertical ? "aspect-[9/16]" : isGifOrTenor && !ogData.video ? "aspect-auto max-h-[360px]" : "aspect-video"
-          } overflow-hidden rounded-xl mt-1 border border-onicord-border flex items-center justify-center`}
-        >
-          {isYouTube ? (
-            isPlaying ? (
-              <iframe
-                src={`${embedUrl}?autoplay=1&rel=0`}
-                className="w-full h-full border-0 rounded-xl"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-                title={ogData.title || "YouTube Video Player"}
-              />
-            ) : (
-              <div
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsPlaying(true);
-                }}
-                className="w-full h-full relative cursor-pointer group/yt overflow-hidden flex items-center justify-center bg-onicord-scrim"
-              >
-                {ytThumb && (
-                  <img
-                    src={ytThumb}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover/yt:scale-105 transition-transform duration-relaxed"
-                  />
-                )}
-                <div className="absolute inset-0 bg-onicord-scrim-soft flex items-center justify-center group-hover/yt:bg-onicord-scrim-soft transition-colors">
-                  <div className="w-12 h-12 rounded-full bg-red-600/90 text-onicord-on-scrim flex items-center justify-center group-hover/yt:scale-110 transition-transform">
-                    <MaterialIcon name="play_arrow" size={28} />
+        {hasMediaPreview && (
+          <div
+            className={`w-full relative bg-onicord-scrim ${
+              isVertical
+                ? "aspect-[9/16]"
+                : ogData.aspectRatio === "1:1"
+                  ? "aspect-square"
+                  : isGifOrTenor && !ogData.video
+                    ? "aspect-auto max-h-[360px]"
+                    : "aspect-video"
+            } overflow-hidden rounded-xl mt-1 border border-onicord-border flex items-center justify-center`}
+          >
+            {supportsInlinePlayer ? (
+              isPlaying ? (
+                <iframe
+                  src={playableEmbedUrl}
+                  className="w-full h-full border-0 rounded-xl"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  title={ogData.title || (isYouTube ? "YouTube Video Player" : "TikTok Video Player")}
+                />
+              ) : (
+                <div
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsPlaying(true);
+                  }}
+                  className="w-full h-full relative cursor-pointer group/yt overflow-hidden flex items-center justify-center bg-onicord-scrim"
+                >
+                  {previewThumb && !imgError && (
+                    <img
+                      src={previewThumb}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      onError={() => setImgError(true)}
+                      className="w-full h-full object-cover group-hover/yt:scale-105 transition-transform duration-relaxed"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-onicord-scrim-soft flex items-center justify-center group-hover/yt:bg-onicord-scrim-soft transition-colors">
+                    <div
+                      className={`w-12 h-12 rounded-full ${
+                        isYouTube
+                          ? "bg-red-600/90 text-onicord-on-scrim"
+                          : "bg-onicord-scrim-heavy text-onicord-on-scrim border border-onicord-on-scrim/15"
+                      } flex items-center justify-center group-hover/yt:scale-110 transition-transform shadow-lg`}
+                    >
+                      <MaterialIcon name="play_arrow" size={28} />
+                    </div>
                   </div>
+                  {isYouTube && Boolean(inVoice) && (
+                    <button
+                      type="button"
+                      title={t("chat.watchPartyRoom", "Ver en Watch Party con la sala")}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.dispatchEvent(
+                          new CustomEvent("onicord:start-watch-party", {
+                            detail: { url, title: ogData.title },
+                          }),
+                        );
+                      }}
+                      className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-onicord-scrim-heavy hover:bg-onicord-accent text-onicord-on-scrim hover:text-onicord-on-accent text-xs font-semibold tracking-wide backdrop-blur-onicord-popover shadow-lg border border-onicord-on-scrim/10 opacity-0 group-hover/yt:opacity-100 transition-all duration-normal"
+                    >
+                      <MaterialIcon name="smart_display" size={14} />
+                      <span>Watch Party</span>
+                    </button>
+                  )}
                 </div>
-                {Boolean(inVoice) && (
-                  <button
-                    type="button"
-                    title={t("chat.watchPartyRoom", "Ver en Watch Party con la sala")}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      window.dispatchEvent(
-                        new CustomEvent("onicord:start-watch-party", {
-                          detail: { url, title: ogData.title },
-                        }),
-                      );
-                    }}
-                    className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-onicord-scrim-heavy hover:bg-onicord-accent text-onicord-on-scrim hover:text-onicord-on-accent text-xs font-semibold tracking-wide backdrop-blur-onicord-popover shadow-lg border border-onicord-on-scrim/10 opacity-0 group-hover/yt:opacity-100 transition-all duration-normal"
-                  >
-                    <MaterialIcon name="smart_display" size={14} />
-                    <span>Watch Party</span>
-                  </button>
+              )
+            ) : ogData.video ? (
+              <video
+                src={ogData.video}
+                poster={ogData.image}
+                autoPlay={isGifOrTenor}
+                loop={isGifOrTenor}
+                muted={isGifOrTenor}
+                playsInline
+                controls={!isGifOrTenor}
+                className="w-full h-full object-contain rounded-xl"
+              />
+            ) : previewThumb && !imgError ? (
+              <div
+                onClick={handleOpenExternal}
+                className="w-full h-full relative cursor-pointer group/ext overflow-hidden flex items-center justify-center bg-onicord-scrim"
+              >
+                <img
+                  src={previewThumb}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  onError={() => setImgError(true)}
+                  className="w-full h-full object-contain group-hover/ext:scale-105 transition-transform duration-relaxed rounded-xl"
+                />
+                {!isGifOrTenor && (
+                  <div className="absolute inset-0 bg-onicord-scrim-soft opacity-0 group-hover/ext:opacity-100 flex items-center justify-center transition-opacity">
+                    <div className="w-10 h-10 rounded-full bg-onicord-scrim text-onicord-on-scrim flex items-center justify-center group-hover/ext:scale-110 transition-transform">
+                      <MaterialIcon name="open_in_new" size={22} />
+                    </div>
+                  </div>
                 )}
               </div>
-            )
-          ) : ogData.video ? (
-            <video
-              src={ogData.video}
-              poster={ogData.image}
-              autoPlay={isGifOrTenor}
-              loop={isGifOrTenor}
-              muted={isGifOrTenor}
-              playsInline
-              controls={!isGifOrTenor}
-              className="w-full h-full object-contain rounded-xl"
-            />
-          ) : ogData.image ? (
-            <div
-              onClick={handleOpenExternal}
-              className="w-full h-full relative cursor-pointer group/ext overflow-hidden flex items-center justify-center bg-onicord-scrim"
-            >
-              <img
-                src={ogData.image}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-contain group-hover/ext:scale-105 transition-transform duration-relaxed rounded-xl"
-              />
-              {!isGifOrTenor && (
-                <div className="absolute inset-0 bg-onicord-scrim-soft opacity-0 group-hover/ext:opacity-100 flex items-center justify-center transition-opacity">
-                  <div className="w-10 h-10 rounded-full bg-onicord-scrim text-onicord-on-scrim flex items-center justify-center group-hover/ext:scale-110 transition-transform">
-                    <MaterialIcon name="open_in_new" size={22} />
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
+        )}
       </div>
     );
   }
@@ -417,16 +496,14 @@ export default function MessageEmbedCard({ url }) {
       </div>
 
       {/* Fixed lateral thumbnail (150px) */}
-      {ogData.image && (
+      {ogData.image && !imgError && (
         <div className="w-[150px] min-h-[100px] shrink-0 bg-onicord-mantle/30 flex overflow-hidden rounded-onicord-button">
           <img
             src={ogData.image}
             alt=""
             referrerPolicy="no-referrer"
             className="h-full w-full object-cover animate-fade-in"
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
+            onError={() => setImgError(true)}
           />
         </div>
       )}

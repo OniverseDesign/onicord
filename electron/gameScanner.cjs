@@ -105,8 +105,19 @@ function detectBestGame(runningSet) {
   return bestGame;
 }
 
+function getTargetWindow(mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) return mainWindow;
+  if (globalMainWindow && !globalMainWindow.isDestroyed()) return globalMainWindow;
+  if (global.mainWindow && !global.mainWindow.isDestroyed()) return global.mainWindow;
+  return null;
+}
+
+function setMainWindow(mainWindow) {
+  globalMainWindow = mainWindow || null;
+}
+
 function broadcast(mainWindow) {
-  const targetWin = mainWindow || globalMainWindow;
+  const targetWin = getTargetWindow(mainWindow);
   if (targetWin && !targetWin.isDestroyed()) {
     targetWin.webContents.send("game-activity-changed", currentState);
   }
@@ -202,7 +213,7 @@ function checkStreamerProcesses(runningProcesses, mainWindow) {
     lastStreamerDetected = streamerFound;
     lastStreamerApp = streamerAppName;
     console.log(`[Streamer Mode] Estado detectado: ${streamerFound ? `ACTIVO (${streamerAppName})` : "INACTIVO"}`);
-    const targetWin = mainWindow || globalMainWindow;
+    const targetWin = getTargetWindow(mainWindow);
     if (targetWin && !targetWin.isDestroyed()) {
       targetWin.webContents.send("streamer-mode-detected", {
         active: streamerFound,
@@ -295,8 +306,8 @@ function setCustomGames(list) {
   customGamesList = Array.isArray(list) ? list : [];
   rebuildGamesMap();
   // If scanner is running and there's no active RPC, trigger an immediate scan
-  if (scannerStarted && globalMainWindow && !rpcActivity) {
-    runScan(globalMainWindow, currentSessionId);
+  if (scannerStarted && !rpcActivity) {
+    runScan(getTargetWindow(), currentSessionId);
   }
 }
 
@@ -331,8 +342,8 @@ function clearRpcActivity() {
   broadcast(globalMainWindow);
 
   // Cleanly resume process scanner loop
-  if (scannerStarted && globalMainWindow) {
-    runScan(globalMainWindow, currentSessionId);
+  if (scannerStarted) {
+    runScan(getTargetWindow(), currentSessionId);
   }
 }
 
@@ -350,7 +361,7 @@ function startGameScanner(mainWindow, onStateChange) {
 
   async function loop() {
     if (!scannerStarted) return;
-    await runScan(mainWindow, sessionId);
+    await runScan(getTargetWindow(globalMainWindow), sessionId);
 
     if (scannerStarted && sessionId === currentSessionId) {
       const interval = isBackgroundMode ? 30000 : SCAN_INTERVAL;
@@ -382,6 +393,7 @@ module.exports = {
   getStreamerStatus,
   setBackgroundMode,
   setCustomGames,
+  setMainWindow,
   setRpcActivity,
   clearRpcActivity,
   getActiveProcesses,

@@ -46,6 +46,33 @@ export default function AppSettingsModal({
   const initialLanguageRef = useRef(i18n.language || "es");
   const initialZoomRef = useRef(profile?.general?.zoomLevel ?? 100);
   const isSavedRef = useRef(false);
+  const [isLegacyDashboardV1, setIsLegacyDashboardV1] = useState(() => {
+    if (!import.meta.env.DEV) return false;
+    try {
+      return localStorage.getItem("onicord_dev_dashboard_version") === "v1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const handleSwitch = (e) => {
+      const next = e?.detail?.version || localStorage.getItem("onicord_dev_dashboard_version") || "v2";
+      setIsLegacyDashboardV1(next === "v1");
+    };
+    const handleStorage = (e) => {
+      if (e.key === "onicord_dev_dashboard_version") {
+        setIsLegacyDashboardV1((e.newValue || "v2") === "v1");
+      }
+    };
+    window.addEventListener("onicord:dev-dashboard-changed", handleSwitch);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("onicord:dev-dashboard-changed", handleSwitch);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
 
   const sections = useMemo(() => {
     const list = [
@@ -153,17 +180,21 @@ export default function AppSettingsModal({
           { id: "themePreview", label: t("settings.theme.preview", "Previsualización interactiva en vivo"), keywords: ["preview", "vista previa", "mockup", "chat"] },
         ],
       },
-      {
-        id: "widgets",
-        label: t("settings.tabs.widgets", "Dashboard"),
-        icon: "dashboard",
-        keywords: ["dashboard", "widgets", "inicio", "panel", "cuadricula"],
-        features: [
-          { id: "widgetLayout", label: t("settings.widgets.layout", "Organización de la cuadrícula del Dashboard"), keywords: ["grid", "cuadricula", "dashboard", "widgets", "inicio"] },
-          { id: "musicWidget", label: t("settings.widgets.music", "Widget de Música P2P"), keywords: ["musica", "reproductor", "cancion", "yt-dlp", "dj"] },
-          { id: "sketchpadWidget", label: t("settings.widgets.sketchpad", "Widget de Pizarra / Sketchpad"), keywords: ["dibujo", "pizarra", "sketchpad", "notas", "lienzo"] },
-        ],
-      },
+      ...(isLegacyDashboardV1
+        ? [
+            {
+              id: "widgets",
+              label: t("settings.tabs.widgets", "Dashboard"),
+              icon: "dashboard",
+              keywords: ["dashboard", "widgets", "inicio", "panel", "cuadricula"],
+              features: [
+                { id: "widgetLayout", label: t("settings.widgets.layout", "Organización de la cuadrícula del Dashboard"), keywords: ["grid", "cuadricula", "dashboard", "widgets", "inicio"] },
+                { id: "musicWidget", label: t("settings.widgets.music", "Widget de Música P2P"), keywords: ["musica", "reproductor", "cancion", "yt-dlp", "dj"] },
+                { id: "sketchpadWidget", label: t("settings.widgets.sketchpad", "Widget de Pizarra / Sketchpad"), keywords: ["dibujo", "pizarra", "sketchpad", "notas", "lienzo"] },
+              ],
+            },
+          ]
+        : []),
       {
         id: "stickers",
         label: t("settings.tabs.stickersAndEmojis", "Stickers y Emojis"),
@@ -221,9 +252,11 @@ export default function AppSettingsModal({
       });
     }
     return list;
-  }, [t]);
+  }, [t, isLegacyDashboardV1]);
 
-  const [section, setSection] = useState(initialSection || "general");
+  const [section, setSection] = useState(() =>
+    initialSection === "widgets" && !isLegacyDashboardV1 ? "general" : initialSection || "general"
+  );
   const [expressionsSubTab, setExpressionsSubTab] = useState("stickers");
 
   const handleSectionChange = (nextSection, featureId = null) => {
@@ -237,9 +270,15 @@ export default function AppSettingsModal({
 
   useEffect(() => {
     if (initialSection) {
-      setSection(initialSection);
+      setSection(initialSection === "widgets" && !isLegacyDashboardV1 ? "general" : initialSection);
     }
-  }, [initialSection]);
+  }, [initialSection, isLegacyDashboardV1]);
+
+  useEffect(() => {
+    if (!isLegacyDashboardV1 && section === "widgets") {
+      setSection("general");
+    }
+  }, [isLegacyDashboardV1, section]);
 
   const [nickname, setNickname] = useState(profile?.nickname ?? "");
   const [avatar, setAvatar] = useState(profile?.avatar ?? null);
@@ -799,7 +838,7 @@ export default function AppSettingsModal({
 
       {section === "appearance" && <ThemeManagerTab profile={profile} />}
 
-      {section === "widgets" && (
+      {isLegacyDashboardV1 && section === "widgets" && (
         <WidgetsTab
           visibilidadWidgets={visibilidadWidgets}
           handleToggleWidget={handleToggleWidget}

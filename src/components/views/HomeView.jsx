@@ -8,6 +8,7 @@ const DeleteServerModal = lazy(() => import("../modals/DeleteServerModal"));
 import ConfirmDialogModal from "../modals/ConfirmDialogModal";
 const ServerSettingsModal = lazy(() => import("../modals/ServerSettingsModal"));
 const HomeDashboard = lazy(() => import("../dashboard/HomeDashboard"));
+const HomeDashboardV2 = lazy(() => import("../dashboard-v2/HomeDashboardV2"));
 const AppSettingsModal = lazy(() => import("../modals/AppSettingsModal"));
 const DiscoverView = lazy(() => import("../discover/DiscoverView"));
 import MaterialIcon from "../icons/MaterialIcon";
@@ -43,6 +44,33 @@ export default function HomeView({
   const [appSettingsInitialServerScope, setAppSettingsInitialServerScope] = useState(null);
   const [activeChannelId, setActiveChannelId] = useState(null);
   const [evictionModal, setEvictionModal] = useState(null);
+  const [devDashboardVersion, setDevDashboardVersion] = useState(() => {
+    if (!import.meta.env.DEV) return "v2";
+    try {
+      return localStorage.getItem("onicord_dev_dashboard_version") || "v2";
+    } catch {
+      return "v2";
+    }
+  });
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const handleSwitch = (e) => {
+      const next = e?.detail?.version || localStorage.getItem("onicord_dev_dashboard_version") || "v2";
+      setDevDashboardVersion(next);
+    };
+    const handleStorage = (e) => {
+      if (e.key === "onicord_dev_dashboard_version") {
+        setDevDashboardVersion(e.newValue || "v2");
+      }
+    };
+    window.addEventListener("onicord:dev-dashboard-changed", handleSwitch);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("onicord:dev-dashboard-changed", handleSwitch);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
 
   const handleOpenAppSettings = useCallback((section = "general", context = null) => {
     if (window.__ONICORD_DEMO__) return;
@@ -810,18 +838,31 @@ export default function HomeView({
           }`}
         >
           <Suspense fallback={null}>
-            <HomeDashboard
-              isActive={isHomeActive}
-              profile={profile}
-              servers={servers}
-              peers={onlinePeers}
-              currentConnectedServerId={currentConnectedServerId}
-              onAddServer={() => setShowAddModal(true)}
-              islas={islas}
-              setIslas={setIslas}
-              musicState={sharedMusicState}
-              activeGame={activeGame}
-            />
+            {!(import.meta.env.DEV && devDashboardVersion === "v1") ? (
+              <HomeDashboardV2
+                isActive={isHomeActive}
+                profile={profile}
+                servers={servers}
+                peers={onlinePeers}
+                currentConnectedServerId={currentConnectedServerId}
+                onAddServer={() => setShowAddModal(true)}
+                musicState={sharedMusicState}
+                activeGame={activeGame}
+              />
+            ) : (
+              <HomeDashboard
+                isActive={isHomeActive}
+                profile={profile}
+                servers={servers}
+                peers={onlinePeers}
+                currentConnectedServerId={currentConnectedServerId}
+                onAddServer={() => setShowAddModal(true)}
+                islas={islas}
+                setIslas={setIslas}
+                musicState={sharedMusicState}
+                activeGame={activeGame}
+              />
+            )}
           </Suspense>
         </div>
 

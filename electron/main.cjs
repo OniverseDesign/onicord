@@ -10,7 +10,6 @@ const {
   Tray,
   Menu,
   Notification,
-  globalShortcut,
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -35,10 +34,12 @@ protocol.registerSchemesAsPrivileged([
   {
     scheme: "onicord-media",
     privileges: {
+      standard: true,
       secure: true,
       supportFetchAPI: true,
       corsEnabled: true,
       stream: true,
+      bypassCSP: true,
     },
   },
 ]);
@@ -96,7 +97,13 @@ try {
   }
 } catch (err) {}
 
-const { startGameScanner, stopGameScanner, setBackgroundMode, setCustomGames } = require("./gameScanner.cjs");
+const {
+  startGameScanner,
+  stopGameScanner,
+  setBackgroundMode,
+  setCustomGames,
+  setMainWindow: setGameScannerMainWindow,
+} = require("./gameScanner.cjs");
 const profileService = require("./services/profileService.cjs");
 const ytdlpService = require("./services/ytdlpService.cjs");
 const updateService = require("./services/updateService.cjs");
@@ -112,6 +119,7 @@ const { registerIPCHandlers } = require("./ipc/ipcRouter.cjs");
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
 let tray = null;
+let isMediaProtocolRegistered = false;
 global.isQuitting = false;
 global.mainWindow = null;
 global.roomManager = null;
@@ -134,6 +142,15 @@ function checkOnipkgType(cleanPath) {
   return "plugin";
 }
 
+function isMainWindowReadyForEvents() {
+  return Boolean(
+    global.mainWindow &&
+      !global.mainWindow.isDestroyed() &&
+      !global.mainWindow.webContents.isDestroyed() &&
+      !global.mainWindow.webContents.isLoading()
+  );
+}
+
 function handleOnipkgFile(filePath) {
   try {
     if (!filePath || typeof filePath !== "string") return;
@@ -142,7 +159,7 @@ function handleOnipkgFile(filePath) {
     const pkgType = checkOnipkgType(cleanPath);
     console.log(`[Package System] Archivo .onipkg detectado (${pkgType}): ${cleanPath}`);
     const channel = pkgType === "backup" ? "backup:package-dropped" : "plugins:package-dropped";
-    if (global.mainWindow && !global.mainWindow.webContents.isDestroyed()) {
+    if (isMainWindowReadyForEvents()) {
       global.mainWindow.webContents.send(channel, cleanPath);
     } else {
       global.pendingOnipkgPath = { path: cleanPath, type: pkgType };
@@ -161,7 +178,7 @@ function handleDeepLink(urlStr) {
       const secret = match[2] ? match[2].trim() : null;
       const token = secret ? `${code}#${secret}` : code;
       console.log(`[Deep Link] Código de invitación detectado: ${code}${secret ? "#***" : ""}`);
-      if (global.mainWindow && !global.mainWindow.webContents.isDestroyed()) {
+      if (isMainWindowReadyForEvents()) {
         global.mainWindow.webContents.send("onicord:deep-link", token);
       } else {
         global.pendingDeepLink = token;
@@ -178,7 +195,7 @@ function handleDeepLink(urlStr) {
       const roomSecret = directMatch[4] ? directMatch[4].trim() : null;
       const payload = { ip, port, code, roomSecret };
       console.log(`[Deep Link] Enlace de conexión directa detectado: ${ip}:${port} / ${code}${roomSecret ? "#***" : ""}`);
-      if (global.mainWindow && !global.mainWindow.webContents.isDestroyed()) {
+      if (isMainWindowReadyForEvents()) {
         global.mainWindow.webContents.send("onicord:direct-link", payload);
       } else {
         global.pendingDirectLink = payload;
@@ -191,6 +208,9 @@ function handleDeepLink(urlStr) {
 
 app.on("open-url", (event, url) => {
   event.preventDefault();
+  if (app.isReady()) {
+    restoreOrCreateWindow();
+  }
   handleDeepLink(url);
 });
 
@@ -214,20 +234,6 @@ if (!gotTheLock) {
     }
   });
 }
-
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: "onicord-media",
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      corsEnabled: true,
-      stream: true,
-      bypassCSP: true,
-    },
-  },
-]);
 
 function getAppIconPath() {
   const candidates = [
@@ -307,6 +313,10 @@ function enterHeadlessNodeMode() {
   rendererActivityState.watchPartyActive = false;
   rendererActivityState.musicPlaying = false;
   try {
+    setBackgroundMode(true);
+  } catch (_) {}
+  try {
+    overlayService.onVoiceMembersUpdated?.([]);
     overlayService.destroyOverlay?.();
   } catch (_) {}
   try {
@@ -335,10 +345,16 @@ function restoreOrCreateWindow() {
 
   if (wasHeadless) {
     try {
+      setBackgroundMode(false);
+    } catch (_) {}
+    try {
       global.roomManager?.setHeadlessMode?.(false);
     } catch (_) {}
     try {
-      if (profileService.activeProfile?.general?.showRichPresence) {
+      const showRP = profileService.activeProfile
+        ? (profileService.activeProfile.showRichPresence ?? true)
+        : true;
+      if (showRP) {
         rpcServerService.startRpcServer?.();
       }
     } catch (_) {}
@@ -355,10 +371,14 @@ function restoreOrCreateWindow() {
     return;
   }
 
-  createWindow();
+  createWindow({ forceShow: true });
   if (updateService) {
     updateService.mainWindow = global.mainWindow;
   }
+  if (globalKeybindService) {
+    globalKeybindService.mainWindow = global.mainWindow;
+  }
+  setGameScannerMainWindow(global.mainWindow);
   updateTrayMenu();
 }
 
@@ -629,231 +649,14 @@ function createTray() {
   tray.on("right-click", () => updateTrayMenu());
 }
 
-function createWindow() {
-  global.mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 700,
-    minWidth: 1200,
-    minHeight: 700,
-    frame: false,
-    show: false,
-    fullscreenable: true,
-    icon: global.currentAppIcon || getAppIconPath(),
-    webPreferences: {
-      preload: path.join(__dirname, "preload.cjs"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      backgroundThrottling: true,
-      plugins: true,
-      pdfViewerEnabled: true,
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-    },
-    backgroundColor: "#1e1e2e",
-  });
-
-  global.mainWindow.on("focus", () => {
-    rendererActivityState.isVisible = true;
-    updateRendererThrottling();
-    overlayService.setAppFocused(true);
-    globalKeybindService.setAppFocused(true);
-  });
-
-  global.mainWindow.on("blur", () => {
-    overlayService.setAppFocused(false);
-    globalKeybindService.setAppFocused(false);
-  });
-
-  global.mainWindow.on("minimize", () => {
-    rendererActivityState.isVisible = false;
-    updateRendererThrottling();
-    globalKeybindService.setAppFocused(false);
-    if (!overlayService.getHasVoiceData()) {
-      setBackgroundMode(true);
-    }
-  });
-
-  global.mainWindow.on("restore", () => {
-    rendererActivityState.isVisible = true;
-    updateRendererThrottling();
-    globalKeybindService.setAppFocused(true);
-    setBackgroundMode(false);
-  });
-
-  global.mainWindow.on("hide", () => {
-    rendererActivityState.isVisible = false;
-    updateRendererThrottling();
-    globalKeybindService.setAppFocused(false);
-    if (!overlayService.getHasVoiceData()) {
-      setBackgroundMode(true);
-    }
-  });
-
-  global.mainWindow.on("show", () => {
-    rendererActivityState.isVisible = true;
-    updateRendererThrottling();
-    globalKeybindService.setAppFocused(true);
-    setBackgroundMode(false);
-  });
-
-  global.mainWindow.on("enter-full-screen", () => {
-    global.mainWindow?.webContents?.send("window:fullscreen-change", true);
-  });
-
-  global.mainWindow.on("leave-full-screen", () => {
-    global.mainWindow?.webContents?.send("window:fullscreen-change", false);
-  });
-
-  global.mainWindow.webContents.on("enter-html-full-screen", () => {
-    diagService.log("info", "Console", "[OniDiag][MAIN] webContents enter-html-full-screen fired!");
-    try {
-      global.mainWindow?.setFullScreen(true);
-      global.mainWindow?.webContents?.send("window:fullscreen-change", true);
-    } catch (e) {
-      diagService.log("error", "Console", `[OniDiag][MAIN] Error setting fullscreen: ${e.message}`);
-    }
-  });
-
-  global.mainWindow.webContents.on("leave-html-full-screen", () => {
-    diagService.log("info", "Console", "[OniDiag][MAIN] webContents leave-html-full-screen fired!");
-    try {
-      global.mainWindow?.setFullScreen(false);
-      global.mainWindow?.webContents?.send("window:fullscreen-change", false);
-    } catch (e) {
-      diagService.log("error", "Console", `[OniDiag][MAIN] Error leaving fullscreen: ${e.message}`);
-    }
-  });
-
-  global.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("http:") || url.startsWith("https:")) {
-      shell.openExternal(url);
-    }
-    return { action: "deny" };
-  });
-
-  global.mainWindow.webContents.on("will-navigate", (event, navigationUrl) => {
-    const isDevUrl = isDev && process.env.VITE_DEV_SERVER_URL && navigationUrl.startsWith(process.env.VITE_DEV_SERVER_URL);
-    const isLocalFile = navigationUrl.startsWith("file://");
-    const isLocalhost = navigationUrl.startsWith("http://127.0.0.1:") || navigationUrl.startsWith("http://localhost:");
-
-    if (!isDevUrl && !isLocalFile && !isLocalhost) {
-      event.preventDefault();
-      diagService.log("warn", "Security", `[Security] Bloqueada navegación externa de la ventana principal a: ${navigationUrl}`);
-      if (navigationUrl.startsWith("http:") || navigationUrl.startsWith("https:")) {
-        shell.openExternal(navigationUrl);
-      }
-    }
-  });
-
-  global.mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
-    const lvl = level === 3 ? "error" : level === 2 ? "warn" : "info";
-    if (sourceId && !sourceId.includes("localhost") && !sourceId.includes("127.0.0.1") && !sourceId.startsWith("devtools:")) {
-      diagService.log(lvl, "Stage-Console", `[StageSubframe] ${message} (${sourceId}:${line})`);
-    }
-  });
-
-  global.mainWindow.webContents.on(
-    "did-frame-finish-load",
-    async (_event, isMainFrame, frameProcessId, frameRoutingId) => {
-      if (isMainFrame) return;
-      try {
-        const { webFrameMain } = require("electron");
-        const frame = webFrameMain.fromId(frameProcessId, frameRoutingId);
-        if (!frame || !frame.url) return;
-
-        const frameUrl = (frame.url || "").toLowerCase();
-        // Exclude internal plugin island and widget frames
-        if (frameUrl.startsWith("onicord-media://") || frameUrl.startsWith("about:srcdoc")) {
-          return;
-        }
-
-        const activeStageHost = global.activeStageHost;
-        if (activeStageHost && !frameUrl.includes(activeStageHost)) {
-          return;
-        }
-
-        // Agnostic master volume control injection (Web Audio API & HTMLMediaElement)
-        const volumeScript = `
-          (() => {
-            if (window._onicordAudioHooked) return;
-            window._onicordAudioHooked = true;
-
-            const audioContexts = new Set();
-            let currentVolume = 1.0;
-            let isMuted = false;
-
-            window._onicordSetStageVolume = (vol, muted) => {
-              if (typeof vol === 'number') currentVolume = vol;
-              if (typeof muted === 'boolean') isMuted = muted;
-              const effectiveGain = isMuted ? 0 : Math.max(0, Math.min(1, currentVolume));
-
-              for (const ctx of audioContexts) {
-                try {
-                  if (ctx._onicordMasterGain) {
-                    ctx._onicordMasterGain.gain.setValueAtTime(effectiveGain, ctx.currentTime);
-                  }
-                } catch (_) {}
-              }
-
-              try {
-                document.querySelectorAll('audio, video').forEach((el) => {
-                  el.volume = effectiveGain;
-                  el.muted = isMuted;
-                });
-              } catch (_) {}
-            };
-
-            const OriginalAudioContext = window.AudioContext || window.webkitAudioContext;
-            if (OriginalAudioContext) {
-              const origConnect = AudioNode.prototype.connect;
-              AudioNode.prototype.connect = function(target, outputIndex, inputIndex) {
-                if (target && this.context && target === this.context.destination) {
-                  if (!this.context._onicordMasterGain) {
-                    try {
-                      const gainNode = this.context.createGain();
-                      const effectiveGain = isMuted ? 0 : Math.max(0, Math.min(1, currentVolume));
-                      gainNode.gain.setValueAtTime(effectiveGain, this.context.currentTime);
-                      origConnect.call(gainNode, this.context.destination);
-                      this.context._onicordMasterGain = gainNode;
-                      audioContexts.add(this.context);
-                    } catch (_) {}
-                  }
-                  if (this.context._onicordMasterGain) {
-                    return origConnect.call(this, this.context._onicordMasterGain, outputIndex, inputIndex);
-                  }
-                }
-                return origConnect.apply(this, arguments);
-              };
-            }
-          })();
-        `;
-        await frame.executeJavaScript(volumeScript).catch(() => {});
-
-        // Re-apply current volume if already modified by the user
-        if (global.currentStageVolume) {
-          const volRatio = typeof global.currentStageVolume.volume === "number"
-            ? Math.max(0, Math.min(1, global.currentStageVolume.volume / 100))
-            : 1.0;
-          const muted = Boolean(global.currentStageVolume.isMuted);
-          await frame.executeJavaScript(`if (typeof window._onicordSetStageVolume === 'function') { window._onicordSetStageVolume(${volRatio}, ${muted}); }`).catch(() => {});
-        }
-
-        // Persistently inject the current user's nickname from profileService
-        const activeProfile = profileService.activeProfile;
-        const currentNick = activeProfile?.nickname || activeProfile?.username || "Oniverse";
-        await frame.executeJavaScript(`window._onicordUserNick = ${JSON.stringify(currentNick)};`).catch(() => {});
-
-        const scripts = global.currentStageScripts;
-        if (!scripts || !Array.isArray(scripts) || scripts.length === 0) return;
-
-        for (const script of scripts) {
-          if (typeof script === "string" && script.trim()) {
-            await frame.executeJavaScript(script).catch(() => {});
-          }
-        }
-      } catch (_) {}
-    }
-  );
+function registerMediaProtocol() {
+  if (
+    isMediaProtocolRegistered ||
+    session.defaultSession.protocol.isProtocolHandled("onicord-media")
+  ) {
+    isMediaProtocolRegistered = true;
+    return;
+  }
 
   session.defaultSession.protocol.handle("onicord-media", async (request) => {
     // Isolation protection: block any requests originating from unauthorized remote origins
@@ -1028,6 +831,237 @@ function createWindow() {
     }
   });
 
+  isMediaProtocolRegistered = true;
+}
+
+function createWindow(options = {}) {
+  global.mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 700,
+    minWidth: 1200,
+    minHeight: 700,
+    frame: false,
+    show: false,
+    fullscreenable: true,
+    icon: global.currentAppIcon || getAppIconPath(),
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: true,
+      plugins: true,
+      pdfViewerEnabled: true,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+    },
+    backgroundColor: "#1e1e2e",
+  });
+
+  global.mainWindow.on("focus", () => {
+    rendererActivityState.isVisible = true;
+    updateRendererThrottling();
+    overlayService.setAppFocused(true);
+    globalKeybindService.setAppFocused(true);
+  });
+
+  global.mainWindow.on("blur", () => {
+    overlayService.setAppFocused(false);
+    globalKeybindService.setAppFocused(false);
+  });
+
+  global.mainWindow.on("minimize", () => {
+    rendererActivityState.isVisible = false;
+    updateRendererThrottling();
+    globalKeybindService.setAppFocused(false);
+    if (!overlayService.getHasVoiceData()) {
+      setBackgroundMode(true);
+    }
+  });
+
+  global.mainWindow.on("restore", () => {
+    rendererActivityState.isVisible = true;
+    updateRendererThrottling();
+    globalKeybindService.setAppFocused(true);
+    setBackgroundMode(false);
+  });
+
+  global.mainWindow.on("hide", () => {
+    rendererActivityState.isVisible = false;
+    updateRendererThrottling();
+    globalKeybindService.setAppFocused(false);
+    if (!overlayService.getHasVoiceData()) {
+      setBackgroundMode(true);
+    }
+    updateTrayMenu();
+  });
+
+  global.mainWindow.on("show", () => {
+    rendererActivityState.isVisible = true;
+    updateRendererThrottling();
+    globalKeybindService.setAppFocused(true);
+    setBackgroundMode(false);
+    updateTrayMenu();
+  });
+
+  global.mainWindow.on("enter-full-screen", () => {
+    global.mainWindow?.webContents?.send("window:fullscreen-change", true);
+  });
+
+  global.mainWindow.on("leave-full-screen", () => {
+    global.mainWindow?.webContents?.send("window:fullscreen-change", false);
+  });
+
+  global.mainWindow.webContents.on("enter-html-full-screen", () => {
+    diagService.log("info", "Console", "[OniDiag][MAIN] webContents enter-html-full-screen fired!");
+    try {
+      global.mainWindow?.setFullScreen(true);
+      global.mainWindow?.webContents?.send("window:fullscreen-change", true);
+    } catch (e) {
+      diagService.log("error", "Console", `[OniDiag][MAIN] Error setting fullscreen: ${e.message}`);
+    }
+  });
+
+  global.mainWindow.webContents.on("leave-html-full-screen", () => {
+    diagService.log("info", "Console", "[OniDiag][MAIN] webContents leave-html-full-screen fired!");
+    try {
+      global.mainWindow?.setFullScreen(false);
+      global.mainWindow?.webContents?.send("window:fullscreen-change", false);
+    } catch (e) {
+      diagService.log("error", "Console", `[OniDiag][MAIN] Error leaving fullscreen: ${e.message}`);
+    }
+  });
+
+  global.mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith("http:") || url.startsWith("https:")) {
+      shell.openExternal(url);
+    }
+    return { action: "deny" };
+  });
+
+  global.mainWindow.webContents.on("will-navigate", (event, navigationUrl) => {
+    const isDevUrl = isDev && process.env.VITE_DEV_SERVER_URL && navigationUrl.startsWith(process.env.VITE_DEV_SERVER_URL);
+    const isLocalFile = navigationUrl.startsWith("file://");
+    const isLocalhost = navigationUrl.startsWith("http://127.0.0.1:") || navigationUrl.startsWith("http://localhost:");
+
+    if (!isDevUrl && !isLocalFile && !isLocalhost) {
+      event.preventDefault();
+      diagService.log("warn", "Security", `[Security] Bloqueada navegación externa de la ventana principal a: ${navigationUrl}`);
+      if (navigationUrl.startsWith("http:") || navigationUrl.startsWith("https:")) {
+        shell.openExternal(navigationUrl);
+      }
+    }
+  });
+
+  global.mainWindow.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+    const lvl = level === 3 ? "error" : level === 2 ? "warn" : "info";
+    if (sourceId && !sourceId.includes("localhost") && !sourceId.includes("127.0.0.1") && !sourceId.startsWith("devtools:")) {
+      diagService.log(lvl, "Stage-Console", `[StageSubframe] ${message} (${sourceId}:${line})`);
+    }
+  });
+
+  global.mainWindow.webContents.on(
+    "did-frame-finish-load",
+    async (_event, isMainFrame, frameProcessId, frameRoutingId) => {
+      if (isMainFrame) return;
+      try {
+        const { webFrameMain } = require("electron");
+        const frame = webFrameMain.fromId(frameProcessId, frameRoutingId);
+        if (!frame || !frame.url) return;
+
+        const frameUrl = (frame.url || "").toLowerCase();
+        // Exclude internal plugin island and widget frames
+        if (frameUrl.startsWith("onicord-media://") || frameUrl.startsWith("about:srcdoc")) {
+          return;
+        }
+
+        const activeStageHost = global.activeStageHost;
+        if (activeStageHost && !frameUrl.includes(activeStageHost)) {
+          return;
+        }
+
+        // Agnostic master volume control injection (Web Audio API & HTMLMediaElement)
+        const volumeScript = `
+          (() => {
+            if (window._onicordAudioHooked) return;
+            window._onicordAudioHooked = true;
+
+            const audioContexts = new Set();
+            let currentVolume = 1.0;
+            let isMuted = false;
+
+            window._onicordSetStageVolume = (vol, muted) => {
+              if (typeof vol === 'number') currentVolume = vol;
+              if (typeof muted === 'boolean') isMuted = muted;
+              const effectiveGain = isMuted ? 0 : Math.max(0, Math.min(1, currentVolume));
+
+              for (const ctx of audioContexts) {
+                try {
+                  if (ctx._onicordMasterGain) {
+                    ctx._onicordMasterGain.gain.setValueAtTime(effectiveGain, ctx.currentTime);
+                  }
+                } catch (_) {}
+              }
+
+              try {
+                document.querySelectorAll('audio, video').forEach((el) => {
+                  el.volume = effectiveGain;
+                  el.muted = isMuted;
+                });
+              } catch (_) {}
+            };
+
+            const OriginalAudioContext = window.AudioContext || window.webkitAudioContext;
+            if (OriginalAudioContext) {
+              const origConnect = AudioNode.prototype.connect;
+              AudioNode.prototype.connect = function(target, outputIndex, inputIndex) {
+                if (target && this.context && target === this.context.destination) {
+                  if (!this.context._onicordMasterGain) {
+                    try {
+                      const gainNode = this.context.createGain();
+                      const effectiveGain = isMuted ? 0 : Math.max(0, Math.min(1, currentVolume));
+                      gainNode.gain.setValueAtTime(effectiveGain, this.context.currentTime);
+                      origConnect.call(gainNode, this.context.destination);
+                      this.context._onicordMasterGain = gainNode;
+                      audioContexts.add(this.context);
+                    } catch (_) {}
+                  }
+                  if (this.context._onicordMasterGain) {
+                    return origConnect.call(this, this.context._onicordMasterGain, outputIndex, inputIndex);
+                  }
+                }
+                return origConnect.apply(this, arguments);
+              };
+            }
+          })();
+        `;
+        await frame.executeJavaScript(volumeScript).catch(() => {});
+
+        // Re-apply current volume if already modified by the user
+        if (global.currentStageVolume) {
+          const volRatio = typeof global.currentStageVolume.volume === "number"
+            ? Math.max(0, Math.min(1, global.currentStageVolume.volume / 100))
+            : 1.0;
+          const muted = Boolean(global.currentStageVolume.isMuted);
+          await frame.executeJavaScript(`if (typeof window._onicordSetStageVolume === 'function') { window._onicordSetStageVolume(${volRatio}, ${muted}); }`).catch(() => {});
+        }
+
+        // Persistently inject the current user's nickname from profileService
+        const activeProfile = profileService.activeProfile;
+        const currentNick = activeProfile?.nickname || activeProfile?.username || "Oniverse";
+        await frame.executeJavaScript(`window._onicordUserNick = ${JSON.stringify(currentNick)};`).catch(() => {});
+
+        const scripts = global.currentStageScripts;
+        if (!scripts || !Array.isArray(scripts) || scripts.length === 0) return;
+
+        for (const script of scripts) {
+          if (typeof script === "string" && script.trim()) {
+            await frame.executeJavaScript(script).catch(() => {});
+          }
+        }
+      } catch (_) {}
+    }
+  );
+
   global.mainWindow.webContents.on("did-finish-load", () => {
     if (global.pendingDeepLink) {
       global.mainWindow.webContents.send(
@@ -1076,7 +1110,7 @@ function createWindow() {
     const isHidden = process.argv.includes("--hidden");
     const startMinimized =
       profileService.activeProfile?.general?.startMinimized;
-    if (isHidden || (startMinimized && process.argv.includes("--hidden"))) {
+    if (!options.forceShow && (isHidden || (startMinimized && isHidden))) {
       rendererActivityState.isVisible = false;
       updateRendererThrottling();
       console.log("[Onicord Core] Invocación en segundo plano (minimizado).");
@@ -1111,14 +1145,6 @@ function createWindow() {
       // Allow BrowserWindow to close and destroy the Chromium renderer process
       // while window-all-closed keeps the Node.js Main Process running.
     }
-  });
-
-  global.mainWindow.on("show", () => {
-    updateTrayMenu();
-  });
-
-  global.mainWindow.on("hide", () => {
-    updateTrayMenu();
   });
 
   global.mainWindow.on("closed", () => {
@@ -1266,31 +1292,35 @@ app.whenReady().then(async () => {
         "*://*.fbcdn.net/*",
         "*://*.tiktokcdn.com/*",
         "*://*.muscdn.com/*",
-      ],
-    },
-    (details, callback) => {
-      delete details.requestHeaders["Referer"];
-      delete details.requestHeaders["referer"];
-      delete details.requestHeaders["Origin"];
-      delete details.requestHeaders["origin"];
-      callback({ requestHeaders: details.requestHeaders });
-    }
-  );
-
-  session.defaultSession.webRequest.onBeforeSendHeaders(
-    {
-      urls: [
         "*://*.youtube.com/*",
         "*://*.youtube-nocookie.com/*",
       ],
     },
     (details, callback) => {
-      const ref =
-        details.requestHeaders["Referer"] ||
-        details.requestHeaders["referer"] ||
-        "";
-      if (!ref || ref.startsWith("file:") || ref.startsWith("chrome-extension:")) {
-        details.requestHeaders["Referer"] = "https://github.com/OniverseDesign/onicord";
+      let host = "";
+      try {
+        host = new URL(details.url).hostname.toLowerCase();
+      } catch (_) {}
+
+      const isYouTube =
+        host === "youtube.com" ||
+        host.endsWith(".youtube.com") ||
+        host === "youtube-nocookie.com" ||
+        host.endsWith(".youtube-nocookie.com");
+
+      if (isYouTube) {
+        const ref =
+          details.requestHeaders["Referer"] ||
+          details.requestHeaders["referer"] ||
+          "";
+        if (!ref || ref.startsWith("file:") || ref.startsWith("chrome-extension:")) {
+          details.requestHeaders["Referer"] = "https://github.com/OniverseDesign/onicord";
+        }
+      } else {
+        delete details.requestHeaders["Referer"];
+        delete details.requestHeaders["referer"];
+        delete details.requestHeaders["Origin"];
+        delete details.requestHeaders["origin"];
       }
       callback({ requestHeaders: details.requestHeaders });
     }
@@ -1373,6 +1403,7 @@ app.whenReady().then(async () => {
     callback({ responseHeaders });
   });
 
+  registerMediaProtocol();
   createWindow();
 
   // Defer non-critical background network services so Chromium renderer thread gets priority
@@ -1438,7 +1469,13 @@ app.whenReady().then(async () => {
       if (global.roomManager) {
         global.roomManager.setLocalActivity(emptyState);
       }
-      global.mainWindow?.webContents.send("game-activity-changed", emptyState);
+      if (
+        global.mainWindow &&
+        !global.mainWindow.isDestroyed() &&
+        !global.mainWindow.webContents.isDestroyed()
+      ) {
+        global.mainWindow.webContents.send("game-activity-changed", emptyState);
+      }
       overlayService.setGameActive(false);
     }
   };

@@ -251,7 +251,43 @@
     "subtitle": "Bem-vindo ao seu painel de controle do Onicord.",
     "customize": "Personalizar widgets",
     "welcomeUser": "Boas-vindas, {{nickname}}!",
-    "personalDashboard": "Apresentamos o seu painel personalizado."
+    "personalDashboard": "Apresentamos o seu painel personalizado.",
+    "v2": {
+      "customize": "Personalizar",
+      "customizeHint": "Arraste para trocar, redimensione qualquer borda ou mude as cores",
+      "addWidget": "Adicionar widget",
+      "undo": "Desfazer (Ctrl+Z)",
+      "redo": "Refazer (Ctrl+Y)",
+      "reset": "Redefinir",
+      "resetTitle": "Redefinir para o layout padrão",
+      "done": "Concluir",
+      "galleryTitle": "Galeria de Widgets",
+      "galleryDesc": "Ative ou desative módulos. A grade se reorganiza automaticamente sem quebrar seu layout.",
+      "add": "+ Adicionar",
+      "remove": "Remover",
+      "surface": "Superfície",
+      "changeStyle": "Alterar estilo",
+      "hideWidget": "Ocultar widget",
+      "presets": {
+        "balanced": "Equilibrado",
+        "balancedDesc": "Tudo visível em 12×6 sem rolagem",
+        "monitoring": "Monitoramento & Studio",
+        "monitoringDesc": "Hardware e clima em destaque",
+        "minimal": "Minimalista",
+        "minimalDesc": "Apenas o essencial em formatos amplos"
+      },
+      "widgetDesc": {
+        "hora": "Relógio adaptável Swiss, LED Matrix e Analógico",
+        "weather": "Temperatura atual, mín/máx e previsão horária",
+        "hardware": "CPU, RAM, Rede e Ping com anéis e barras",
+        "music-player": "Reprodutor compartilhado, fila e histórico",
+        "gaming_stats": "Presença ao vivo e tempo acumulado",
+        "conexion": "Radar orbital P2P e latência dos pares",
+        "ares": "Divisão de enviados/recebidos e índice de arquivos",
+        "sketchpad": "Quadro colaborativo de desenho ao vivo",
+        "plugin": "Widget de complemento"
+      }
+    }
   },
   "widgets": {
     "connection": {
@@ -265,11 +301,14 @@
       "swarm": "Enxame:",
       "searchingPeers": "Buscando terminais na DHT...",
       "peersCount": "{{count}} participantes",
-      "offline": "DESCONECTADO"
+      "offline": "DESCONECTADO",
+      "idleShort": "INATIVO"
     },
     "hardware": {
       "title": "Desempenho",
       "live": "Ao vivo",
+      "all": "TUDO",
+      "netShort": "REDE",
       "cpuApp": "CPU App",
       "memoryOS": "Memória SO",
       "network": "Rede",
@@ -299,33 +338,47 @@
         "95": "Tempestade elétrica",
         "nodata": "Sem dados"
       },
-      "title": "Clima Local"
+      "title": "Clima Local",
+      "nowPrefix": "Agora",
+      "inCity": "em",
+      "feelsLikeShort": "ST {{temp}}°",
+      "humidityShort": "UMI",
+      "searchCity": "Buscar cidade"
     },
     "clock": {
       "title": "Hora Local",
-      "badge": "Relógio"
+      "badge": "Relógio",
+      "switchStyle": "Alterar estilo do relógio",
+      "dayProgress": "Progresso do dia · {{pct}}%"
     },
     "music": {
       "title": "Reprodutor",
       "badge": "Música",
       "pasteUrlHint": "Cole uma URL no chat",
+      "pasteOrHistoryHint": "Cole uma URL ou escolha do histórico",
       "playlist": "Fila",
       "history": "Histórico",
       "queueEmpty": "Fila vazia",
       "noHistory": "Nenhum histórico",
       "removeFromQueue": "Remover da fila",
       "addToQueue": "Adicionar à fila",
-      "repeatMode": "Modo de repetição"
+      "repeatMode": "Modo de repetição",
+      "statusPlaying": "PLAY",
+      "statusPaused": "PAUSA",
+      "statusIdle": "INATIVO"
     },
     "gaming": {
       "title": "Atividade",
       "totalTime": "Tempo acumulado",
       "empty": "Nenhuma atividade registrada ainda",
       "emptyHint": "Inicie qualquer jogo ou aplicativo registrado para registrar seu tempo automaticamente.",
-      "live": "AO VIVO"
+      "live": "AO VIVO",
+      "appsCount": "{{count}} apps",
+      "totalShort": "Total"
     },
     "files": {
       "title": "Arquivos",
+      "all": "TODOS",
       "sent": "Enviados",
       "noTransfers": "Nenhum envio",
       "received": "Recebidos",
@@ -361,7 +414,10 @@
       "resetView": "Redefinir",
       "solo": "SOLO / SEM CONEXÃO",
       "brushTool": "Pincel",
-      "eraserTool": "Borracha"
+      "eraserTool": "Borracha",
+      "panTool": "Mover tela",
+      "colorPicker": "Cor",
+      "tools": "Ferramentas"
     }
   },
   "userPopout": {

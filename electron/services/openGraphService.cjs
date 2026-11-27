@@ -143,21 +143,71 @@ class OpenGraphService {
     if (!str || typeof str !== "string") return "";
     return str
       .replace(/&amp;/g, "&")
-      .replace(/&#x26;/g, "&")
       .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
       .replace(/&apos;/g, "'")
-      .replace(/&#x27;/g, "'")
       .replace(/&lt;/g, "<")
       .replace(/&gt;/g, ">")
       .replace(/&nbsp;/g, " ")
-      .replace(/&#8216;/g, "‘")
-      .replace(/&#8217;/g, "’")
-      .replace(/&#8220;/g, "“")
-      .replace(/&#8221;/g, "”")
-      .replace(/&#8211;/g, "–")
-      .replace(/&#8212;/g, "—")
+      .replace(/&#x([0-9a-f]+);/gi, (full, hex) => {
+        try {
+          const cp = parseInt(hex, 16);
+          return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : full;
+        } catch {
+          return full;
+        }
+      })
+      .replace(/&#(\d+);/g, (full, dec) => {
+        try {
+          const cp = parseInt(dec, 10);
+          return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : full;
+        } catch {
+          return full;
+        }
+      })
       .trim();
+  }
+
+  async inlineImageAsDataUrl(imageUrl, customHeaders = {}) {
+    if (!imageUrl || typeof imageUrl !== "string" || imageUrl.startsWith("data:")) {
+      return imageUrl;
+    }
+    try {
+      const parsed = new URL(imageUrl);
+      if (
+        (parsed.protocol !== "https:" && parsed.protocol !== "http:") ||
+        this.isPrivateOrBlockedHost(parsed.hostname)
+      ) {
+        return imageUrl;
+      }
+    } catch {
+      return imageUrl;
+    }
+
+    try {
+      const imgController = new AbortController();
+      const imgTimer = setTimeout(() => imgController.abort(), 3500);
+      const imgResp = await fetch(imageUrl, {
+        signal: imgController.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)",
+          ...customHeaders,
+        },
+      }).finally(() => clearTimeout(imgTimer));
+
+      if (!imgResp.ok) return imageUrl;
+      const mime = (imgResp.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+      if (!mime.startsWith("image/")) return imageUrl;
+
+      const buffer = await imgResp.arrayBuffer();
+      if (!buffer || buffer.byteLength === 0 || buffer.byteLength > 3 * 1024 * 1024) {
+        return imageUrl;
+      }
+      const base64 = Buffer.from(buffer).toString("base64");
+      return `data:${mime};base64,${base64}`;
+    } catch (err) {
+      console.warn("⚠️ Error converting OpenGraph image to base64:", err.message);
+      return imageUrl;
+    }
   }
 
   async fetchHtmlWithLimit(url, timeoutMs = 3500, maxBytes = 512 * 1024, customHeaders = {}, stopAtHead = true) {
@@ -196,6 +246,8 @@ class OpenGraphService {
         return { ok: false, status: response.status };
       }
 
+      const finalUrl = response.url || url;
+
       if (response.body && typeof response.body.getReader === "function") {
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8", { fatal: false });
@@ -214,11 +266,11 @@ class OpenGraphService {
             }
           }
         }
-        return { ok: true, html };
+        return { ok: true, html, finalUrl };
       }
 
       const fullText = await response.text();
-      return { ok: true, html: fullText.slice(0, maxBytes) };
+      return { ok: true, html: fullText.slice(0, maxBytes), finalUrl };
     } finally {
       clearTimeout(timer);
     }
@@ -339,7 +391,25 @@ class OpenGraphService {
             cached.data.title === "YouTube" ||
             !cached.data.image ||
             cached.data.description === "Haz clic para abrir este enlace completo...");
-        if (!isBrokenCachedPin && !isBrokenCachedMl && !isBrokenCachedYt) {
+        const isBrokenCachedIg =
+          hostname.includes("instagram.com") &&
+          (!cachedImg || cached.data.title === "Instagram");
+        const isBrokenCachedTt =
+          hostname.includes("tiktok.com") &&
+          (!cachedImg || cached.data.title === "TikTok Video");
+        const isBrokenCachedFb =
+          (hostname.includes("facebook.com") ||
+            hostname.includes("fb.watch") ||
+            hostname.includes("fb.com")) &&
+          (!cachedImg || cached.data.success === false);
+        if (
+          !isBrokenCachedPin &&
+          !isBrokenCachedMl &&
+          !isBrokenCachedYt &&
+          !isBrokenCachedIg &&
+          !isBrokenCachedTt &&
+          !isBrokenCachedFb
+        ) {
           return cached.data;
         }
       }
@@ -526,30 +596,110 @@ class OpenGraphService {
         }
       }
 
-      // === TikTok oEmbed ===
+      // === TikTok (Page OpenGraph via Bot UA + oEmbed Player) ===
       const isTikTok = hostname.includes("tiktok.com");
       if (isTikTok) {
         try {
-          const ttId = this.extractTikTokId(targetUrl);
-          const ttController = new AbortController();
-          const ttTimer = setTimeout(() => ttController.abort(), 3500);
-          const oembedResp = await fetch(
-            `https://www.tiktok.com/oembed?url=${encodeURIComponent(targetUrl)}`,
-            { signal: ttController.signal }
-          ).finally(() => clearTimeout(ttTimer));
+          const DISCORD_BOT_UA = "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)";
+          const pageResult = await this.fetchHtmlWithLimit(targetUrl, 4500, 512 * 1024, {
+            "User-Agent": DISCORD_BOT_UA,
+          });
 
-          if (oembedResp.ok) {
-            const oembedData = await oembedResp.json();
-            const embedUrl = ttId ? `https://www.tiktok.com/embed/v2/${ttId}` : null;
+          let ttTitle = null;
+          let ttDesc = null;
+          let ttImage = null;
+          let ttId = this.extractTikTokId(targetUrl) || this.extractTikTokId(pageResult?.finalUrl);
+
+          if (pageResult.ok && pageResult.html) {
+            const parsedTt = await this.parseOpenGraphMetaAsync(pageResult.html, urlObj);
+            if (parsedTt.title && parsedTt.title !== urlObj.hostname && parsedTt.title !== "TikTok") {
+              ttTitle = parsedTt.title;
+            }
+            if (
+              parsedTt.description &&
+              parsedTt.description !== "Haz clic para abrir este enlace completo..."
+            ) {
+              ttDesc = parsedTt.description;
+            }
+            if (parsedTt.image) {
+              ttImage = parsedTt.image;
+            }
+            if (!ttId) {
+              const larkIframe = parsedTt.getMeta?.("lark:url:video_iframe_url");
+              ttId =
+                this.extractTikTokId(larkIframe) ||
+                larkIframe?.match(/\/(\d+)(?:\?|$)/)?.[1] ||
+                null;
+            }
+          }
+
+          let oembedIframeSrc = null;
+          try {
+            const ttController = new AbortController();
+            const ttTimer = setTimeout(() => ttController.abort(), 3000);
+            const cleanUrlForOembed = pageResult?.finalUrl || targetUrl;
+            const oembedResp = await fetch(
+              `https://www.tiktok.com/oembed?url=${encodeURIComponent(cleanUrlForOembed)}`,
+              { signal: ttController.signal },
+            ).finally(() => clearTimeout(ttTimer));
+
+            if (oembedResp.ok) {
+              const oembedData = await oembedResp.json();
+              const srcMatch = typeof oembedData.html === "string"
+                ? oembedData.html.match(/src=["']([^"']+)["']/i)
+                : null;
+              if (srcMatch?.[1]) {
+                try {
+                  const playerUrl = new URL(this.decodeHtmlEntities(srcMatch[1]));
+                  playerUrl.searchParams.delete("muted");
+                  playerUrl.searchParams.set("autoplay", "1");
+                  oembedIframeSrc = playerUrl.toString();
+                } catch {}
+              }
+              if (!ttId && oembedData.embed_product_id) {
+                ttId = String(oembedData.embed_product_id);
+              }
+              if (!ttTitle && typeof oembedData.title === "string" && oembedData.title.trim()) {
+                ttTitle = this.decodeHtmlEntities(oembedData.title);
+              }
+              if (!ttDesc && typeof oembedData.author_name === "string" && oembedData.author_name.trim()) {
+                ttDesc = `@${this.decodeHtmlEntities(oembedData.author_name)} en TikTok`;
+              }
+              if (!ttImage && typeof oembedData.thumbnail_url === "string" && oembedData.thumbnail_url.trim()) {
+                ttImage = oembedData.thumbnail_url;
+              }
+            }
+          } catch {}
+
+          const embedUrl =
+            oembedIframeSrc ||
+            (ttId
+              ? `https://www.tiktok.com/player/v1/${ttId}?embed_from=oembed&music_info=1&description=1&autoplay=1`
+              : null);
+
+          if (!ttDesc || ttDesc === "Haz clic para abrir este enlace completo...") {
+            let handle = null;
+            try {
+              const finalObj = new URL(pageResult?.finalUrl || targetUrl);
+              handle = finalObj.pathname.match(/\/@([^/]+)/)?.[1] || null;
+            } catch {}
+            ttDesc = handle ? `@${handle} en TikTok` : "Ver en TikTok";
+          }
+
+          if (ttImage) {
+            ttImage = await this.inlineImageAsDataUrl(ttImage);
+          }
+
+          if (ttImage || embedUrl || ttTitle) {
             const payloadResult = {
-              title: this.decodeHtmlEntities(oembedData.title || oembedData.author_name || "TikTok Video"),
-              description: this.decodeHtmlEntities(oembedData.author_name ? `@${oembedData.author_name} on TikTok` : "Watch on TikTok"),
-              image: oembedData.thumbnail_url || null,
+              title: ttTitle || "Video de TikTok",
+              description: ttDesc,
+              image: ttImage || null,
               video: null,
               audio: null,
               siteName: "TikTok",
               mediaType: "tiktok",
-              embedUrl: embedUrl,
+              embedUrl,
               aspectRatio: "9:16",
               url: targetUrl,
             };
@@ -560,8 +710,8 @@ class OpenGraphService {
             this.ogCacheMap.set(targetUrl, { data: payloadResult, timestamp: Date.now() });
             return payloadResult;
           }
-        } catch {
-          console.warn("TikTok oEmbed fetch failed, falling back to direct parse");
+        } catch (ttErr) {
+          console.warn("TikTok OpenGraph fetch failed, falling back to direct parse:", ttErr.message);
         }
       }
 
@@ -752,6 +902,10 @@ class OpenGraphService {
       // === Other Platforms & General OpenGraph Scraper ===
       const isTwitter = hostname.includes("twitter.com") || hostname.includes("x.com");
       const isInstagram = hostname.includes("instagram.com");
+      const isFacebook =
+        hostname.includes("facebook.com") ||
+        hostname.includes("fb.watch") ||
+        hostname.includes("fb.com");
       const isYouTube = hostname.includes("youtube.com") || hostname.includes("youtu.be");
       const isSteam = hostname.includes("steampowered.com") || hostname.includes("steamcommunity.com");
       const isGitHub = hostname.includes("github.com");
@@ -770,10 +924,21 @@ class OpenGraphService {
       if (isSteam) {
         customHeaders["Cookie"] = "birthtime=568022401; mature_content=1; lastagecheckage=1-January-1988; wants_mature_content=1";
       }
+      if (isInstagram || isFacebook) {
+        customHeaders["User-Agent"] =
+          "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)";
+      }
 
-      let fetchResult = await this.fetchHtmlWithLimit(fetchUrl, 3500, 512 * 1024, customHeaders);
+      const requestTimeout = isInstagram || isFacebook ? 4500 : 3500;
+      let fetchResult = await this.fetchHtmlWithLimit(fetchUrl, requestTimeout, 512 * 1024, customHeaders);
       if (!fetchResult.ok && isTwitter) {
         fetchResult = await this.fetchHtmlWithLimit(targetUrl, 3500, 512 * 1024, customHeaders);
+      }
+      if ((!fetchResult.ok || !fetchResult.html) && (isInstagram || isFacebook)) {
+        fetchResult = await this.fetchHtmlWithLimit(fetchUrl, 4500, 512 * 1024, {
+          ...customHeaders,
+          "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+        });
       }
 
       const isMlBlocked =
@@ -822,8 +987,18 @@ class OpenGraphService {
         };
       }
 
+      let parsedMeta = await this.parseOpenGraphMetaAsync(fetchResult.html, urlObj);
+      if (isInstagram && parsedMeta.title === "Instagram" && !parsedMeta.image) {
+        const igRetry = await this.fetchHtmlWithLimit(fetchUrl, 4500, 512 * 1024, {
+          "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+        });
+        if (igRetry.ok && igRetry.html) {
+          parsedMeta = await this.parseOpenGraphMetaAsync(igRetry.html, urlObj);
+        }
+      }
+
       let { getMeta, title, description, image: rawParsedImage, video, audio, siteName: parsedSiteName } =
-        await this.parseOpenGraphMetaAsync(fetchResult.html, urlObj);
+        parsedMeta;
 
       let image = rawParsedImage;
 
@@ -871,36 +1046,18 @@ class OpenGraphService {
         }
       }
 
-      // Handle Instagram CDN image expiration caching
+      // Inline signed/expiring CDN images (Instagram, Facebook, TikTok) as data URLs
       if (
         image &&
         (isInstagram ||
+          isFacebook ||
+          isTikTok ||
           image.includes("cdninstagram.com") ||
-          image.includes("fbcdn.net"))
+          image.includes("fbcdn.net") ||
+          image.includes("tiktokcdn") ||
+          image.includes("muscdn.com"))
       ) {
-        try {
-          const imgController = new AbortController();
-          const imgTimer = setTimeout(() => imgController.abort(), 2500);
-          const imgResp = await fetch(image, {
-            signal: imgController.signal,
-            headers: {
-              "User-Agent":
-                "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)",
-            },
-          }).finally(() => clearTimeout(imgTimer));
-
-          if (imgResp.ok) {
-            const buffer = await imgResp.arrayBuffer();
-            const base64 = Buffer.from(buffer).toString("base64");
-            const mime = imgResp.headers.get("content-type") || "image/jpeg";
-            image = `data:${mime};base64,${base64}`;
-          }
-        } catch (b64Err) {
-          console.warn(
-            "⚠️ Error converting Instagram image to base64:",
-            b64Err.message
-          );
-        }
+        image = await this.inlineImageAsDataUrl(image);
       }
 
       let siteName = parsedSiteName;
@@ -910,6 +1067,8 @@ class OpenGraphService {
         siteName = "TikTok";
       } else if (isInstagram) {
         siteName = "Instagram";
+      } else if (isFacebook) {
+        siteName = "Facebook";
       } else if (isYouTube) {
         siteName = "YouTube";
       } else if (isSteam) {
@@ -930,7 +1089,7 @@ class OpenGraphService {
       let mediaType = "website";
       let aspectRatio = "16:9";
 
-      const ttId = this.extractTikTokId(targetUrl);
+      const ttId = this.extractTikTokId(targetUrl) || this.extractTikTokId(fetchResult?.finalUrl);
       const igInfo = this.extractInstagramId(targetUrl);
 
       if (ytId) {
@@ -938,19 +1097,41 @@ class OpenGraphService {
         embedUrl = `https://www.youtube.com/embed/${ytId}`;
         aspectRatio = targetUrl.includes("/shorts/") ? "9:16" : "16:9";
       } else if (ttId) {
-        mediaType = "video";
-        embedUrl = `https://www.tiktok.com/embed/v2/${ttId}`;
+        mediaType = "tiktok";
+        embedUrl = `https://www.tiktok.com/player/v1/${ttId}?embed_from=oembed&music_info=1&description=1&autoplay=1`;
         aspectRatio = "9:16";
       } else if (igInfo) {
-        mediaType = "video";
         embedUrl = `https://www.instagram.com/${igInfo.type}/${igInfo.id}/embed`;
-        aspectRatio = igInfo.type === "reel" ? "9:16" : "1:1";
+        if (igInfo.type === "reel" || video) {
+          mediaType = "video";
+          aspectRatio = "9:16";
+        } else {
+          mediaType = image ? "image" : "website";
+          aspectRatio = "1:1";
+        }
+      } else if (isFacebook) {
+        const isFbVideo =
+          Boolean(video) ||
+          targetUrl.includes("/reel/") ||
+          targetUrl.includes("/share/r/") ||
+          targetUrl.includes("/share/v/") ||
+          targetUrl.includes("/videos/") ||
+          hostname.includes("fb.watch");
+        if (isFbVideo) {
+          mediaType = "video";
+          aspectRatio = targetUrl.includes("/reel/") || targetUrl.includes("/share/r/") ? "9:16" : "16:9";
+        } else if (image) {
+          mediaType = "image";
+        }
       } else if (isTenor) {
         mediaType = "gif";
         aspectRatio = "1:1";
-      } else if (video || isTikTok || isInstagram) {
-        mediaType = "video";
-        aspectRatio = isTikTok || (isInstagram && targetUrl.includes("reel")) ? "9:16" : "16:9";
+      } else if (video || isTikTok) {
+        mediaType = isTikTok ? "tiktok" : "video";
+        aspectRatio = isTikTok ? "9:16" : "16:9";
+      } else if (isInstagram) {
+        mediaType = image ? "image" : "website";
+        aspectRatio = "1:1";
       } else if (audio) {
         mediaType = "audio";
       } else if (image) {
